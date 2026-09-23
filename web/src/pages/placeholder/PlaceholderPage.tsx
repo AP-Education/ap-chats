@@ -1,6 +1,6 @@
 import { Empty, Typography } from 'antd';
 
-export function PlaceholderPage({ title }: { title: string }) {
+export default function PlaceholderPage({ title }: { title: string }) {
   return (
     <div style={{ maxWidth: 900 }}>
       <Typography.Title level={2}>{title}</Typography.Title>

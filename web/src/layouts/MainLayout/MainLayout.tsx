@@ -1,6 +1,6 @@
 import { MenuOutlined } from '@ant-design/icons';
-import { Button, Drawer, Grid, Layout, Typography } from 'antd';
-import { useState } from 'react';
+import { Button, Drawer, Grid, Layout, Spin, Typography } from 'antd';
+import { Suspense, useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 
 import styles from './MainLayout.module.css';
@@ -33,7 +33,9 @@ export function MainLayout() {
       <Layout className={styles.mainArea}>
         {!isMobile && <MainSider />}
         <Layout.Content className={styles.content}>
-          <Outlet />
+          <Suspense fallback={<Spin size="large" />}>
+            <Outlet />
+          </Suspense>
         </Layout.Content>
       </Layout>
       <Drawer

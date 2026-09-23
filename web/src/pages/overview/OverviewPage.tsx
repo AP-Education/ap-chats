@@ -1,6 +1,6 @@
 import { Alert, Card, Col, Row, Space, Typography } from 'antd';
 
-export function OverviewPage() {
+export default function OverviewPage() {
   return (
     <div style={{ maxWidth: 1000 }}>
       <Typography.Title level={2}>Розмови команди в одному місці</Typography.Title>
