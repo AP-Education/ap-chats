@@ -1,0 +1,14 @@
+packages:
+  - web
+  - mobile
+
+minimumReleaseAgeExclude:
+  - '@nestjs/cli@12.0.5'
+  - '@nestjs/config@12.0.1'
+  - dotenv@18.0.3
+  - '@nestjs/common@12.1.0'
+  - '@nestjs/core@12.1.0'
+  - '@nestjs/platform-fastify@12.1.0'
+
+allowBuilds:
+  esbuild: true

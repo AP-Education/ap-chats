@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+.expo/
+.turbo/
+*.tsbuildinfo
+.vite/
+.husky/_/
+.pnpm-store/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+mobile/android/
+mobile/ios/
