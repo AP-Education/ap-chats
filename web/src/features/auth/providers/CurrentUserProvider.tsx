@@ -2,7 +2,7 @@ import type { PropsWithChildren } from 'react';
 import { useAuth } from 'react-oidc-context';
 
 import { getAppShell } from '../../../lib/app-shell';
-import { requestNativeSignOut } from '../api/native-bridge';
+import { refreshNativeToken, requestNativeSignOut } from '../api/native-bridge';
 import { oidcConfigured } from '../api/oidc-config';
 import { useNativeAuthBridge } from '../hooks/useNativeAuthBridge';
 import { CurrentUserContext } from '../stores/current-user-context';
@@ -42,6 +42,7 @@ function NativeCurrentUserProvider({ children }: PropsWithChildren) {
           accessToken: native.accessToken,
           profile: native.profile,
           signOut: requestNativeSignOut,
+          refreshAccessToken: refreshNativeToken,
         }
       : native.status === 'unavailable'
         ? { status: 'unavailable' }

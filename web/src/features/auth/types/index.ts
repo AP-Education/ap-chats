@@ -8,7 +8,7 @@ export interface NativeAuthTokenPayload {
 export type NativeToWebMessage =
   { type: 'auth/token'; payload: NativeAuthTokenPayload } | { type: 'auth/unavailable' };
 
-export type WebToNativeMessage = { type: 'auth/sign-out' };
+export type WebToNativeMessage = { type: 'auth/sign-out' } | { type: 'auth/refresh-request' };
 
 interface NativeBridge {
   onMessage?: (message: NativeToWebMessage) => void;
@@ -17,7 +17,7 @@ interface NativeBridge {
 
 declare global {
   interface Window {
-    ApConnectNative?: NativeBridge;
+    ApAppNative?: NativeBridge;
     ReactNativeWebView?: { postMessage: (data: string) => void };
   }
 }
@@ -37,4 +37,6 @@ export type CurrentUserState =
       accessToken: string;
       profile?: CurrentUserProfile;
       signOut: () => void;
+      /** Undefined where the active provider has no way to refresh on demand (e.g. OIDC today). */
+      refreshAccessToken?: () => Promise<string>;
     };
