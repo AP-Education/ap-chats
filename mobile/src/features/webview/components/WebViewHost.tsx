@@ -5,9 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 
 import { useAuthStore } from '../../auth/index';
+import { unregisterCurrentDevice } from '../../push/api/unregister-current-device';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
 import { buildBridgeScript } from '../utils/inject-bridge';
 import { APP_SHELL_USER_AGENT } from '../utils/shell-user-agent';
+import { ConnectionErrorScreen } from './ConnectionErrorScreen';
 import { SetupScreen } from './SetupScreen';
 
 const webUrl = process.env.EXPO_PUBLIC_WEB_URL;
@@ -21,9 +23,7 @@ export function WebViewHost() {
   // re-fires on every reload since the injected globals don't survive one.
   const [loadCount, setLoadCount] = useState(0);
 
-  // The WebView never fetches or refreshes its own token — AuthStore does that
-  // natively (including while the WebView is backgrounded) and this just forwards the
-  // result. web/src/app/auth/useNativeAuthBridge.ts is the receiving end.
+  // Pushes the current token into web/ whenever it changes (sign-in, refresh).
   useEffect(() => {
     if (loadCount === 0) return;
 
@@ -56,7 +56,12 @@ export function WebViewHost() {
       return;
     }
     if (message.type === 'auth/sign-out') {
-      void useAuthStore.getState().signOut();
+      // Unregister first — the access token is still valid at this point; once
+      // signOut() clears it, there's nothing left to authorize the DELETE with.
+      void unregisterCurrentDevice().finally(() => void useAuthStore.getState().signOut());
+    } else if (message.type === 'auth/refresh-request') {
+      // Updates the store; the effect above picks up the new token and re-injects it.
+      void useAuthStore.getState().refreshNow();
     }
   }
 
@@ -76,6 +81,7 @@ export function WebViewHost() {
         applicationNameForUserAgent={APP_SHELL_USER_AGENT}
         onMessage={handleMessage}
         onLoadEnd={() => setLoadCount((count) => count + 1)}
+        renderError={() => <ConnectionErrorScreen onRetry={() => webViewRef.current?.reload()} />}
       />
       <StatusBar style="dark" />
     </SafeAreaView>

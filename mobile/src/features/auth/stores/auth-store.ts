@@ -8,6 +8,7 @@ interface AuthActions {
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   restore: () => Promise<void>;
+  refreshNow: () => Promise<void>;
 }
 
 export type AuthStoreState = AuthState & AuthActions;
@@ -86,6 +87,13 @@ export function createAuthStore(
         await tokenStore.clear();
         await session.signOut();
         set({ status: 'signed-out' });
+      },
+
+      // Triggered by web/ over the bridge on a 401 — doesn't wait for the schedule,
+      // which can't fire while the app was backgrounded past the token's TTL.
+      async refreshNow() {
+        const state = get();
+        if (state.status === 'signed-in') await refresh(state.tokens);
       },
     };
   });
