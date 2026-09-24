@@ -1,5 +1,5 @@
 // Mirrors mobile/src/features/webview/utils/shellUserAgent.ts.
-const SHELL_USER_AGENT_TOKENS = { mobile: 'ApConnectMobile/' } as const;
+const SHELL_USER_AGENT_TOKENS = { mobile: 'ApAppMobile/' } as const;
 
 export type AppShell =
   { kind: 'browser' } | { kind: 'mobile'; platform: 'ios' | 'android' | 'unknown' };

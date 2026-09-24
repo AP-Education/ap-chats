@@ -11,12 +11,12 @@ export type NativeAuthState =
       profile?: { name?: string; picture?: string; sub?: string };
     };
 
-// Drains window.ApConnectNative.queue on mount to cover messages native sent before this listener was registered.
+// Drains window.ApAppNative.queue on mount to cover messages native sent before this listener was registered.
 export function useNativeAuthBridge(): NativeAuthState {
   const [state, setState] = useState<NativeAuthState>({ status: 'signed-out' });
 
   useEffect(() => {
-    const bridge = (window.ApConnectNative ??= {});
+    const bridge = (window.ApAppNative ??= {});
 
     function handle(message: NativeToWebMessage) {
       if (message.type === 'auth/unavailable') {
