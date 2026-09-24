@@ -1,10 +1,4 @@
-/**
- * Contract for native <-> web bridge messages. mobile/ and web/ are separate packages
- * with separate releases (see README "Структура"), so this file — and its web-side
- * mirror in web/src/app/auth/nativeBridge.ts — is the one place both sides need to stay
- * in sync on. Keep it additive (new message types, not renamed fields) so an older web
- * build stays compatible with a newer native build and vice versa.
- */
+// Bridge protocol: mirrors web/src/features/auth/types/index.ts. Keep additive.
 export interface NativeAuthTokenPayload {
   accessToken: string;
   expiresAt: number;
@@ -17,5 +11,4 @@ export type NativeToWebMessage =
   /** Native has no OIDC client configured (e.g. local dev) — no token is coming, ever. */
   | { type: 'auth/unavailable' };
 
-/** Sent via window.ReactNativeWebView.postMessage from web/src/app/auth/nativeBridge.ts. */
-export type WebToNativeMessage = { type: 'auth/sign-out' };
+export type WebToNativeMessage = { type: 'auth/sign-out' } | { type: 'auth/refresh-request' };

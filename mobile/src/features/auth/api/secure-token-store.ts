@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 
 import type { TokenSet, TokenStore } from '../types';
 
-const KEY = 'ap-connect.tokens';
+const KEY = 'ap-app.tokens';
 
 /** SecureStore-backed TokenStore. Keychain on iOS, Keystore-backed EncryptedSharedPreferences on Android. */
 export class SecureTokenStore implements TokenStore {
