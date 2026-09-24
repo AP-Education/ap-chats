@@ -9,6 +9,7 @@ minimumReleaseAgeExclude:
   - '@nestjs/common@12.1.0'
   - '@nestjs/core@12.1.0'
   - '@nestjs/platform-fastify@12.1.0'
+  - expo-notifications@57.0.21
 
 allowBuilds:
   esbuild: true
