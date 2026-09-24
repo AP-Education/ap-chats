@@ -37,5 +37,6 @@ jobs:
           cache: true
       - run: pnpm lint
       - run: pnpm typecheck
+      - run: pnpm test
       - run: pnpm build
       - run: pnpm exec prettier --check src package.json eslint.config.mjs

@@ -2,12 +2,32 @@ import { z } from 'zod';
 
 // Adapted locally from backend-LMS/src/globals/config. Keep this copy small:
 // Connect owns its deployment settings and does not have a shared package yet.
-const schema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  API_PORT: z.coerce.number().int().min(1).max(65535).default(3211),
-  WEB_ORIGIN: z.url().default('http://localhost:5173'),
-  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
-});
+const schema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    API_PORT: z.coerce.number().int().min(1).max(65535).default(3211),
+    WEB_ORIGIN: z.url().default('http://localhost:5555'),
+    LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+    OIDC_ISSUER: z.preprocess((value) => value || undefined, z.url().optional()),
+    OIDC_AUDIENCE: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
+  })
+  .superRefine((config, context) => {
+    const oidc = [config.OIDC_ISSUER, config.OIDC_AUDIENCE];
+    if (config.NODE_ENV === 'production' || oidc.some(Boolean)) {
+      for (const key of ['OIDC_ISSUER', 'OIDC_AUDIENCE'] as const) {
+        if (!config[key]) {
+          context.addIssue({ code: 'custom', path: [key], message: 'Required for OIDC' });
+        }
+      }
+    }
+    if (config.NODE_ENV === 'production' && config.OIDC_ISSUER?.startsWith('http:')) {
+      context.addIssue({
+        code: 'custom',
+        path: ['OIDC_ISSUER'],
+        message: 'HTTPS is required in production',
+      });
+    }
+  });
 
 export type AppConfig = z.infer<typeof schema>;
 

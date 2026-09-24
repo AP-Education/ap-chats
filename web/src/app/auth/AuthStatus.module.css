@@ -1,0 +1,20 @@
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ant-color-text);
+  cursor: pointer;
+}
+
+.trigger :global(.ant-avatar) {
+  border: 1px solid var(--ant-color-border);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 4px;
+  border-radius: 4px;
+}

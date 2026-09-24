@@ -5,6 +5,7 @@ import { overviewRoute } from '../pages/overview/route';
 import { placeholderRoutes } from '../pages/placeholder/route';
 
 const router = createBrowserRouter([
+  { path: 'auth/callback', lazy: () => import('../pages/auth/CallbackPage') },
   {
     Component: MainLayout,
     children: [overviewRoute, ...placeholderRoutes],

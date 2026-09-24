@@ -39,6 +39,7 @@ export default defineConfig(
     files: ['src/**/*.ts', '*.{js,mjs,ts}'],
     languageOptions: {
       globals: { ...globals.node, ...globals.es2023 },
+      parserOptions: { experimentalDecorators: true, emitDecoratorMetadata: true },
     },
   },
   {
