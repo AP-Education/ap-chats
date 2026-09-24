@@ -1,7 +1,7 @@
 import { Button, Result, Spin } from 'antd';
 import { useAuth } from 'react-oidc-context';
 
-import { oidcConfigured } from '../../app/providers/OidcProvider';
+import { oidcConfigured } from '../../features/auth/api/oidc-config';
 
 export function Component() {
   if (!oidcConfigured) {

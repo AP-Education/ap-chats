@@ -3,7 +3,7 @@ import { Button, Drawer, Grid, Layout, Spin, theme } from 'antd';
 import { Suspense, useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 
-import { AuthStatus } from '../../app/auth/AuthStatus';
+import { AuthStatus } from '../../features/auth/components/AuthStatus';
 import styles from './MainLayout.module.css';
 import { MainSider, MainSiderMenu } from './MainSider';
 

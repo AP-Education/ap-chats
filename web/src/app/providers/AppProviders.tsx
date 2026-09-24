@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { PropsWithChildren } from 'react';
 
-import { OidcProvider } from './OidcProvider';
+import { CurrentUserProvider } from '../../features/auth/providers/CurrentUserProvider';
 import { ThemeProvider } from './ThemeProvider';
 
 const queryClient = new QueryClient({
@@ -11,9 +11,9 @@ const queryClient = new QueryClient({
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
-      <OidcProvider>
+      <CurrentUserProvider>
         <ThemeProvider>{children}</ThemeProvider>
-      </OidcProvider>
+      </CurrentUserProvider>
     </QueryClientProvider>
   );
 }
