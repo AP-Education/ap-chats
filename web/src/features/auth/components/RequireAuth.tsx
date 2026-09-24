@@ -1,5 +1,6 @@
 import { Button, Result, Spin } from 'antd';
 import type { PropsWithChildren } from 'react';
+import { useEffect } from 'react';
 
 import { useCurrentUser } from '../stores/current-user-context';
 
@@ -8,8 +9,17 @@ import { useCurrentUser } from '../stores/current-user-context';
 export function RequireAuth({ children }: PropsWithChildren) {
   const user = useCurrentUser();
 
+  // Everything past this gate requires a session anyway, so skip the extra click and
+  // go straight to SSO — except after a failed attempt, where auto-retrying would just
+  // bounce the browser in a loop instead of showing what went wrong.
+  useEffect(() => {
+    if (user.status === 'signed-out' && !user.retry) {
+      user.signIn();
+    }
+  }, [user]);
+
   if (user.status === 'loading') {
-    return <Result icon={<Spin size="large" />} title="Завантаження…" />;
+    return <Result icon={<Spin size="large" />} title="Завантаження" />;
   }
 
   if (user.status === 'unavailable') {
@@ -23,17 +33,20 @@ export function RequireAuth({ children }: PropsWithChildren) {
   }
 
   if (user.status === 'signed-out') {
-    return (
-      <Result
-        status="info"
-        title="Увійдіть, щоб продовжити"
-        extra={
-          <Button type="primary" onClick={user.signIn}>
-            {user.retry ? 'Спробувати увійти' : 'Увійти'}
-          </Button>
-        }
-      />
-    );
+    if (user.retry) {
+      return (
+        <Result
+          status="error"
+          title="Не вдалося увійти"
+          extra={
+            <Button type="primary" onClick={user.signIn}>
+              Спробувати ще раз
+            </Button>
+          }
+        />
+      );
+    }
+    return <Result icon={<Spin size="large" />} title="Перенаправляємо на вхід" />;
   }
 
   return <>{children}</>;
