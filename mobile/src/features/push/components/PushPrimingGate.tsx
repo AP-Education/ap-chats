@@ -34,7 +34,7 @@ export function PushPrimingGate({ children }: PropsWithChildren) {
   }
 
   if (visible === 'checking') {
-    return <GateScreen icon="notifications" title="Перевіряємо…" loading />;
+    return <GateScreen icon="notifications" title="Перевіряємо" loading />;
   }
   if (!visible) return <>{children}</>;
 

@@ -61,7 +61,11 @@ function OidcCurrentUserProvider({ children }: PropsWithChildren) {
           status: 'signed-in',
           accessToken: auth.user.access_token,
           profile: toProfile(auth.user.profile),
-          signOut: () => void auth.removeUser(),
+          signOut: () =>
+            void auth.signoutRedirect({
+              id_token_hint: auth.user?.id_token,
+              post_logout_redirect_uri: window.location.origin,
+            }),
         }
       : {
           status: 'signed-out',

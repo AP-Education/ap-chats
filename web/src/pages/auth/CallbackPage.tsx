@@ -28,5 +28,5 @@ function ConnectedCallbackPage() {
       />
     );
   }
-  return <Result icon={<Spin size="large" />} title="Зачекайте…" />;
+  return <Result icon={<Spin size="large" />} title="Зачекайте" />;
 }

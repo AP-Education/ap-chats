@@ -19,7 +19,7 @@ export function AuthGate({ children }: PropsWithChildren) {
   }
 
   if (auth.status === 'signing-in') {
-    return <GateScreen icon="people" title="Заходимо…" loading />;
+    return <GateScreen icon="people" title="Заходимо" loading />;
   }
 
   return (
