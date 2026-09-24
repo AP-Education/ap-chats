@@ -1,10 +1,16 @@
 import { Empty, Typography } from 'antd';
 
-export default function PlaceholderPage({ title }: { title: string }) {
+export default function PlaceholderPage({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
   return (
-    <div style={{ maxWidth: 900 }}>
+    <section className="page">
       <Typography.Title level={2}>{title}</Typography.Title>
-      <Empty description="Цей розділ з’явиться під час реалізації MVP" />
-    </div>
+      <Empty description={description} />
+    </section>
   );
 }

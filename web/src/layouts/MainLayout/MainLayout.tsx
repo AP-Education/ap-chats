@@ -1,51 +1,59 @@
 import { MenuOutlined } from '@ant-design/icons';
-import { Button, Drawer, Grid, Layout, Spin, Typography } from 'antd';
+import { Button, Drawer, Grid, Layout, Spin, theme } from 'antd';
 import { Suspense, useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 
+import { AuthStatus } from '../../app/auth/AuthStatus';
 import styles from './MainLayout.module.css';
-import { MainSider } from './MainSider';
+import { MainSider, MainSiderMenu } from './MainSider';
 
 export function MainLayout() {
   const screens = Grid.useBreakpoint();
+  const { token } = theme.useToken();
   const isMobile = !screens.md;
   const [isMenuOpen, setMenuOpen] = useState(false);
 
   return (
     <Layout className={styles.layout}>
       <Layout.Header className={styles.header}>
-        {isMobile && (
-          <Button
-            type="text"
-            icon={<MenuOutlined />}
-            aria-label="Відкрити меню"
-            onClick={() => setMenuOpen(true)}
-          />
-        )}
-        <Link to="/" className={styles.brand}>
-          <span className={styles.brandMark}>AP</span>
-          <span>Connect</span>
-        </Link>
-        <Typography.Text type="secondary" className={styles.phase}>
-          Готуємо MVP
-        </Typography.Text>
+        <div className={styles.headerContent}>
+          <div className={styles.headerLeft}>
+            {isMobile && (
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
+                aria-label="Відкрити меню"
+                className={styles.menuButton}
+                onClick={() => setMenuOpen(true)}
+              />
+            )}
+            <Link to="/" className={styles.brand} aria-label="AP Connect">
+              <span className={styles.brandMark}>AP</span>
+            </Link>
+          </div>
+          <AuthStatus />
+        </div>
       </Layout.Header>
       <Layout className={styles.mainArea}>
         {!isMobile && <MainSider />}
-        <Layout.Content className={styles.content}>
+        <Layout.Content
+          className={styles.content}
+          style={{ padding: isMobile ? 0 : token.padding }}
+        >
           <Suspense fallback={<Spin size="large" />}>
             <Outlet />
           </Suspense>
         </Layout.Content>
       </Layout>
       <Drawer
-        title="AP Connect"
+        title="Меню"
         placement="left"
         open={isMobile && isMenuOpen}
         onClose={() => setMenuOpen(false)}
-        width={280}
+        width={320}
+        className={styles.mobileDrawer}
       >
-        <MainSider mobile onNavigate={() => setMenuOpen(false)} />
+        <MainSiderMenu onNavigate={() => setMenuOpen(false)} />
       </Drawer>
     </Layout>
   );

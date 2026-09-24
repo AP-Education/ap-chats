@@ -4,7 +4,8 @@ import {
   NumberOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
-import { Layout, Menu, Typography } from 'antd';
+import { Layout, Menu } from 'antd';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 import styles from './MainLayout.module.css';
@@ -20,27 +21,46 @@ const items = [
   { key: '/calls', icon: <VideoCameraOutlined />, label: <Link to="/calls">Дзвінки</Link> },
 ];
 
-export function MainSider({
-  mobile = false,
-  onNavigate,
-}: {
-  mobile?: boolean;
-  onNavigate?: () => void;
-}) {
+export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
-  const menu = (
-    <div className={styles.sidebarContent}>
-      <Typography.Text type="secondary" className={styles.sidebarLabel}>
-        РОБОЧИЙ ПРОСТІР
-      </Typography.Text>
-      <Menu mode="inline" selectedKeys={[pathname]} items={items} onClick={onNavigate} />
-    </div>
+  return (
+    <Menu
+      mode="inline"
+      selectedKeys={[pathname]}
+      items={items}
+      onClick={onNavigate}
+      className={styles.sidebarMenu}
+    />
   );
-  return mobile ? (
-    menu
-  ) : (
-    <Layout.Sider width={256} theme="light" className={styles.sidebar}>
-      {menu}
+}
+
+export function MainSider() {
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem('sider-collapsed') === 'true',
+  );
+
+  function handleCollapse(value: boolean) {
+    setCollapsed(value);
+    localStorage.setItem('sider-collapsed', String(value));
+  }
+
+  return (
+    <Layout.Sider
+      className={styles.sidebar}
+      collapsible
+      theme="light"
+      collapsed={collapsed}
+      collapsedWidth={72}
+      width={collapsed ? 72 : 264}
+      style={{
+        width: collapsed ? 72 : 264,
+        minWidth: collapsed ? 72 : 264,
+        height: '100%',
+        overflow: 'auto',
+      }}
+      onCollapse={handleCollapse}
+    >
+      <MainSiderMenu />
     </Layout.Sider>
   );
 }

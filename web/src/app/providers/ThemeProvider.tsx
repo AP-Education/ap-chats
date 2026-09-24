@@ -7,22 +7,34 @@ function getTheme(isMobile: boolean): ThemeConfig {
     token: {
       colorPrimary: '#0c7d77',
       colorPrimaryBg: '#e6f4f3',
+      colorPrimaryBgHover: '#d2ebe8',
       colorPrimaryBorder: '#9fcfc9',
-      colorText: '#203333',
-      colorBorder: '#b4c9c6',
+      colorPrimaryBorderHover: '#7dbbb4',
+      controlItemBgActive: '#e6f4f3',
+      controlItemBgActiveHover: '#d2ebe8',
+      colorText: '#1f2f2d',
+      colorBorder: '#bcd5d2',
       borderRadius: 8,
       fontSize: 14,
       fontSizeHeading1: isMobile ? 28 : 38,
-      fontFamily: "'Ubuntu Sans', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      fontFamily:
+        'Ubuntu Sans, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial',
+      padding: 16,
     },
     components: {
       Layout: {
         headerBg: '#fff',
         siderBg: '#fff',
-        bodyBg: '#f4f8f7',
-        headerHeight: isMobile ? 56 : 64,
+        bodyBg: 'linear-gradient(135deg, #f3f9f8, #e7f2f1, #ddedec, #cee5e4)',
+        headerHeight: isMobile ? 48 : 64,
       },
       Card: { borderRadiusLG: isMobile ? 8 : 12 },
+      Menu: {
+        iconSize: isMobile ? 18 : 20,
+        activeBarBorderWidth: 0,
+        itemHeight: isMobile ? 36 : 40,
+        itemPaddingInline: isMobile ? 12 : 16,
+      },
     },
   };
 }

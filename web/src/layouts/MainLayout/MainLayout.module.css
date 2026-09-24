@@ -1,65 +1,100 @@
 .layout {
-  min-height: 100vh;
   height: 100vh;
   overflow: hidden;
 }
-.header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 24px;
-  border-bottom: 1px solid #e3eeec;
-  line-height: normal;
-}
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: #203333;
-  font-size: 17px;
-  font-weight: 700;
-  text-decoration: none;
-}
-.brandMark {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  color: #fff;
-  background: #0c7d77;
-  font-size: 13px;
-}
-.phase {
-  margin-left: auto;
-  font-size: 12px;
-}
+
 .mainArea {
   min-height: 0;
+  overflow: hidden;
 }
-.sidebar {
-  border-right: 1px solid #e3eeec;
-  overflow-y: auto;
-}
-.sidebarContent {
-  padding: 20px 10px;
-}
-.sidebarLabel {
-  display: block;
-  margin: 0 14px 12px;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-}
+
 .content {
-  min-width: 0;
+  min-height: 0;
   overflow-y: auto;
-  padding: 32px;
+  overflow-x: hidden;
+  position: relative;
 }
-@media (max-width: 767px) {
+
+.header {
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+  background: var(--ant-color-bg-container);
+  position: sticky;
+  top: 0;
+  z-index: 120;
+  height: auto;
+  min-height: 64px;
+  line-height: normal;
+}
+
+.headerContent {
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.menuButton {
+  margin-left: -8px;
+}
+
+.brand {
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.brandMark {
+  height: 46px;
+  width: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--ant-color-primary);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.sidebar {
+  border-right: 1px solid rgba(148, 163, 184, 0.25);
+  position: relative;
+  background: var(--ant-color-bg-container);
+}
+
+.sidebarMenu {
+  height: 100%;
+  background: var(--ant-color-bg-container);
+  border-inline-end: none !important;
+}
+
+.sidebarMenu :global(.ant-menu-title-content a) {
+  font-weight: 500;
+}
+
+.sidebar :global(.ant-layout-sider-trigger) {
+  border-top: 1px solid var(--ant-color-border);
+  border-right: 1px solid var(--ant-color-border);
+}
+
+.mobileDrawer :global(.ant-drawer-header) {
+  padding: 16px;
+}
+
+.mobileDrawer :global(.ant-drawer-body) {
+  padding: 8px 12px 20px;
+}
+
+@media (max-width: 991px) {
   .header {
     padding: 0 16px;
-  }
-  .content {
-    padding: 16px;
   }
 }

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu+Sans:ital,wght@0,100..800;1,100..800&display=swap');
+
 :root {
   font-family:
     'Ubuntu Sans',
@@ -6,9 +8,11 @@
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
-  color: #203333;
-  background: #f4f8f7;
+  color: #1f2f2d;
+  background: #f3f9f8;
   font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
@@ -17,7 +21,18 @@
 body {
   margin: 0;
   min-width: 320px;
+  min-height: 100vh;
 }
 #root {
   min-height: 100vh;
+}
+
+.page {
+  max-width: 1000px;
+}
+
+@media (max-width: 767px) {
+  .page {
+    padding: 16px;
+  }
 }
