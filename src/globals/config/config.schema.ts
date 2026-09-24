@@ -8,6 +8,7 @@ const schema = z
     API_PORT: z.coerce.number().int().min(1).max(65535).default(3211),
     WEB_ORIGIN: z.url().default('http://localhost:5555'),
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+    DATABASE_URL: z.url(),
     OIDC_ISSUER: z.preprocess((value) => value || undefined, z.url().optional()),
     OIDC_AUDIENCE: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
   })
