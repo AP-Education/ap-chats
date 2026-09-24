@@ -2,11 +2,7 @@ import { WebStorageStateStore } from 'oidc-client-ts';
 import type { PropsWithChildren } from 'react';
 import { AuthProvider } from 'react-oidc-context';
 
-const issuer = import.meta.env.VITE_OIDC_ISSUER?.trim();
-const clientId = import.meta.env.VITE_OIDC_CLIENT_ID?.trim();
-const audience = import.meta.env.VITE_OIDC_AUDIENCE?.trim();
-
-export const oidcConfigured = Boolean(issuer && clientId && audience);
+import { getOidcConfig } from '../api/oidc-config';
 
 function safeReturnTo(state: unknown): string {
   const value =
@@ -20,8 +16,9 @@ function safeReturnTo(state: unknown): string {
     : '/';
 }
 
+// Only rendered from CurrentUserProvider, which already guarantees OIDC is configured.
 export function OidcProvider({ children }: PropsWithChildren) {
-  if (!issuer || !clientId || !audience) return children;
+  const { issuer, clientId, audience } = getOidcConfig();
 
   return (
     <AuthProvider
