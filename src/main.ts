@@ -2,6 +2,7 @@ import 'reflect-metadata';
 
 import { randomUUID } from 'node:crypto';
 
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Logger } from 'nestjs-pino';
@@ -18,6 +19,9 @@ async function bootstrap(): Promise<void> {
     },
   );
   app.useLogger(app.get(Logger));
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+  );
   const config = app.get(AppConfigService);
   app.enableCors({ origin: config.get('WEB_ORIGIN') });
   app.setGlobalPrefix('api');
