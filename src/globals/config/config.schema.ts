@@ -8,11 +8,21 @@ const schema = z
     API_PORT: z.coerce.number().int().min(1).max(65535).default(3211),
     WEB_ORIGIN: z.url().default('http://localhost:5555'),
     LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+    LOG_TRANSPORT: z.enum(['json', 'pretty']).optional(),
+    LOG_TARGET_TYPE: z.enum(['stdout', 'file', 'both']).default('stdout'),
+    LOG_TARGET_DEST: z.string().min(1).optional(),
     DATABASE_URL: z.url(),
     OIDC_ISSUER: z.preprocess((value) => value || undefined, z.url().optional()),
     OIDC_AUDIENCE: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
   })
   .superRefine((config, context) => {
+    if (config.LOG_TARGET_TYPE !== 'stdout' && !config.LOG_TARGET_DEST) {
+      context.addIssue({
+        code: 'custom',
+        path: ['LOG_TARGET_DEST'],
+        message: 'Required for file logging',
+      });
+    }
     const oidc = [config.OIDC_ISSUER, config.OIDC_AUDIENCE];
     if (config.NODE_ENV === 'production' || oidc.some(Boolean)) {
       for (const key of ['OIDC_ISSUER', 'OIDC_AUDIENCE'] as const) {

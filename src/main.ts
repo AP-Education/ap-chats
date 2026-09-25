@@ -1,6 +1,8 @@
 import 'reflect-metadata';
 
 import { randomUUID } from 'node:crypto';
+import type { IncomingMessage } from 'node:http';
+import type { Http2ServerRequest } from 'node:http2';
 
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -13,7 +15,13 @@ import { AppConfigService } from './globals/config/config.service';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ genReqId: () => randomUUID() }),
+    new FastifyAdapter({
+      genReqId: (request: IncomingMessage | Http2ServerRequest) => {
+        const requestId = randomUUID();
+        (request as typeof request & { id?: string }).id = requestId;
+        return requestId;
+      },
+    }),
     {
       bufferLogs: true,
     },

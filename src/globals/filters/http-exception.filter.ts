@@ -6,7 +6,8 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { Logger } from 'nestjs-pino';
+
+import { Logger } from '../logger/logger.interface';
 
 interface ErrorBody {
   statusCode: number;
