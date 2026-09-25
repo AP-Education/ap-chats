@@ -15,7 +15,7 @@ function getTheme(isMobile: boolean): ThemeConfig {
       colorText: '#1f2f2d',
       colorBorder: '#bcd5d2',
       borderRadius: 8,
-      fontSize: 14,
+      fontSize: isMobile ? 16 : 14,
       fontSizeHeading1: isMobile ? 28 : 38,
       fontFamily:
         'Ubuntu Sans, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial',
@@ -30,10 +30,18 @@ function getTheme(isMobile: boolean): ThemeConfig {
       },
       Card: { borderRadiusLG: isMobile ? 8 : 12 },
       Menu: {
-        iconSize: isMobile ? 18 : 20,
+        iconSize: 20,
         activeBarBorderWidth: 0,
-        itemHeight: isMobile ? 36 : 40,
+        itemHeight: 46,
         itemPaddingInline: isMobile ? 12 : 16,
+      },
+      // The component token, not a CSS override: Drawer injects its own
+      // `.ant-drawer-body { padding: paddingLG }` rule lazily (on first open),
+      // which can land in the stylesheet after ours and win the tie — setting
+      // the token itself sidesteps that race entirely.
+      Drawer: {
+        padding: 0,
+        paddingLG: 0,
       },
     },
   };

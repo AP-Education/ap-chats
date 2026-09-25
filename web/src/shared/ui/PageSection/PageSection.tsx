@@ -9,6 +9,10 @@ const useStyles = createStyles(({ token, css }) => ({
     padding: ${token.paddingLG}px;
     background: ${token.colorBgContainer};
     border-radius: ${token.borderRadiusLG}px;
+
+    @media (max-width: ${token.screenMD}px) {
+      padding: ${token.paddingSM}px;
+    }
   `,
 }));
 

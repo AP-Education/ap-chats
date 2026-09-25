@@ -1,4 +1,4 @@
-import { MenuOutlined } from '@ant-design/icons';
+import { ListIcon } from '@phosphor-icons/react';
 import { Button, Drawer, Grid, Layout, Spin, theme } from 'antd';
 import { Suspense, useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
@@ -6,10 +6,11 @@ import { Link, Outlet } from 'react-router-dom';
 import { AuthStatus } from '../../features/auth/components/AuthStatus';
 import { ConnectionBanner } from '../../features/realtime/components/ConnectionBanner';
 import { PageSection } from '../../shared/ui/PageSection/PageSection';
-import styles from './MainLayout.module.css';
 import { MainSider, MainSiderMenu } from './MainSider';
+import { useMainLayoutStyles } from './useMainLayoutStyles';
 
 export function MainLayout() {
+  const { styles } = useMainLayoutStyles();
   const screens = Grid.useBreakpoint();
   const { token } = theme.useToken();
   const isMobile = !screens.md;
@@ -23,7 +24,7 @@ export function MainLayout() {
             {isMobile && (
               <Button
                 type="text"
-                icon={<MenuOutlined />}
+                icon={<ListIcon />}
                 aria-label="Відкрити меню"
                 className={styles.menuButton}
                 onClick={() => setMenuOpen(true)}
@@ -51,7 +52,17 @@ export function MainLayout() {
         </Layout.Content>
       </Layout>
       <Drawer
-        title="Меню"
+        title={
+          <Link
+            to="/"
+            className={styles.brand}
+            aria-label="AP Connect"
+            onClick={() => setMenuOpen(false)}
+          >
+            <span className={styles.brandMark}>AP</span>
+            <span className={styles.brandText}>AP Connect</span>
+          </Link>
+        }
         placement="left"
         open={isMobile && isMenuOpen}
         onClose={() => setMenuOpen(false)}
