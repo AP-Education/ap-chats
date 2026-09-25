@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 
-import { DrizzleService } from '../../../database/drizzle';
-import { devices } from '../../../database/drizzle/schema';
+import { DrizzleService } from '@/database/drizzle';
+import { devices } from '@/database/drizzle/schema';
+
 import type { RegisterDeviceDto } from '../dto/register-device.dto';
 import { DevicesRepository } from './devices.repository';
 

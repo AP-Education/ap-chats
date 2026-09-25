@@ -2,8 +2,10 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 
 import { AuthModule } from '@/components/auth';
-import { BootstrapModule } from '@/components/bootstrap/bootstrap.module';
-import { DevicesModule } from '@/components/devices/devices.module';
+import { BootstrapModule } from '@/components/bootstrap';
+import { DevicesModule } from '@/components/devices';
+import { UploadsModule } from '@/components/uploads';
+import { WorkspacesModule } from '@/components/workspaces';
 import { DrizzleModule } from '@/database/drizzle';
 import { AppConfigModule } from '@/globals/config';
 import { HttpExceptionFilter } from '@/globals/filters/http-exception.filter';
@@ -17,6 +19,8 @@ import { HealthController } from '@/health/health.controller';
     DrizzleModule,
     AuthModule,
     DevicesModule,
+    UploadsModule,
+    WorkspacesModule,
     BootstrapModule,
   ],
   controllers: [HealthController],

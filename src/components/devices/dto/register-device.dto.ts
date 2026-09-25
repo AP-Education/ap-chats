@@ -1,6 +1,6 @@
 import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
-import { platformEnum } from '../../../database/drizzle/schema';
+import { platformEnum } from '@/database/drizzle/schema';
 
 export class RegisterDeviceDto {
   @IsString()

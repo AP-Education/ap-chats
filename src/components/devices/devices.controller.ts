@@ -1,8 +1,7 @@
 import { Body, Controller, Delete, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
 
-import type { AuthenticatedUser } from '../auth/access-token';
-import { CurrentUser } from '../auth/decorator/current-user.decorator';
-import { AuthGuard } from '../auth/guards/auth.guard';
+import { type AuthenticatedUser, AuthGuard, CurrentUser } from '@/components/auth';
+
 import { DevicesService } from './devices.service';
 import { RegisterDeviceDto } from './dto/register-device.dto';
 

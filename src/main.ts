@@ -23,6 +23,7 @@ async function bootstrap(): Promise<void> {
         (request as typeof request & { id?: string }).id = requestId;
         return requestId;
       },
+      multipart: { limits: { fileSize: 25 * 1024 * 1024 } },
     }),
     {
       bufferLogs: true,

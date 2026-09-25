@@ -14,6 +14,10 @@ const schema = z
     DATABASE_URL: z.url(),
     OIDC_ISSUER: z.preprocess((value) => value || undefined, z.url().optional()),
     OIDC_AUDIENCE: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
+    DIGITAL_OCEAN_SPACES_ENDPOINT: z.string().min(1),
+    DIGITAL_OCEAN_SPACES_ACCESS_KEY: z.string().min(1),
+    DIGITAL_OCEAN_SPACES_SECRET_KEY: z.string().min(1),
+    DIGITAL_OCEAN_SPACES_BUCKET: z.string().min(1),
   })
   .superRefine((config, context) => {
     if (config.LOG_TARGET_TYPE !== 'stdout' && !config.LOG_TARGET_DEST) {

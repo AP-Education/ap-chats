@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 
-import { DrizzleModule } from '../../database/drizzle';
-import { AuthModule } from '../auth/auth.module';
+import { AuthModule } from '@/components/auth';
+import { DrizzleModule } from '@/database/drizzle';
+
 import { DevicesController } from './devices.controller';
 import { DevicesService } from './devices.service';
 import { DevicesRepository, DrizzleDevicesRepository } from './repository';
