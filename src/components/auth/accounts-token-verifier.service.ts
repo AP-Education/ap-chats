@@ -2,7 +2,13 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { createRemoteJWKSet } from 'jose';
 
 import { AppConfigService } from '../../globals/config/config.service';
-import { type AccessTokenPolicy, type AuthenticatedUser, verifyAccessToken } from './access-token';
+import {
+  type AccessTokenPolicy,
+  type AuthenticatedSession,
+  type AuthenticatedUser,
+  verifyAccessToken,
+  verifyAccessTokenSession,
+} from './access-token';
 
 @Injectable()
 export class AccountsTokenVerifier {
@@ -22,9 +28,22 @@ export class AccountsTokenVerifier {
   }
 
   verify(token: string): Promise<AuthenticatedUser> {
+    const policy = this.requirePolicy();
+    return verifyAccessToken(token, policy.jwks, policy.token);
+  }
+
+  verifySession(token: string): Promise<AuthenticatedSession> {
+    const policy = this.requirePolicy();
+    return verifyAccessTokenSession(token, policy.jwks, policy.token);
+  }
+
+  private requirePolicy(): {
+    jwks: ReturnType<typeof createRemoteJWKSet>;
+    token: AccessTokenPolicy;
+  } {
     if (!this.policy || !this.jwks) {
       throw new ServiceUnavailableException('OIDC is not configured');
     }
-    return verifyAccessToken(token, this.jwks, this.policy);
+    return { jwks: this.jwks, token: this.policy };
   }
 }
