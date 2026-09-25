@@ -4,6 +4,8 @@ import { Suspense, useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 
 import { AuthStatus } from '../../features/auth/components/AuthStatus';
+import { ConnectionBanner } from '../../features/realtime/components/ConnectionBanner';
+import { PageSection } from '../../shared/ui/PageSection/PageSection';
 import styles from './MainLayout.module.css';
 import { MainSider, MainSiderMenu } from './MainSider';
 
@@ -34,14 +36,17 @@ export function MainLayout() {
           <AuthStatus />
         </div>
       </Layout.Header>
+      <ConnectionBanner />
       <Layout className={styles.mainArea}>
         {!isMobile && <MainSider />}
         <Layout.Content
           className={styles.content}
-          style={{ padding: isMobile ? 0 : token.padding }}
+          style={{ padding: isMobile ? 0 : token.paddingXS }}
         >
           <Suspense fallback={<Spin size="large" />}>
-            <Outlet />
+            <PageSection>
+              <Outlet />
+            </PageSection>
           </Suspense>
         </Layout.Content>
       </Layout>
