@@ -1,7 +1,8 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { createRemoteJWKSet } from 'jose';
 
-import { AppConfigService } from '../../globals/config/config.service';
+import { AppConfigService } from '@/globals/config';
+
 import {
   type AccessTokenPolicy,
   type AuthenticatedSession,
