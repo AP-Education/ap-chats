@@ -9,9 +9,10 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Logger } from 'nestjs-pino';
 
+import { AppConfigService } from '@/globals/config';
+import { ConnectSocketIoAdapter } from '@/globals/realtime';
+
 import { AppModule } from './app.module';
-import { AppConfigService } from './globals/config/config.service';
-import { ConnectSocketIoAdapter } from './globals/realtime/socket-io.adapter';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(

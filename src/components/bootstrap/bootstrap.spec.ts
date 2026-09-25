@@ -5,13 +5,11 @@ import { after, before, test } from 'node:test';
 import { Server } from 'socket.io';
 import { io, type Socket as ClientSocket } from 'socket.io-client';
 
-import type { AccountsTokenVerifier } from '../components/auth/accounts-token-verifier.service';
-import type { Logger } from '../globals/logger/logger.interface';
-import { RealtimeRooms } from '../globals/realtime/realtime-rooms';
-import { SocketIoRealtimePublisher } from '../globals/realtime/socket-io-realtime.publisher';
-import { SocketAuthService } from './auth/socket-auth.service';
-import { BootstrapGateway } from './bootstrap/bootstrap.gateway';
-import { BootstrapService } from './bootstrap/bootstrap.service';
+import type { AccountsTokenVerifier } from '@/components/auth';
+import type { Logger } from '@/globals/logger';
+import { RealtimeRooms, SocketIoRealtimePublisher } from '@/globals/realtime';
+
+import { BootstrapGateway } from './bootstrap.gateway';
 
 let httpServer: HttpServer;
 let socketServer: Server;
@@ -36,8 +34,7 @@ before(async () => {
     },
   } as AccountsTokenVerifier;
   const logger = { child: () => ({ warn() {}, error() {} }) } as unknown as Logger;
-  const auth = new SocketAuthService(verifier, logger);
-  const gateway = new BootstrapGateway(auth, new BootstrapService(auth, logger), publisher);
+  const gateway = new BootstrapGateway(verifier, publisher, logger);
   const namespace = socketServer.of('/connect');
   gateway.afterInit(namespace);
   namespace.on('connection', (socket) => {
