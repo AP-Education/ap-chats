@@ -11,6 +11,7 @@ import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
 import { AppConfigService } from './globals/config/config.service';
+import { ConnectSocketIoAdapter } from './globals/realtime/socket-io.adapter';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -32,6 +33,7 @@ async function bootstrap(): Promise<void> {
   );
   const config = app.get(AppConfigService);
   app.enableCors({ origin: config.get('WEB_ORIGIN') });
+  app.useWebSocketAdapter(new ConnectSocketIoAdapter(app, config));
   app.setGlobalPrefix('api');
   await app.listen(config.get('API_PORT'), '0.0.0.0');
 }
