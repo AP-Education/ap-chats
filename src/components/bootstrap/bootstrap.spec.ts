@@ -22,13 +22,14 @@ before(async () => {
   socketServer = new Server(httpServer);
 
   const verifier = {
-    async verifySession(token: string) {
-      if (token === 'alice' || token === 'bob' || token === 'short') {
-        return {
-          sub: token,
-          appId: 'connect-app',
-          expiresAt: Math.floor(Date.now() / 1000) + (token === 'short' ? 1 : 60),
-        };
+    async verify(token: string) {
+      if (token === 'alice' || token === 'bob') {
+        return { sub: token, appId: 'connect-app' };
+      }
+      if (token === 'expired') {
+        const error = new Error('jwt expired') as Error & { code?: string };
+        error.code = 'ERR_JWT_EXPIRED';
+        throw error;
       }
       throw new Error('Invalid token');
     },
@@ -38,7 +39,6 @@ before(async () => {
   const namespace = socketServer.of('/connect');
   gateway.afterInit(namespace);
   namespace.on('connection', (socket) => {
-    socket.on('disconnect', () => gateway.handleDisconnect(socket));
     void gateway.handleConnection(socket);
   });
 
@@ -120,9 +120,10 @@ test('rejects missing and invalid handshake tokens before joining', { timeout: 5
   });
 });
 
-test('disconnects a socket when its verified access token expires', { timeout: 5000 }, async () => {
-  const socket = client('short');
-  await connect(socket);
-  await new Promise<void>((resolve) => socket.once('disconnect', () => resolve()));
-  assert.equal(socket.connected, false);
+test('classifies an already-expired handshake token', { timeout: 5000 }, async () => {
+  const expired = client('expired');
+  await assert.rejects(connect(expired), (error: Error & { data?: { code?: string } }) => {
+    assert.equal(error.data?.code, 'AUTH_TOKEN_EXPIRED');
+    return true;
+  });
 });

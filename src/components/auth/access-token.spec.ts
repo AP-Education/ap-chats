@@ -3,7 +3,7 @@ import { before, test } from 'node:test';
 
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from 'jose';
 
-import { verifyAccessToken, verifyAccessTokenSession } from './access-token';
+import { verifyAccessToken } from './access-token';
 
 const policy = { issuer: 'https://accounts.example.test', audience: 'ap-connect' };
 let privateKey: Awaited<ReturnType<typeof generateKeyPair>>['privateKey'];
@@ -44,13 +44,6 @@ test('accepts a signed Accounts token for this API', async () => {
     sub: 'user-123',
     appId: 'web',
   });
-});
-
-test('returns the verified expiration for a persistent realtime connection', async () => {
-  const session = await verifyAccessTokenSession(await signToken(), jwks, policy);
-  assert.equal(session.sub, 'user-123');
-  assert.equal(session.appId, 'web');
-  assert.ok(session.expiresAt > Date.now() / 1000);
 });
 
 test('rejects a token from another issuer', async () => {

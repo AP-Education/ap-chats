@@ -3,13 +3,7 @@ import { createRemoteJWKSet } from 'jose';
 
 import { AppConfigService } from '@/globals/config';
 
-import {
-  type AccessTokenPolicy,
-  type AuthenticatedSession,
-  type AuthenticatedUser,
-  verifyAccessToken,
-  verifyAccessTokenSession,
-} from './access-token';
+import { type AccessTokenPolicy, type AuthenticatedUser, verifyAccessToken } from './access-token';
 
 @Injectable()
 export class AccountsTokenVerifier {
@@ -31,11 +25,6 @@ export class AccountsTokenVerifier {
   verify(token: string): Promise<AuthenticatedUser> {
     const policy = this.requirePolicy();
     return verifyAccessToken(token, policy.jwks, policy.token);
-  }
-
-  verifySession(token: string): Promise<AuthenticatedSession> {
-    const policy = this.requirePolicy();
-    return verifyAccessTokenSession(token, policy.jwks, policy.token);
   }
 
   private requirePolicy(): {

@@ -4,8 +4,6 @@ import type { AuthenticatedUser } from '@/components/auth';
 
 export interface ConnectSocketData {
   principal?: AuthenticatedUser;
-  expiresAt?: number;
-  expiryTimer?: ReturnType<typeof setTimeout>;
 }
 
 export type ConnectSocket = Socket<

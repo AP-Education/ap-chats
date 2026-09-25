@@ -1,9 +1,4 @@
-import {
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  OnGatewayInit,
-  WebSocketGateway,
-} from '@nestjs/websockets';
+import { OnGatewayConnection, OnGatewayInit, WebSocketGateway } from '@nestjs/websockets';
 import type { Namespace } from 'socket.io';
 
 import { AccountsTokenVerifier } from '@/components/auth';
@@ -24,7 +19,7 @@ class SocketAuthError extends Error {
 }
 
 @WebSocketGateway({ namespace: '/connect' })
-export class BootstrapGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class BootstrapGateway implements OnGatewayInit, OnGatewayConnection {
   constructor(
     private readonly tokens: AccountsTokenVerifier,
     private readonly publisher: SocketIoRealtimePublisher,
@@ -40,14 +35,13 @@ export class BootstrapGateway implements OnGatewayInit, OnGatewayConnection, OnG
 
   async handleConnection(socket: ConnectSocket): Promise<void> {
     const principal = socket.data.principal;
-    if (!principal || !socket.data.expiresAt) {
+    if (!principal) {
       socket.disconnect(true);
       return;
     }
 
     try {
       await socket.join(RealtimeRooms.user(principal.appId, principal.sub));
-      this.scheduleExpiry(socket);
       socket.emit('session:ready', { userId: principal.sub, appId: principal.appId });
     } catch (error) {
       this.logger
@@ -55,10 +49,6 @@ export class BootstrapGateway implements OnGatewayInit, OnGatewayConnection, OnG
         .error({ err: error }, 'Realtime connection setup failed');
       socket.disconnect(true);
     }
-  }
-
-  handleDisconnect(socket: ConnectSocket): void {
-    this.clearExpiry(socket);
   }
 
   private async authenticate(socket: ConnectSocket, next: (error?: Error) => void): Promise<void> {
@@ -69,9 +59,7 @@ export class BootstrapGateway implements OnGatewayInit, OnGatewayConnection, OnG
     }
 
     try {
-      const { sub, appId, expiresAt } = await this.tokens.verifySession(token);
-      socket.data.principal = { sub, appId };
-      socket.data.expiresAt = expiresAt;
+      socket.data.principal = await this.tokens.verify(token);
       next();
     } catch (error) {
       const expired =
@@ -82,23 +70,5 @@ export class BootstrapGateway implements OnGatewayInit, OnGatewayConnection, OnG
         .warn({ err: error }, 'Realtime authentication failed');
       next(new SocketAuthError(expired ? 'AUTH_TOKEN_EXPIRED' : 'AUTH_TOKEN_INVALID'));
     }
-  }
-
-  private scheduleExpiry(socket: ConnectSocket): void {
-    const remainingMs = (socket.data.expiresAt ?? 0) * 1000 - Date.now();
-    if (remainingMs <= 0) {
-      socket.emit('session:expired');
-      socket.disconnect(true);
-      return;
-    }
-
-    socket.data.expiryTimer = setTimeout(
-      () => this.scheduleExpiry(socket),
-      Math.min(remainingMs, 2_147_483_647),
-    );
-  }
-
-  private clearExpiry(socket: ConnectSocket): void {
-    if (socket.data.expiryTimer) clearTimeout(socket.data.expiryTimer);
   }
 }
