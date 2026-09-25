@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
-import { Logger } from '../logger/logger.interface';
+import { Logger } from '../logger';
 
 interface ErrorBody {
   statusCode: number;
