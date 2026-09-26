@@ -20,3 +20,14 @@ export interface UploadedFile {
   path: string;
   url: string;
 }
+
+export interface WorkspaceMember {
+  id: string;
+  workspaceId: string;
+  userId: string;
+  role: 'owner' | 'member';
+  status: 'active' | 'removed';
+  leftAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
