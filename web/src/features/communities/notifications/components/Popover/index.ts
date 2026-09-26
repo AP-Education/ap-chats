@@ -1,0 +1,1 @@
+export { ChannelNotificationsPopover } from './ChannelNotificationsPopover';
