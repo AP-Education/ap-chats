@@ -3,6 +3,7 @@ import { APP_FILTER } from '@nestjs/core';
 
 import { AuthModule } from '@/components/auth';
 import { BootstrapModule } from '@/components/bootstrap';
+import { CommunitiesModule } from '@/components/communities';
 import { DevicesModule } from '@/components/devices';
 import { UploadsModule } from '@/components/uploads';
 import { WorkspacesModule } from '@/components/workspaces';
@@ -21,6 +22,7 @@ import { HealthController } from '@/health/health.controller';
     DevicesModule,
     UploadsModule,
     WorkspacesModule,
+    CommunitiesModule,
     BootstrapModule,
   ],
   controllers: [HealthController],
