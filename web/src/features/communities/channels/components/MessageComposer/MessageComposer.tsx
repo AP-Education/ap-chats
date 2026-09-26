@@ -1,8 +1,10 @@
 import { GifIcon, PaperclipIcon, SmileyIcon, StickerIcon } from '@phosphor-icons/react';
-import { Grid, message, Popover, Tooltip } from 'antd';
+import { Popover, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
-import { type KeyboardEvent, useRef, useState } from 'react';
+import { type KeyboardEvent, useLayoutEffect, useRef, useState } from 'react';
 
+import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { ComposerAction } from './ComposerAction';
@@ -128,8 +130,12 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 interface MessageComposerProps {
+  workspaceId: string;
+  channelId: string;
   channelName: string;
 }
+
+const channelDrafts = new Map<string, string>();
 
 // A Discord-shaped composer: a growing contentEditable box (capped height,
 // its own scroll) instead of a plain <textarea>, so it's ready for rich
@@ -137,31 +143,44 @@ interface MessageComposerProps {
 // pill's top edge as the box grows — only the text scrolls internally.
 // Emoji insertion is real; gif/sticker are mock previews since neither has a
 // backend yet.
-export function MessageComposer({ channelName }: MessageComposerProps) {
+export function MessageComposer({ workspaceId, channelId, channelName }: MessageComposerProps) {
   const { styles, cx } = useStyles();
-  const isMobile = !Grid.useBreakpoint().md;
+  const { identity } = useQueryAuth();
+  const draftKey = `${identity}:${workspaceId}:${channelId}`;
+  const isMobile = useIsMobile();
   const toolbarActionSize = isMobile ? 44 : 38;
   const editableRef = useRef<HTMLDivElement>(null);
-  const [hasContent, setHasContent] = useState(false);
+  const [contentState, setContentState] = useState(() => ({
+    draftKey,
+    hasContent: Boolean(channelDrafts.get(draftKey)?.trim()),
+  }));
+  const hasContent =
+    contentState.draftKey === draftKey
+      ? contentState.hasContent
+      : Boolean(channelDrafts.get(draftKey)?.trim());
   const [activeAction, setActiveAction] = useState<'emoji' | 'gif' | 'sticker' | null>(null);
+
+  useLayoutEffect(() => {
+    const draft = channelDrafts.get(draftKey) ?? '';
+    if (editableRef.current) editableRef.current.textContent = draft;
+  }, [draftKey]);
 
   function syncHasContent() {
     const el = editableRef.current;
     if (!el) return;
     if (el.textContent === '') el.innerHTML = '';
-    setHasContent(el.textContent!.trim().length > 0);
+    const draft = el.innerText;
+    channelDrafts.set(draftKey, draft);
+    setContentState({ draftKey, hasContent: draft.trim().length > 0 });
   }
 
   function handleSend() {
     const el = editableRef.current;
     if (!el || el.textContent!.trim().length === 0) return;
     el.innerHTML = '';
-    setHasContent(false);
+    channelDrafts.delete(draftKey);
+    setContentState({ draftKey, hasContent: false });
     el.focus();
-  }
-
-  function handleRecordAudio() {
-    void message.info('Аудіоповідомлення з’являться незабаром.');
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -308,11 +327,7 @@ export function MessageComposer({ channelName }: MessageComposerProps) {
           </span>
         </div>
       </div>
-      <ComposerAction
-        hasContent={hasContent}
-        onSend={handleSend}
-        onRecordAudio={handleRecordAudio}
-      />
+      <ComposerAction hasContent={hasContent} onSend={handleSend} />
     </div>
   );
 }

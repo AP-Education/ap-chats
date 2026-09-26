@@ -318,7 +318,13 @@ export function ChannelDetail({
           </Typography.Text>
         </div>
       </div>
-      {channel.isMember && <MessageComposer key={channel.id} channelName={channel.name} />}
+      {channel.isMember && (
+        <MessageComposer
+          workspaceId={workspaceId}
+          channelId={channel.id}
+          channelName={channel.name}
+        />
+      )}
       {canManage && (
         <ChannelFormModal
           workspaceId={workspaceId}

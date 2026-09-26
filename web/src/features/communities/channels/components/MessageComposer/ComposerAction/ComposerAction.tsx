@@ -1,8 +1,5 @@
-import { MicrophoneIcon, PaperPlaneRightIcon } from '@phosphor-icons/react';
-import { Tooltip } from 'antd';
+import { PaperPlaneRightIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
-
-import { useMicrophonePermission } from './useMicrophonePermission';
 
 const useStyles = createStyles(({ token, css }) => ({
   button: css`
@@ -46,27 +43,10 @@ const useStyles = createStyles(({ token, css }) => ({
 interface ComposerActionProps {
   hasContent: boolean;
   onSend: () => void;
-  onRecordAudio: () => void;
 }
 
-export function ComposerAction({ hasContent, onSend, onRecordAudio }: ComposerActionProps) {
+export function ComposerAction({ hasContent, onSend }: ComposerActionProps) {
   const { styles, cx } = useStyles();
-  const microphoneGranted = useMicrophonePermission();
-
-  if (!hasContent && microphoneGranted) {
-    return (
-      <Tooltip title="Записати аудіо">
-        <button
-          type="button"
-          className={cx(styles.button, styles.ready)}
-          aria-label="Записати аудіо"
-          onClick={onRecordAudio}
-        >
-          <MicrophoneIcon size={24} />
-        </button>
-      </Tooltip>
-    );
-  }
 
   return (
     <button
