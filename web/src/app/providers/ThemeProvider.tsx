@@ -1,6 +1,8 @@
-import { ConfigProvider, Grid, type ThemeConfig } from 'antd';
+import { ConfigProvider, type ThemeConfig } from 'antd';
 import ukUA from 'antd/locale/uk_UA';
 import type { PropsWithChildren } from 'react';
+
+import { useIsMobile } from '../../shared/hooks/useIsMobile';
 
 function getTheme(isMobile: boolean): ThemeConfig {
   return {
@@ -48,9 +50,9 @@ function getTheme(isMobile: boolean): ThemeConfig {
 }
 
 export function ThemeProvider({ children }: PropsWithChildren) {
-  const screens = Grid.useBreakpoint();
+  const isMobile = useIsMobile();
   return (
-    <ConfigProvider theme={getTheme(!screens.md)} locale={ukUA}>
+    <ConfigProvider theme={getTheme(isMobile)} locale={ukUA}>
       {children}
     </ConfigProvider>
   );

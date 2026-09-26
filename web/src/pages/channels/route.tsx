@@ -1,11 +1,18 @@
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
 
-const ChannelsPage = lazy(() => import('./ChannelsPage'));
+import { RequiredWorkspaceLayout } from '@/features/workspaces/layouts/RequiredWorkspaceLayout';
+import { ChatLoading } from '@/shared/ui/ChatLayout/ChatLoading';
 
-// Both paths render the same page — it reads :channelId (or its absence)
-// itself via useParams, rather than nesting an Outlet just to share one param.
+const ChannelContent = lazy(() => import('./ChannelContent'));
+
 export const channelsRoutes = [
-  { path: 'channels', element: <ChannelsPage /> },
-  { path: 'channels/:channelId', element: <ChannelsPage /> },
+  {
+    path: 'channels',
+    element: <RequiredWorkspaceLayout loadingFallback={<ChatLoading />} />,
+    children: [
+      { index: true, element: <ChannelContent /> },
+      { path: ':channelId', element: <ChannelContent /> },
+    ],
+  },
 ] satisfies RouteObject[];

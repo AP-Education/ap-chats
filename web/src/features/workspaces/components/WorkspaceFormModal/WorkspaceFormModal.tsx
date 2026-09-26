@@ -1,4 +1,4 @@
-import { Form, Modal, Typography } from 'antd';
+import { Form, message, Modal, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { useCreateWorkspace } from '../../hooks/useCreateWorkspace';
@@ -42,12 +42,16 @@ export function WorkspaceFormModal({ open, onClose, workspace }: WorkspaceFormMo
   }
 
   async function handleFinish(values: WorkspaceFormValues) {
-    if (workspace) {
-      await updateWorkspace.mutateAsync({ workspaceId: workspace.id, input: values });
-    } else {
-      await createWorkspace.mutateAsync(values);
+    try {
+      if (workspace) {
+        await updateWorkspace.mutateAsync({ workspaceId: workspace.id, input: values });
+      } else {
+        await createWorkspace.mutateAsync(values);
+      }
+      handleClose();
+    } catch {
+      void message.error('Не вдалося зберегти робочий простір.');
     }
-    handleClose();
   }
 
   return (

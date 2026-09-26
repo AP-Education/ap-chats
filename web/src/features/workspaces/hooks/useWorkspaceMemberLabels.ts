@@ -16,6 +16,8 @@ interface WorkspaceMemberLabelsResult {
   /** The signed-in user's own workspace_members row, for permission checks. */
   currentMember: WorkspaceMember | undefined;
   isLoading: boolean;
+  isError: boolean;
+  retry: () => void;
 }
 
 export function useWorkspaceMemberLabels(
@@ -23,7 +25,7 @@ export function useWorkspaceMemberLabels(
 ): WorkspaceMemberLabelsResult {
   const user = useCurrentUser();
   const sub = user.status === 'signed-in' ? user.profile?.sub : undefined;
-  const { data: members, isLoading } = useWorkspaceMembers(workspaceId);
+  const { data: members, isLoading, isError, refetch } = useWorkspaceMembers(workspaceId);
 
   const byId = useMemo(() => {
     const map = new Map<string, WorkspaceMemberLabel>();
@@ -45,5 +47,11 @@ export function useWorkspaceMemberLabels(
 
   const currentMember = members?.find((candidate) => candidate.userId === sub);
 
-  return { byId, currentMember, isLoading };
+  return {
+    byId,
+    currentMember,
+    isLoading,
+    isError: isError && !members,
+    retry: () => void refetch(),
+  };
 }

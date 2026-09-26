@@ -1,7 +1,8 @@
 import { CaretUpDownIcon, CheckIcon, PencilSimpleIcon, PlusIcon } from '@phosphor-icons/react';
-import { Dropdown, Spin } from 'antd';
+import { Dropdown, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { Avatar } from '../../../../shared/ui/Avatar/Avatar';
 import { useActiveWorkspace } from '../../hooks/useActiveWorkspace';
@@ -145,20 +146,35 @@ export function WorkspaceSwitcher() {
     workspace: activeWorkspace,
     workspaces,
     isLoading,
+    isError,
+    retry,
     selectWorkspace,
   } = useActiveWorkspace();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [formTarget, setFormTarget] = useState<FormTarget>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   if (isLoading) {
     return (
       <div className={styles.loading}>
-        <Spin size="small" />
+        <Skeleton.Input active size="small" style={{ width: 150 }} />
       </div>
     );
   }
 
+  if (isError && !workspaces) {
+    return (
+      <button type="button" className={styles.trigger} onClick={retry}>
+        Повторити завантаження
+      </button>
+    );
+  }
+
   function handleSelect(workspaceId: string) {
+    if (workspaceId !== activeWorkspace?.id && location.pathname.startsWith('/channels/')) {
+      navigate('/channels');
+    }
     selectWorkspace(workspaceId);
     setDropdownOpen(false);
   }

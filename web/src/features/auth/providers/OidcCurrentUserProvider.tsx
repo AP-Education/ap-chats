@@ -4,10 +4,15 @@ import { useAuth } from 'react-oidc-context';
 import { CurrentUserContext } from '../stores/current-user-context';
 import type { CurrentUserProfile, CurrentUserState } from '../types';
 
-function toProfile(profile: { name?: unknown; picture?: unknown }): CurrentUserProfile {
+function toProfile(profile: {
+  name?: unknown;
+  picture?: unknown;
+  sub?: unknown;
+}): CurrentUserProfile {
   return {
     name: typeof profile.name === 'string' ? profile.name : undefined,
     picture: typeof profile.picture === 'string' && profile.picture ? profile.picture : undefined,
+    sub: typeof profile.sub === 'string' ? profile.sub : undefined,
   };
 }
 
@@ -21,6 +26,7 @@ export function OidcCurrentUserProvider({ children }: PropsWithChildren) {
       ? {
           status: 'signed-in',
           accessToken: signedInUser.access_token,
+          queryIdentity: signedInUser.profile.sub,
           profile: toProfile(signedInUser.profile),
           signOut: () =>
             void auth.signoutRedirect({

@@ -1,5 +1,5 @@
 import { PlusIcon } from '@phosphor-icons/react';
-import { Button, Input, Popover } from 'antd';
+import { Button, Input, message, Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -13,7 +13,7 @@ const useStyles = createStyles(({ css }) => ({
 
 interface CategoryQuickCreateProps {
   isPending: boolean;
-  onCreate: (name: string) => void;
+  onCreate: (name: string) => Promise<unknown>;
 }
 
 // The header's "+": a lightweight popover to name a new category, distinct
@@ -23,12 +23,16 @@ export function CategoryQuickCreate({ isPending, onCreate }: CategoryQuickCreate
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const trimmed = name.trim();
     if (!trimmed) return;
-    onCreate(trimmed);
-    setName('');
-    setOpen(false);
+    try {
+      await onCreate(trimmed);
+      setName('');
+      setOpen(false);
+    } catch {
+      void message.error('Не вдалося створити категорію.');
+    }
   }
 
   return (
@@ -48,9 +52,14 @@ export function CategoryQuickCreate({ isPending, onCreate }: CategoryQuickCreate
             value={name}
             autoFocus
             onChange={(event) => setName(event.target.value)}
-            onPressEnter={handleSubmit}
+            onPressEnter={() => void handleSubmit()}
           />
-          <Button size="small" type="primary" loading={isPending} onClick={handleSubmit}>
+          <Button
+            size="small"
+            type="primary"
+            loading={isPending}
+            onClick={() => void handleSubmit()}
+          >
             Додати
           </Button>
         </div>

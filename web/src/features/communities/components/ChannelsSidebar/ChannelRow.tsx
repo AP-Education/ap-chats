@@ -98,10 +98,6 @@ const useStyles = createStyles(({ token, css }) => ({
     white-space: nowrap;
     font-size: ${token.fontSize}px;
   `,
-  archived: css`
-    color: ${token.colorTextTertiary};
-    text-decoration: line-through;
-  `,
   action: css`
     background: transparent;
     color: ${token.colorTextSecondary};
@@ -135,8 +131,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
   } = useChannelsSidebarStore();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const isActive = channel.id === selectedChannelId;
-  const isArchived = Boolean(channel.archivedAt);
-  const canAddMember = channel.isMember && !isArchived;
+  const canAddMember = channel.isMember;
   const canManage = canManageChannel(channel, currentMember);
 
   return (
@@ -146,7 +141,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
         isActive && styles.rowActive,
         draggingChannel?.id === channel.id && styles.dragging,
       )}
-      draggable={canManage && !isArchived}
+      draggable={canManage}
       onDragStart={(event) => {
         event.dataTransfer.effectAllowed = 'move';
         event.dataTransfer.setData('text/plain', channel.id);
@@ -160,7 +155,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
         ) : (
           <HashIcon size={16} className={styles.icon} />
         )}
-        <span className={cx(styles.name, isArchived && styles.archived)}>{channel.name}</span>
+        <span className={styles.name}>{channel.name}</span>
       </Link>
       {canAddMember && (
         <Popover

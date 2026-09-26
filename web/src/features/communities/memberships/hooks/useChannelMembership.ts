@@ -6,8 +6,10 @@ import {
   type UseQueryResult,
 } from '@tanstack/react-query';
 
-import { useCurrentUser } from '@/features/auth/stores/current-user-context';
+import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
+import type { Channel } from '../../channels/types';
+import { communityQueryKeys } from '../../queryKeys';
 import {
   addChannelMember,
   joinChannel,
@@ -32,18 +34,45 @@ export function useChannelMembership(
   workspaceId: string,
   channelId: string | undefined,
 ): ChannelMembershipResult {
-  const user = useCurrentUser();
-  const token = user.status === 'signed-in' ? user.accessToken : undefined;
+  const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
+  const channelListKey = communityQueryKeys.channelLists(identity, workspaceId);
+  const channelKey = communityQueryKeys.channel(identity, workspaceId, channelId);
+  const membersKey = communityQueryKeys.members(identity, workspaceId, channelId);
+
+  async function setOptimisticMembership(isMember: boolean) {
+    await Promise.all([
+      queryClient.cancelQueries({ queryKey: channelListKey }),
+      queryClient.cancelQueries({ queryKey: channelKey }),
+    ]);
+    const previousLists = queryClient.getQueriesData<Channel[]>({ queryKey: channelListKey });
+    const previousChannel = queryClient.getQueryData<Channel>(channelKey);
+    queryClient.setQueriesData<Channel[]>({ queryKey: channelListKey }, (channels) =>
+      channels?.map((channel) => (channel.id === channelId ? { ...channel, isMember } : channel)),
+    );
+    queryClient.setQueryData<Channel>(channelKey, (channel) =>
+      channel ? { ...channel, isMember } : undefined,
+    );
+    return { previousLists, previousChannel };
+  }
+
+  function rollbackMembership(
+    snapshot: Awaited<ReturnType<typeof setOptimisticMembership>> | undefined,
+  ) {
+    for (const [key, channels] of snapshot?.previousLists ?? []) {
+      queryClient.setQueryData(key, channels);
+    }
+    if (snapshot?.previousChannel) queryClient.setQueryData(channelKey, snapshot.previousChannel);
+  }
 
   function invalidate() {
-    void queryClient.invalidateQueries({ queryKey: ['channels', workspaceId] });
-    void queryClient.invalidateQueries({ queryKey: ['channel', workspaceId, channelId] });
-    void queryClient.invalidateQueries({ queryKey: ['channel-members', workspaceId, channelId] });
+    void queryClient.invalidateQueries({ queryKey: channelListKey });
+    void queryClient.invalidateQueries({ queryKey: channelKey });
+    void queryClient.invalidateQueries({ queryKey: membersKey });
   }
 
   const query = useQuery({
-    queryKey: ['channel-members', workspaceId, channelId, token],
+    queryKey: membersKey,
     queryFn: () => listChannelMembers(token as string, workspaceId, channelId as string),
     enabled: Boolean(token && channelId),
   });
@@ -56,24 +85,53 @@ export function useChannelMembership(
 
   const join = useMutation({
     mutationFn: () => joinChannel(token as string, workspaceId, requireChannel()),
-    onSuccess: invalidate,
+    onMutate: () => setOptimisticMembership(true),
+    onError: (_error, _variables, context) => rollbackMembership(context),
+    onSuccess: (membership) => {
+      queryClient.setQueryData<ChannelMembership[]>(membersKey, (members) =>
+        members && !members.some((item) => item.memberId === membership.memberId)
+          ? [...members, membership]
+          : members,
+      );
+    },
+    onSettled: invalidate,
   });
 
   const add = useMutation({
     mutationFn: (memberId: string) =>
       addChannelMember(token as string, workspaceId, requireChannel(), memberId),
-    onSuccess: invalidate,
+    onSuccess: (membership) => {
+      queryClient.setQueryData<ChannelMembership[]>(membersKey, (members) =>
+        members && !members.some((item) => item.memberId === membership.memberId)
+          ? [...members, membership]
+          : members,
+      );
+      invalidate();
+    },
   });
 
   const leave = useMutation({
     mutationFn: () => leaveChannel(token as string, workspaceId, requireChannel()),
-    onSuccess: invalidate,
+    onMutate: () => setOptimisticMembership(false),
+    onError: (_error, _variables, context) => rollbackMembership(context),
+    onSettled: invalidate,
   });
 
   const remove = useMutation({
     mutationFn: (memberId: string) =>
       removeChannelMember(token as string, workspaceId, requireChannel(), memberId),
-    onSuccess: invalidate,
+    onMutate: async (memberId) => {
+      await queryClient.cancelQueries({ queryKey: membersKey });
+      const previous = queryClient.getQueryData<ChannelMembership[]>(membersKey);
+      queryClient.setQueryData<ChannelMembership[]>(membersKey, (members) =>
+        members?.filter((member) => member.memberId !== memberId),
+      );
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) queryClient.setQueryData(membersKey, context.previous);
+    },
+    onSettled: invalidate,
   });
 
   return { query, join, add, leave, remove };

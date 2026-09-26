@@ -1,5 +1,5 @@
 import { PlusIcon, TrashIcon } from '@phosphor-icons/react';
-import { Button, Empty, Input, List, Modal, Popconfirm, Spin, Typography } from 'antd';
+import { Button, Empty, Input, List, message, Modal, Popconfirm, Spin, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -45,14 +45,25 @@ export function ChannelCategoriesModal({
 
   function commitEdit() {
     const trimmed = editingName.trim();
-    if (editingId && trimmed) update.mutate({ categoryId: editingId, input: { name: trimmed } });
+    if (editingId && trimmed) {
+      update.mutate(
+        { categoryId: editingId, input: { name: trimmed } },
+        { onError: () => void message.error('Не вдалося перейменувати категорію.') },
+      );
+    }
     setEditingId(null);
   }
 
   function handleCreate() {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    create.mutate({ name: trimmed }, { onSuccess: () => setNewName('') });
+    create.mutate(
+      { name: trimmed },
+      {
+        onSuccess: () => setNewName(''),
+        onError: () => void message.error('Не вдалося створити категорію.'),
+      },
+    );
   }
 
   return (
@@ -85,7 +96,11 @@ export function ChannelCategoriesModal({
                   okText="Видалити"
                   okButtonProps={{ danger: true }}
                   cancelText="Скасувати"
-                  onConfirm={() => remove.mutate(category.id)}
+                  onConfirm={() =>
+                    remove.mutate(category.id, {
+                      onError: () => void message.error('Не вдалося видалити категорію.'),
+                    })
+                  }
                 >
                   <Button
                     type="text"

@@ -1,11 +1,13 @@
 import { ListIcon } from '@phosphor-icons/react';
-import { Button, Drawer, Grid, Layout, Spin, theme } from 'antd';
+import { Button, Drawer, Layout, Skeleton, theme } from 'antd';
 import { Suspense, useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
 import { AuthStatus } from '../../features/auth/components/AuthStatus';
 import { ConnectionBanner } from '../../features/realtime/components/ConnectionBanner';
 import { WorkspaceSwitcher } from '../../features/workspaces/components/WorkspaceSwitcher';
+import { useIsMobile } from '../../shared/hooks/useIsMobile';
+import { ChatLoading } from '../../shared/ui/ChatLayout/ChatLoading';
 import { PageSection } from '../../shared/ui/PageSection/PageSection';
 import { MainSider } from './MainSider';
 import { MainSiderMenu } from './MainSiderMenu';
@@ -14,9 +16,8 @@ import { useMainLayoutStyles } from './useMainLayoutStyles';
 
 export function MainLayout() {
   const { styles } = useMainLayoutStyles();
-  const screens = Grid.useBreakpoint();
   const { token } = theme.useToken();
-  const isMobile = !screens.md;
+  const isMobile = useIsMobile();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const isChannelPage = useLocation().pathname.startsWith('/channels');
   const mobileMenu = useMemo(() => ({ open: () => setMenuOpen(true) }), []);
@@ -47,16 +48,26 @@ export function MainLayout() {
           className={styles.content}
           style={{ padding: isMobile || isChannelPage ? 0 : token.paddingXS }}
         >
-          <Suspense fallback={<Spin size="large" />}>
-            <PageSection
-              maxWidth={isChannelPage ? 'none' : 1920}
-              style={isChannelPage ? { padding: 0, borderRadius: 0 } : undefined}
-            >
-              <MobileMenuContext.Provider value={mobileMenu}>
+          <PageSection
+            maxWidth={isChannelPage ? 'none' : 1920}
+            style={isChannelPage ? { padding: 0, borderRadius: 0 } : undefined}
+          >
+            <MobileMenuContext.Provider value={mobileMenu}>
+              <Suspense
+                fallback={
+                  isChannelPage ? (
+                    <ChatLoading />
+                  ) : (
+                    <div role="status" aria-label="Завантажуємо сторінку" style={{ padding: 24 }}>
+                      <Skeleton active paragraph={{ rows: 4 }} />
+                    </div>
+                  )
+                }
+              >
                 <Outlet />
-              </MobileMenuContext.Provider>
-            </PageSection>
-          </Suspense>
+              </Suspense>
+            </MobileMenuContext.Provider>
+          </PageSection>
         </Layout.Content>
       </Layout>
       <Drawer

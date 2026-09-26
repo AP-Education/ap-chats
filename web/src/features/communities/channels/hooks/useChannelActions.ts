@@ -1,8 +1,9 @@
 import { useMutation, type UseMutationResult, useQueryClient } from '@tanstack/react-query';
 
-import { useCurrentUser } from '@/features/auth/stores/current-user-context';
+import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
-import { createChannel, setChannelArchived, updateChannel } from '../api/channels-api';
+import { communityQueryKeys } from '../../queryKeys';
+import { createChannel, deleteChannel, updateChannel } from '../api/channels-api';
 import type { Channel, CreateChannelInput, UpdateChannelInput } from '../types';
 
 interface UpdateChannelParams {
@@ -10,28 +11,55 @@ interface UpdateChannelParams {
   input: UpdateChannelInput;
 }
 
-interface SetArchivedParams {
-  channelId: string;
-  archived: boolean;
-}
-
 interface ChannelActionsResult {
   create: UseMutationResult<Channel, Error, CreateChannelInput>;
   update: UseMutationResult<Channel, Error, UpdateChannelParams>;
-  setArchived: UseMutationResult<Channel, Error, SetArchivedParams>;
+  remove: UseMutationResult<void, Error, string>;
 }
 
-// Create/rename/archive — the mutations behind ChannelFormModal and the
+// Create/rename/delete — the mutations behind ChannelFormModal and the
 // channel header's manage actions.
 export function useChannelActions(workspaceId: string): ChannelActionsResult {
-  const user = useCurrentUser();
-  const token = user.status === 'signed-in' ? user.accessToken : undefined;
+  const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
-  const channelListKey = ['channels', workspaceId];
+  const channelListKey = communityQueryKeys.channelLists(identity, workspaceId);
+
+  function updateCachedChannel(channelId: string, change: (channel: Channel) => Channel) {
+    queryClient.setQueriesData<Channel[]>({ queryKey: channelListKey }, (channels) =>
+      channels?.map((channel) => (channel.id === channelId ? change(channel) : channel)),
+    );
+    queryClient.setQueriesData<Channel>(
+      { queryKey: communityQueryKeys.channel(identity, workspaceId, channelId) },
+      (channel) => (channel ? change(channel) : undefined),
+    );
+  }
+
+  async function snapshotChannel(channelId: string) {
+    const detailKey = communityQueryKeys.channel(identity, workspaceId, channelId);
+    await Promise.all([
+      queryClient.cancelQueries({ queryKey: channelListKey }),
+      queryClient.cancelQueries({ queryKey: detailKey }),
+    ]);
+    return {
+      previousLists: queryClient.getQueriesData<Channel[]>({ queryKey: channelListKey }),
+      previousDetails: queryClient.getQueriesData<Channel>({ queryKey: detailKey }),
+    };
+  }
+
+  function rollback(snapshot: Awaited<ReturnType<typeof snapshotChannel>> | undefined) {
+    for (const [key, channels] of snapshot?.previousLists ?? []) {
+      queryClient.setQueryData(key, channels);
+    }
+    for (const [key, channel] of snapshot?.previousDetails ?? []) {
+      queryClient.setQueryData(key, channel);
+    }
+  }
 
   function invalidate(channel: Channel) {
-    void queryClient.invalidateQueries({ queryKey: ['channels', workspaceId] });
-    void queryClient.invalidateQueries({ queryKey: ['channel', workspaceId, channel.id] });
+    void queryClient.invalidateQueries({ queryKey: channelListKey });
+    void queryClient.invalidateQueries({
+      queryKey: communityQueryKeys.channel(identity, workspaceId, channel.id),
+    });
   }
 
   const create = useMutation({
@@ -39,7 +67,17 @@ export function useChannelActions(workspaceId: string): ChannelActionsResult {
       if (!token) throw new Error('Not signed in');
       return createChannel(token, workspaceId, input);
     },
-    onSuccess: invalidate,
+    onSuccess: (channel) => {
+      queryClient.setQueriesData<Channel[]>({ queryKey: channelListKey }, (channels) => {
+        if (!channels || channels.some((item) => item.id === channel.id)) return channels;
+        return [...channels, channel];
+      });
+      queryClient.setQueryData(
+        communityQueryKeys.channel(identity, workspaceId, channel.id),
+        channel,
+      );
+      invalidate(channel);
+    },
   });
 
   const update = useMutation({
@@ -48,47 +86,47 @@ export function useChannelActions(workspaceId: string): ChannelActionsResult {
       return updateChannel(token, workspaceId, channelId, input);
     },
     onMutate: async ({ channelId, input }) => {
-      await queryClient.cancelQueries({ queryKey: channelListKey });
-      const detailKey = ['channel', workspaceId, channelId];
-      await queryClient.cancelQueries({ queryKey: detailKey });
-      const previousLists = queryClient.getQueriesData<Channel[]>({ queryKey: channelListKey });
-      const previousDetails = queryClient.getQueriesData<Channel>({ queryKey: detailKey });
-      for (const [key, channels] of previousLists) {
-        if (!channels) continue;
-        queryClient.setQueryData<Channel[]>(
-          key,
-          channels.map((channel) =>
-            channel.id === channelId ? { ...channel, ...input } : channel,
-          ),
-        );
-      }
-      for (const [key, channel] of previousDetails) {
-        if (channel) queryClient.setQueryData<Channel>(key, { ...channel, ...input });
-      }
-      return { previousLists, previousDetails };
+      const snapshot = await snapshotChannel(channelId);
+      updateCachedChannel(channelId, (channel) => ({ ...channel, ...input }));
+      return snapshot;
     },
-    onError: (_error, _variables, context) => {
-      for (const [key, channels] of context?.previousLists ?? [])
-        queryClient.setQueryData(key, channels);
-      for (const [key, channel] of context?.previousDetails ?? [])
-        queryClient.setQueryData(key, channel);
-    },
+    onError: (_error, _variables, context) => rollback(context),
     onSuccess: (channel) => {
-      queryClient.setQueryData(['channel', workspaceId, channel.id, token], channel);
+      updateCachedChannel(channel.id, () => channel);
     },
     onSettled: (_data, _error, { channelId }) => {
       void queryClient.invalidateQueries({ queryKey: channelListKey });
-      void queryClient.invalidateQueries({ queryKey: ['channel', workspaceId, channelId] });
+      void queryClient.invalidateQueries({
+        queryKey: communityQueryKeys.channel(identity, workspaceId, channelId),
+      });
     },
   });
 
-  const setArchived = useMutation({
-    mutationFn: ({ channelId, archived }: SetArchivedParams) => {
+  const remove = useMutation({
+    mutationFn: (channelId: string) => {
       if (!token) throw new Error('Not signed in');
-      return setChannelArchived(token, workspaceId, channelId, archived);
+      return deleteChannel(token, workspaceId, channelId);
     },
-    onSuccess: invalidate,
+    onMutate: async (channelId) => {
+      const snapshot = await snapshotChannel(channelId);
+      queryClient.setQueriesData<Channel[]>({ queryKey: channelListKey }, (channels) =>
+        channels?.filter((channel) => channel.id !== channelId),
+      );
+      return snapshot;
+    },
+    onError: (_error, _variables, context) => rollback(context),
+    onSuccess: (_data, channelId) => {
+      queryClient.removeQueries({
+        queryKey: communityQueryKeys.channel(identity, workspaceId, channelId),
+      });
+      queryClient.removeQueries({
+        queryKey: communityQueryKeys.members(identity, workspaceId, channelId),
+      });
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: channelListKey });
+    },
   });
 
-  return { create, update, setArchived };
+  return { create, update, remove };
 }

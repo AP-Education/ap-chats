@@ -170,7 +170,6 @@ export function ChannelDetail({
   const [editing, setEditing] = useState(false);
   const [pinnedOpen, setPinnedOpen] = useState(false);
   const canManage = canManageChannel(channel, currentMember);
-  const isArchived = Boolean(channel.archivedAt);
   const actionSize = onBack ? 40 : 36;
 
   function handleLeave() {
@@ -241,7 +240,7 @@ export function ChannelDetail({
           )}
         </div>
         <div className={styles.headerActions}>
-          {!channel.isMember && channel.kind === 'public' && !isArchived && (
+          {!channel.isMember && channel.kind === 'public' && (
             <Button
               type="primary"
               loading={join.isPending}
@@ -315,15 +314,11 @@ export function ChannelDetail({
             {channel.name}
           </Typography.Title>
           <Typography.Text className={styles.welcomeText}>
-            {isArchived
-              ? 'Канал архівовано. Історія повідомлень з’явиться тут пізніше.'
-              : 'Це початок каналу. Повідомлення з’являться тут незабаром.'}
+            Це початок каналу. Повідомлення з’являться тут незабаром.
           </Typography.Text>
         </div>
       </div>
-      {channel.isMember && !isArchived && (
-        <MessageComposer key={channel.id} channelName={channel.name} />
-      )}
+      {channel.isMember && <MessageComposer key={channel.id} channelName={channel.name} />}
       {canManage && (
         <ChannelFormModal
           workspaceId={workspaceId}

@@ -6,8 +6,10 @@ import {
   type UseQueryResult,
 } from '@tanstack/react-query';
 
-import { useCurrentUser } from '@/features/auth/stores/current-user-context';
+import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
+import type { Channel } from '../../channels/types';
+import { communityQueryKeys } from '../../queryKeys';
 import {
   createChannelCategory,
   deleteChannelCategory,
@@ -35,13 +37,14 @@ interface ChannelCategoriesResult {
 // Read model + the three owner-only mutations that manage it — always used
 // together in ChannelCategoriesModal, so one hook instead of four.
 export function useChannelCategories(workspaceId: string | undefined): ChannelCategoriesResult {
-  const user = useCurrentUser();
-  const token = user.status === 'signed-in' ? user.accessToken : undefined;
+  const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
-  const queryKey = ['channel-categories', workspaceId, token];
+  const queryKey = communityQueryKeys.categories(identity, workspaceId);
+  const channelListKey = communityQueryKeys.channelLists(identity, workspaceId);
+  const channelDetailKey = communityQueryKeys.channelDetails(identity, workspaceId);
 
   function invalidate() {
-    void queryClient.invalidateQueries({ queryKey: ['channel-categories', workspaceId] });
+    void queryClient.invalidateQueries({ queryKey });
   }
 
   const query = useQuery({
@@ -55,7 +58,12 @@ export function useChannelCategories(workspaceId: string | undefined): ChannelCa
       if (!token || !workspaceId) throw new Error('Not signed in');
       return createChannelCategory(token, workspaceId, input);
     },
-    onSuccess: invalidate,
+    onSuccess: (category) => {
+      queryClient.setQueryData<ChannelCategory[]>(queryKey, (categories) =>
+        categories ? [...categories, category].sort((a, b) => a.position - b.position) : [category],
+      );
+      invalidate();
+    },
   });
 
   const update = useMutation({
@@ -63,7 +71,25 @@ export function useChannelCategories(workspaceId: string | undefined): ChannelCa
       if (!token || !workspaceId) throw new Error('Not signed in');
       return updateChannelCategory(token, workspaceId, categoryId, input);
     },
-    onSuccess: invalidate,
+    onMutate: async ({ categoryId, input }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<ChannelCategory[]>(queryKey);
+      queryClient.setQueryData<ChannelCategory[]>(queryKey, (categories) =>
+        categories?.map((category) =>
+          category.id === categoryId ? { ...category, ...input } : category,
+        ),
+      );
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
+    },
+    onSuccess: (category) => {
+      queryClient.setQueryData<ChannelCategory[]>(queryKey, (categories) =>
+        categories?.map((item) => (item.id === category.id ? category : item)),
+      );
+    },
+    onSettled: invalidate,
   });
 
   const remove = useMutation({
@@ -71,10 +97,42 @@ export function useChannelCategories(workspaceId: string | undefined): ChannelCa
       if (!token || !workspaceId) throw new Error('Not signed in');
       return deleteChannelCategory(token, workspaceId, categoryId);
     },
-    onSuccess: () => {
+    onMutate: async (categoryId) => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey }),
+        queryClient.cancelQueries({ queryKey: channelListKey }),
+        queryClient.cancelQueries({ queryKey: channelDetailKey }),
+      ]);
+      const previousCategories = queryClient.getQueryData<ChannelCategory[]>(queryKey);
+      const previousLists = queryClient.getQueriesData<Channel[]>({ queryKey: channelListKey });
+      const previousDetails = queryClient.getQueriesData<Channel>({ queryKey: channelDetailKey });
+      queryClient.setQueryData<ChannelCategory[]>(queryKey, (categories) =>
+        categories?.filter((category) => category.id !== categoryId),
+      );
+      queryClient.setQueriesData<Channel[]>({ queryKey: channelListKey }, (channels) =>
+        channels?.map((channel) =>
+          channel.categoryId === categoryId ? { ...channel, categoryId: null } : channel,
+        ),
+      );
+      queryClient.setQueriesData<Channel>({ queryKey: channelDetailKey }, (channel) =>
+        channel?.categoryId === categoryId ? { ...channel, categoryId: null } : channel,
+      );
+      return { previousCategories, previousLists, previousDetails };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousCategories)
+        queryClient.setQueryData(queryKey, context.previousCategories);
+      for (const [key, channels] of context?.previousLists ?? []) {
+        queryClient.setQueryData(key, channels);
+      }
+      for (const [key, channel] of context?.previousDetails ?? []) {
+        queryClient.setQueryData(key, channel);
+      }
+    },
+    onSettled: () => {
       invalidate();
-      // Deleting a category un-categorizes its channels server-side.
-      void queryClient.invalidateQueries({ queryKey: ['channels', workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: channelListKey });
+      void queryClient.invalidateQueries({ queryKey: channelDetailKey });
     },
   });
 

@@ -1,5 +1,5 @@
 import { UserPlusIcon } from '@phosphor-icons/react';
-import { Button, Select, Tooltip } from 'antd';
+import { Button, message, Select, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -36,7 +36,7 @@ export function AddChannelMemberControl({
   const { query, add } = useChannelMembership(workspaceId, channel.id);
   const [addingMemberId, setAddingMemberId] = useState<string>();
 
-  const canAdd = channel.isMember && !channel.archivedAt;
+  const canAdd = channel.isMember;
   if (!canAdd) return null;
 
   const memberships = query.data ?? [];
@@ -47,7 +47,10 @@ export function AddChannelMemberControl({
 
   function handleAdd() {
     if (!addingMemberId) return;
-    add.mutate(addingMemberId, { onSuccess: () => setAddingMemberId(undefined) });
+    add.mutate(addingMemberId, {
+      onSuccess: () => setAddingMemberId(undefined),
+      onError: () => void message.error('Не вдалося додати учасника.'),
+    });
   }
 
   return (

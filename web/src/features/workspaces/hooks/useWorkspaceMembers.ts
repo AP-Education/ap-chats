@@ -1,6 +1,6 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 
-import { useCurrentUser } from '@/features/auth/stores/current-user-context';
+import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
 import { listWorkspaceMembers } from '../api/workspace-members-api';
 import type { WorkspaceMember } from '../types';
@@ -8,11 +8,10 @@ import type { WorkspaceMember } from '../types';
 export function useWorkspaceMembers(
   workspaceId: string | undefined,
 ): UseQueryResult<WorkspaceMember[]> {
-  const user = useCurrentUser();
-  const token = user.status === 'signed-in' ? user.accessToken : undefined;
+  const { token, identity } = useQueryAuth();
 
   return useQuery({
-    queryKey: ['workspace-members', workspaceId, token],
+    queryKey: ['workspace-members', identity, workspaceId],
     queryFn: () => listWorkspaceMembers(token as string, workspaceId as string),
     enabled: Boolean(token && workspaceId),
   });

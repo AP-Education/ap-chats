@@ -1,6 +1,8 @@
-import { Drawer, Grid } from 'antd';
+import { Drawer } from 'antd';
 import { createStyles } from 'antd-style';
 import type { PropsWithChildren, ReactNode } from 'react';
+
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 const useStyles = createStyles(({ token, css }) => ({
   shell: css`
@@ -47,8 +49,7 @@ export function ChatLayout({
   children,
 }: PropsWithChildren<ChatLayoutProps>) {
   const { styles } = useStyles();
-  const screens = Grid.useBreakpoint();
-  const isMobile = !screens.md;
+  const isMobile = useIsMobile();
 
   return (
     <div className={styles.shell}>

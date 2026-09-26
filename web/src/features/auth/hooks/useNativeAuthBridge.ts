@@ -23,11 +23,15 @@ export function useNativeAuthBridge(): NativeAuthState {
         setState({ status: 'unavailable' });
         return;
       }
-      setState({
+      setState((previous) => ({
         status: 'signed-in',
         accessToken: message.payload.accessToken,
-        profile: message.payload.idToken ? decodeProfile(message.payload.idToken) : undefined,
-      });
+        profile: message.payload.idToken
+          ? decodeProfile(message.payload.idToken)
+          : previous.status === 'signed-in'
+            ? previous.profile
+            : undefined,
+      }));
     }
 
     bridge.onMessage = handle;

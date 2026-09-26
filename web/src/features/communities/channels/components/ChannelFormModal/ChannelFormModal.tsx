@@ -1,8 +1,8 @@
-import { ArchiveIcon, ArrowCounterClockwiseIcon, HashIcon } from '@phosphor-icons/react';
+import { HashIcon, TrashIcon } from '@phosphor-icons/react';
 import { Button, Form, Input, message, Modal, Popconfirm, Select, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { ApiError } from '@/shared/api/http';
 
@@ -63,8 +63,9 @@ export function ChannelFormModal({
   const isEditing = Boolean(channel);
   const [form] = Form.useForm<ChannelFormValues>();
   const { query: categoriesQuery } = useChannelCategories(workspaceId);
-  const { create, update, setArchived } = useChannelActions(workspaceId);
+  const { create, update, remove } = useChannelActions(workspaceId);
   const navigate = useNavigate();
+  const { channelId: routedChannelId } = useParams<{ channelId?: string }>();
   const [nameError, setNameError] = useState<string>();
 
   const isPending = create.isPending || update.isPending;
@@ -79,15 +80,16 @@ export function ChannelFormModal({
     onClose();
   }
 
-  function handleArchive() {
+  async function handleDelete() {
     if (!channel) return;
-    setArchived.mutate(
-      { channelId: channel.id, archived: !channel.archivedAt },
-      {
-        onSuccess: handleClose,
-        onError: () => message.error('Не вдалося змінити статус каналу.'),
-      },
-    );
+    const wasOpen = routedChannelId === channel.id;
+    if (wasOpen) navigate('/channels', { replace: true });
+    try {
+      await remove.mutateAsync(channel.id);
+      if (!wasOpen) handleClose();
+    } catch {
+      void message.error('Не вдалося видалити канал.');
+    }
   }
 
   async function handleFinish(values: ChannelFormValues) {
@@ -112,7 +114,7 @@ export function ChannelFormModal({
         setNameError('Канал із такою назвою вже існує');
         return;
       }
-      throw error;
+      void message.error('Не вдалося зберегти канал.');
     }
   }
 
@@ -122,7 +124,7 @@ export function ChannelFormModal({
       onCancel={handleClose}
       onOk={() => form.submit()}
       confirmLoading={isPending}
-      okButtonProps={{ disabled: Boolean(channel?.archivedAt) }}
+      okButtonProps={{ disabled: remove.isPending }}
       okText={isEditing ? 'Зберегти' : 'Створити'}
       cancelText="Скасувати"
       destroyOnHidden
@@ -134,11 +136,7 @@ export function ChannelFormModal({
           {isEditing ? 'Налаштування каналу' : 'Новий канал'}
         </Typography.Title>
         <Typography.Text className={styles.breadcrumb}>
-          {channel?.archivedAt
-            ? 'Розархівуйте канал, щоб змінити назву чи категорію.'
-            : isEditing
-              ? 'Назва, категорія та доступність каналу'
-              : `у категорії «${categoryName}»`}
+          {isEditing ? 'Назва, категорія та доступність каналу' : `у категорії «${categoryName}»`}
         </Typography.Text>
       </div>
 
@@ -173,7 +171,7 @@ export function ChannelFormModal({
             prefix={<HashIcon size={15} />}
             placeholder="загальне"
             autoFocus
-            disabled={Boolean(channel?.archivedAt)}
+            disabled={remove.isPending}
             onChange={() => setNameError(undefined)}
           />
         </Form.Item>
@@ -182,7 +180,7 @@ export function ChannelFormModal({
           <Form.Item label="Категорія" name="categoryId">
             <Select
               allowClear
-              disabled={Boolean(channel?.archivedAt)}
+              disabled={remove.isPending}
               placeholder="Без категорії"
               options={categoryOptions}
             />
@@ -192,29 +190,15 @@ export function ChannelFormModal({
       {channel && (
         <div className={styles.settingsActions}>
           <Popconfirm
-            title={channel.archivedAt ? 'Розархівувати канал?' : 'Архівувати канал?'}
-            description={
-              channel.archivedAt
-                ? 'Учасники знову зможуть користуватися каналом.'
-                : 'Канал залишиться у списку, але надсилання повідомлень буде недоступним.'
-            }
-            okText={channel.archivedAt ? 'Розархівувати' : 'Архівувати'}
+            title="Видалити канал?"
+            description="Канал і його учасники будуть видалені без можливості відновлення."
+            okText="Видалити"
+            okButtonProps={{ danger: true, loading: remove.isPending }}
             cancelText="Скасувати"
-            onConfirm={handleArchive}
+            onConfirm={() => void handleDelete()}
           >
-            <Button
-              type="text"
-              danger={!channel.archivedAt}
-              loading={setArchived.isPending}
-              icon={
-                channel.archivedAt ? (
-                  <ArrowCounterClockwiseIcon size={17} />
-                ) : (
-                  <ArchiveIcon size={17} />
-                )
-              }
-            >
-              {channel.archivedAt ? 'Розархівувати канал' : 'Архівувати канал'}
+            <Button type="text" danger loading={remove.isPending} icon={<TrashIcon size={17} />}>
+              Видалити канал
             </Button>
           </Popconfirm>
         </div>

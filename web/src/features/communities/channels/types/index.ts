@@ -1,7 +1,7 @@
 export const channelKinds = ['public', 'private'] as const;
 export type ChannelKind = (typeof channelKinds)[number];
 
-// The wire shape for every channel endpoint (list/get/create/update/archive) —
+// The wire shape for every channel endpoint (list/get/create/update) —
 // backend's internal Channel/ChannelView split doesn't reach the client.
 export interface Channel {
   id: string;
@@ -12,7 +12,6 @@ export interface Channel {
   createdByMemberId: string;
   createdAt: string;
   updatedAt: string;
-  archivedAt: string | null;
   isMember: boolean;
 }
 

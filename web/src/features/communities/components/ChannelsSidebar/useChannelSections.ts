@@ -1,6 +1,5 @@
 import type { UseMutationResult } from '@tanstack/react-query';
 
-import { useActiveWorkspace } from '@/features/workspaces/hooks/useActiveWorkspace';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import type { WorkspaceMember } from '@/features/workspaces/types';
 
@@ -17,8 +16,9 @@ export interface ChannelSectionData {
 }
 
 interface ChannelSectionsResult {
-  workspaceId: string | undefined;
   isLoading: boolean;
+  isError: boolean;
+  retry: () => void;
   isOwner: boolean;
   currentMember: WorkspaceMember | undefined;
   sections: ChannelSectionData[];
@@ -45,13 +45,16 @@ function groupByCategory(channels: Channel[]): Map<string, Channel[]> {
 // categories, reshaped into the sections the sidebar renders (categories in
 // order, then an "uncategorized" bucket, then public channels the member
 // hasn't joined). Keeps that derivation out of the component's JSX.
-export function useChannelSections(): ChannelSectionsResult {
-  const { workspace } = useActiveWorkspace();
-  const workspaceId = workspace?.id;
-
-  const { data: channels, isLoading: channelsLoading } = useChannels(workspaceId);
+export function useChannelSections(workspaceId: string): ChannelSectionsResult {
+  const channelsQuery = useChannels(workspaceId);
+  const channels = channelsQuery.data;
   const { query: categoriesQuery, create: createCategory } = useChannelCategories(workspaceId);
-  const { currentMember } = useWorkspaceMemberLabels(workspaceId);
+  const {
+    currentMember,
+    isLoading: membersLoading,
+    isError: membersError,
+    retry: retryMembers,
+  } = useWorkspaceMemberLabels(workspaceId);
 
   const isOwner = currentMember?.role === 'owner';
   const categories = categoriesQuery.data ?? [];
@@ -84,8 +87,16 @@ export function useChannelSections(): ChannelSectionsResult {
   }
 
   return {
-    workspaceId,
-    isLoading: channelsLoading || categoriesQuery.isLoading,
+    isLoading: channelsQuery.isPending || categoriesQuery.isPending || membersLoading,
+    isError:
+      (channelsQuery.isError && !channelsQuery.data) ||
+      (categoriesQuery.isError && !categoriesQuery.data) ||
+      membersError,
+    retry: () => {
+      if (channelsQuery.isError) void channelsQuery.refetch();
+      if (categoriesQuery.isError) void categoriesQuery.refetch();
+      if (membersError) retryMembers();
+    },
     isOwner,
     currentMember,
     sections,

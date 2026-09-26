@@ -42,17 +42,10 @@ export function updateChannel(
   return apiRequest(channelUrl(workspaceId, channelId), token, jsonInit('PATCH', input));
 }
 
-export function setChannelArchived(
+export function deleteChannel(
   token: string,
   workspaceId: string,
   channelId: string,
-  archived: boolean,
-): Promise<Channel> {
-  return apiRequest(
-    `${channelUrl(workspaceId, channelId)}/${archived ? 'archive' : 'unarchive'}`,
-    token,
-    {
-      method: 'POST',
-    },
-  );
+): Promise<void> {
+  return apiRequest(channelUrl(workspaceId, channelId), token, { method: 'DELETE' });
 }
