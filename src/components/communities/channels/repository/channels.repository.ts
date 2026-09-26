@@ -17,9 +17,5 @@ export abstract class ChannelsRepository {
     channelId: string,
     changes: { name?: string; categoryId?: string | null },
   ): Promise<Channel | undefined>;
-  abstract setArchived(
-    workspaceId: string,
-    channelId: string,
-    archived: boolean,
-  ): Promise<Channel | undefined>;
+  abstract remove(workspaceId: string, channelId: string): Promise<boolean>;
 }

@@ -2,7 +2,9 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -53,19 +55,12 @@ export class ChannelsController {
     return this.channels.update(member, channelId, dto);
   }
 
-  @Post(':channelId/archive')
-  archive(
+  @Delete(':channelId')
+  @HttpCode(204)
+  remove(
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
   ) {
-    return this.channels.setArchived(member, channelId, true);
-  }
-
-  @Post(':channelId/unarchive')
-  unarchive(
-    @CurrentWorkspaceMember() member: WorkspaceMember,
-    @Param('channelId', ParseUUIDPipe) channelId: string,
-  ) {
-    return this.channels.setArchived(member, channelId, false);
+    return this.channels.remove(member, channelId);
   }
 }

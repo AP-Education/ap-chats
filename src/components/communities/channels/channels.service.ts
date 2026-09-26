@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
@@ -57,7 +52,6 @@ export class ChannelsService {
       member.id,
     );
     await this.access.requireManager(channel, member);
-    if (channel.archivedAt) throw new ConflictException('Archived channel cannot be changed');
     if (dto.name === undefined && dto.categoryId === undefined)
       throw new BadRequestException('No changes provided');
     const name = dto.name === undefined ? undefined : this.normalizeName(dto.name);
@@ -66,24 +60,19 @@ export class ChannelsService {
       ...(name === undefined ? {} : { name }),
       ...(dto.categoryId === undefined ? {} : { categoryId: dto.categoryId }),
     });
-    if (!updated) throw new NotFoundException('Channel not found or archived');
+    if (!updated) throw new NotFoundException('Channel not found');
     return { ...updated, isMember: await this.access.isChannelMember(channelId, member.id) };
   }
 
-  async setArchived(
-    member: WorkspaceMember,
-    channelId: string,
-    archived: boolean,
-  ): Promise<ChannelView> {
+  async remove(member: WorkspaceMember, channelId: string): Promise<void> {
     const channel = await this.access.requireVisibleChannel(
       member.workspaceId,
       channelId,
       member.id,
     );
     await this.access.requireManager(channel, member);
-    const updated = await this.channels.setArchived(member.workspaceId, channelId, archived);
-    if (!updated) throw new NotFoundException('Channel not found');
-    return { ...updated, isMember: await this.access.isChannelMember(channelId, member.id) };
+    const removed = await this.channels.remove(member.workspaceId, channelId);
+    if (!removed) throw new NotFoundException('Channel not found');
   }
 
   private normalizeName(name: string): string {

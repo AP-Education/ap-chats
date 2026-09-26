@@ -24,7 +24,6 @@ function makeChannel(kind: 'public' | 'private'): Channel {
     createdByMemberId: 'creator',
     createdAt: new Date(),
     updatedAt: new Date(),
-    archivedAt: null,
   };
 }
 

@@ -48,7 +48,6 @@ export class DrizzleChannelMembershipsRepository extends ChannelMembershipsRepos
         .for('update');
       if (!channel || channel.kind !== 'public')
         throw new NotFoundException('Public channel not found');
-      if (channel.archivedAt) throw new ConflictException('Channel is archived');
       await tx
         .insert(channelMemberships)
         .values({ workspaceId, channelId, memberId })
@@ -75,7 +74,6 @@ export class DrizzleChannelMembershipsRepository extends ChannelMembershipsRepos
         .where(and(eq(channels.workspaceId, workspaceId), eq(channels.id, channelId)))
         .for('update');
       if (!channel) throw new NotFoundException('Channel not found');
-      if (channel.archivedAt) throw new ConflictException('Channel is archived');
       const [target] = await tx
         .select({ id: workspaceMembers.id })
         .from(workspaceMembers)

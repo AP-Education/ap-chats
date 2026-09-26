@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, asc, eq, isNotNull, isNull, or } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, or } from 'drizzle-orm';
 
 import { DrizzleService } from '@/database/drizzle';
 import { channelMemberships, channels } from '@/database/drizzle/schema';
@@ -83,13 +83,7 @@ export class DrizzleChannelsRepository extends ChannelsRepository {
       const [channel] = await this.drizzle.db
         .update(channels)
         .set({ ...changes, updatedAt: new Date() })
-        .where(
-          and(
-            eq(channels.workspaceId, workspaceId),
-            eq(channels.id, channelId),
-            isNull(channels.archivedAt),
-          ),
-        )
+        .where(and(eq(channels.workspaceId, workspaceId), eq(channels.id, channelId)))
         .returning();
       return channel && this.toModel(channel);
     } catch (error) {
@@ -97,17 +91,12 @@ export class DrizzleChannelsRepository extends ChannelsRepository {
     }
   }
 
-  async setArchived(
-    workspaceId: string,
-    channelId: string,
-    archived: boolean,
-  ): Promise<Channel | undefined> {
-    const [channel] = await this.drizzle.db
-      .update(channels)
-      .set({ archivedAt: archived ? new Date() : null, updatedAt: new Date() })
+  async remove(workspaceId: string, channelId: string): Promise<boolean> {
+    const [removed] = await this.drizzle.db
+      .delete(channels)
       .where(and(eq(channels.workspaceId, workspaceId), eq(channels.id, channelId)))
-      .returning();
-    return channel && this.toModel(channel);
+      .returning({ id: channels.id });
+    return Boolean(removed);
   }
 
   private toModel(row: typeof channels.$inferSelect): Channel {
@@ -120,7 +109,6 @@ export class DrizzleChannelsRepository extends ChannelsRepository {
       createdByMemberId: row.createdByMemberId,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
-      archivedAt: row.archivedAt,
     };
   }
 }

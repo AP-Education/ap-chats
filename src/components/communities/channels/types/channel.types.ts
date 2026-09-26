@@ -9,7 +9,6 @@ export interface Channel {
   createdByMemberId: string;
   createdAt: Date;
   updatedAt: Date;
-  archivedAt: Date | null;
 }
 
 export interface ChannelView extends Channel {

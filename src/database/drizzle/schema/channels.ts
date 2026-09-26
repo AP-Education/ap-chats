@@ -29,7 +29,6 @@ export const channels = pgTable(
     createdByMemberId: uuid('created_by_member_id').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-    archivedAt: timestamp('archived_at', { withTimezone: true }),
   },
   (table) => [
     unique('channels_workspace_id_key').on(table.workspaceId, table.id),
