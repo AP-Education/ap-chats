@@ -1,23 +1,15 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
-import { RequireAuth } from '../features/auth/components/RequireAuth';
-import { MainLayout } from '../layouts/MainLayout/MainLayout';
+import { channelsRoutes } from '../pages/channels/route';
 import { overviewRoute } from '../pages/overview/route';
 import { placeholderRoutes } from '../pages/placeholder/route';
-
-function ProtectedLayout() {
-  return (
-    <RequireAuth>
-      <MainLayout />
-    </RequireAuth>
-  );
-}
+import { ProtectedLayout } from './ProtectedLayout';
 
 const router = createBrowserRouter([
   { path: 'auth/callback', lazy: () => import('../pages/auth/CallbackPage') },
   {
     Component: ProtectedLayout,
-    children: [overviewRoute, ...placeholderRoutes],
+    children: [overviewRoute, ...channelsRoutes, ...placeholderRoutes],
   },
 ]);
 

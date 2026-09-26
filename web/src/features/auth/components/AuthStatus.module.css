@@ -1,7 +1,6 @@
 .trigger {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -9,12 +8,18 @@
   cursor: pointer;
 }
 
-.trigger :global(.ant-avatar) {
-  border: 1px solid var(--ant-color-border);
-}
-
 .trigger:focus-visible {
   outline: 2px solid var(--ant-color-primary);
   outline-offset: 4px;
   border-radius: 4px;
+}
+
+.menu :global(.ant-dropdown-menu) {
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+}
+
+.menu :global(.ant-dropdown-menu-item) {
+  border-radius: 8px;
 }

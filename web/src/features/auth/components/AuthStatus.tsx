@@ -1,7 +1,8 @@
-import { DownOutlined, UserOutlined } from '@ant-design/icons';
+import { DownOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Avatar, Button, Dropdown, Spin } from 'antd';
+import { Button, Dropdown, Flex, Spin, Typography } from 'antd';
 
+import { Avatar } from '../../../shared/ui/Avatar/Avatar';
 import { useCurrentUser } from '../stores/current-user-context';
 import styles from './AuthStatus.module.css';
 
@@ -69,9 +70,14 @@ export function AuthStatus() {
   return (
     <Dropdown
       trigger={['click']}
+      className={styles.menu}
       menu={{
         items: [
-          { key: 'name', label: profile?.name ?? 'Мій профіль', disabled: true },
+          {
+            key: 'name',
+            disabled: true,
+            label: <Typography.Text strong>{profile?.name ?? 'Мій профіль'}</Typography.Text>,
+          },
           {
             key: 'status',
             label: identity.isSuccess
@@ -82,19 +88,27 @@ export function AuthStatus() {
             disabled: true,
           },
           { type: 'divider' },
-          { key: 'logout', label: 'Вийти', onClick: signOut },
+          {
+            key: 'logout',
+            danger: true,
+            icon: <LogoutOutlined />,
+            label: 'Вийти',
+            onClick: signOut,
+          },
         ],
       }}
     >
       <button className={styles.trigger} type="button" aria-label="Профіль">
-        <Avatar
-          size={48}
-          src={profile?.picture}
-          icon={!profile?.picture && !profile?.name ? <UserOutlined /> : undefined}
-        >
-          {!profile?.picture && profile?.name ? profile.name[0] : undefined}
-        </Avatar>
-        <DownOutlined />
+        <Flex align="center" gap={12}>
+          <Avatar
+            path={profile?.picture ?? null}
+            alt={profile?.name ?? 'Профіль'}
+            size="large"
+            shape="circle"
+          />
+
+          <DownOutlined />
+        </Flex>
       </button>
     </Dropdown>
   );

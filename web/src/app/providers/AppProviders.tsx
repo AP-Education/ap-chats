@@ -3,6 +3,7 @@ import type { PropsWithChildren } from 'react';
 
 import { CurrentUserProvider } from '../../features/auth/providers/CurrentUserProvider';
 import { ConnectProvider } from '../../features/realtime/providers/ConnectProvider';
+import { ActiveWorkspaceProvider } from '../../features/workspaces/providers/ActiveWorkspaceProvider';
 import { ThemeProvider } from './ThemeProvider';
 
 const queryClient = new QueryClient({
@@ -14,7 +15,9 @@ export function AppProviders({ children }: PropsWithChildren) {
     <QueryClientProvider client={queryClient}>
       <CurrentUserProvider>
         <ConnectProvider>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ActiveWorkspaceProvider>
+            <ThemeProvider>{children}</ThemeProvider>
+          </ActiveWorkspaceProvider>
         </ConnectProvider>
       </CurrentUserProvider>
     </QueryClientProvider>

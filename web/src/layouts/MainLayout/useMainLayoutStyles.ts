@@ -55,51 +55,62 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     padding: 0;
     font-size: 20px;
   `,
-  brand: css`
-    height: 48px;
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-  `,
-  brandText: css`
-    color: ${token.colorText};
-    font-weight: 600;
-    font-size: 15px;
-  `,
-  brandMark: css`
-    height: 46px;
-    width: 46px;
-    display: grid;
-    place-items: center;
-    border-radius: 8px;
-    background: ${token.colorPrimary};
-    color: #fff;
-    font-size: 16px;
-    font-weight: 700;
-  `,
   sidebar: css`
     border-right: 1px solid ${token.colorBorderSecondary};
     position: relative;
     background: ${token.colorBgContainer};
-
-    :global(.ant-layout-sider-trigger) {
-      border-top: 1px solid ${token.colorBorder};
-      border-right: 1px solid ${token.colorBorder};
-    }
   `,
   sidebarStack: css`
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 0;
   `,
-  sidebarMenu: css`
-    background: ${token.colorBgContainer};
-    border-inline-end: none !important;
+  nav: css`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    flex-shrink: 0;
+  `,
+  navItem: css`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 38px;
+    padding: 0 10px;
+    border-radius: ${token.borderRadius}px;
+    color: ${token.colorTextSecondary};
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
 
-    :global(.ant-menu-title-content a) {
-      font-weight: 600 !important;
+    &:hover {
+      background: ${token.colorFillTertiary};
+      color: ${token.colorText};
     }
+  `,
+  navItemActive: css`
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorPrimaryTextActive};
+
+    &:hover {
+      background: ${token.colorPrimaryBgHover};
+      color: ${token.colorPrimaryTextActive};
+    }
+  `,
+  navDivider: css`
+    height: 1px;
+    margin: 4px 16px 8px;
+    background: ${token.colorBorderSecondary};
+    flex-shrink: 0;
+  `,
+  channelSection: css`
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   `,
   mobileDrawer: css`
     /* Mirrors .header's own padding (8px vertical from .headerContent, 16px
