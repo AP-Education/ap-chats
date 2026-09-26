@@ -1,16 +1,14 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
-import { WorkspaceMembersRepository } from '../members/repository';
+import type { WorkspaceMember } from '../members/types';
 import type { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import type { UpdateWorkspaceDto } from './dto/update-workspace.dto';
-import { type Workspace, WorkspacesRepository } from './repository';
+import { WorkspacesRepository } from './repository';
+import type { Workspace } from './types';
 
 @Injectable()
 export class WorkspacesService {
-  constructor(
-    private readonly workspacesRepository: WorkspacesRepository,
-    private readonly workspaceMembersRepository: WorkspaceMembersRepository,
-  ) {}
+  constructor(private readonly workspacesRepository: WorkspacesRepository) {}
 
   create(userId: string, dto: CreateWorkspaceDto): Promise<Workspace> {
     return this.workspacesRepository.create(userId, dto);
@@ -20,23 +18,18 @@ export class WorkspacesService {
     return this.workspacesRepository.findAllForMember(userId);
   }
 
-  async update(
-    workspaceId: string,
-    requesterId: string,
-    dto: UpdateWorkspaceDto,
-  ): Promise<Workspace> {
-    await this.assertOwner(workspaceId, requesterId);
-    return this.workspacesRepository.update(workspaceId, dto);
+  update(member: WorkspaceMember, dto: UpdateWorkspaceDto): Promise<Workspace> {
+    this.assertOwner(member);
+    return this.workspacesRepository.update(member.workspaceId, dto);
   }
 
-  async delete(workspaceId: string, requesterId: string): Promise<void> {
-    await this.assertOwner(workspaceId, requesterId);
-    await this.workspacesRepository.delete(workspaceId);
+  async delete(member: WorkspaceMember): Promise<void> {
+    this.assertOwner(member);
+    await this.workspacesRepository.delete(member.workspaceId);
   }
 
-  private async assertOwner(workspaceId: string, userId: string): Promise<void> {
-    const member = await this.workspaceMembersRepository.findForUser(workspaceId, userId);
-    if (member?.role !== 'owner')
+  private assertOwner(member: WorkspaceMember): void {
+    if (member.role !== 'owner')
       throw new ForbiddenException('Only the workspace owner can do this');
   }
 }

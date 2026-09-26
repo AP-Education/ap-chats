@@ -1,30 +1,28 @@
-import { Controller, Delete, Get, HttpCode, Param, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, Param } from '@nestjs/common';
 
-import { type AuthenticatedUser, AuthGuard, CurrentUser } from '@/components/auth';
+import { UseAuthGuards } from '@/components/auth';
 
-import type { WorkspaceMember } from './repository';
+import { CurrentWorkspaceMember } from './decorators';
+import { WorkspaceMemberGuard } from './guards';
+import type { WorkspaceMember } from './types';
 import { WorkspaceMembersService } from './workspace-members.service';
 
 @Controller('workspaces/:workspaceId/members')
-@UseGuards(AuthGuard)
+@UseAuthGuards(WorkspaceMemberGuard('param', 'workspaceId'))
 export class WorkspaceMembersController {
   constructor(private readonly members: WorkspaceMembersService) {}
 
   @Get()
-  findAll(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('workspaceId') workspaceId: string,
-  ): Promise<WorkspaceMember[]> {
-    return this.members.findAllForWorkspace(workspaceId, user.sub);
+  findAll(@CurrentWorkspaceMember() member: WorkspaceMember): Promise<WorkspaceMember[]> {
+    return this.members.findAllForWorkspace(member);
   }
 
   @Delete(':userId')
   @HttpCode(204)
   remove(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('workspaceId') workspaceId: string,
+    @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('userId') userId: string,
   ): Promise<void> {
-    return this.members.remove(workspaceId, user.sub, userId);
+    return this.members.remove(member, userId);
   }
 }

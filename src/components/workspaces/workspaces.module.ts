@@ -22,5 +22,6 @@ import { WorkspacesService } from './workspaces/workspaces.service';
     WorkspaceMembersService,
     { provide: WorkspaceMembersRepository, useClass: DrizzleWorkspaceMembersRepository },
   ],
+  exports: [WorkspaceMembersRepository],
 })
 export class WorkspacesModule {}

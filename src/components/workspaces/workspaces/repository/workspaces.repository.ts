@@ -1,9 +1,6 @@
-import type { workspaces } from '@/database/drizzle/schema';
-
 import type { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import type { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
-
-export type Workspace = typeof workspaces.$inferSelect;
+import type { Workspace } from '../types';
 
 export abstract class WorkspacesRepository {
   abstract create(ownerId: string, dto: CreateWorkspaceDto): Promise<Workspace>;

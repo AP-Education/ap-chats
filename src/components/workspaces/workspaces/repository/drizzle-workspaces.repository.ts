@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { DrizzleService } from '@/database/drizzle';
 import { workspaceMembers, workspaces } from '@/database/drizzle/schema';
 
 import type { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import type { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
-import { type Workspace, WorkspacesRepository } from './workspaces.repository';
+import type { Workspace } from '../types';
+import { WorkspacesRepository } from './workspaces.repository';
 
 @Injectable()
 export class DrizzleWorkspacesRepository extends WorkspacesRepository {
@@ -27,7 +28,7 @@ export class DrizzleWorkspacesRepository extends WorkspacesRepository {
         userId: ownerId,
         role: 'owner',
       });
-      return workspace;
+      return this.toModel(workspace);
     });
   }
 
@@ -36,9 +37,9 @@ export class DrizzleWorkspacesRepository extends WorkspacesRepository {
       .select({ workspace: workspaces })
       .from(workspaceMembers)
       .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
-      .where(eq(workspaceMembers.userId, userId));
+      .where(and(eq(workspaceMembers.userId, userId), eq(workspaceMembers.status, 'active')));
 
-    return rows.map((row) => row.workspace);
+    return rows.map((row) => this.toModel(row.workspace));
   }
 
   async findById(id: string): Promise<Workspace | undefined> {
@@ -46,7 +47,7 @@ export class DrizzleWorkspacesRepository extends WorkspacesRepository {
       .select()
       .from(workspaces)
       .where(eq(workspaces.id, id));
-    return workspace;
+    return workspace && this.toModel(workspace);
   }
 
   async update(id: string, dto: UpdateWorkspaceDto): Promise<Workspace> {
@@ -56,10 +57,20 @@ export class DrizzleWorkspacesRepository extends WorkspacesRepository {
       .where(eq(workspaces.id, id))
       .returning();
     if (!workspace) throw new Error('Workspace update did not return a row');
-    return workspace;
+    return this.toModel(workspace);
   }
 
   async delete(id: string): Promise<void> {
     await this.drizzle.db.delete(workspaces).where(eq(workspaces.id, id));
+  }
+
+  private toModel(row: typeof workspaces.$inferSelect): Workspace {
+    return {
+      id: row.id,
+      name: row.name,
+      avatarPath: row.avatarPath,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
   }
 }
