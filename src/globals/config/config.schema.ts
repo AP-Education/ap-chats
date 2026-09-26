@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Adapted locally from backend-LMS/src/globals/config. Keep this copy small:
-// Connect owns its deployment settings and does not have a shared package yet.
+// Chats owns its deployment settings and does not have a shared package yet.
 const schema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -50,5 +50,5 @@ export function validateConfig(env: Record<string, unknown>): AppConfig {
   const result = schema.safeParse(env);
   if (result.success) return result.data;
   const details = result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
-  throw new Error(`Invalid AP Connect configuration:\n${details.join('\n')}`);
+  throw new Error(`Invalid AP Chats configuration:\n${details.join('\n')}`);
 }

@@ -5,10 +5,10 @@ export interface ServerToClientEvents {
   'session:ready': (payload: { userId: string; appId: string }) => void;
 }
 
-// /connect has no client-to-server events, every client action goes through REST.
+// /chats has no client-to-server events, every client action goes through REST.
 type NoClientEvents = Record<string, (...args: never[]) => void>;
 
-export type ConnectSocketClient = Socket<ServerToClientEvents, NoClientEvents>;
+export type RealtimeSocketClient = Socket<ServerToClientEvents, NoClientEvents>;
 
 export type SocketAuthErrorCode =
   'AUTH_TOKEN_MISSING' | 'AUTH_TOKEN_EXPIRED' | 'AUTH_TOKEN_INVALID';
@@ -18,6 +18,6 @@ export type ConnectionError =
 
 export interface ConnectionState {
   status: 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error';
-  socket: ConnectSocketClient | null;
+  socket: RealtimeSocketClient | null;
   error: ConnectionError | null;
 }

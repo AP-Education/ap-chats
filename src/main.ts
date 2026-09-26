@@ -10,7 +10,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { Logger } from 'nestjs-pino';
 
 import { AppConfigService } from '@/globals/config';
-import { ConnectSocketIoAdapter } from '@/globals/realtime';
+import { RealtimeSocketIoAdapter } from '@/globals/realtime';
 
 import { AppModule } from './app.module';
 
@@ -35,7 +35,7 @@ async function bootstrap(): Promise<void> {
   );
   const config = app.get(AppConfigService);
   app.enableCors({ origin: config.get('WEB_ORIGIN') });
-  app.useWebSocketAdapter(new ConnectSocketIoAdapter(app, config));
+  app.useWebSocketAdapter(new RealtimeSocketIoAdapter(app, config));
   app.setGlobalPrefix('api');
   await app.listen(config.get('API_PORT'), '0.0.0.0');
 }

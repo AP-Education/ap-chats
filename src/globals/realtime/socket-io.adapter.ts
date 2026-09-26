@@ -4,7 +4,7 @@ import type { Server, ServerOptions } from 'socket.io';
 
 import type { AppConfigService } from '../config';
 
-export class ConnectSocketIoAdapter extends IoAdapter {
+export class RealtimeSocketIoAdapter extends IoAdapter {
   constructor(
     app: INestApplication,
     private readonly config: AppConfigService,

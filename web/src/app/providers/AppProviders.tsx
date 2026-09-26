@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { PropsWithChildren } from 'react';
 
 import { CurrentUserProvider } from '../../features/auth/providers/CurrentUserProvider';
-import { ConnectProvider } from '../../features/realtime/providers/ConnectProvider';
+import { RealtimeProvider } from '../../features/realtime/providers/RealtimeProvider';
 import { ActiveWorkspaceProvider } from '../../features/workspaces/providers/ActiveWorkspaceProvider';
 import { ThemeProvider } from './ThemeProvider';
 
@@ -14,11 +14,11 @@ export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
       <CurrentUserProvider>
-        <ConnectProvider>
+        <RealtimeProvider>
           <ActiveWorkspaceProvider>
             <ThemeProvider>{children}</ThemeProvider>
           </ActiveWorkspaceProvider>
-        </ConnectProvider>
+        </RealtimeProvider>
       </CurrentUserProvider>
     </QueryClientProvider>
   );

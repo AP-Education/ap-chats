@@ -24,7 +24,7 @@ before(async () => {
   const verifier = {
     async verify(token: string) {
       if (token === 'alice' || token === 'bob') {
-        return { sub: token, appId: 'connect-app' };
+        return { sub: token, appId: 'chats-app' };
       }
       if (token === 'expired') {
         const error = new Error('jwt expired') as Error & { code?: string };
@@ -36,7 +36,7 @@ before(async () => {
   } as AccountsTokenVerifier;
   const logger = { child: () => ({ warn() {}, error() {} }) } as unknown as Logger;
   const gateway = new BootstrapGateway(verifier, publisher, logger);
-  const namespace = socketServer.of('/connect');
+  const namespace = socketServer.of('/chats');
   gateway.afterInit(namespace);
   namespace.on('connection', (socket) => {
     void gateway.handleConnection(socket);
@@ -48,7 +48,7 @@ before(async () => {
   });
   const address = httpServer.address();
   assert.ok(address && typeof address !== 'string');
-  endpoint = `http://127.0.0.1:${address.port}/connect`;
+  endpoint = `http://127.0.0.1:${address.port}/chats`;
 });
 
 after(async () => {
@@ -78,13 +78,13 @@ function connect(socket: ClientSocket): Promise<{ userId: string; appId: string 
 
 test('authenticates a socket and joins only its user room', { timeout: 5000 }, async () => {
   const alice = client('alice');
-  assert.deepEqual(await connect(alice), { userId: 'alice', appId: 'connect-app' });
+  assert.deepEqual(await connect(alice), { userId: 'alice', appId: 'chats-app' });
 
-  const namespace = socketServer.of('/connect');
-  assert.equal(namespace.adapter.rooms.get(RealtimeRooms.user('connect-app', 'alice'))?.size, 1);
-  assert.equal(namespace.adapter.rooms.has(RealtimeRooms.user('connect-app', 'bob')), false);
+  const namespace = socketServer.of('/chats');
+  assert.equal(namespace.adapter.rooms.get(RealtimeRooms.user('chats-app', 'alice'))?.size, 1);
+  assert.equal(namespace.adapter.rooms.has(RealtimeRooms.user('chats-app', 'bob')), false);
   assert.equal(
-    namespace.adapter.rooms.has(RealtimeRooms.conversation('connect-app', 'some-id')),
+    namespace.adapter.rooms.has(RealtimeRooms.conversation('chats-app', 'some-id')),
     false,
   );
 });
@@ -100,7 +100,7 @@ test('delivers a personal event to every device of that user', { timeout: 5000 }
   const unexpected: unknown[] = [];
   other.on('notice', (payload) => unexpected.push(payload));
 
-  publisher.toUser('connect-app', 'alice', 'notice', { id: 'notice-1' });
+  publisher.toUser('chats-app', 'alice', 'notice', { id: 'notice-1' });
   assert.deepEqual(await firstEvent, { id: 'notice-1' });
   assert.deepEqual(await secondEvent, { id: 'notice-1' });
   assert.deepEqual(unexpected, []);

@@ -5,7 +5,7 @@ import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from 'jose';
 
 import { verifyAccessToken } from './access-token';
 
-const policy = { issuer: 'https://accounts.example.test', audience: 'ap-connect' };
+const policy = { issuer: 'https://accounts.example.test', audience: 'ap-chats' };
 let privateKey: Awaited<ReturnType<typeof generateKeyPair>>['privateKey'];
 let jwks: ReturnType<typeof createLocalJWKSet>;
 

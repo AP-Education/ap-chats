@@ -35,6 +35,6 @@ jobs:
         with:
           require-lockfile: true
           cache: true
-      - run: pnpm --filter @ap-connect/mobile lint
-      - run: pnpm --filter @ap-connect/mobile typecheck
+      - run: pnpm --filter @ap-chats/mobile lint
+      - run: pnpm --filter @ap-chats/mobile typecheck
       - run: pnpm exec prettier --check mobile

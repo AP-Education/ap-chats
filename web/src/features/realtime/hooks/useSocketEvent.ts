@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent } from 'react';
 
-import { useConnection } from '../stores/connect-context';
+import { useConnection } from '../stores/realtime-context';
 import type { ServerToClientEvents } from '../types';
 
 // socket.io-client types `.on`/`.off` against one concrete event key; a caller-generic

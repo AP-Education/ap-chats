@@ -1,9 +1,9 @@
 {
   "expo": {
     "name": "AP App",
-    "slug": "ap-connect",
+    "slug": "ap-chats",
     "version": "0.0.0",
-    "scheme": "apconnect",
+    "scheme": "apchats",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

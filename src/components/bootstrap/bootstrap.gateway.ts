@@ -5,7 +5,7 @@ import { AccountsTokenVerifier } from '@/components/auth';
 import { Logger } from '@/globals/logger';
 import { RealtimeRooms, SocketIoRealtimePublisher } from '@/globals/realtime';
 
-import type { ConnectSocket } from './connect-socket.types';
+import type { RealtimeSocket } from './realtime-socket.types';
 
 type SocketAuthErrorCode = 'AUTH_TOKEN_MISSING' | 'AUTH_TOKEN_EXPIRED' | 'AUTH_TOKEN_INVALID';
 
@@ -18,7 +18,7 @@ class SocketAuthError extends Error {
   }
 }
 
-@WebSocketGateway({ namespace: '/connect' })
+@WebSocketGateway({ namespace: '/chats' })
 export class BootstrapGateway implements OnGatewayInit, OnGatewayConnection {
   constructor(
     private readonly tokens: AccountsTokenVerifier,
@@ -29,11 +29,11 @@ export class BootstrapGateway implements OnGatewayInit, OnGatewayConnection {
   afterInit(namespace: Namespace): void {
     this.publisher.bind(namespace);
     namespace.use((socket, next) => {
-      void this.authenticate(socket as ConnectSocket, next);
+      void this.authenticate(socket as RealtimeSocket, next);
     });
   }
 
-  async handleConnection(socket: ConnectSocket): Promise<void> {
+  async handleConnection(socket: RealtimeSocket): Promise<void> {
     const principal = socket.data.principal;
     if (!principal) {
       socket.disconnect(true);
@@ -51,7 +51,7 @@ export class BootstrapGateway implements OnGatewayInit, OnGatewayConnection {
     }
   }
 
-  private async authenticate(socket: ConnectSocket, next: (error?: Error) => void): Promise<void> {
+  private async authenticate(socket: RealtimeSocket, next: (error?: Error) => void): Promise<void> {
     const token: unknown = socket.handshake.auth.token;
     if (typeof token !== 'string' || !token || token.length > 16_384) {
       next(new SocketAuthError('AUTH_TOKEN_MISSING'));

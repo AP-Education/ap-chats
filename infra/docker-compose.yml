@@ -2,18 +2,18 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ap_connect
-      POSTGRES_PASSWORD: ap_connect
-      POSTGRES_DB: ap_connect
+      POSTGRES_USER: ap_chats
+      POSTGRES_PASSWORD: ap_chats
+      POSTGRES_DB: ap_chats
     ports:
       - '127.0.0.1:5434:5432'
     volumes:
-      - connect_postgres:/var/lib/postgresql/data
+      - chats_postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ap_connect -d ap_connect']
+      test: ['CMD-SHELL', 'pg_isready -U ap_chats -d ap_chats']
       interval: 5s
       timeout: 3s
       retries: 10
 
 volumes:
-  connect_postgres:
+  chats_postgres:

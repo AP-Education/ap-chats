@@ -34,7 +34,7 @@ function readPreference(key: string): NotificationPreference {
 }
 
 export function useChannelNotificationPreference(workspaceId: string, channelId: string) {
-  const key = `ap-connect:channel-notifications:${workspaceId}:${channelId}`;
+  const key = `ap-chats:channel-notifications:${workspaceId}:${channelId}`;
   const [preference, setPreference] = useState(() => readPreference(key));
   const isMuted = preference.level === 'none' || Boolean(preference.mutedUntil);
 

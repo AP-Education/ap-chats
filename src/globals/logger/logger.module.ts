@@ -11,7 +11,7 @@ import { Logger } from './logger.interface';
 import { LoggerService } from './logger.service';
 
 // Adapted from backend-LMS: a global logger port with child context and
-// configurable output, using Connect's Fastify request IDs.
+// configurable output, using Chats's Fastify request IDs.
 @Global()
 @Module({
   imports: [
@@ -22,7 +22,7 @@ import { LoggerService } from './logger.service';
         assignResponse: true,
         pinoHttp: {
           level: config.get('LOG_LEVEL'),
-          base: { service: 'ap-connect-api', processInstanceId: LoggerModule.instanceId },
+          base: { service: 'ap-chats-api', processInstanceId: LoggerModule.instanceId },
           redact: {
             paths: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'],
             remove: true,

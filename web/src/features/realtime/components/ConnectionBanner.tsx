@@ -3,7 +3,7 @@ import { createStyles, keyframes } from 'antd-style';
 
 import { useSocketEvent } from '../hooks/useSocketEvent';
 import { sessionReadySchema } from '../schemas';
-import { useConnection } from '../stores/connect-context';
+import { useConnection } from '../stores/realtime-context';
 
 const slideDown = keyframes`
   from { opacity: 0; transform: translateY(-4px); }

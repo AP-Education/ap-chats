@@ -35,7 +35,7 @@ jobs:
         with:
           require-lockfile: true
           cache: true
-      - run: pnpm --filter @ap-connect/web lint
-      - run: pnpm --filter @ap-connect/web typecheck
-      - run: pnpm --filter @ap-connect/web build
+      - run: pnpm --filter @ap-chats/web lint
+      - run: pnpm --filter @ap-chats/web typecheck
+      - run: pnpm --filter @ap-chats/web build
       - run: pnpm exec prettier --check web

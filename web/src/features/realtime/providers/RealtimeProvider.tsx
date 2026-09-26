@@ -1,17 +1,17 @@
 import type { PropsWithChildren } from 'react';
 
 import { useCurrentUser } from '../../auth/stores/current-user-context';
-import { ConnectContext } from '../stores/connect-context';
+import { RealtimeContext } from '../stores/realtime-context';
 import type { ConnectionState } from '../types';
 import { ActiveConnection } from './ActiveConnection';
 
 const idleState: ConnectionState = { status: 'idle', socket: null, error: null };
 
-export function ConnectProvider({ children }: PropsWithChildren) {
+export function RealtimeProvider({ children }: PropsWithChildren) {
   const user = useCurrentUser();
 
   if (user.status !== 'signed-in') {
-    return <ConnectContext.Provider value={idleState}>{children}</ConnectContext.Provider>;
+    return <RealtimeContext.Provider value={idleState}>{children}</RealtimeContext.Provider>;
   }
 
   return (

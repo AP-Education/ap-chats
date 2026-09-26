@@ -1,8 +1,8 @@
 import type { PropsWithChildren } from 'react';
 import { useEffect, useEffectEvent, useState } from 'react';
 
-import { createConnectSocket } from '../api/socket-client';
-import { ConnectContext } from '../stores/connect-context';
+import { createRealtimeSocket } from '../api/socket-client';
+import { RealtimeContext } from '../stores/realtime-context';
 import type { ConnectionError, ConnectionState, SocketAuthErrorCode } from '../types';
 
 const AUTH_ERROR_CODES: readonly string[] = [
@@ -40,11 +40,11 @@ export function ActiveConnection({
   const tryRefresh = useEffectEvent(() => refreshAccessToken?.());
 
   useEffect(() => {
-    const socket = createConnectSocket(getToken);
+    const socket = createRealtimeSocket(getToken);
 
     const handleConnect = () => setState({ status: 'connected', socket, error: null });
 
-    // Network errors are left to socket.io's own backoff loop (see createConnectSocket).
+    // Network errors are left to socket.io's own backoff loop (see createRealtimeSocket).
     // Auth errors need a decision: an expired token is worth one refresh-and-retry: if
     // that fails or isn't available, retrying with the same bad token can never
     // succeed, so we stop the Manager instead of hammering the server forever.
@@ -89,5 +89,5 @@ export function ActiveConnection({
     };
   }, []);
 
-  return <ConnectContext.Provider value={state}>{children}</ConnectContext.Provider>;
+  return <RealtimeContext.Provider value={state}>{children}</RealtimeContext.Provider>;
 }

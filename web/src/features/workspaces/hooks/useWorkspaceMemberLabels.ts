@@ -18,12 +18,6 @@ interface WorkspaceMemberLabelsResult {
   isLoading: boolean;
 }
 
-// Connect has no user-profile directory yet (see docs/chat-domain-design.md):
-// workspace_members only carries an opaque Accounts userId. This is the one
-// place that turns a member row into something readable — "Ви", "Власник
-// робочого простору", or a stable "Учасник N" numbered by join order, the
-// same for every viewer so the numbering never shifts depending on who's
-// looking.
 export function useWorkspaceMemberLabels(
   workspaceId: string | undefined,
 ): WorkspaceMemberLabelsResult {
