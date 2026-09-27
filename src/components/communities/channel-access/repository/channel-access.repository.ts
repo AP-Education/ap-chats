@@ -10,4 +10,6 @@ export abstract class ChannelAccessRepository {
   abstract isActiveWorkspaceMember(workspaceId: string, memberId: string): Promise<boolean>;
 
   abstract isChannelMember(channelId: string, memberId: string): Promise<boolean>;
+
+  abstract isDmPeerActive(channelId: string, memberId: string): Promise<boolean>;
 }

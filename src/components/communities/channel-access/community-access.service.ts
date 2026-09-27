@@ -21,7 +21,7 @@ export class CommunityAccessService {
     const channel = await this.channels.findById(workspaceId, channelId);
     if (!channel) throw new NotFoundException('Channel not found');
     if (
-      channel.kind === 'private' &&
+      channel.kind !== 'public' &&
       !(await this.channelMemberships.isMember(channelId, memberId))
     ) {
       throw new NotFoundException('Channel not found');
@@ -40,6 +40,8 @@ export class CommunityAccessService {
   }
 
   async requireManager(channel: Channel, member: WorkspaceMember): Promise<void> {
+    if (channel.kind === 'dm')
+      throw new ForbiddenException('Direct messages have no channel manager');
     if (channel.kind === 'private') {
       await this.requireChannelMember(channel, member.id);
       return;

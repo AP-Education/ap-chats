@@ -57,6 +57,7 @@ export function useMessageOperations(workspaceId: string, channelId: string) {
     if (!token) throw new Error('Not signed in');
     try {
       const message = await sendMessage(token, workspaceId, channelId, outgoing.input);
+      void queryClient.invalidateQueries({ queryKey: ['direct-messages', identity, workspaceId] });
       updateOutbox((current) =>
         current.filter((item) => item.input.clientNonce !== outgoing.input.clientNonce),
       );

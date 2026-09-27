@@ -19,7 +19,8 @@ export function MainLayout() {
   const { token } = theme.useToken();
   const isMobile = useIsMobile();
   const [isMenuOpen, setMenuOpen] = useState(false);
-  const isChannelPage = useLocation().pathname.startsWith('/channels');
+  const { pathname } = useLocation();
+  const isChannelPage = pathname.startsWith('/channels') || pathname.startsWith('/messages');
   const mobileMenu = useMemo(() => ({ open: () => setMenuOpen(true) }), []);
 
   return (

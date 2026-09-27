@@ -195,9 +195,10 @@ export class MessagesFacade {
     const rows = await this.repository.findWithEntries(channelId, ids);
     if (rows.length !== ids.length) throw new NotFoundException('Message not found');
     const manager =
-      channel.kind === 'private' ||
-      member.role === 'owner' ||
-      channel.createdByMemberId === member.id;
+      channel.kind !== 'dm' &&
+      (channel.kind === 'private' ||
+        member.role === 'owner' ||
+        channel.createdByMemberId === member.id);
     if (rows.some(({ message }) => message.authorMemberId !== member.id && !manager))
       throw new ForbiddenException('Cannot delete another member’s message');
     const pending = rows.filter(({ message }) => !message.deletedAt);

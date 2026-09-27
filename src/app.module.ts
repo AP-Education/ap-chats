@@ -5,6 +5,7 @@ import { AuthModule } from '@/components/auth';
 import { BootstrapModule } from '@/components/bootstrap';
 import { CommunitiesModule } from '@/components/communities';
 import { DevicesModule } from '@/components/devices';
+import { DirectMessagesModule } from '@/components/direct-messages/direct-messages.module';
 import { SocialModule } from '@/components/social/social.module';
 import { UploadsModule } from '@/components/uploads';
 import { UserProfilesModule } from '@/components/user-profiles/user-profiles.module';
@@ -27,6 +28,7 @@ import { HealthController } from '@/health/health.controller';
     AuthModule,
     UserProfilesModule,
     DevicesModule,
+    DirectMessagesModule,
     UploadsModule,
     WorkspacesModule,
     CommunitiesModule,

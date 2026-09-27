@@ -5,7 +5,7 @@ export interface Channel {
   workspaceId: string;
   categoryId: string | null;
   kind: ChannelKind;
-  name: string;
+  name: string | null;
   createdByMemberId: string;
   createdAt: Date;
   updatedAt: Date;

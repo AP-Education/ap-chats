@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, eq } from 'drizzle-orm';
 
-import { channelMemberships, channels, workspaceMembers } from '@/database/drizzle/schema';
+import {
+  channelMemberships,
+  channels,
+  directMessages,
+  workspaceMembers,
+} from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 import type { ChannelAccessSnapshot } from '../../channels/types/channel-access.types';
@@ -56,5 +61,20 @@ export class DrizzleChannelAccessRepository extends ChannelAccessRepository {
         and(eq(channelMemberships.channelId, channelId), eq(channelMemberships.memberId, memberId)),
       );
     return !!row;
+  }
+
+  async isDmPeerActive(channelId: string, memberId: string): Promise<boolean> {
+    const [pair] = await this.txHost.tx
+      .select({ first: directMessages.firstMemberId, second: directMessages.secondMemberId })
+      .from(directMessages)
+      .where(eq(directMessages.channelId, channelId));
+    if (!pair || (pair.first !== memberId && pair.second !== memberId)) return false;
+    const other = pair.first === memberId ? pair.second : pair.first;
+    const [peer] = await this.txHost.tx
+      .select({ id: workspaceMembers.id })
+      .from(workspaceMembers)
+      .where(and(eq(workspaceMembers.id, other), eq(workspaceMembers.status, 'active')))
+      .for('share');
+    return !!peer;
   }
 }

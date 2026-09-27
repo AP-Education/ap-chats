@@ -18,6 +18,8 @@ export class ChannelAccessFacade {
     await this.requireActiveMember(member);
     if (!(await this.repository.isChannelMember(channelId, member.id)))
       throw new ForbiddenException('Join this channel first');
+    if (channel.kind === 'dm' && !(await this.repository.isDmPeerActive(channelId, member.id)))
+      throw new ForbiddenException('Direct message participant is unavailable');
     return channel;
   }
 
@@ -29,7 +31,7 @@ export class ChannelAccessFacade {
     if (!channel) throw new NotFoundException('Channel not found');
     await this.requireActiveMember(member);
     const isMember = await this.repository.isChannelMember(channelId, member.id);
-    if (channel.kind === 'private' && !isMember) throw new NotFoundException('Channel not found');
+    if (channel.kind !== 'public' && !isMember) throw new NotFoundException('Channel not found');
     return { channel, isMember };
   }
 
@@ -48,14 +50,18 @@ export class ChannelAccessFacade {
     const source = locked.get(sourceChannelId);
     const target = locked.get(targetChannelId);
     if (!source || !target) throw new NotFoundException('Channel not found');
-    if (source.kind === 'private' && !(await this.repository.isChannelMember(source.id, member.id)))
+    if (source.kind !== 'public' && !(await this.repository.isChannelMember(source.id, member.id)))
       throw new NotFoundException('Channel not found');
     if (!(await this.repository.isChannelMember(target.id, member.id)))
       throw new ForbiddenException('Join the destination channel first');
+    if (target.kind === 'dm' && !(await this.repository.isDmPeerActive(target.id, member.id)))
+      throw new ForbiddenException('Direct message participant is unavailable');
     return target;
   }
 
   requireManager(member: WorkspaceMember, channel: ChannelAccessSnapshot): void {
+    if (channel.kind === 'dm')
+      throw new ForbiddenException('Direct messages have no channel manager');
     if (channel.kind === 'private') return;
     if (member.role !== 'owner' && channel.createdByMemberId !== member.id)
       throw new ForbiddenException('Only the channel creator or workspace owner can manage it');

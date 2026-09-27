@@ -17,7 +17,7 @@ export class DrizzleEntriesRepository extends EntriesRepository {
   async append(workspaceId: string, channelId: string, messageId: string): Promise<ChannelEntry> {
     const [channel] = await this.txHost.tx
       .update(channels)
-      .set({ lastEntrySeq: sql`${channels.lastEntrySeq} + 1` })
+      .set({ lastEntrySeq: sql`${channels.lastEntrySeq} + 1`, updatedAt: new Date() })
       .where(and(eq(channels.workspaceId, workspaceId), eq(channels.id, channelId)))
       .returning({ seq: channels.lastEntrySeq });
     if (!channel) throw new Error('Locked channel disappeared');
@@ -37,7 +37,10 @@ export class DrizzleEntriesRepository extends EntriesRepository {
     if (!messageIds.length) return [];
     const [channel] = await this.txHost.tx
       .update(channels)
-      .set({ lastEntrySeq: sql`${channels.lastEntrySeq} + ${messageIds.length}` })
+      .set({
+        lastEntrySeq: sql`${channels.lastEntrySeq} + ${messageIds.length}`,
+        updatedAt: new Date(),
+      })
       .where(and(eq(channels.workspaceId, workspaceId), eq(channels.id, channelId)))
       .returning({ lastSeq: channels.lastEntrySeq });
     if (!channel) throw new Error('Locked channel disappeared');

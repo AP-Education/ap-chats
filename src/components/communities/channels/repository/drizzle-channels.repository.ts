@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, asc, eq, isNotNull, or } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, or } from 'drizzle-orm';
 
 import { DrizzleService } from '@/database/drizzle';
 import { channelMemberships, channels } from '@/database/drizzle/schema';
@@ -33,8 +33,14 @@ export class DrizzleChannelsRepository extends ChannelsRepository {
         and(
           eq(channels.workspaceId, workspaceId),
           scope === 'joined'
-            ? isNotNull(channelMemberships.memberId)
-            : or(eq(channels.kind, 'public'), isNotNull(channelMemberships.memberId)),
+            ? and(
+                inArray(channels.kind, ['public', 'private']),
+                isNotNull(channelMemberships.memberId),
+              )
+            : or(
+                eq(channels.kind, 'public'),
+                and(eq(channels.kind, 'private'), isNotNull(channelMemberships.memberId)),
+              ),
         ),
       )
       .orderBy(asc(channels.name));
