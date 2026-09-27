@@ -5,12 +5,15 @@ import { AuthModule } from '@/components/auth';
 import { BootstrapModule } from '@/components/bootstrap';
 import { CommunitiesModule } from '@/components/communities';
 import { DevicesModule } from '@/components/devices';
+import { SocialModule } from '@/components/social/social.module';
 import { UploadsModule } from '@/components/uploads';
 import { WorkspacesModule } from '@/components/workspaces';
 import { DrizzleModule } from '@/database/drizzle';
+import { TransactionalDrizzleModule } from '@/database/drizzle/transactional-drizzle.module';
 import { AppConfigModule } from '@/globals/config';
 import { HttpExceptionFilter } from '@/globals/filters/http-exception.filter';
 import { LoggerModule } from '@/globals/logger';
+import { PublisherModule } from '@/globals/publisher/publisher.module';
 import { HealthController } from '@/health/health.controller';
 
 @Module({
@@ -18,11 +21,14 @@ import { HealthController } from '@/health/health.controller';
     AppConfigModule,
     LoggerModule,
     DrizzleModule,
+    TransactionalDrizzleModule,
+    PublisherModule,
     AuthModule,
     DevicesModule,
     UploadsModule,
     WorkspacesModule,
     CommunitiesModule,
+    SocialModule,
     BootstrapModule,
   ],
   controllers: [HealthController],
