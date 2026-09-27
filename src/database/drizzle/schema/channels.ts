@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  bigint,
   check,
   foreignKey,
   pgTable,
@@ -27,6 +28,9 @@ export const channels = pgTable(
     kind: text('kind', { enum: channelKinds }).notNull(),
     name: text('name').notNull(),
     createdByMemberId: uuid('created_by_member_id').notNull(),
+    lastEntrySeq: bigint('last_entry_seq', { mode: 'bigint' })
+      .notNull()
+      .default(sql`0`),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

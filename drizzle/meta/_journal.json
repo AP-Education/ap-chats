@@ -36,6 +36,20 @@
       "when": 1790428808476,
       "tag": "0004_certain_morlun",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790437471889,
+      "tag": "0005_happy_shriek",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790441227816,
+      "tag": "0006_safe_zarek",
+      "breakpoints": true
     }
   ]
 }

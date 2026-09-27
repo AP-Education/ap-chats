@@ -1,4 +1,13 @@
-import { foreignKey, index, pgTable, primaryKey, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+  bigint,
+  foreignKey,
+  index,
+  pgTable,
+  primaryKey,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 import { channels } from './channels';
 import { workspaceMembers } from './workspace-members';
@@ -10,6 +19,9 @@ export const channelMemberships = pgTable(
     channelId: uuid('channel_id').notNull(),
     memberId: uuid('member_id').notNull(),
     joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
+    lastReadEntrySeq: bigint('last_read_entry_seq', { mode: 'bigint' })
+      .notNull()
+      .default(sql`0`),
   },
   (table) => [
     primaryKey({ columns: [table.channelId, table.memberId] }),
