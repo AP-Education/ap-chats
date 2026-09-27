@@ -28,13 +28,27 @@ const useStyles = createStyles(({ token, css }) => ({
       color: ${token.colorText};
     }
 
-    &:hover [data-role='row-action'],
-    &:focus-within [data-role='row-action'] {
-      opacity: 1;
-    }
-
     @media (max-width: ${token.screenMD}px) {
       margin-inline: 4px;
+    }
+  `,
+  rowWithActions: css`
+    &:hover [data-role='row-actions'],
+    &:focus-within [data-role='row-actions'] {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    &:hover [data-role='unread-badge'],
+    &:focus-within [data-role='unread-badge'] {
+      opacity: 0;
+    }
+
+    @media (hover: none) {
+      &:hover [data-role='unread-badge'],
+      &:focus-within [data-role='unread-badge'] {
+        opacity: 1;
+      }
     }
   `,
   rowActive: css`
@@ -45,10 +59,6 @@ const useStyles = createStyles(({ token, css }) => ({
     &:hover {
       background: ${token.colorPrimaryBgHover};
       color: ${token.colorPrimaryTextActive};
-    }
-
-    [data-role='row-action'] {
-      opacity: 1;
     }
   `,
   dragging: css`
@@ -99,6 +109,10 @@ const useStyles = createStyles(({ token, css }) => ({
     font-size: ${token.fontSize}px;
   `,
   unread: css`
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -106,25 +120,51 @@ const useStyles = createStyles(({ token, css }) => ({
     height: 18px;
     padding: 0 5px;
     border-radius: 9px;
-    background: ${token.colorPrimary};
+    background: ${token.colorError};
     color: ${token.colorWhite};
     font-size: 10px;
     font-weight: 700;
     line-height: 1;
+    transition: opacity 0.15s ease;
+
+    @media (hover: none) {
+      position: static;
+      transform: none;
+    }
+  `,
+  trailing: css`
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 18px;
+    height: 28px;
+
+    @media (hover: none) {
+      gap: 6px;
+    }
+  `,
+  actions: css`
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+
+    @media (hover: none) {
+      opacity: 1;
+      pointer-events: auto;
+    }
   `,
   action: css`
     background: transparent;
     color: ${token.colorTextSecondary};
-    opacity: 0;
 
     &&:hover:not(:disabled),
     &&:focus:not(:disabled) {
       background: transparent;
       color: ${token.colorPrimary};
-    }
-
-    @media (hover: none) {
-      opacity: 1;
     }
   `,
 }));
@@ -148,13 +188,15 @@ export function ChannelRow({ channel }: ChannelRowProps) {
   const isActive = channel.id === selectedChannelId;
   const canAddMember = channel.isMember;
   const canManage = canManageChannel(channel, currentMember);
-  const unreadCount = unreadByChannel.get(channel.id) ?? 0;
+  const unreadCount = isActive ? 0 : (unreadByChannel.get(channel.id) ?? 0);
+  const hasActions = canAddMember || canManage;
 
   return (
     <div
       className={cx(
         styles.row,
         isActive && styles.rowActive,
+        hasActions && styles.rowWithActions,
         draggingChannel?.id === channel.id && styles.dragging,
       )}
       draggable={canManage}
@@ -172,43 +214,53 @@ export function ChannelRow({ channel }: ChannelRowProps) {
           <HashIcon size={16} className={styles.icon} />
         )}
         <span className={styles.name}>{channel.name}</span>
-        {unreadCount > 0 && (
-          <span className={styles.unread} aria-label={`${unreadCount} непрочитаних`}>
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
-        )}
       </Link>
-      {canAddMember && (
-        <Popover
-          trigger="click"
-          placement="right"
-          content={<AddChannelMemberControl workspaceId={workspaceId} channel={channel} />}
-        >
-          <Tooltip title="Додати учасника">
-            <IconButton
-              size={28}
-              className={styles.action}
-              data-role="row-action"
-              aria-label={`Додати учасника до ${channel.name}`}
-              onClick={(event) => event.stopPropagation()}
+      {(unreadCount > 0 || hasActions) && (
+        <div className={styles.trailing}>
+          {unreadCount > 0 && (
+            <span
+              className={styles.unread}
+              data-role="unread-badge"
+              aria-label={`${unreadCount} непрочитаних`}
             >
-              <UserPlusIcon size={16} />
-            </IconButton>
-          </Tooltip>
-        </Popover>
-      )}
-      {canManage && (
-        <Tooltip title="Налаштування каналу">
-          <IconButton
-            size={28}
-            className={styles.action}
-            data-role="row-action"
-            aria-label={`Налаштування каналу ${channel.name}`}
-            onClick={() => setSettingsOpen(true)}
-          >
-            <GearSixIcon size={16} />
-          </IconButton>
-        </Tooltip>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+          {hasActions && (
+            <div className={styles.actions} data-role="row-actions">
+              {canAddMember && (
+                <Popover
+                  trigger="click"
+                  placement="right"
+                  content={<AddChannelMemberControl workspaceId={workspaceId} channel={channel} />}
+                >
+                  <Tooltip title="Додати учасника">
+                    <IconButton
+                      size={28}
+                      className={styles.action}
+                      aria-label={`Додати учасника до ${channel.name}`}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <UserPlusIcon size={16} />
+                    </IconButton>
+                  </Tooltip>
+                </Popover>
+              )}
+              {canManage && (
+                <Tooltip title="Налаштування каналу">
+                  <IconButton
+                    size={28}
+                    className={styles.action}
+                    aria-label={`Налаштування каналу ${channel.name}`}
+                    onClick={() => setSettingsOpen(true)}
+                  >
+                    <GearSixIcon size={16} />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </div>
+          )}
+        </div>
       )}
       {canManage && (
         <ChannelFormModal
