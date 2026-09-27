@@ -98,6 +98,20 @@ const useStyles = createStyles(({ token, css }) => ({
     white-space: nowrap;
     font-size: ${token.fontSize}px;
   `,
+  unread: css`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: ${token.colorPrimary};
+    color: ${token.colorWhite};
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+  `,
   action: css`
     background: transparent;
     color: ${token.colorTextSecondary};
@@ -125,6 +139,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
     workspaceId,
     currentMember,
     selectedChannelId,
+    unreadByChannel,
     onNavigate,
     setDraggingChannel,
     draggingChannel,
@@ -133,6 +148,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
   const isActive = channel.id === selectedChannelId;
   const canAddMember = channel.isMember;
   const canManage = canManageChannel(channel, currentMember);
+  const unreadCount = unreadByChannel.get(channel.id) ?? 0;
 
   return (
     <div
@@ -156,6 +172,11 @@ export function ChannelRow({ channel }: ChannelRowProps) {
           <HashIcon size={16} className={styles.icon} />
         )}
         <span className={styles.name}>{channel.name}</span>
+        {unreadCount > 0 && (
+          <span className={styles.unread} aria-label={`${unreadCount} непрочитаних`}>
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
       </Link>
       {canAddMember && (
         <Popover

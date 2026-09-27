@@ -13,6 +13,7 @@ export interface ChannelsSidebarStore {
   workspaceId: string;
   currentMember: WorkspaceMember | undefined;
   selectedChannelId: string | undefined;
+  unreadByChannel: Map<string, number>;
   onNavigate: (() => void) | undefined;
   requestCreateChannel: (target: CreateChannelTarget) => void;
   draggingChannel: Channel | null;
