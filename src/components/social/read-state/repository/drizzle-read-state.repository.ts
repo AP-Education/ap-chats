@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, count, eq, gt, isNull, lte, ne } from 'drizzle-orm';
+import { and, count, eq, gt, isNull, lte, ne, sql } from 'drizzle-orm';
 
 import { channelEntries, channelMemberships, chatMessages } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
@@ -11,6 +11,43 @@ import { ReadStateRepository } from './read-state.repository';
 export class DrizzleReadStateRepository extends ReadStateRepository {
   constructor(private readonly txHost: TransactionHost<DrizzleTransactionAdapter>) {
     super();
+  }
+
+  async workspaceSummary(workspaceId: string, memberId: string) {
+    const rows = await this.txHost.tx
+      .select({
+        channelId: channelMemberships.channelId,
+        lastReadEntrySeq: channelMemberships.lastReadEntrySeq,
+        unreadCount: sql<number>`count(${chatMessages.id})`.mapWith(Number),
+      })
+      .from(channelMemberships)
+      .leftJoin(
+        channelEntries,
+        and(
+          eq(channelEntries.channelId, channelMemberships.channelId),
+          gt(channelEntries.seq, channelMemberships.lastReadEntrySeq),
+        ),
+      )
+      .leftJoin(
+        chatMessages,
+        and(
+          eq(chatMessages.id, channelEntries.messageId),
+          ne(chatMessages.authorMemberId, memberId),
+          isNull(chatMessages.deletedAt),
+        ),
+      )
+      .where(
+        and(
+          eq(channelMemberships.workspaceId, workspaceId),
+          eq(channelMemberships.memberId, memberId),
+        ),
+      )
+      .groupBy(channelMemberships.channelId, channelMemberships.lastReadEntrySeq);
+    return rows.map((row) => ({
+      channelId: row.channelId,
+      lastReadEntrySeq: row.lastReadEntrySeq.toString(),
+      unreadCount: row.unreadCount,
+    }));
   }
 
   async lastReadSeq(channelId: string, memberId: string): Promise<bigint | null> {

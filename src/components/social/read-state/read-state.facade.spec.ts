@@ -9,6 +9,9 @@ import type { ReadStateRepository } from './repository/read-state.repository';
 test('history cursor reads one indexed membership row without counting unread entries', async () => {
   let cursorReads = 0;
   const repository = {
+    async workspaceSummary() {
+      throw new Error('Unexpected workspace lookup');
+    },
     async lastReadSeq() {
       cursorReads++;
       return 42n;

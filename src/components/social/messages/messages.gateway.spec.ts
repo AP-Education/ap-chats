@@ -14,8 +14,8 @@ test('sends a channel invalidation only to currently authorized sockets', async 
   const left: string[] = [];
   const socket = (userId: string) => ({
     data: { principal: { sub: userId } },
-    emit(_event: string, payload: unknown) {
-      received.push({ userId, payload });
+    emit(event: string, payload: unknown) {
+      received.push({ userId, event, payload });
     },
     async leave(room: string) {
       left.push(`${userId}:${room}`);
@@ -34,15 +34,20 @@ test('sends a channel invalidation only to currently authorized sockets', async 
     audience,
     {} as Logger,
   );
-  Object.assign(gateway, { namespace: { in: () => ({ fetchSockets: async () => roomSockets }) } });
+  Object.assign(gateway, {
+    namespace: {
+      in: () => ({ fetchSockets: async () => roomSockets }),
+    },
+  });
 
   await gateway.onCreated(
     new MessageCreatedEvent('workspace', 'channel', 'message', '12', 'actor'),
   );
 
-  assert.equal(received.length, 1);
+  assert.equal(received.length, 2);
   assert.deepEqual(received[0], {
     userId: 'allowed',
+    event: 'social:changed',
     payload: {
       type: 'social.message.created',
       workspaceId: 'workspace',
@@ -51,6 +56,11 @@ test('sends a channel invalidation only to currently authorized sockets', async 
       seq: '12',
       actorMemberId: 'actor',
     },
+  });
+  assert.deepEqual(received[1], {
+    userId: 'allowed',
+    event: 'social:unread',
+    payload: { workspaceId: 'workspace', channelId: 'channel' },
   });
   assert.deepEqual(left, ['removed:social:workspace:workspace:channel:channel']);
 });

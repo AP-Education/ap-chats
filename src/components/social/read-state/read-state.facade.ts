@@ -13,6 +13,11 @@ export class ReadStateFacade {
     private readonly repository: ReadStateRepository,
   ) {}
 
+  @Transactional()
+  workspace(member: WorkspaceMember) {
+    return this.repository.workspaceSummary(member.workspaceId, member.id);
+  }
+
   async cursor(channelId: string, memberId: string): Promise<{ lastReadEntrySeq: string } | null> {
     const seq = await this.repository.lastReadSeq(channelId, memberId);
     return seq === null ? null : { lastReadEntrySeq: seq.toString() };
