@@ -1,12 +1,14 @@
-import { GifIcon, PaperclipIcon, SmileyIcon, StickerIcon } from '@phosphor-icons/react';
+import { GifIcon, PaperclipIcon, SmileyIcon, StickerIcon, XIcon } from '@phosphor-icons/react';
 import { Popover, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { type KeyboardEvent, useLayoutEffect, useRef, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import { useConversation } from '@/features/social/conversation/store';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { IconButton } from '@/shared/ui/IconButton';
 
+import type { SendMessageInput } from '../../types';
 import { ComposerAction } from './ComposerAction';
 import { EmojiPopoverContent } from './EmojiPopoverContent';
 import { MockPopoverContent } from './MockPopoverContent';
@@ -127,15 +129,38 @@ const useStyles = createStyles(({ token, css }) => ({
     background: ${token.colorPrimaryBg};
     color: ${token.colorPrimary};
   `,
+  composerBody: css`
+    flex: 1;
+    min-width: 0;
+  `,
+  reply: css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    margin: 3px 3px 0;
+    padding: 5px 8px;
+    border-left: 3px solid ${token.colorPrimary};
+    border-radius: 5px;
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorTextSecondary};
+    font-size: 12px;
+  `,
+  replyLabel: css`
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
 }));
 
 interface MessageComposerProps {
   workspaceId: string;
   channelId: string;
   channelName: string;
+  replyLabel?: string;
+  onSend: (input: Omit<SendMessageInput, 'clientNonce'>) => void;
 }
-
-const channelDrafts = new Map<string, string>();
 
 // A Discord-shaped composer: a growing contentEditable box (capped height,
 // its own scroll) instead of a plain <textarea>, so it's ready for rich
@@ -143,48 +168,72 @@ const channelDrafts = new Map<string, string>();
 // pill's top edge as the box grows — only the text scrolls internally.
 // Emoji insertion is real; gif/sticker are mock previews since neither has a
 // backend yet.
-export function MessageComposer({ workspaceId, channelId, channelName }: MessageComposerProps) {
+export function MessageComposer({
+  workspaceId,
+  channelId,
+  channelName,
+  replyLabel,
+  onSend,
+}: MessageComposerProps) {
   const { styles, cx } = useStyles();
   const { identity } = useQueryAuth();
-  const draftKey = `${identity}:${workspaceId}:${channelId}`;
+  const draftKey = `ap-chats:draft:${identity}:${workspaceId}:${channelId}`;
+  const intent = useConversation((state) => state.intent);
+  const setIntent = useConversation((state) => state.setIntent);
   const isMobile = useIsMobile();
   const toolbarActionSize = isMobile ? 44 : 38;
   const editableRef = useRef<HTMLDivElement>(null);
   const [contentState, setContentState] = useState(() => ({
     draftKey,
-    hasContent: Boolean(channelDrafts.get(draftKey)?.trim()),
+    hasContent: Boolean(localStorage.getItem(draftKey)?.trim()),
   }));
   const hasContent =
     contentState.draftKey === draftKey
       ? contentState.hasContent
-      : Boolean(channelDrafts.get(draftKey)?.trim());
+      : Boolean(localStorage.getItem(draftKey)?.trim());
   const [activeAction, setActiveAction] = useState<'emoji' | 'gif' | 'sticker' | null>(null);
 
   useLayoutEffect(() => {
-    const draft = channelDrafts.get(draftKey) ?? '';
+    const draft = localStorage.getItem(draftKey) ?? '';
     if (editableRef.current) editableRef.current.textContent = draft;
   }, [draftKey]);
+
+  useLayoutEffect(() => {
+    if (intent) editableRef.current?.focus();
+  }, [intent]);
 
   function syncHasContent() {
     const el = editableRef.current;
     if (!el) return;
     if (el.textContent === '') el.innerHTML = '';
     const draft = el.innerText;
-    channelDrafts.set(draftKey, draft);
+    if (draft) localStorage.setItem(draftKey, draft);
+    else localStorage.removeItem(draftKey);
     setContentState({ draftKey, hasContent: draft.trim().length > 0 });
   }
 
   function handleSend() {
     const el = editableRef.current;
-    if (!el || el.textContent!.trim().length === 0) return;
+    const markdown = el?.innerText.trim();
+    if (!el || !markdown) return;
+    onSend({
+      markdown,
+      ...(intent ? { replyToMessageId: intent.messageId } : {}),
+      ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
+    });
     el.innerHTML = '';
-    channelDrafts.delete(draftKey);
+    localStorage.removeItem(draftKey);
     setContentState({ draftKey, hasContent: false });
+    setIntent(null);
     el.focus();
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === 'Escape' && intent) {
+      setIntent(null);
+      return;
+    }
+    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       handleSend();
     }
@@ -238,18 +287,40 @@ export function MessageComposer({ workspaceId, channelId, channelName }: Message
           </Tooltip>
         </span>
 
-        <div
-          ref={editableRef}
-          className={styles.editable}
-          contentEditable
-          role="textbox"
-          aria-multiline="true"
-          aria-label={`Написати в #${channelName}`}
-          data-placeholder={`Написати в #${channelName}`}
-          data-mobile-placeholder="Повідомлення"
-          onInput={syncHasContent}
-          onKeyDown={handleKeyDown}
-        />
+        <div className={styles.composerBody}>
+          {intent && (
+            <div className={styles.reply}>
+              <span className={styles.replyLabel}>
+                {intent.quoteText
+                  ? `Цитата: ${intent.quoteText}`
+                  : `Відповідь: ${replyLabel ?? 'повідомлення'}`}
+              </span>
+              <IconButton
+                size={24}
+                aria-label="Скасувати відповідь"
+                onClick={() => setIntent(null)}
+              >
+                <XIcon size={16} />
+              </IconButton>
+            </div>
+          )}
+          <div
+            ref={editableRef}
+            className={styles.editable}
+            contentEditable="plaintext-only"
+            role="textbox"
+            aria-multiline="true"
+            aria-label={`Написати в #${channelName}`}
+            data-placeholder={`Написати в #${channelName}`}
+            data-mobile-placeholder="Повідомлення"
+            onInput={syncHasContent}
+            onKeyDown={handleKeyDown}
+            onPaste={(event) => {
+              event.preventDefault();
+              insertAtCaret(event.clipboardData.getData('text/plain'));
+            }}
+          />
+        </div>
 
         <div className={styles.toolbarRight}>
           <Popover

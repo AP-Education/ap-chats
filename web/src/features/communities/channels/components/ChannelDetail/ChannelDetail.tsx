@@ -9,11 +9,13 @@ import {
   SignOutIcon,
   UsersThreeIcon,
 } from '@phosphor-icons/react';
-import { Button, Dropdown, message, Popover, Tooltip, Typography } from 'antd';
+import { Button, Dropdown, message, Popover, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
+import { PinnedMessages } from '@/features/social/pins/components/PinnedMessages/PinnedMessages';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { ApiError } from '@/shared/api/http';
 import { IconButton } from '@/shared/ui/IconButton';
@@ -23,7 +25,6 @@ import { useChannelMembership } from '../../../memberships/hooks/useChannelMembe
 import { ChannelNotificationsPopover } from '../../../notifications/components/Popover';
 import type { Channel } from '../../types';
 import { ChannelFormModal } from '../ChannelFormModal';
-import { MessageComposer } from '../MessageComposer';
 
 const useStyles = createStyles(({ token, css }) => ({
   shell: css`
@@ -111,41 +112,6 @@ const useStyles = createStyles(({ token, css }) => ({
       margin-inline: 2px;
     }
   `,
-  body: css`
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: ${token.paddingLG}px;
-  `,
-  welcome: css`
-    max-width: 480px;
-    text-align: center;
-  `,
-  welcomeIcon: css`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 56px;
-    margin-bottom: ${token.marginSM}px;
-    border-radius: ${token.borderRadiusLG}px;
-    background: ${token.colorFillTertiary};
-    color: ${token.colorTextSecondary};
-  `,
-  welcomeTitle: css`
-    margin-bottom: 4px !important;
-  `,
-  welcomeText: css`
-    color: ${token.colorTextSecondary};
-  `,
-  pinnedEmpty: css`
-    width: 220px;
-    padding: 8px;
-    color: ${token.colorTextSecondary};
-  `,
 }));
 
 interface ChannelDetailProps {
@@ -165,6 +131,7 @@ export function ChannelDetail({
 }: ChannelDetailProps) {
   const { styles, cx } = useStyles();
   const navigate = useNavigate();
+  const [, setParams] = useSearchParams();
   const { currentMember } = useWorkspaceMemberLabels(workspaceId);
   const { join, leave } = useChannelMembership(workspaceId, channel.id);
   const [editing, setEditing] = useState(false);
@@ -265,7 +232,16 @@ export function ChannelDetail({
             trigger="click"
             open={pinnedOpen}
             onOpenChange={setPinnedOpen}
-            content={<div className={styles.pinnedEmpty}>Закріплених повідомлень поки немає</div>}
+            content={
+              <PinnedMessages
+                workspaceId={workspaceId}
+                channelId={channel.id}
+                onJump={(messageId) => {
+                  setParams({ message: messageId }, { replace: true });
+                  setPinnedOpen(false);
+                }}
+              />
+            }
             title="Закріплені повідомлення"
           >
             <Tooltip title="Закріплені повідомлення">
@@ -305,26 +281,14 @@ export function ChannelDetail({
           </Tooltip>
         </div>
       </div>
-      <div className={styles.body}>
-        <div className={styles.welcome}>
-          <div className={styles.welcomeIcon}>
-            {channel.kind === 'private' ? <LockSimpleIcon size={26} /> : <HashIcon size={26} />}
-          </div>
-          <Typography.Title level={3} className={styles.welcomeTitle}>
-            {channel.name}
-          </Typography.Title>
-          <Typography.Text className={styles.welcomeText}>
-            Це початок каналу. Повідомлення з’являться тут незабаром.
-          </Typography.Text>
-        </div>
-      </div>
-      {channel.isMember && (
-        <MessageComposer
-          workspaceId={workspaceId}
-          channelId={channel.id}
-          channelName={channel.name}
-        />
-      )}
+      <ConversationView
+        workspaceId={workspaceId}
+        channelId={channel.id}
+        channelName={channel.name}
+        canPost={channel.isMember}
+        canManage={canManage}
+        currentMemberId={currentMember?.id}
+      />
       {canManage && (
         <ChannelFormModal
           workspaceId={workspaceId}

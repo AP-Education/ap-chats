@@ -6,6 +6,7 @@ import { useParams } from 'react-router-dom';
 import { ChannelDetail } from '@/features/communities/channels/components/ChannelDetail';
 import { useChannel } from '@/features/communities/channels/hooks/useChannels';
 import { ChannelMembersPanel } from '@/features/communities/memberships/components/ChannelMembersPanel';
+import { ConversationProvider } from '@/features/social/conversation/store';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { useMobileMenu } from '@/layouts/MainLayout/stores/mobile-menu-context';
 import { ApiError } from '@/shared/api/http';
@@ -76,13 +77,15 @@ export default function ChannelContent() {
       onCloseAside={() => setMembersVisible(false)}
       aside={<ChannelMembersPanel workspaceId={workspaceId} channel={channel} />}
     >
-      <ChannelDetail
-        workspaceId={workspaceId}
-        channel={channel}
-        membersVisible={isMembersVisible}
-        onToggleMembers={() => setMembersVisible(!isMembersVisible)}
-        onBack={isMobile ? openMobileMenu : undefined}
-      />
+      <ConversationProvider key={`${workspaceId}:${channel.id}`}>
+        <ChannelDetail
+          workspaceId={workspaceId}
+          channel={channel}
+          membersVisible={isMembersVisible}
+          onToggleMembers={() => setMembersVisible(!isMembersVisible)}
+          onBack={isMobile ? openMobileMenu : undefined}
+        />
+      </ConversationProvider>
     </ChatLayout>
   );
 }
