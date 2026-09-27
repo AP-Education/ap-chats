@@ -2,8 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
+import { CommunityAccessService } from '../channel-access/community-access.service';
 import { ChannelCategoriesRepository } from '../channel-categories/repository';
-import { CommunityAccessService } from '../community-access.service';
 import type { CreateChannelDto } from './dto/create-channel.dto';
 import type { UpdateChannelDto } from './dto/update-channel.dto';
 import { ChannelsRepository } from './repository';

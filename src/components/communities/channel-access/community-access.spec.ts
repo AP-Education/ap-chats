@@ -5,10 +5,10 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import type { ChannelsRepository } from './channels/repository';
-import type { Channel } from './channels/types';
+import type { ChannelsRepository } from '../channels/repository';
+import type { Channel } from '../channels/types';
+import type { ChannelMembershipsRepository } from '../memberships/repository';
 import { CommunityAccessService } from './community-access.service';
-import type { ChannelMembershipsRepository } from './memberships/repository';
 
 const workspaceId = 'workspace-1';
 const channelId = 'channel-1';

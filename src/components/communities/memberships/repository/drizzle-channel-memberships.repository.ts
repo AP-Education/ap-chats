@@ -48,9 +48,21 @@ export class DrizzleChannelMembershipsRepository extends ChannelMembershipsRepos
         .for('update');
       if (!channel || channel.kind !== 'public')
         throw new NotFoundException('Public channel not found');
+      const [activeMember] = await tx
+        .select({ id: workspaceMembers.id })
+        .from(workspaceMembers)
+        .where(
+          and(
+            eq(workspaceMembers.workspaceId, workspaceId),
+            eq(workspaceMembers.id, memberId),
+            eq(workspaceMembers.status, 'active'),
+          ),
+        )
+        .for('share');
+      if (!activeMember) throw new NotFoundException('Workspace member not found');
       await tx
         .insert(channelMemberships)
-        .values({ workspaceId, channelId, memberId })
+        .values({ workspaceId, channelId, memberId, lastReadEntrySeq: channel.lastEntrySeq })
         .onConflictDoNothing();
       const [membership] = await tx
         .select()
@@ -88,7 +100,7 @@ export class DrizzleChannelMembershipsRepository extends ChannelMembershipsRepos
       if (!target) throw new NotFoundException('Workspace member not found');
       await tx
         .insert(channelMemberships)
-        .values({ workspaceId, channelId, memberId })
+        .values({ workspaceId, channelId, memberId, lastReadEntrySeq: channel.lastEntrySeq })
         .onConflictDoNothing();
       const [membership] = await tx
         .select()
@@ -145,7 +157,12 @@ export class DrizzleChannelMembershipsRepository extends ChannelMembershipsRepos
     });
   }
 
-  private toModel(row: typeof channelMemberships.$inferSelect): ChannelMembership {
+  private toModel(
+    row: Pick<
+      typeof channelMemberships.$inferSelect,
+      'workspaceId' | 'channelId' | 'memberId' | 'joinedAt'
+    >,
+  ): ChannelMembership {
     return {
       workspaceId: row.workspaceId,
       channelId: row.channelId,

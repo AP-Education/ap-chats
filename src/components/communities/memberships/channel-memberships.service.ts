@@ -3,7 +3,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { WorkspaceMembersRepository } from '@/components/workspaces/members/repository';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { CommunityAccessService } from '../community-access.service';
+import { CommunityAccessService } from '../channel-access/community-access.service';
 import { ChannelMembershipsRepository } from './repository';
 import type { ChannelMembership } from './types';
 

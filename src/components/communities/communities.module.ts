@@ -1,37 +1,18 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from '@/components/auth';
-import { WorkspacesModule } from '@/components/workspaces';
-import { DrizzleModule } from '@/database/drizzle';
-
-import { ChannelCategoriesController } from './channel-categories/channel-categories.controller';
-import { ChannelCategoriesService } from './channel-categories/channel-categories.service';
-import {
-  ChannelCategoriesRepository,
-  DrizzleChannelCategoriesRepository,
-} from './channel-categories/repository';
-import { ChannelsController } from './channels/channels.controller';
-import { ChannelsService } from './channels/channels.service';
-import { ChannelsRepository, DrizzleChannelsRepository } from './channels/repository';
-import { CommunityAccessService } from './community-access.service';
-import { ChannelMembershipsController } from './memberships/channel-memberships.controller';
-import { ChannelMembershipsService } from './memberships/channel-memberships.service';
-import {
-  ChannelMembershipsRepository,
-  DrizzleChannelMembershipsRepository,
-} from './memberships/repository';
+import { ChannelAccessModule } from './channel-access/channel-access.module';
+import { ChannelAudienceModule } from './channel-audience/channel-audience.module';
+import { ChannelCategoriesModule } from './channel-categories/channel-categories.module';
+import { ChannelsModule } from './channels/channels.module';
+import { ChannelMembershipsModule } from './memberships/channel-memberships.module';
 
 @Module({
-  imports: [AuthModule, DrizzleModule, WorkspacesModule],
-  controllers: [ChannelCategoriesController, ChannelsController, ChannelMembershipsController],
-  providers: [
-    CommunityAccessService,
-    ChannelCategoriesService,
-    { provide: ChannelCategoriesRepository, useClass: DrizzleChannelCategoriesRepository },
-    ChannelsService,
-    { provide: ChannelsRepository, useClass: DrizzleChannelsRepository },
-    ChannelMembershipsService,
-    { provide: ChannelMembershipsRepository, useClass: DrizzleChannelMembershipsRepository },
+  imports: [
+    ChannelAccessModule,
+    ChannelAudienceModule,
+    ChannelCategoriesModule,
+    ChannelsModule,
+    ChannelMembershipsModule,
   ],
 })
 export class CommunitiesModule {}

@@ -2,9 +2,9 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { ChannelsRepository } from './channels/repository';
-import type { Channel } from './channels/types';
-import { ChannelMembershipsRepository } from './memberships/repository';
+import { ChannelsRepository } from '../channels/repository';
+import type { Channel } from '../channels/types';
+import { ChannelMembershipsRepository } from '../memberships/repository';
 
 @Injectable()
 export class CommunityAccessService {
