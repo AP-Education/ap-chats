@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Matches, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsUUID, Matches, Max, Min } from 'class-validator';
 
 export class HistoryQueryDto {
   @IsOptional()
@@ -11,9 +11,19 @@ export class HistoryQueryDto {
   after?: string;
 
   @IsOptional()
+  @Matches(/^(0|[1-9][0-9]*)$/)
+  snapshot?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)
   limit?: number;
+}
+
+export class HistoryWindowQueryDto {
+  @IsOptional()
+  @IsUUID()
+  messageId?: string;
 }

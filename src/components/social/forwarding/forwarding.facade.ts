@@ -81,7 +81,10 @@ export class ForwardingFacade {
       )
         throw new ConflictException('Batch nonce was used for another forward');
       const byNonce = new Map(
-        existing.map(({ message, seq }) => [message.clientNonce, messageView(message, seq)]),
+        existing.map(({ message, seq }) => [
+          message.clientNonce,
+          messageView(message, seq, member.id),
+        ]),
       );
       return {
         views: nonces.map((nonce) => {

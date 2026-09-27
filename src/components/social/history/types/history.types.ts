@@ -4,6 +4,10 @@ export interface HistoryRow {
   seq: bigint;
   createdAt: Date;
   message: MessageModel;
+  authorProfile: { displayName: string | null; avatarPath: string | null };
+  reply: MessageModel | null;
+  replyAuthorProfile: { displayName: string | null; avatarPath: string | null } | null;
+  forwardAuthorProfile: { displayName: string | null; avatarPath: string | null } | null;
   pin: {
     messageId: string;
     pinnedAt: Date;

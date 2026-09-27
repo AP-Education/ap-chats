@@ -85,7 +85,7 @@ export class MessagesFacade {
       if (existing.requestDigest !== digest)
         throw new ConflictException('Client nonce was used for another message');
       return {
-        view: messageView(existing, await this.repository.entrySeq(existing.id)),
+        view: messageView(existing, await this.repository.entrySeq(existing.id), member.id),
         created: false,
       };
     }
@@ -94,7 +94,7 @@ export class MessagesFacade {
       if (source.deletedAt) throw new NotFoundException('Reply target not found');
       if (
         quote &&
-        !(await this.markdown.normalize(source.contentMarkdown)).plainText.includes(quote)
+        !this.quoteMatches((await this.markdown.normalize(source.contentMarkdown)).plainText, quote)
       )
         throw new BadRequestException('Quote is not in the reply target');
     }
@@ -116,7 +116,7 @@ export class MessagesFacade {
       message.id,
       content.mentionedMemberIds,
     );
-    return { view: messageView(message, entry.seq), created: true };
+    return { view: messageView(message, entry.seq, member.id), created: true };
   }
 
   async edit(member: WorkspaceMember, channelId: string, messageId: string, dto: EditMessageDto) {
@@ -156,7 +156,7 @@ export class MessagesFacade {
       messageId,
       content.mentionedMemberIds,
     );
-    return messageView(updated, await this.repository.entrySeq(messageId));
+    return messageView(updated, await this.repository.entrySeq(messageId), member.id);
   }
 
   async deleteBatch(member: WorkspaceMember, channelId: string, dto: BatchDeleteMessagesDto) {
@@ -220,6 +220,11 @@ export class MessagesFacade {
     return message;
   }
 
+  private quoteMatches(source: string, selection: string): boolean {
+    const compact = (value: string) => value.normalize('NFC').replace(/\s+/gu, ' ').trim();
+    return compact(source).includes(compact(selection));
+  }
+
   async insertForwardBatch(
     member: WorkspaceMember,
     channelId: string,
@@ -243,7 +248,7 @@ export class MessagesFacade {
     return positions.map(({ messageId, seq }) => {
       const message = byId.get(messageId);
       if (!message) throw new Error('Forward batch message missing');
-      return messageView(message, seq);
+      return messageView(message, seq, member.id);
     });
   }
 }

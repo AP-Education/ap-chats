@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 
-import { chatMessages, messagePins } from '@/database/drizzle/schema';
+import {
+  channelEntries,
+  chatMessages,
+  messagePins,
+  userProfiles,
+  workspaceMembers,
+} from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
-import type { MessagePin } from '../types/pin.types';
+import type { MessagePin, PinnedMessage } from '../types/pin.types';
 import { PinsRepository } from './pins.repository';
 
 @Injectable()
@@ -14,12 +20,34 @@ export class DrizzlePinsRepository extends PinsRepository {
     super();
   }
 
-  list(channelId: string): Promise<MessagePin[]> {
-    return this.txHost.tx
-      .select()
+  async list(channelId: string): Promise<PinnedMessage[]> {
+    const rows = await this.txHost.tx
+      .select({
+        messageId: messagePins.messageId,
+        seq: channelEntries.seq,
+        pinnedAt: messagePins.pinnedAt,
+        pinnedByMemberId: messagePins.pinnedByMemberId,
+        authorMemberId: chatMessages.authorMemberId,
+        authorName: userProfiles.displayName,
+        authorAvatar: userProfiles.avatarPath,
+        markdown: chatMessages.contentMarkdown,
+      })
       .from(messagePins)
+      .innerJoin(chatMessages, eq(chatMessages.id, messagePins.messageId))
+      .innerJoin(channelEntries, eq(channelEntries.messageId, messagePins.messageId))
+      .innerJoin(workspaceMembers, eq(workspaceMembers.id, chatMessages.authorMemberId))
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
       .where(eq(messagePins.channelId, channelId))
-      .orderBy(asc(messagePins.pinnedAt));
+      .orderBy(desc(messagePins.pinnedAt));
+    return rows.map(({ authorName, authorAvatar, ...row }) => ({
+      ...row,
+      seq: row.seq.toString(),
+      author: {
+        memberId: row.authorMemberId,
+        displayName: authorName,
+        avatarPath: authorAvatar,
+      },
+    }));
   }
 
   async find(channelId: string, messageId: string): Promise<MessagePin | null> {
