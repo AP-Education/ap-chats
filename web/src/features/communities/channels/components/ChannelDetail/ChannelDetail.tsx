@@ -282,9 +282,6 @@ export function ChannelDetail({
         </div>
       </div>
       <ConversationView
-        workspaceId={workspaceId}
-        channelId={channel.id}
-        channelName={channel.name}
         canPost={channel.isMember}
         canManage={canManage}
         currentMemberId={currentMember?.id}

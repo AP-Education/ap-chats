@@ -13,6 +13,7 @@ export interface HistoryRow {
     pinnedAt: Date;
     pinnedByMemberId: string;
   } | null;
+  mentions: { memberId: string; displayName: string | null; avatarPath: string | null }[];
 }
 
 export interface HistoryRowsPage {

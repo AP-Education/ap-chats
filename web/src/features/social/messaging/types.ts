@@ -29,6 +29,7 @@ export interface HistoryItem {
   } | null;
   forwardedFrom: MessageAuthor | null;
   pin: { pinnedAt: string; pinnedByMemberId: string } | null;
+  mentions?: { memberId: string; displayName: string | null; avatarPath: string | null }[];
 }
 
 export interface MessageAuthor {

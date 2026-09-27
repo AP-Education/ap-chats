@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, ilike, inArray, ne } from 'drizzle-orm';
 
 import { DrizzleService } from '@/database/drizzle';
 import { userProfiles, workspaceMembers } from '@/database/drizzle/schema';
@@ -22,6 +22,28 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
         and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.status, 'active')),
       );
     return rows.map((row) => this.toModel(row.member, row.profile));
+  }
+
+  search(workspaceId: string, viewerId: string, query: string) {
+    const escaped = query.replace(/[\\%_]/gu, '\\$&');
+    return this.drizzle.db
+      .select({
+        memberId: workspaceMembers.id,
+        displayName: userProfiles.displayName,
+        avatarPath: userProfiles.avatarPath,
+      })
+      .from(workspaceMembers)
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, workspaceId),
+          eq(workspaceMembers.status, 'active'),
+          ne(workspaceMembers.id, viewerId),
+          ilike(userProfiles.displayName, `%${escaped}%`),
+        ),
+      )
+      .orderBy(userProfiles.displayName)
+      .limit(20);
   }
 
   async findForUser(workspaceId: string, userId: string): Promise<WorkspaceMember | undefined> {

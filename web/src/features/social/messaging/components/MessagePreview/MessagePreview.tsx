@@ -1,19 +1,15 @@
-import ReactMarkdown from 'react-markdown';
+import {
+  type MentionLabel,
+  MessageMarkdown,
+} from '@/features/social/mentions/components/MessageMarkdown/MessageMarkdown';
 
-export function MessagePreview({ markdown }: { markdown: string | null }) {
+export function MessagePreview({
+  markdown,
+  mentions,
+}: {
+  markdown: string | null;
+  mentions?: MentionLabel[];
+}) {
   if (markdown === null) return <>Повідомлення видалено</>;
-
-  return (
-    <ReactMarkdown
-      allowedElements={['p', 'strong', 'em', 'code', 'a', 'br']}
-      unwrapDisallowed
-      components={{
-        p: ({ children }) => <span>{children} </span>,
-        a: ({ children }) => <span>{children}</span>,
-        br: () => <> </>,
-      }}
-    >
-      {markdown}
-    </ReactMarkdown>
-  );
+  return <MessageMarkdown markdown={markdown} mentions={mentions} inline />;
 }

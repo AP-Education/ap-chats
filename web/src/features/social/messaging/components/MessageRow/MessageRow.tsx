@@ -1,8 +1,7 @@
-import { CheckIcon, DotsThreeIcon, QuotesIcon, XIcon } from '@phosphor-icons/react';
-import { Dropdown, message as toast, Tooltip } from 'antd';
+import { DotsThreeIcon, QuotesIcon } from '@phosphor-icons/react';
+import { Dropdown, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { memo, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 
 import type {
   ActionContext,
@@ -10,11 +9,13 @@ import type {
   ConversationAction,
 } from '@/features/social/conversation/actions';
 import { useConversation } from '@/features/social/conversation/store';
-import { ApiError } from '@/shared/api/http';
+import { MessageMarkdown } from '@/features/social/mentions/components/MessageMarkdown/MessageMarkdown';
+import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import type { HistoryItem } from '../../types';
 import { MessagePreview } from '../MessagePreview/MessagePreview';
+import { MessageEditor } from './MessageEditor';
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
@@ -64,6 +65,19 @@ const useStyles = createStyles(({ token, css }) => ({
     justify-content: center;
     padding-top: 2px;
   `,
+  avatarTrigger: css`
+    display: inline-flex;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid ${token.colorPrimary};
+      outline-offset: 2px;
+    }
+  `,
   content: css`
     flex: 1;
     min-width: 0;
@@ -79,6 +93,17 @@ const useStyles = createStyles(({ token, css }) => ({
   author: css`
     font-weight: 650;
     color: ${token.colorText};
+  `,
+  authorTrigger: css`
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
+    }
   `,
   time: css`
     color: ${token.colorTextTertiary};
@@ -202,105 +227,9 @@ const useStyles = createStyles(({ token, css }) => ({
     flex-shrink: 0;
     accent-color: ${token.colorPrimary};
   `,
-  editBox: css`
-    width: 100%;
-    min-height: 80px;
-    padding: 8px;
-    border: 1px solid ${token.colorPrimaryBorder};
-    border-radius: 7px;
-    background: ${token.colorBgContainer};
-    color: ${token.colorText};
-    font: inherit;
-    resize: vertical;
-  `,
-  editActions: css`
-    display: flex;
-    justify-content: flex-end;
-    gap: 6px;
-    margin-top: 5px;
-  `,
-  conflict: css`
-    margin-top: 6px;
-    color: ${token.colorWarningText};
-    font-size: 12px;
-  `,
 }));
 
 const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
-
-function MessageEditor({
-  item,
-  onEdit,
-  onClose,
-}: {
-  item: HistoryItem;
-  onEdit: (item: HistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
-  onClose: () => void;
-}) {
-  const { styles } = useStyles();
-  const [text, setText] = useState(item.message.markdown ?? '');
-  const [saving, setSaving] = useState(false);
-  const [conflict, setConflict] = useState(false);
-
-  async function save(overwrite = false) {
-    if (!text.trim() || saving) return;
-    setSaving(true);
-    try {
-      await onEdit(item, text, overwrite);
-      onClose();
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 409) setConflict(true);
-      else toast.error('Не вдалося зберегти. Перевірте зміни й спробуйте ще раз.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <>
-      <textarea
-        className={styles.editBox}
-        aria-label="Редагувати повідомлення"
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') onClose();
-          if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
-            event.preventDefault();
-            void save();
-          }
-        }}
-      />
-      {conflict && (
-        <div className={styles.conflict} role="alert">
-          Повідомлення змінилося на іншому пристрої. Ваш текст збережено тут.
-          <button type="button" onClick={() => void save(true)}>
-            Зберегти поверх
-          </button>
-        </div>
-      )}
-      <div className={styles.editActions}>
-        <button
-          type="button"
-          className={styles.tool}
-          aria-label="Скасувати редагування"
-          onClick={onClose}
-        >
-          <XIcon size={17} />
-        </button>
-        <button
-          type="button"
-          className={styles.tool}
-          aria-label="Зберегти зміни"
-          disabled={saving || !text.trim()}
-          onClick={() => void save()}
-        >
-          <CheckIcon size={17} />
-        </button>
-      </div>
-    </>
-  );
-}
 
 interface MessageRowProps {
   item: HistoryItem;
@@ -415,13 +344,25 @@ export const MessageRow = memo(function MessageRow({
         )}
         <div className={styles.avatar}>
           {!grouped && (
-            <Avatar path={item.author.avatarPath} alt={authorName} size={34} shape="circle" />
+            <MemberPopover member={item.author}>
+              <button
+                type="button"
+                className={styles.avatarTrigger}
+                aria-label={`Профіль ${authorName}`}
+              >
+                <Avatar path={item.author.avatarPath} alt={authorName} size={34} shape="circle" />
+              </button>
+            </MemberPopover>
           )}
         </div>
         <div className={styles.content}>
           {!grouped && (
             <div className={styles.heading}>
-              <span className={styles.author}>{authorName}</span>
+              <MemberPopover member={item.author}>
+                <button type="button" className={cx(styles.author, styles.authorTrigger)}>
+                  {authorName}
+                </button>
+              </MemberPopover>
               <time className={styles.time} dateTime={item.message.createdAt}>
                 {timeFormat.format(new Date(item.message.createdAt))}
               </time>
@@ -443,30 +384,7 @@ export const MessageRow = memo(function MessageRow({
             <div className={styles.deleted}>Повідомлення видалено</div>
           ) : (
             <div ref={contentRef} className={styles.markdown}>
-              <ReactMarkdown
-                allowedElements={[
-                  'p',
-                  'strong',
-                  'em',
-                  'code',
-                  'pre',
-                  'a',
-                  'blockquote',
-                  'ul',
-                  'ol',
-                  'li',
-                  'br',
-                ]}
-                components={{
-                  a: ({ children, ...props }) => (
-                    <a {...props} target="_blank" rel="noopener noreferrer">
-                      {children}
-                    </a>
-                  ),
-                }}
-              >
-                {item.message.markdown}
-              </ReactMarkdown>
+              <MessageMarkdown markdown={item.message.markdown} mentions={item.mentions} />
             </div>
           )}
         </div>

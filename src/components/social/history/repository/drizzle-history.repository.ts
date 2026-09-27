@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, asc, desc, eq, gt, isNull, lt, lte, ne } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, ne } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import {
   channelEntries,
   chatMessages,
+  messageMentions,
   messagePins,
   userProfiles,
   workspaceMembers,
@@ -120,6 +121,31 @@ export class DrizzleHistoryRepository extends HistoryRepository {
       .limit(limit + 1);
     const hasMore = rows.length > limit;
     const page = rows.slice(0, limit);
-    return { rows: direction === 'before' ? page.reverse() : page, hasMore };
+    const ids = page.map((row) => row.message.id);
+    const mentions = ids.length
+      ? await this.txHost.tx
+          .select({
+            messageId: messageMentions.messageId,
+            memberId: workspaceMembers.id,
+            displayName: userProfiles.displayName,
+            avatarPath: userProfiles.avatarPath,
+          })
+          .from(messageMentions)
+          .innerJoin(workspaceMembers, eq(workspaceMembers.id, messageMentions.memberId))
+          .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
+          .where(inArray(messageMentions.messageId, ids))
+      : [];
+    const byMessage = new Map<string, typeof mentions>();
+    for (const mention of mentions)
+      byMessage.set(mention.messageId, [...(byMessage.get(mention.messageId) ?? []), mention]);
+    return {
+      rows: (direction === 'before' ? page.reverse() : page).map((row) => ({
+        ...row,
+        mentions: (byMessage.get(row.message.id) ?? []).map(
+          ({ memberId, displayName, avatarPath }) => ({ memberId, displayName, avatarPath }),
+        ),
+      })),
+      hasMore,
+    };
   }
 }

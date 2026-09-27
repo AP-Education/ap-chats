@@ -2,6 +2,7 @@ import { UserMinusIcon } from '@phosphor-icons/react';
 import { Button, Empty, message, Popconfirm, Skeleton, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 
+import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
 import { MemberLabel } from '@/features/workspaces/components/MemberLabel';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 
@@ -32,6 +33,17 @@ const useStyles = createStyles(({ token, css }) => ({
   memberLabel: css`
     min-width: 0;
     flex: 1;
+  `,
+  memberTrigger: css`
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: ${token.colorText};
+    text-align: left;
+    cursor: pointer;
   `,
   remove: css`
     opacity: 0;
@@ -101,7 +113,17 @@ export function ChannelMembersPanel({ workspaceId, channel }: ChannelMembersPane
           return (
             <div className={styles.member} key={membership.memberId}>
               <span className={styles.memberLabel}>
-                <MemberLabel entry={entry} size={34} />
+                <MemberPopover
+                  member={{
+                    memberId: entry.member.id,
+                    displayName: entry.member.profile.displayName,
+                    avatarPath: entry.member.profile.avatarPath,
+                  }}
+                >
+                  <button type="button" className={styles.memberTrigger}>
+                    <MemberLabel entry={entry} size={34} />
+                  </button>
+                </MemberPopover>
               </span>
               {canManage && !entry.isSelf && (
                 <Popconfirm

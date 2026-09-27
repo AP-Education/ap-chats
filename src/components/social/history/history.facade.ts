@@ -128,6 +128,7 @@ export class HistoryFacade {
       replyAuthorProfile,
       forwardAuthorProfile,
       pin,
+      mentions,
     }: HistoryRow,
     viewerMemberId: string,
   ) {
@@ -164,6 +165,7 @@ export class HistoryFacade {
             }
           : null,
       pin: pin ? { pinnedAt: pin.pinnedAt, pinnedByMemberId: pin.pinnedByMemberId } : null,
+      mentions,
     };
   }
 }

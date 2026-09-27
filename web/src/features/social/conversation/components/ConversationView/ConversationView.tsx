@@ -14,9 +14,10 @@ import { useMessageOperations } from '@/features/social/messaging/hooks/useMessa
 import type { HistoryItem, HistoryPage, SendMessageInput } from '@/features/social/messaging/types';
 import { pinActions } from '@/features/social/pins/actions';
 import { usePinActions } from '@/features/social/pins/hooks/usePins';
+import { useMarkReadOnOpen } from '@/features/social/read-state/hooks/useMarkReadOnOpen';
 
 import type { ActionCommands, ActionTarget, ConversationAction } from '../../actions';
-import { useConversation } from '../../store';
+import { useConversation, useConversationScope } from '../../store';
 
 const actions = [...messagingActions, ...forwardingActions, ...pinActions];
 const emptyPages: HistoryPage[] = [];
@@ -49,26 +50,18 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 interface ConversationViewProps {
-  workspaceId: string;
-  channelId: string;
-  channelName: string;
   canPost: boolean;
   canManage: boolean;
   currentMemberId: string | undefined;
 }
 
-export function ConversationView({
-  workspaceId,
-  channelId,
-  channelName,
-  canPost,
-  canManage,
-  currentMemberId,
-}: ConversationViewProps) {
+export function ConversationView({ canPost, canManage, currentMemberId }: ConversationViewProps) {
   const { styles } = useStyles();
+  const { workspaceId, channelId } = useConversationScope();
   const [params, setParams] = useSearchParams();
   const targetMessageId = params.get('message') ?? undefined;
   const history = useMessageHistory(workspaceId, channelId, targetMessageId);
+  useMarkReadOnOpen(workspaceId, channelId, history.data?.pages[0]);
   useChannelRealtime(workspaceId, channelId, canPost, targetMessageId);
   const operations = useMessageOperations(workspaceId, channelId);
   const pins = usePinActions(workspaceId, channelId);
@@ -236,15 +229,7 @@ export function ConversationView({
           <Button onClick={clearSelection}>Скасувати</Button>
         </div>
       )}
-      {canPost && (
-        <MessageComposer
-          workspaceId={workspaceId}
-          channelId={channelId}
-          channelName={channelName}
-          replyLabel={replyLabel}
-          onSend={send}
-        />
-      )}
+      {canPost && <MessageComposer replyLabel={replyLabel} onSend={send} />}
       {forwardItems.length > 0 && (
         <ForwardModal
           workspaceId={workspaceId}

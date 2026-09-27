@@ -5,7 +5,7 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
 import type { HistoryItem, ReadState } from '../../messaging/types';
 import { markRead } from '../api/read-state-api';
-import { workspaceUnreadKey } from './useWorkspaceUnread';
+import { workspaceUnreadKey } from '../queryKeys';
 
 export function useReadReceipts(
   workspaceId: string,

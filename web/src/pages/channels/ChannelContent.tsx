@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom';
 
 import { ChannelDetail } from '@/features/communities/channels/components/ChannelDetail';
 import { useChannel } from '@/features/communities/channels/hooks/useChannels';
+import { ChannelsSidebar } from '@/features/communities/components/ChannelsSidebar';
 import { ChannelMembersPanel } from '@/features/communities/memberships/components/ChannelMembersPanel';
 import { ConversationProvider } from '@/features/social/conversation/store';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
@@ -35,6 +36,8 @@ export default function ChannelContent() {
   const isMembersVisible = membersVisible ?? !isMobile;
 
   if (!channelId) {
+    if (isMobile) return <ChannelsSidebar />;
+
     return (
       <div className={styles.centered}>
         <Empty description="Оберіть канал зі списку" />
@@ -77,7 +80,17 @@ export default function ChannelContent() {
       onCloseAside={() => setMembersVisible(false)}
       aside={<ChannelMembersPanel workspaceId={workspaceId} channel={channel} />}
     >
-      <ConversationProvider key={`${workspaceId}:${channel.id}`}>
+      <ConversationProvider
+        key={`${workspaceId}:${channel.id}`}
+        scope={{
+          workspaceId,
+          channelId: channel.id,
+          composer: {
+            ariaLabel: `Написати в #${channel.name}`,
+            placeholder: `Написати в #${channel.name}`,
+          },
+        }}
+      >
         <ChannelDetail
           workspaceId={workspaceId}
           channel={channel}

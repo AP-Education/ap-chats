@@ -1,10 +1,14 @@
 import { GifIcon, PaperclipIcon, SmileyIcon, StickerIcon, XIcon } from '@phosphor-icons/react';
 import { Popover, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
-import { type KeyboardEvent, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { useConversation } from '@/features/social/conversation/store';
+import { useConversation, useConversationScope } from '@/features/social/conversation/store';
+import {
+  MentionEditor,
+  type MentionEditorHandle,
+} from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { IconButton } from '@/shared/ui/IconButton';
 
@@ -155,113 +159,77 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 interface MessageComposerProps {
-  workspaceId: string;
-  channelId: string;
-  channelName: string;
   replyLabel?: string;
   onSend: (input: Omit<SendMessageInput, 'clientNonce'>) => void;
 }
 
-// A Discord-shaped composer: a growing contentEditable box (capped height,
-// its own scroll) instead of a plain <textarea>, so it's ready for rich
-// content later. The toolbar (attach/emoji/gif/sticker) stays pinned to the
-// pill's top edge as the box grows — only the text scrolls internally.
-// Emoji insertion is real; gif/sticker are mock previews since neither has a
-// backend yet.
-export function MessageComposer({
-  workspaceId,
-  channelId,
-  channelName,
-  replyLabel,
-  onSend,
-}: MessageComposerProps) {
+function readDraft(key: string): { markdown: string; labels: Record<string, string> } {
+  const stored = localStorage.getItem(key);
+  if (!stored) return { markdown: '', labels: {} };
+  try {
+    const value = JSON.parse(stored) as { markdown?: string; labels?: Record<string, string> };
+    if (typeof value.markdown === 'string')
+      return { markdown: value.markdown, labels: value.labels ?? {} };
+  } catch {
+    return { markdown: stored, labels: {} };
+  }
+  return { markdown: '', labels: {} };
+}
+
+export function MessageComposer({ replyLabel, onSend }: MessageComposerProps) {
   const { styles, cx } = useStyles();
+  const { workspaceId, channelId, composer } = useConversationScope();
   const { identity } = useQueryAuth();
   const draftKey = `ap-chats:draft:${identity}:${workspaceId}:${channelId}`;
   const intent = useConversation((state) => state.intent);
   const setIntent = useConversation((state) => state.setIntent);
   const isMobile = useIsMobile();
   const toolbarActionSize = isMobile ? 44 : 38;
-  const editableRef = useRef<HTMLDivElement>(null);
+  const editableRef = useRef<MentionEditorHandle>(null);
+  const initialDraft = useMemo(() => readDraft(draftKey), [draftKey]);
   const [contentState, setContentState] = useState(() => ({
     draftKey,
-    hasContent: Boolean(localStorage.getItem(draftKey)?.trim()),
+    hasContent: Boolean(initialDraft.markdown.trim()),
   }));
   const hasContent =
     contentState.draftKey === draftKey
       ? contentState.hasContent
-      : Boolean(localStorage.getItem(draftKey)?.trim());
+      : Boolean(readDraft(draftKey).markdown.trim());
   const [activeAction, setActiveAction] = useState<'emoji' | 'gif' | 'sticker' | null>(null);
 
   useLayoutEffect(() => {
-    const draft = localStorage.getItem(draftKey) ?? '';
-    if (editableRef.current) editableRef.current.textContent = draft;
-  }, [draftKey]);
+    if (intent || (composer.autoFocus && !isMobile)) editableRef.current?.focus();
+  }, [composer.autoFocus, intent, isMobile]);
 
-  useLayoutEffect(() => {
-    if (intent) editableRef.current?.focus();
-  }, [intent]);
-
-  function syncHasContent() {
-    const el = editableRef.current;
-    if (!el) return;
-    if (el.textContent === '') el.innerHTML = '';
-    const draft = el.innerText;
-    if (draft) localStorage.setItem(draftKey, draft);
+  function syncHasContent({
+    markdown,
+    labels,
+  }: {
+    markdown: string;
+    labels: Record<string, string>;
+  }) {
+    if (markdown) localStorage.setItem(draftKey, JSON.stringify({ markdown, labels }));
     else localStorage.removeItem(draftKey);
-    setContentState({ draftKey, hasContent: draft.trim().length > 0 });
+    setContentState({ draftKey, hasContent: markdown.trim().length > 0 });
   }
 
   function handleSend() {
-    const el = editableRef.current;
-    const markdown = el?.innerText.trim();
-    if (!el || !markdown) return;
+    const markdown = editableRef.current?.markdown().trim();
+    if (!markdown) return;
     onSend({
       markdown,
       ...(intent ? { replyToMessageId: intent.messageId } : {}),
       ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
     });
-    el.innerHTML = '';
+    editableRef.current?.clear();
     localStorage.removeItem(draftKey);
     setContentState({ draftKey, hasContent: false });
     setIntent(null);
-    el.focus();
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Escape' && intent) {
-      setIntent(null);
-      return;
-    }
-    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
-      event.preventDefault();
-      handleSend();
-    }
+    editableRef.current?.focus();
   }
 
   function insertAtCaret(text: string) {
-    const el = editableRef.current;
-    if (!el) return;
-    el.focus();
-    const selection = window.getSelection();
-    const range =
-      selection && selection.rangeCount > 0 && el.contains(selection.anchorNode)
-        ? selection.getRangeAt(0)
-        : (() => {
-            const fallback = document.createRange();
-            fallback.selectNodeContents(el);
-            fallback.collapse(false);
-            return fallback;
-          })();
-
-    range.deleteContents();
-    const node = document.createTextNode(text);
-    range.insertNode(node);
-    range.setStartAfter(node);
-    range.collapse(true);
-    selection?.removeAllRanges();
-    selection?.addRange(range);
-    syncHasContent();
+    editableRef.current?.insertText(text);
   }
 
   return (
@@ -304,21 +272,16 @@ export function MessageComposer({
               </IconButton>
             </div>
           )}
-          <div
-            ref={editableRef}
+          <MentionEditor
+            key={draftKey}
+            editorRef={editableRef}
+            initialDraft={initialDraft}
             className={styles.editable}
-            contentEditable="plaintext-only"
-            role="textbox"
-            aria-multiline="true"
-            aria-label={`Написати в #${channelName}`}
-            data-placeholder={`Написати в #${channelName}`}
-            data-mobile-placeholder="Повідомлення"
-            onInput={syncHasContent}
-            onKeyDown={handleKeyDown}
-            onPaste={(event) => {
-              event.preventDefault();
-              insertAtCaret(event.clipboardData.getData('text/plain'));
-            }}
+            ariaLabel={composer.ariaLabel}
+            placeholder={composer.placeholder}
+            onChange={syncHasContent}
+            onSubmit={handleSend}
+            onEscape={() => setIntent(null)}
           />
         </div>
 
