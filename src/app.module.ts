@@ -7,6 +7,7 @@ import { CommunitiesModule } from '@/components/communities';
 import { DevicesModule } from '@/components/devices';
 import { SocialModule } from '@/components/social/social.module';
 import { UploadsModule } from '@/components/uploads';
+import { UserProfilesModule } from '@/components/user-profiles/user-profiles.module';
 import { WorkspacesModule } from '@/components/workspaces';
 import { DrizzleModule } from '@/database/drizzle';
 import { TransactionalDrizzleModule } from '@/database/drizzle/transactional-drizzle.module';
@@ -24,6 +25,7 @@ import { HealthController } from '@/health/health.controller';
     TransactionalDrizzleModule,
     PublisherModule,
     AuthModule,
+    UserProfilesModule,
     DevicesModule,
     UploadsModule,
     WorkspacesModule,

@@ -26,7 +26,8 @@ const channel: Channel = {
 const member: WorkspaceMember = {
   id: 'member-1',
   workspaceId: channel.workspaceId,
-  userId: 'user-1',
+  userProfileId: 'profile-1',
+  profile: { id: 'profile-1', oidcUserId: 'user-1', displayName: 'User One', avatarPath: null },
   role: 'member',
   status: 'active',
   leftAt: null,

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { and, eq, inArray } from 'drizzle-orm';
 
 import { DrizzleService } from '@/database/drizzle';
-import { channelMemberships, workspaceMembers } from '@/database/drizzle/schema';
+import { channelMemberships, userProfiles, workspaceMembers } from '@/database/drizzle/schema';
 
 import { ChannelAudienceRepository } from './channel-audience.repository';
 
@@ -19,15 +19,16 @@ export class DrizzleChannelAudienceRepository extends ChannelAudienceRepository 
   ): Promise<string[]> {
     if (!candidateUserIds.length) return [];
     const rows = await this.drizzle.db
-      .select({ userId: workspaceMembers.userId })
+      .select({ userId: userProfiles.oidcUserId })
       .from(channelMemberships)
       .innerJoin(workspaceMembers, eq(workspaceMembers.id, channelMemberships.memberId))
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
       .where(
         and(
           eq(channelMemberships.channelId, channelId),
           eq(workspaceMembers.workspaceId, workspaceId),
           eq(workspaceMembers.status, 'active'),
-          inArray(workspaceMembers.userId, candidateUserIds),
+          inArray(userProfiles.oidcUserId, candidateUserIds),
         ),
       );
     return rows.map(({ userId }) => userId);

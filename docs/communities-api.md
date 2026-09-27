@@ -4,6 +4,8 @@
 
 `@UseAuthGuards(WorkspaceMemberGuard('param', 'workspaceId'))` перевіряє токен та активну участь у workspace; guard кладе модель у request. Контролер отримує її через `@CurrentWorkspaceMember()` та передає сервісу. Сервіси каналів перевіряють лише правила конкретного каналу; повторного пошуку workspace membership у них немає.
 
+`workspace_members.user_profile_id` посилається на локальний `user_profiles`; зовнішній OIDC `userId` зберігається лише в профілі. Список учасників повертає `profile: {id, oidcUserId, displayName, avatarPath}`. Ім'я та аватар походять із перевіреного ID token і синхронізуються окремо від читання каналів.
+
 ## Категорії
 
 | Метод і шлях                                                       | Дія                                    | Доступ            |

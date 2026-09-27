@@ -26,6 +26,7 @@ export function OidcCurrentUserProvider({ children }: PropsWithChildren) {
       ? {
           status: 'signed-in',
           accessToken: signedInUser.access_token,
+          idToken: signedInUser.id_token,
           queryIdentity: signedInUser.profile.sub,
           profile: toProfile(signedInUser.profile),
           signOut: () =>

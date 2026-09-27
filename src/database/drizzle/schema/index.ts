@@ -6,5 +6,6 @@ export * from './chat-messages';
 export * from './devices';
 export * from './message-mentions';
 export * from './message-pins';
+export * from './user-profiles';
 export * from './workspace-members';
 export * from './workspaces';

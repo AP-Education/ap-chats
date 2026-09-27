@@ -35,6 +35,7 @@ export type CurrentUserState =
   | {
       status: 'signed-in';
       accessToken: string;
+      idToken?: string;
       queryIdentity: string;
       profile?: CurrentUserProfile;
       signOut: () => void;

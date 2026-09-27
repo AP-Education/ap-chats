@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 
+import { userProfiles } from './user-profiles';
 import { workspaces } from './workspaces';
 
 export const workspaceMemberRoleEnum = ['owner', 'member'] as const;
@@ -12,7 +13,9 @@ export const workspaceMembers = pgTable(
     workspaceId: uuid('workspace_id')
       .notNull()
       .references(() => workspaces.id, { onDelete: 'cascade' }),
-    userId: text('user_id').notNull(),
+    userProfileId: uuid('user_profile_id')
+      .notNull()
+      .references(() => userProfiles.id),
     role: text('role', { enum: workspaceMemberRoleEnum }).notNull().default('member'),
     status: text('status', { enum: ['active', 'removed'] })
       .notNull()
@@ -22,7 +25,7 @@ export const workspaceMembers = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    unique('workspace_members_workspace_user_key').on(table.workspaceId, table.userId),
+    unique('workspace_members_workspace_profile_key').on(table.workspaceId, table.userProfileId),
     unique('workspace_members_workspace_id_key').on(table.workspaceId, table.id),
   ],
 );

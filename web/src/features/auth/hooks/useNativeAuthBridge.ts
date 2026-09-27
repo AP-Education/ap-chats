@@ -8,6 +8,7 @@ export type NativeAuthState =
   | {
       status: 'signed-in';
       accessToken: string;
+      idToken?: string;
       profile?: { name?: string; picture?: string; sub?: string };
     };
 
@@ -26,6 +27,9 @@ export function useNativeAuthBridge(): NativeAuthState {
       setState((previous) => ({
         status: 'signed-in',
         accessToken: message.payload.accessToken,
+        idToken:
+          message.payload.idToken ??
+          (previous.status === 'signed-in' ? previous.idToken : undefined),
         profile: message.payload.idToken
           ? decodeProfile(message.payload.idToken)
           : previous.status === 'signed-in'

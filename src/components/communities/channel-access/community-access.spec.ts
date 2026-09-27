@@ -31,7 +31,8 @@ function makeMember(role: 'owner' | 'member' = 'member'): WorkspaceMember {
   return {
     id: memberId,
     workspaceId,
-    userId: 'user-1',
+    userProfileId: 'profile-1',
+    profile: { id: 'profile-1', oidcUserId: 'user-1', displayName: 'User One', avatarPath: null },
     role,
     status: 'active',
     leftAt: null,

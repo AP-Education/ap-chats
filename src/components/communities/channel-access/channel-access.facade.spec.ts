@@ -10,7 +10,8 @@ import type { ChannelAccessRepository } from './repository/channel-access.reposi
 const actor: WorkspaceMember = {
   id: 'member-1',
   workspaceId: 'workspace-1',
-  userId: 'user-1',
+  userProfileId: 'profile-1',
+  profile: { id: 'profile-1', oidcUserId: 'user-1', displayName: 'User One', avatarPath: null },
   role: 'member',
   status: 'active',
   leftAt: null,

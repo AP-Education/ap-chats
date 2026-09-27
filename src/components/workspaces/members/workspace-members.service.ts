@@ -12,7 +12,7 @@ export class WorkspaceMembersService {
   }
 
   async remove(member: WorkspaceMember, targetUserId: string): Promise<void> {
-    const isSelf = member.userId === targetUserId;
+    const isSelf = member.profile.oidcUserId === targetUserId;
     if (!isSelf && member.role !== 'owner') {
       throw new ForbiddenException('Only the workspace owner can remove other members');
     }

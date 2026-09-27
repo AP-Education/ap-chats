@@ -6,7 +6,7 @@
 
 ## Вихідна точка
 
-`workspace_members.id` є локальним ідентифікатором учасника Chats. `user_id` посилається на особу в Accounts. Усі автори, учасники каналів, курсори прочитання й учасники дзвінків посилаються на `workspace_members.id`, а не на зовнішній `user_id`.
+`workspace_members.id` є локальним ідентифікатором учасника Chats. `workspace_members.user_profile_id` посилається на локальний `user_profiles`, де `oidc_user_id` є стабільним ID особи з Accounts. Усі автори, учасники каналів, курсори прочитання й учасники дзвінків посилаються на `workspace_members.id`, а не на зовнішній OIDC ID.
 
 Зараз API має OIDC, workspace, Socket.IO з персональною кімнатою й окреме завантаження публічних зображень. Каналів, повідомлень та їхніх підписок ще немає. План інтеграції ролей Accounts описаний у [future-iam-and-chat-access.md](future-iam-and-chat-access.md); локальні правила Chats потрібні вже в першій версії.
 
