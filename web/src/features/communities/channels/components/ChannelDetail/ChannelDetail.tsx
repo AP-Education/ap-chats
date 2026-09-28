@@ -284,7 +284,7 @@ export function ChannelDetail({
       <ConversationView
         canPost={channel.isMember}
         canManage={canManage}
-        currentMemberId={currentMember?.id}
+        currentMember={currentMember}
       />
       {canManage && (
         <ChannelFormModal

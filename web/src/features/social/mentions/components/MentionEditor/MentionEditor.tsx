@@ -1,6 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { createStyles } from 'antd-style';
-import { type KeyboardEvent, type Ref, useImperativeHandle, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  type Ref,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation/store';
@@ -26,6 +33,8 @@ interface MentionEditorProps {
   placeholder?: string;
   ariaLabel: string;
   className?: string;
+  editorStyle?: CSSProperties;
+  autoFocus?: boolean;
   onChange?: (draft: MentionDraft) => void;
   onSubmit?: () => void;
   onEscape?: () => void;
@@ -51,11 +60,11 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   chip: css`
     display: inline;
-    padding: 1px 3px;
-    border-radius: 4px;
+    padding: 0 2px;
+    border-radius: 2px;
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimaryText};
-    font-weight: 600;
+    color: ${token.colorPrimary};
+    font-weight: 500;
   `,
 }));
 
@@ -64,6 +73,8 @@ export function MentionEditor({
   placeholder,
   ariaLabel,
   className,
+  editorStyle,
+  autoFocus,
   onChange,
   onSubmit,
   onEscape,
@@ -179,9 +190,11 @@ export function MentionEditor({
           if (node && !initialized.current) {
             restoreEditor(node, draft.current, styles.chip);
             initialized.current = true;
+            if (autoFocus) node.focus();
           }
         }}
         className={cx(styles.editor, className)}
+        style={editorStyle}
         contentEditable
         role="textbox"
         aria-multiline="true"

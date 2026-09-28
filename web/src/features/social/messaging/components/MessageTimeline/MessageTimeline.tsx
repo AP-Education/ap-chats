@@ -1,5 +1,5 @@
-import { ArrowDownIcon, ArrowUpIcon, HashIcon, WarningCircleIcon } from '@phosphor-icons/react';
-import { Button, Empty, Spin } from 'antd';
+import { ArrowDownIcon, ArrowUpIcon, HashIcon } from '@phosphor-icons/react';
+import { Button, Empty } from 'antd';
 import { createStyles } from 'antd-style';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
@@ -10,8 +10,9 @@ import type {
 } from '@/features/social/conversation/actions';
 import { useReadReceipts } from '@/features/social/read-state/hooks/useReadReceipts';
 
+import { flashMessage } from '../../flashMessage';
 import type { OutgoingMessage } from '../../hooks/useMessageOperations';
-import type { HistoryItem, HistoryPage } from '../../types';
+import type { HistoryItem, HistoryPage, MessageAuthor } from '../../types';
 import { MessageRow } from '../MessageRow/MessageRow';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -95,29 +96,6 @@ const useStyles = createStyles(({ token, css }) => ({
     text-align: center;
     color: ${token.colorTextSecondary};
   `,
-  outgoing: css`
-    align-self: flex-end;
-    max-width: min(70%, 620px);
-    margin: 6px 22px;
-    padding: 9px 12px;
-    border-radius: 12px 12px 3px 12px;
-    background: ${token.colorPrimaryBg};
-    color: ${token.colorText};
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    @media (max-width: ${token.screenMD}px) {
-      max-width: 88%;
-      margin-right: 12px;
-    }
-  `,
-  outgoingStatus: css`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 4px;
-    color: ${token.colorTextTertiary};
-    font-size: 11px;
-  `,
 }));
 
 const dateFormat = new Intl.DateTimeFormat('uk-UA', {
@@ -131,6 +109,7 @@ interface MessageTimelineProps {
   channelId: string;
   pages: HistoryPage[];
   outbox: OutgoingMessage[];
+  author: MessageAuthor;
   actionContext: ActionContext;
   actions: ConversationAction[];
   onAction: (action: ConversationAction, target: ActionTarget) => void;
@@ -151,6 +130,7 @@ export function MessageTimeline({
   channelId,
   pages,
   outbox,
+  author,
   actionContext,
   actions,
   onAction,
@@ -171,9 +151,59 @@ export function MessageTimeline({
   const didPosition = useRef(false);
   const atBottom = useRef(true);
   const jumpAfterNext = useRef(false);
+  const suppressOlderUntil = useRef(0);
+  const lastScrollAt = useRef(0);
   const lastSeq = useRef<string | undefined>(undefined);
+  const lastFlashedTarget = useRef<string | null>(null);
   const [awayFromBottom, setAwayFromBottom] = useState(false);
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
+  const displayItems = useMemo(() => {
+    const pendingNonces = new Set(outbox.map((entry) => entry.input.clientNonce));
+    const confirmed = items
+      .filter((item) => !item.message.clientNonce || !pendingNonces.has(item.message.clientNonce))
+      .map((item) => ({
+        item,
+        delivery: undefined as OutgoingMessage['status'] | undefined,
+        nonce: null as string | null,
+      }));
+    const outgoing = outbox.map((entry) => {
+      const replyTarget = items.find((item) => item.message.id === entry.input.replyToMessageId);
+      const item: HistoryItem = entry.confirmedItem ?? {
+        type: 'MESSAGE',
+        seq: '0',
+        createdAt: entry.createdAt,
+        message: {
+          id: entry.input.clientNonce,
+          seq: '0',
+          authorMemberId: author.memberId,
+          clientNonce: entry.input.clientNonce,
+          markdown: entry.input.markdown,
+          contentVersion: 1,
+          revision: 1,
+          replyToMessageId: entry.input.replyToMessageId ?? null,
+          quoteText: entry.input.quoteText ?? null,
+          isForwarded: false,
+          forwardedFromMemberId: null,
+          createdAt: entry.createdAt,
+          editedAt: null,
+          deletedAt: null,
+        },
+        author,
+        reply: replyTarget
+          ? {
+              id: replyTarget.message.id,
+              authorMemberId: replyTarget.message.authorMemberId,
+              author: replyTarget.author,
+              markdown: replyTarget.message.markdown,
+            }
+          : null,
+        forwardedFrom: null,
+        pin: null,
+      };
+      return { item, delivery: entry.status, nonce: entry.input.clientNonce };
+    });
+    return [...confirmed, ...outgoing];
+  }, [items, outbox, author]);
   const initial = pages.find((page) => page.firstUnreadSeq !== null) ?? pages[0];
   const firstUnreadSeq = initial?.firstUnreadSeq ?? null;
   const onVisible = useReadReceipts(
@@ -188,7 +218,7 @@ export function MessageTimeline({
   useLayoutEffect(() => {
     const container = scroll.current;
     if (!container) return;
-    const currentLastSeq = items.at(-1)?.seq;
+    const currentLastSeq = displayItems.at(-1)?.nonce ?? items.at(-1)?.seq;
     if (prepend.current) {
       container.scrollTop = prepend.current.top + container.scrollHeight - prepend.current.height;
       prepend.current = null;
@@ -216,14 +246,34 @@ export function MessageTimeline({
         ? container.querySelector<HTMLElement>(`[data-seq="${firstUnreadSeq}"]`)
         : null;
     if (target) {
-      container.scrollTop +=
-        target.getBoundingClientRect().top - container.getBoundingClientRect().top - 90;
+      const top =
+        container.scrollTop +
+        target.getBoundingClientRect().top -
+        container.getBoundingClientRect().top -
+        90;
+      if (targetMessageId) {
+        suppressOlderUntil.current = Date.now() + 800;
+        container.scrollTo({ top, behavior: 'smooth' });
+      } else {
+        container.scrollTop = top;
+      }
       setAwayFromBottom(true);
       atBottom.current = false;
     } else {
       container.scrollTop = container.scrollHeight;
     }
-  }, [pages, items, firstUnreadSeq, targetMessageId]);
+  }, [pages, items, displayItems, firstUnreadSeq, targetMessageId]);
+
+  useEffect(() => {
+    if (!targetMessageId) {
+      lastFlashedTarget.current = null;
+      return;
+    }
+    if (lastFlashedTarget.current === targetMessageId) return;
+    if (!document.getElementById(`message-${targetMessageId}`)) return;
+    lastFlashedTarget.current = targetMessageId;
+    flashMessage(targetMessageId);
+  }, [displayItems, targetMessageId]);
 
   useEffect(() => {
     const container = scroll.current;
@@ -275,10 +325,18 @@ export function MessageTimeline({
   function onScroll() {
     const container = scroll.current;
     if (!container) return;
+    lastScrollAt.current = performance.now();
+    container.dataset.hoverSuppressed = 'true';
     const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 110;
     atBottom.current = nearBottom;
     setAwayFromBottom(!nearBottom);
-    if (container.scrollTop < 90 && hasOlder && !loadingOlder) void older();
+    if (
+      container.scrollTop < 90 &&
+      hasOlder &&
+      !loadingOlder &&
+      Date.now() > suppressOlderUntil.current
+    )
+      void older();
     if (nearBottom && hasNewer && !loadingNewer) void loadNewer();
   }
 
@@ -289,15 +347,16 @@ export function MessageTimeline({
     } else scroll.current?.scrollTo({ top: scroll.current.scrollHeight, behavior: 'smooth' });
   }
 
-  const visibleOutbox = outbox.filter(
-    (outgoing) => !items.some((item) => item.message.clientNonce === outgoing.input.clientNonce),
-  );
-
   return (
     <div
       ref={scroll}
       className={styles.scroll}
       onScroll={onScroll}
+      onPointerMove={(event) => {
+        if (performance.now() - lastScrollAt.current > 120)
+          delete event.currentTarget.dataset.hoverSuppressed;
+      }}
+      onPointerLeave={(event) => delete event.currentTarget.dataset.hoverSuppressed}
       role="log"
       aria-label="Повідомлення каналу"
       aria-live="off"
@@ -313,14 +372,14 @@ export function MessageTimeline({
             Раніші повідомлення
           </Button>
         )}
-        {!items.length && (
+        {!displayItems.length && (
           <div className={styles.empty}>
             <Empty image={<HashIcon size={38} />} description="Тут почнеться розмова" />
           </div>
         )}
-        {!items.length && <div className={styles.spacer} />}
-        {items.map((item, index) => {
-          const previous = items[index - 1];
+        {!displayItems.length && <div className={styles.spacer} />}
+        {displayItems.map(({ item, delivery, nonce }, index) => {
+          const previous = displayItems[index - 1]?.item;
           const day = new Date(item.createdAt).toDateString();
           const previousDay = previous ? new Date(previous.createdAt).toDateString() : null;
           const grouped = Boolean(
@@ -330,7 +389,7 @@ export function MessageTimeline({
             new Date(item.createdAt).getTime() - new Date(previous.createdAt).getTime() < 300_000,
           );
           return (
-            <div key={item.message.id}>
+            <div key={nonce ?? item.message.clientNonce ?? item.message.id}>
               {previousDay !== day && (
                 <div className={styles.date}>{dateFormat.format(new Date(item.createdAt))}</div>
               )}
@@ -345,7 +404,8 @@ export function MessageTimeline({
                 onAction={onAction}
                 onJump={onJump}
                 onEdit={onEdit}
-                highlighted={targetMessageId === item.message.id}
+                delivery={delivery}
+                onRetry={nonce ? () => onRetry(nonce) : undefined}
               />
             </div>
           );
@@ -360,29 +420,6 @@ export function MessageTimeline({
             Новіші повідомлення
           </Button>
         )}
-        {visibleOutbox.map((outgoing) => (
-          <div key={outgoing.input.clientNonce} className={styles.outgoing}>
-            {outgoing.input.markdown}
-            <div className={styles.outgoingStatus}>
-              {outgoing.status === 'sending' ? (
-                <>
-                  <Spin size="small" /> Надсилаємо…
-                </>
-              ) : (
-                <>
-                  <WarningCircleIcon size={14} /> Не надіслано{' '}
-                  <Button
-                    type="link"
-                    size="small"
-                    onClick={() => onRetry(outgoing.input.clientNonce)}
-                  >
-                    Повторити
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        ))}
       </div>
       {awayFromBottom && (
         <button type="button" className={styles.bottom} onClick={goDown}>

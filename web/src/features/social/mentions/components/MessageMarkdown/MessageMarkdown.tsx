@@ -14,12 +14,13 @@ export interface MentionLabel {
 
 const useStyles = createStyles(({ token, css }) => ({
   mention: css`
-    padding: 1px 3px;
+    padding: 0 2px;
     border: 0;
-    border-radius: 4px;
+    border-radius: 2px;
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimaryText};
-    font-weight: 600;
+    color: ${token.colorPrimary};
+    font: inherit;
+    font-weight: 500;
   `,
   mentionTrigger: css`
     cursor: pointer;

@@ -8,6 +8,7 @@ import { ForwardModal } from '@/features/social/forwarding/components/ForwardMod
 import { messagingActions } from '@/features/social/messaging/actions';
 import { MessageComposer } from '@/features/social/messaging/components/MessageComposer';
 import { MessageTimeline } from '@/features/social/messaging/components/MessageTimeline/MessageTimeline';
+import { flashMessage } from '@/features/social/messaging/flashMessage';
 import { useChannelRealtime } from '@/features/social/messaging/hooks/useChannelRealtime';
 import { useMessageHistory } from '@/features/social/messaging/hooks/useMessageHistory';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
@@ -15,6 +16,7 @@ import type { HistoryItem, HistoryPage, SendMessageInput } from '@/features/soci
 import { pinActions } from '@/features/social/pins/actions';
 import { usePinActions } from '@/features/social/pins/hooks/usePins';
 import { useMarkReadOnOpen } from '@/features/social/read-state/hooks/useMarkReadOnOpen';
+import type { WorkspaceMember } from '@/features/workspaces/types';
 
 import type { ActionCommands, ActionTarget, ConversationAction } from '../../actions';
 import { useConversation, useConversationScope } from '../../store';
@@ -52,18 +54,27 @@ const useStyles = createStyles(({ token, css }) => ({
 interface ConversationViewProps {
   canPost: boolean;
   canManage: boolean;
-  currentMemberId: string | undefined;
+  currentMember: WorkspaceMember | undefined;
 }
 
-export function ConversationView({ canPost, canManage, currentMemberId }: ConversationViewProps) {
+export function ConversationView({ canPost, canManage, currentMember }: ConversationViewProps) {
   const { styles } = useStyles();
   const { workspaceId, channelId } = useConversationScope();
   const [params, setParams] = useSearchParams();
   const targetMessageId = params.get('message') ?? undefined;
-  const history = useMessageHistory(workspaceId, channelId, targetMessageId);
+  const [historyTargetId, setHistoryTargetId] = useState(targetMessageId);
+  const history = useMessageHistory(workspaceId, channelId, historyTargetId);
+  const author = useMemo(
+    () => ({
+      memberId: currentMember?.id ?? '',
+      displayName: currentMember?.profile.displayName ?? null,
+      avatarPath: currentMember?.profile.avatarPath ?? null,
+    }),
+    [currentMember?.id, currentMember?.profile.displayName, currentMember?.profile.avatarPath],
+  );
   useMarkReadOnOpen(workspaceId, channelId, history.data?.pages[0]);
-  useChannelRealtime(workspaceId, channelId, canPost, targetMessageId);
-  const operations = useMessageOperations(workspaceId, channelId);
+  useChannelRealtime(workspaceId, channelId, canPost, historyTargetId);
+  const operations = useMessageOperations(workspaceId, channelId, author);
   const pins = usePinActions(workspaceId, channelId);
   const [forwardItems, setForwardItems] = useState<HistoryItem[]>([]);
   const selectedIds = useConversation((state) => state.selectedIds);
@@ -78,8 +89,8 @@ export function ConversationView({ canPost, canManage, currentMemberId }: Conver
     [items, selectedIds],
   );
   const actionContext = useMemo(
-    () => ({ memberId: currentMemberId, canManage, canPost }),
-    [currentMemberId, canManage, canPost],
+    () => ({ memberId: currentMember?.id, canManage, canPost }),
+    [currentMember?.id, canManage, canPost],
   );
 
   const commands: ActionCommands = {
@@ -114,7 +125,10 @@ export function ConversationView({ canPost, canManage, currentMemberId }: Conver
       const text =
         selectedText ?? targetItems.map((item) => item.message.markdown ?? '').join('\n\n');
       void navigator.clipboard.writeText(text).then(
-        () => toast.success('Текст скопійовано'),
+        () => {
+          targetItems.forEach((item) => flashMessage(item.message.id));
+          toast.success('Текст скопійовано');
+        },
         () => toast.error('Не вдалося скопіювати текст'),
       );
     },
@@ -137,9 +151,17 @@ export function ConversationView({ canPost, canManage, currentMemberId }: Conver
   const onJump = useCallback(
     (messageId: string) => {
       clearSelection();
+      const row = document.getElementById(`message-${messageId}`);
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (messageId === targetMessageId) flashMessage(messageId);
+        else setParams({ message: messageId }, { replace: true });
+        return;
+      }
+      setHistoryTargetId(messageId);
       setParams({ message: messageId }, { replace: true });
     },
-    [clearSelection, setParams],
+    [clearSelection, setParams, targetMessageId],
   );
   const editRef = useRef(operations.edit);
   useLayoutEffect(() => {
@@ -154,15 +176,12 @@ export function ConversationView({ canPost, canManage, currentMemberId }: Conver
   );
 
   function send(input: Omit<SendMessageInput, 'clientNonce'>) {
-    void operations.send(input).then(
-      (sent) => onJump(sent.id),
-      () => undefined,
-    );
+    void operations.send(input).catch(() => undefined);
   }
 
   const intent = useConversation((state) => state.intent);
-  const replyLabel = intent
-    ? (items.find((item) => item.message.id === intent.messageId)?.message.markdown ?? undefined)
+  const replyTarget = intent
+    ? items.find((item) => item.message.id === intent.messageId)
     : undefined;
 
   if (history.isPending)
@@ -186,22 +205,18 @@ export function ConversationView({ canPost, canManage, currentMemberId }: Conver
   return (
     <div className={styles.shell}>
       <MessageTimeline
-        key={targetMessageId ?? 'unread'}
+        key={historyTargetId ?? 'unread'}
         workspaceId={workspaceId}
         channelId={channelId}
         pages={pages}
         outbox={operations.outbox}
+        author={author}
         actionContext={actionContext}
         actions={actions}
         onAction={onAction}
         onJump={onJump}
         onEdit={onEdit}
-        onRetry={(nonce) => {
-          void operations
-            .retry(nonce)
-            ?.then((sent) => onJump(sent.id))
-            .catch(() => undefined);
-        }}
+        onRetry={(nonce) => void operations.retry(nonce)?.catch(() => undefined)}
         hasOlder={history.hasPreviousPage}
         hasNewer={history.hasNextPage}
         loadingOlder={history.isFetchingPreviousPage}
@@ -229,7 +244,13 @@ export function ConversationView({ canPost, canManage, currentMemberId }: Conver
           <Button onClick={clearSelection}>Скасувати</Button>
         </div>
       )}
-      {canPost && <MessageComposer replyLabel={replyLabel} onSend={send} />}
+      {canPost && (
+        <MessageComposer
+          replyAuthor={replyTarget?.author.displayName ?? undefined}
+          replyPreview={replyTarget?.message.markdown ?? undefined}
+          onSend={send}
+        />
+      )}
       {forwardItems.length > 0 && (
         <ForwardModal
           workspaceId={workspaceId}

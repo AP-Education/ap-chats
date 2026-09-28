@@ -6,12 +6,12 @@ const useStyles = createStyles(({ token, css }) => ({
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 54px;
-    height: 54px;
+    width: 38px;
+    height: 38px;
     flex-shrink: 0;
     border: 0;
-    border-radius: 12px;
-    background: ${token.colorFillSecondary};
+    border-radius: 6px;
+    background: transparent;
     color: ${token.colorTextQuaternary};
     cursor: not-allowed;
     transition:
@@ -24,18 +24,17 @@ const useStyles = createStyles(({ token, css }) => ({
     }
 
     @media (max-width: ${token.screenMD}px) {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
+      width: 44px;
+      height: 44px;
     }
   `,
   ready: css`
-    background: ${token.colorPrimary};
-    color: #fff;
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorPrimary};
     cursor: pointer;
 
     &:hover {
-      background: ${token.colorPrimaryHover};
+      background: ${token.colorPrimaryBgHover};
     }
   `,
 }));
@@ -56,7 +55,7 @@ export function ComposerAction({ hasContent, onSend }: ComposerActionProps) {
       disabled={!hasContent}
       onClick={onSend}
     >
-      <PaperPlaneRightIcon size={24} weight={hasContent ? 'duotone' : 'regular'} />
+      <PaperPlaneRightIcon size={22} weight={hasContent ? 'fill' : 'regular'} />
     </button>
   );
 }

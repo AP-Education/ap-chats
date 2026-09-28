@@ -10,23 +10,21 @@ import {
 import { ApiError } from '@/shared/api/http';
 
 import type { HistoryItem } from '../../types';
+import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 
 const useStyles = createStyles(({ token, css }) => ({
   editor: css`
     width: 100%;
-    min-height: 80px;
-    padding: 8px;
-    border: 1px solid ${token.colorPrimaryBorder};
-    border-radius: 7px;
-    background: ${token.colorBgContainer};
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 8px 2px;
     color: ${token.colorText};
     font: inherit;
   `,
   actions: css`
     display: flex;
-    justify-content: flex-end;
-    gap: 6px;
-    margin-top: 5px;
+    align-items: center;
+    gap: 2px;
   `,
   action: css`
     display: inline-flex;
@@ -46,7 +44,7 @@ const useStyles = createStyles(({ token, css }) => ({
     }
   `,
   conflict: css`
-    margin-top: 6px;
+    margin: 8px 0;
     color: ${token.colorWarningText};
     font-size: 12px;
   `,
@@ -56,9 +54,10 @@ interface MessageEditorProps {
   item: HistoryItem;
   onEdit: (item: HistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
   onClose: () => void;
+  minHeight: number;
 }
 
-export function MessageEditor({ item, onEdit, onClose }: MessageEditorProps) {
+export function MessageEditor({ item, onEdit, onClose, minHeight }: MessageEditorProps) {
   const { styles } = useStyles();
   const editor = useRef<MentionEditorHandle>(null);
   const [hasContent, setHasContent] = useState(Boolean(item.message.markdown?.trim()));
@@ -85,15 +84,42 @@ export function MessageEditor({ item, onEdit, onClose }: MessageEditorProps) {
 
   return (
     <>
-      <MentionEditor
-        editorRef={editor}
-        initialDraft={{ markdown: item.message.markdown ?? '', labels }}
-        className={styles.editor}
-        ariaLabel="Редагувати повідомлення"
-        onChange={({ markdown }) => setHasContent(Boolean(markdown.trim()))}
-        onSubmit={() => void save()}
-        onEscape={onClose}
-      />
+      <MessageInputSurface
+        compact
+        trailing={
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.action}
+              aria-label="Скасувати редагування"
+              onClick={onClose}
+            >
+              <XIcon size={17} />
+            </button>
+            <button
+              type="button"
+              className={styles.action}
+              aria-label="Зберегти зміни"
+              disabled={saving || !hasContent}
+              onClick={() => void save()}
+            >
+              <CheckIcon size={17} />
+            </button>
+          </div>
+        }
+      >
+        <MentionEditor
+          editorRef={editor}
+          initialDraft={{ markdown: item.message.markdown ?? '', labels }}
+          className={styles.editor}
+          editorStyle={{ minHeight: Math.max(40, minHeight) }}
+          autoFocus
+          ariaLabel="Редагувати повідомлення"
+          onChange={({ markdown }) => setHasContent(Boolean(markdown.trim()))}
+          onSubmit={() => void save()}
+          onEscape={onClose}
+        />
+      </MessageInputSurface>
       {conflict && (
         <div className={styles.conflict} role="alert">
           Повідомлення змінилося на іншому пристрої. Ваш текст збережено тут.
@@ -102,25 +128,6 @@ export function MessageEditor({ item, onEdit, onClose }: MessageEditorProps) {
           </button>
         </div>
       )}
-      <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.action}
-          aria-label="Скасувати редагування"
-          onClick={onClose}
-        >
-          <XIcon size={17} />
-        </button>
-        <button
-          type="button"
-          className={styles.action}
-          aria-label="Зберегти зміни"
-          disabled={saving || !hasContent}
-          onClick={() => void save()}
-        >
-          <CheckIcon size={17} />
-        </button>
-      </div>
     </>
   );
 }
