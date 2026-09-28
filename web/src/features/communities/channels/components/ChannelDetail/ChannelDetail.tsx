@@ -1,23 +1,24 @@
 import {
-  ArrowLeftIcon,
   CaretDownIcon,
   GearSixIcon,
   HashIcon,
   LockSimpleIcon,
   PhoneIcon,
-  PushPinIcon,
   SignOutIcon,
   UsersThreeIcon,
 } from '@phosphor-icons/react';
-import { Button, Dropdown, message, Popover, Tooltip } from 'antd';
+import { Button, Dropdown, type MenuProps, message, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
-import { PinnedMessages } from '@/features/social/pins/components/PinnedMessages/PinnedMessages';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { ApiError } from '@/shared/api/http';
+import {
+  ConversationActionDivider,
+  ConversationPane,
+} from '@/shared/ui/ChatLayout/ConversationPane';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { canManageChannel } from '../../../channel-permissions';
@@ -27,39 +28,6 @@ import type { Channel } from '../../types';
 import { ChannelFormModal } from '../ChannelFormModal';
 
 const useStyles = createStyles(({ token, css }) => ({
-  shell: css`
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
-  `,
-  header: css`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    min-height: 60px;
-    padding: 0 20px;
-    border-bottom: 1px solid ${token.colorBorderSecondary};
-    @media (max-width: ${token.screenMD}px) {
-      min-height: 56px;
-      gap: 4px;
-      padding-inline: 8px;
-    }
-  `,
-  titleGroup: css`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex: 1;
-    min-width: 0;
-  `,
-  backButton: css`
-    color: ${token.colorText};
-  `,
-  titleAfterBack: css`
-    margin-left: 0;
-  `,
   titleButton: css`
     display: inline-flex;
     align-items: center;
@@ -85,16 +53,6 @@ const useStyles = createStyles(({ token, css }) => ({
     font-size: ${token.fontSizeLG}px;
     font-weight: 650;
   `,
-  headerActions: css`
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    flex-shrink: 0;
-
-    @media (max-width: ${token.screenMD}px) {
-      gap: 0;
-    }
-  `,
   headerAction: css`
     color: ${token.colorTextSecondary};
   `,
@@ -102,15 +60,37 @@ const useStyles = createStyles(({ token, css }) => ({
     background: ${token.colorPrimaryBg};
     color: ${token.colorPrimary};
   `,
-  divider: css`
-    width: 1px;
-    height: 22px;
-    margin: 0 6px;
-    background: ${token.colorBorderSecondary};
+  joinFooter: css`
+    flex-shrink: 0;
+    padding: 0 ${token.paddingLG}px ${token.paddingSM}px;
 
     @media (max-width: ${token.screenMD}px) {
-      margin-inline: 2px;
+      padding: 0 16px calc(8px + env(safe-area-inset-bottom, 0px));
     }
+  `,
+  joinSurface: css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 58px;
+    padding: 8px 10px 8px 18px;
+    border: 1px solid ${token.colorPrimaryBorder};
+    border-radius: 12px;
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorTextSecondary};
+
+    @media (max-width: ${token.screenMD}px) {
+      gap: 8px;
+      padding-left: 12px;
+    }
+  `,
+  joinHint: css`
+    min-width: 0;
+    font-size: ${token.fontSize}px;
+  `,
+  joinButton: css`
+    flex-shrink: 0;
   `,
 }));
 
@@ -122,6 +102,86 @@ interface ChannelDetailProps {
   onBack?: () => void;
 }
 
+interface ChannelTitleProps {
+  channel: Channel;
+  canManage: boolean;
+  onSettings: () => void;
+  onLeave: () => void;
+}
+
+function ChannelTitle({ channel, canManage, onSettings, onLeave }: ChannelTitleProps) {
+  const { styles } = useStyles();
+  const menuItems: MenuProps['items'] = [];
+  if (canManage)
+    menuItems.push({
+      key: 'settings',
+      label: 'Налаштування каналу',
+      icon: <GearSixIcon size={17} />,
+    });
+  if (channel.isMember)
+    menuItems.push({
+      key: 'leave',
+      label: 'Вийти з каналу',
+      icon: <SignOutIcon size={17} />,
+      danger: true,
+    });
+
+  const channelIcon =
+    channel.kind === 'private' ? <LockSimpleIcon size={21} /> : <HashIcon size={21} />;
+  const title = (
+    <>
+      {channelIcon}
+      <span className={styles.name}>{channel.name}</span>
+      {menuItems.length > 0 && <CaretDownIcon size={14} />}
+    </>
+  );
+
+  if (!menuItems.length) return <div className={styles.titleButton}>{title}</div>;
+
+  return (
+    <Dropdown
+      menu={{
+        items: menuItems,
+        onClick: ({ key }) => {
+          if (key === 'settings') onSettings();
+          if (key === 'leave') onLeave();
+        },
+      }}
+      trigger={['click']}
+    >
+      <button
+        type="button"
+        className={styles.titleButton}
+        aria-label={`Дії каналу ${channel.name}`}
+      >
+        {title}
+      </button>
+    </Dropdown>
+  );
+}
+
+interface JoinChannelFooterProps {
+  channel: Channel;
+  pending: boolean;
+  onJoin: () => void;
+}
+
+function JoinChannelFooter({ channel, pending, onJoin }: JoinChannelFooterProps) {
+  const { styles } = useStyles();
+  if (channel.isMember || channel.kind !== 'public') return null;
+
+  return (
+    <div className={styles.joinFooter}>
+      <div className={styles.joinSurface}>
+        <span className={styles.joinHint}>Приєднайтеся до каналу, щоб написати повідомлення</span>
+        <Button type="primary" className={styles.joinButton} loading={pending} onClick={onJoin}>
+          Приєднатися
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function ChannelDetail({
   workspaceId,
   channel,
@@ -131,13 +191,17 @@ export function ChannelDetail({
 }: ChannelDetailProps) {
   const { styles, cx } = useStyles();
   const navigate = useNavigate();
-  const [, setParams] = useSearchParams();
   const { currentMember } = useWorkspaceMemberLabels(workspaceId);
   const { join, leave } = useChannelMembership(workspaceId, channel.id);
   const [editing, setEditing] = useState(false);
-  const [pinnedOpen, setPinnedOpen] = useState(false);
   const canManage = canManageChannel(channel, currentMember);
   const actionSize = onBack ? 40 : 36;
+
+  function handleJoin() {
+    join.mutate(undefined, {
+      onError: () => message.error('Не вдалося приєднатися до каналу.'),
+    });
+  }
 
   function handleLeave() {
     leave.mutate(undefined, {
@@ -151,75 +215,20 @@ export function ChannelDetail({
     });
   }
 
-  const menuItems = [
-    ...(canManage
-      ? [{ key: 'settings', label: 'Налаштування каналу', icon: <GearSixIcon size={17} /> }]
-      : []),
-    ...(channel.isMember
-      ? [{ key: 'leave', label: 'Вийти з каналу', icon: <SignOutIcon size={17} />, danger: true }]
-      : []),
-  ];
-  const channelIcon =
-    channel.kind === 'private' ? <LockSimpleIcon size={21} /> : <HashIcon size={21} />;
-  const title = (
-    <>
-      {channelIcon}
-      <span className={styles.name}>{channel.name}</span>
-      {menuItems.length > 0 && <CaretDownIcon size={14} />}
-    </>
-  );
-
   return (
-    <div className={styles.shell}>
-      <div className={styles.header}>
-        <div className={styles.titleGroup}>
-          {onBack && (
-            <IconButton
-              size={40}
-              className={styles.backButton}
-              aria-label="Назад до каналів"
-              onClick={onBack}
-            >
-              <ArrowLeftIcon size={20} />
-            </IconButton>
-          )}
-          {menuItems.length > 0 ? (
-            <Dropdown
-              menu={{
-                items: menuItems,
-                onClick: ({ key }) => {
-                  if (key === 'settings') setEditing(true);
-                  if (key === 'leave') handleLeave();
-                },
-              }}
-              trigger={['click']}
-            >
-              <button
-                type="button"
-                className={cx(styles.titleButton, onBack && styles.titleAfterBack)}
-                aria-label={`Дії каналу ${channel.name}`}
-              >
-                {title}
-              </button>
-            </Dropdown>
-          ) : (
-            <div className={cx(styles.titleButton, onBack && styles.titleAfterBack)}>{title}</div>
-          )}
-        </div>
-        <div className={styles.headerActions}>
-          {!channel.isMember && channel.kind === 'public' && (
-            <Button
-              type="primary"
-              loading={join.isPending}
-              onClick={() =>
-                join.mutate(undefined, {
-                  onError: () => message.error('Не вдалося приєднатися до каналу.'),
-                })
-              }
-            >
-              Приєднатися
-            </Button>
-          )}
+    <ConversationPane
+      onBack={onBack}
+      backLabel="Назад до каналів"
+      title={
+        <ChannelTitle
+          channel={channel}
+          canManage={canManage}
+          onSettings={() => setEditing(true)}
+          onLeave={handleLeave}
+        />
+      }
+      actions={
+        <>
           {channel.isMember && (
             <ChannelNotificationsPopover
               key={`${workspaceId}:${channel.id}`}
@@ -228,33 +237,6 @@ export function ChannelDetail({
               compact={Boolean(onBack)}
             />
           )}
-          <Popover
-            trigger="click"
-            open={pinnedOpen}
-            onOpenChange={setPinnedOpen}
-            content={
-              <PinnedMessages
-                workspaceId={workspaceId}
-                channelId={channel.id}
-                onJump={(messageId) => {
-                  setParams({ message: messageId }, { replace: true });
-                  setPinnedOpen(false);
-                }}
-              />
-            }
-            title="Закріплені повідомлення"
-          >
-            <Tooltip title="Закріплені повідомлення">
-              <IconButton
-                size={actionSize}
-                className={cx(styles.headerAction, pinnedOpen && styles.actionActive)}
-                aria-label="Закріплені повідомлення"
-                aria-pressed={pinnedOpen}
-              >
-                <PushPinIcon size={21} weight={pinnedOpen ? 'duotone' : 'regular'} />
-              </IconButton>
-            </Tooltip>
-          </Popover>
           <Tooltip title="Дзвінки в каналі з’являться незабаром">
             <span>
               <IconButton
@@ -267,7 +249,7 @@ export function ChannelDetail({
               </IconButton>
             </span>
           </Tooltip>
-          <span className={styles.divider} />
+          <ConversationActionDivider />
           <Tooltip title={membersVisible ? 'Сховати учасників' : 'Показати учасників'}>
             <IconButton
               size={actionSize}
@@ -279,12 +261,16 @@ export function ChannelDetail({
               <UsersThreeIcon size={22} weight={membersVisible ? 'duotone' : 'regular'} />
             </IconButton>
           </Tooltip>
-        </div>
-      </div>
+        </>
+      }
+    >
       <ConversationView
         canPost={channel.isMember}
         canManage={canManage}
         currentMember={currentMember}
+        readOnlyFooter={
+          <JoinChannelFooter channel={channel} pending={join.isPending} onJoin={handleJoin} />
+        }
       />
       {canManage && (
         <ChannelFormModal
@@ -294,6 +280,6 @@ export function ChannelDetail({
           onClose={() => setEditing(false)}
         />
       )}
-    </div>
+    </ConversationPane>
   );
 }
