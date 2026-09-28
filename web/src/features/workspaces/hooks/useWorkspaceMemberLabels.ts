@@ -29,23 +29,15 @@ export function useWorkspaceMemberLabels(
 
   const byId = useMemo(() => {
     const map = new Map<string, WorkspaceMemberLabel>();
-    const sorted = [...(members ?? [])].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-    let ordinal = 0;
-    for (const member of sorted) {
-      const isSelf = member.userId === sub;
-      if (member.role !== 'owner') ordinal += 1;
-      const label =
-        member.role === 'owner'
-          ? 'Власник робочого простору'
-          : isSelf
-            ? 'Ви'
-            : `Учасник ${ordinal}`;
+    for (const member of members ?? []) {
+      const isSelf = member.profile.oidcUserId === sub;
+      const label = member.profile.displayName ?? 'Ім’я недоступне';
       map.set(member.id, { member, isSelf, label });
     }
     return map;
   }, [members, sub]);
 
-  const currentMember = members?.find((candidate) => candidate.userId === sub);
+  const currentMember = members?.find((candidate) => candidate.profile.oidcUserId === sub);
 
   return {
     byId,

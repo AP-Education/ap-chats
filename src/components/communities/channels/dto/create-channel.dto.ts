@@ -1,6 +1,6 @@
 import { IsIn, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 
-import { type ChannelKind, channelKinds } from '../types';
+import type { ChannelKind } from '../types';
 
 export class CreateChannelDto {
   @IsString()
@@ -8,8 +8,8 @@ export class CreateChannelDto {
   @MaxLength(80)
   name!: string;
 
-  @IsIn(channelKinds)
-  kind!: ChannelKind;
+  @IsIn(['public', 'private'])
+  kind!: Exclude<ChannelKind, 'dm'>;
 
   @IsOptional()
   @IsUUID()

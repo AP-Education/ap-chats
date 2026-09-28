@@ -4,7 +4,6 @@ import type { RouteObject } from 'react-router-dom';
 const PlaceholderPage = lazy(() => import('./PlaceholderPage'));
 
 const placeholders = [
-  ['messages', 'Особисті повідомлення', 'Повідомлень поки немає'],
   ['calls', 'Дзвінки', 'Дзвінків поки немає'],
   ['*', 'Сторінку не знайдено', 'Перевірте адресу сторінки'],
 ] as const;

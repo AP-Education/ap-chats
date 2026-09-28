@@ -1,7 +1,8 @@
-import { UserMinusIcon } from '@phosphor-icons/react';
+import { UserMinusIcon, UsersThreeIcon } from '@phosphor-icons/react';
 import { Button, Empty, message, Popconfirm, Skeleton, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 
+import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
 import { MemberLabel } from '@/features/workspaces/components/MemberLabel';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 
@@ -11,15 +12,39 @@ import { useChannelMembership } from '../../hooks/useChannelMembership';
 
 const useStyles = createStyles(({ token, css }) => ({
   shell: css`
-    padding: 12px 14px;
+    padding: 22px 12px;
+  `,
+  heading: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 14px;
+    color: ${token.colorText};
+    font-size: 16px;
+    font-weight: 650;
+  `,
+  headingIcon: css`
+    color: ${token.colorPrimary};
+  `,
+  count: css`
+    display: inline-grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 11px;
+    background: ${token.colorFillTertiary};
+    color: ${token.colorTextSecondary};
+    font-size: 12px;
+    font-weight: 650;
   `,
   member: css`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 4px;
-    min-height: 48px;
-    padding: 6px 8px;
+    gap: 6px;
+    min-height: 58px;
+    padding: 7px 10px;
     border-radius: ${token.borderRadius}px;
     &:hover {
       background: ${token.colorFillTertiary};
@@ -33,6 +58,23 @@ const useStyles = createStyles(({ token, css }) => ({
     min-width: 0;
     flex: 1;
   `,
+  memberTrigger: css`
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: ${token.colorText};
+    text-align: left;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid ${token.colorPrimary};
+      outline-offset: 3px;
+      border-radius: ${token.borderRadius}px;
+    }
+  `,
   remove: css`
     opacity: 0;
     @media (hover: none) {
@@ -43,7 +85,7 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 10px;
-    height: 48px;
+    height: 58px;
     padding: 6px 8px;
   `,
 }));
@@ -65,7 +107,7 @@ export function ChannelMembersPanel({ workspaceId, channel }: ChannelMembersPane
       <div className={styles.shell} role="status" aria-label="Завантажуємо учасників">
         {[0, 1, 2, 3].map((row) => (
           <div className={styles.skeletonRow} key={row}>
-            <Skeleton.Avatar active size={34} />
+            <Skeleton.Avatar active size={40} />
             <Skeleton.Input active size="small" style={{ width: 120 }} />
           </div>
         ))}
@@ -94,6 +136,10 @@ export function ChannelMembersPanel({ workspaceId, channel }: ChannelMembersPane
 
   return (
     <div className={styles.shell}>
+      <div className={styles.heading}>
+        <UsersThreeIcon size={20} weight="duotone" className={styles.headingIcon} />
+        Учасники <span className={styles.count}>{memberships.length}</span>
+      </div>
       <div>
         {memberships.map((membership) => {
           const entry = byId.get(membership.memberId);
@@ -101,7 +147,17 @@ export function ChannelMembersPanel({ workspaceId, channel }: ChannelMembersPane
           return (
             <div className={styles.member} key={membership.memberId}>
               <span className={styles.memberLabel}>
-                <MemberLabel entry={entry} size={34} />
+                <MemberPopover
+                  member={{
+                    memberId: entry.member.id,
+                    displayName: entry.member.profile.displayName,
+                    avatarPath: entry.member.profile.avatarPath,
+                  }}
+                >
+                  <button type="button" className={styles.memberTrigger}>
+                    <MemberLabel entry={entry} size={40} />
+                  </button>
+                </MemberPopover>
               </span>
               {canManage && !entry.isSelf && (
                 <Popconfirm

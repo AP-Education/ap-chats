@@ -17,7 +17,7 @@ function getTheme(isMobile: boolean): ThemeConfig {
       colorText: '#1f2f2d',
       colorBorder: '#bcd5d2',
       borderRadius: 8,
-      fontSize: isMobile ? 16 : 14,
+      fontSize: 16,
       fontSizeHeading1: isMobile ? 28 : 38,
       fontFamily:
         'Ubuntu Sans, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial',

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, ilike, inArray, ne } from 'drizzle-orm';
 
 import { DrizzleService } from '@/database/drizzle';
-import { workspaceMembers } from '@/database/drizzle/schema';
+import { userProfiles, workspaceMembers } from '@/database/drizzle/schema';
 
 import type { WorkspaceMember } from '../types';
 import { WorkspaceMembersRepository } from './workspace-members.repository';
@@ -15,33 +15,58 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
 
   async findAllForWorkspace(workspaceId: string): Promise<WorkspaceMember[]> {
     const rows = await this.drizzle.db
-      .select()
+      .select({ member: workspaceMembers, profile: userProfiles })
       .from(workspaceMembers)
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
       .where(
         and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.status, 'active')),
       );
-    return rows.map((row) => this.toModel(row));
+    return rows.map((row) => this.toModel(row.member, row.profile));
+  }
+
+  search(workspaceId: string, viewerId: string, query: string) {
+    const escaped = query.replace(/[\\%_]/gu, '\\$&');
+    return this.drizzle.db
+      .select({
+        memberId: workspaceMembers.id,
+        displayName: userProfiles.displayName,
+        avatarPath: userProfiles.avatarPath,
+      })
+      .from(workspaceMembers)
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, workspaceId),
+          eq(workspaceMembers.status, 'active'),
+          ne(workspaceMembers.id, viewerId),
+          ilike(userProfiles.displayName, `%${escaped}%`),
+        ),
+      )
+      .orderBy(userProfiles.displayName)
+      .limit(20);
   }
 
   async findForUser(workspaceId: string, userId: string): Promise<WorkspaceMember | undefined> {
     const [member] = await this.drizzle.db
-      .select()
+      .select({ member: workspaceMembers, profile: userProfiles })
       .from(workspaceMembers)
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
       .where(
         and(
           eq(workspaceMembers.workspaceId, workspaceId),
-          eq(workspaceMembers.userId, userId),
+          eq(userProfiles.oidcUserId, userId),
           eq(workspaceMembers.status, 'active'),
         ),
       );
 
-    return member && this.toModel(member);
+    return member && this.toModel(member.member, member.profile);
   }
 
   async findById(workspaceId: string, memberId: string): Promise<WorkspaceMember | undefined> {
     const [member] = await this.drizzle.db
-      .select()
+      .select({ member: workspaceMembers, profile: userProfiles })
       .from(workspaceMembers)
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
       .where(
         and(
           eq(workspaceMembers.workspaceId, workspaceId),
@@ -49,7 +74,7 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
           eq(workspaceMembers.status, 'active'),
         ),
       );
-    return member && this.toModel(member);
+    return member && this.toModel(member.member, member.profile);
   }
 
   async remove(workspaceId: string, userId: string): Promise<void> {
@@ -59,17 +84,32 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
       .where(
         and(
           eq(workspaceMembers.workspaceId, workspaceId),
-          eq(workspaceMembers.userId, userId),
+          inArray(
+            workspaceMembers.userProfileId,
+            this.drizzle.db
+              .select({ id: userProfiles.id })
+              .from(userProfiles)
+              .where(eq(userProfiles.oidcUserId, userId)),
+          ),
           eq(workspaceMembers.status, 'active'),
         ),
       );
   }
 
-  private toModel(row: typeof workspaceMembers.$inferSelect): WorkspaceMember {
+  private toModel(
+    row: typeof workspaceMembers.$inferSelect,
+    profile: typeof userProfiles.$inferSelect,
+  ): WorkspaceMember {
     return {
       id: row.id,
       workspaceId: row.workspaceId,
-      userId: row.userId,
+      userProfileId: row.userProfileId,
+      profile: {
+        id: profile.id,
+        oidcUserId: profile.oidcUserId,
+        displayName: profile.displayName,
+        avatarPath: profile.avatarPath,
+      },
       role: row.role,
       status: row.status,
       leftAt: row.leftAt,

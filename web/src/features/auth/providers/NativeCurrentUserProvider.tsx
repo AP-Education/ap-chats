@@ -14,6 +14,7 @@ export function NativeCurrentUserProvider({ children }: PropsWithChildren) {
       ? {
           status: 'signed-in',
           accessToken: native.accessToken,
+          idToken: native.idToken,
           queryIdentity: native.profile?.sub ?? sessionIdentity,
           profile: native.profile,
           signOut: requestNativeSignOut,

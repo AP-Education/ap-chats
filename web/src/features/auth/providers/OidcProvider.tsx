@@ -29,7 +29,7 @@ export function OidcProvider({ children }: PropsWithChildren) {
       scope="openid profile"
       resource={audience}
       loadUserInfo={false}
-      automaticSilentRenew={false}
+      automaticSilentRenew
       userStore={new WebStorageStateStore({ store: window.sessionStorage })}
       onSigninCallback={(user) => window.location.replace(safeReturnTo(user?.state))}
     >

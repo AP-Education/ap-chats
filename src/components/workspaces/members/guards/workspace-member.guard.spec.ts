@@ -33,7 +33,13 @@ test('guard resolves active workspace member and exposes it on request', async (
   const member = {
     id: 'bbdeed14-2e7d-4d4b-b4eb-d7e170aeed94',
     workspaceId,
-    userId: 'accounts-user',
+    userProfileId: 'profile-1',
+    profile: {
+      id: 'profile-1',
+      oidcUserId: 'accounts-user',
+      displayName: 'User',
+      avatarPath: null,
+    },
     role: 'member',
     status: 'active',
     leftAt: null,
@@ -41,13 +47,13 @@ test('guard resolves active workspace member and exposes it on request', async (
     updatedAt: new Date(),
   } satisfies WorkspaceMember;
   const request: Record<string, unknown> = {
-    principal: { sub: member.userId },
+    principal: { sub: member.profile.oidcUserId },
     params: { workspaceId },
   };
   const repository = {
     findForUser: async (id: string, userId: string) => {
       assert.equal(id, workspaceId);
-      assert.equal(userId, member.userId);
+      assert.equal(userId, member.profile.oidcUserId);
       return member;
     },
   } as unknown as WorkspaceMembersRepository;

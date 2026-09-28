@@ -3,9 +3,7 @@ import { Button, Drawer, Layout, Skeleton, theme } from 'antd';
 import { Suspense, useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
-import { AuthStatus } from '../../features/auth/components/AuthStatus';
 import { ConnectionBanner } from '../../features/realtime/components/ConnectionBanner';
-import { WorkspaceSwitcher } from '../../features/workspaces/components/WorkspaceSwitcher';
 import { useIsMobile } from '../../shared/hooks/useIsMobile';
 import { ChatLoading } from '../../shared/ui/ChatLayout/ChatLoading';
 import { PageSection } from '../../shared/ui/PageSection/PageSection';
@@ -19,28 +17,23 @@ export function MainLayout() {
   const { token } = theme.useToken();
   const isMobile = useIsMobile();
   const [isMenuOpen, setMenuOpen] = useState(false);
-  const isChannelPage = useLocation().pathname.startsWith('/channels');
+  const { pathname } = useLocation();
+  const isChannelPage = pathname.startsWith('/channels') || pathname.startsWith('/direct');
   const mobileMenu = useMemo(() => ({ open: () => setMenuOpen(true) }), []);
 
   return (
     <Layout className={styles.layout}>
-      <Layout.Header className={styles.header}>
-        <div className={styles.headerContent}>
-          <div className={styles.headerLeft}>
-            {isMobile && (
-              <Button
-                type="text"
-                icon={<ListIcon />}
-                aria-label="Відкрити меню"
-                className={styles.menuButton}
-                onClick={() => setMenuOpen(true)}
-              />
-            )}
-            <WorkspaceSwitcher />
-          </div>
-          <AuthStatus />
+      {isMobile && (
+        <div className={styles.mobileBar}>
+          <Button
+            type="text"
+            icon={<ListIcon size={22} />}
+            aria-label="Відкрити меню"
+            className={styles.menuButton}
+            onClick={() => setMenuOpen(true)}
+          />
         </div>
-      </Layout.Header>
+      )}
       <ConnectionBanner />
       <Layout className={styles.mainArea}>
         {!isMobile && <MainSider />}
@@ -71,11 +64,11 @@ export function MainLayout() {
         </Layout.Content>
       </Layout>
       <Drawer
-        title={<WorkspaceSwitcher />}
+        title="Меню"
         placement="left"
         open={isMobile && isMenuOpen}
         onClose={() => setMenuOpen(false)}
-        width={320}
+        width={290}
         className={styles.mobileDrawer}
       >
         <MainSiderMenu onNavigate={() => setMenuOpen(false)} />

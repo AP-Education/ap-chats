@@ -24,6 +24,7 @@ declare global {
 
 export interface CurrentUserProfile {
   name?: string;
+  email?: string;
   picture?: string;
   sub?: string;
 }
@@ -35,9 +36,9 @@ export type CurrentUserState =
   | {
       status: 'signed-in';
       accessToken: string;
+      idToken?: string;
       queryIdentity: string;
       profile?: CurrentUserProfile;
       signOut: () => void;
-      /** Undefined where the active provider has no way to refresh on demand (e.g. OIDC today). */
       refreshAccessToken?: () => Promise<string>;
     };

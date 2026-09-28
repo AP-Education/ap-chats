@@ -1,0 +1,2 @@
+ALTER TABLE "channel_memberships" ADD COLUMN "notifications_muted" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "channel_memberships" ADD COLUMN "muted_until" timestamp with time zone;

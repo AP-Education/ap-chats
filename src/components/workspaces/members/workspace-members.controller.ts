@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, HttpCode, Param } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 
 import { UseAuthGuards } from '@/components/auth';
 
@@ -15,6 +15,19 @@ export class WorkspaceMembersController {
   @Get()
   findAll(@CurrentWorkspaceMember() member: WorkspaceMember): Promise<WorkspaceMember[]> {
     return this.members.findAllForWorkspace(member);
+  }
+
+  @Get('search')
+  search(@CurrentWorkspaceMember() member: WorkspaceMember, @Query('q') query = '') {
+    return query.trim() ? this.members.search(member, query) : [];
+  }
+
+  @Get(':memberId')
+  profile(
+    @CurrentWorkspaceMember() member: WorkspaceMember,
+    @Param('memberId', ParseUUIDPipe) memberId: string,
+  ) {
+    return this.members.profile(member, memberId);
   }
 
   @Delete(':userId')

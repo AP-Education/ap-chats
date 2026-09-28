@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 
 import { DrizzleService } from '@/database/drizzle';
-import { workspaceMembers, workspaces } from '@/database/drizzle/schema';
+import { userProfiles, workspaceMembers, workspaces } from '@/database/drizzle/schema';
 
 import type { CreateWorkspaceDto } from '../dto/create-workspace.dto';
 import type { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
@@ -17,6 +17,18 @@ export class DrizzleWorkspacesRepository extends WorkspacesRepository {
 
   create(ownerId: string, dto: CreateWorkspaceDto): Promise<Workspace> {
     return this.drizzle.db.transaction(async (tx) => {
+      const [insertedProfile] = await tx
+        .insert(userProfiles)
+        .values({ oidcUserId: ownerId })
+        .onConflictDoNothing()
+        .returning({ id: userProfiles.id });
+      const [existingProfile] = insertedProfile
+        ? [insertedProfile]
+        : await tx
+            .select({ id: userProfiles.id })
+            .from(userProfiles)
+            .where(eq(userProfiles.oidcUserId, ownerId));
+      if (!existingProfile) throw new Error('User profile insert did not return a row');
       const [workspace] = await tx
         .insert(workspaces)
         .values({ name: dto.name, avatarPath: dto.avatarPath })
@@ -25,7 +37,7 @@ export class DrizzleWorkspacesRepository extends WorkspacesRepository {
 
       await tx.insert(workspaceMembers).values({
         workspaceId: workspace.id,
-        userId: ownerId,
+        userProfileId: existingProfile.id,
         role: 'owner',
       });
       return this.toModel(workspace);
@@ -37,7 +49,8 @@ export class DrizzleWorkspacesRepository extends WorkspacesRepository {
       .select({ workspace: workspaces })
       .from(workspaceMembers)
       .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
-      .where(and(eq(workspaceMembers.userId, userId), eq(workspaceMembers.status, 'active')));
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
+      .where(and(eq(userProfiles.oidcUserId, userId), eq(workspaceMembers.status, 'active')));
 
     return rows.map((row) => this.toModel(row.workspace));
   }

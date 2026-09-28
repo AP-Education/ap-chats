@@ -35,3 +35,33 @@ export async function verifyAccessToken(
 
   return { sub: payload.sub, appId: payload.appId };
 }
+
+export async function verifyProfileIdToken(
+  idToken: string,
+  jwks: JWTVerifyGetKey,
+  issuer: string,
+  expectedSub: string,
+  expectedAppId: string,
+): Promise<{ displayName: string; avatarPath: string | null; issuedAt: Date }> {
+  const { payload } = await jwtVerify(idToken, jwks, {
+    issuer,
+    algorithms: ['RS256'],
+    requiredClaims: ['exp', 'iat', 'sub'],
+    clockTolerance: 5,
+  });
+  if (
+    payload.sub !== expectedSub ||
+    payload.appId !== expectedAppId ||
+    !payload.aud ||
+    typeof payload.name !== 'string' ||
+    !payload.name.trim() ||
+    typeof payload.iat !== 'number'
+  ) {
+    throw new Error('Invalid ID token profile');
+  }
+  return {
+    displayName: payload.name.trim(),
+    avatarPath: typeof payload.picture === 'string' ? payload.picture : null,
+    issuedAt: new Date(payload.iat * 1000),
+  };
+}

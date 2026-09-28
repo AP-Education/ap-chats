@@ -1,11 +1,18 @@
 import { Button, Empty, Result } from 'antd';
 import { createStyles } from 'antd-style';
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
+import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { ChannelDetail } from '@/features/communities/channels/components/ChannelDetail';
 import { useChannel } from '@/features/communities/channels/hooks/useChannels';
+import { ChannelsSidebar } from '@/features/communities/components/ChannelsSidebar';
 import { ChannelMembersPanel } from '@/features/communities/memberships/components/ChannelMembersPanel';
+import {
+  forgetConversation,
+  rememberConversation,
+} from '@/features/social/conversation/lastConversation';
+import { ConversationProvider } from '@/features/social/conversation/store';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { useMobileMenu } from '@/layouts/MainLayout/stores/mobile-menu-context';
 import { ApiError } from '@/shared/api/http';
@@ -26,14 +33,34 @@ const useStyles = createStyles(({ token, css }) => ({
 export default function ChannelContent() {
   const { styles } = useStyles();
   const { id: workspaceId } = useRequiredWorkspace();
+  const { identity } = useQueryAuth();
+  const navigate = useNavigate();
   const { channelId } = useParams<{ channelId?: string }>();
   const query = useChannel(workspaceId, channelId);
+  const unavailable =
+    query.isError && query.error instanceof ApiError && [403, 404].includes(query.error.status);
+  useEffect(() => {
+    if (query.data && !query.isError) {
+      rememberConversation(identity, workspaceId, 'channels', query.data.id);
+    }
+  }, [identity, query.data, query.isError, workspaceId]);
+  useEffect(() => {
+    if (
+      channelId &&
+      unavailable &&
+      forgetConversation(identity, workspaceId, 'channels', channelId)
+    ) {
+      navigate('/channels', { replace: true });
+    }
+  }, [channelId, identity, navigate, unavailable, workspaceId]);
   const openMobileMenu = useMobileMenu().open;
   const isMobile = useIsMobile();
   const [membersVisible, setMembersVisible] = useState<boolean | null>(null);
   const isMembersVisible = membersVisible ?? !isMobile;
 
   if (!channelId) {
+    if (isMobile) return <ChannelsSidebar />;
+
     return (
       <div className={styles.centered}>
         <Empty description="Оберіть канал зі списку" />
@@ -43,7 +70,7 @@ export default function ChannelContent() {
 
   if (query.isPending) return <ChatLoading asideOpen={isMembersVisible} />;
 
-  if (query.isError && query.error instanceof ApiError && [403, 404].includes(query.error.status)) {
+  if (unavailable) {
     return (
       <div className={styles.centered}>
         <Empty description="Канал недоступний або більше не існує" />
@@ -76,13 +103,25 @@ export default function ChannelContent() {
       onCloseAside={() => setMembersVisible(false)}
       aside={<ChannelMembersPanel workspaceId={workspaceId} channel={channel} />}
     >
-      <ChannelDetail
-        workspaceId={workspaceId}
-        channel={channel}
-        membersVisible={isMembersVisible}
-        onToggleMembers={() => setMembersVisible(!isMembersVisible)}
-        onBack={isMobile ? openMobileMenu : undefined}
-      />
+      <ConversationProvider
+        key={`${workspaceId}:${channel.id}`}
+        scope={{
+          workspaceId,
+          channelId: channel.id,
+          composer: {
+            ariaLabel: `Написати в #${channel.name}`,
+            placeholder: `Написати в #${channel.name}`,
+          },
+        }}
+      >
+        <ChannelDetail
+          workspaceId={workspaceId}
+          channel={channel}
+          membersVisible={isMembersVisible}
+          onToggleMembers={() => setMembersVisible(!isMembersVisible)}
+          onBack={isMobile ? openMobileMenu : undefined}
+        />
+      </ConversationProvider>
     </ChatLayout>
   );
 }

@@ -6,11 +6,13 @@ import type { CurrentUserProfile, CurrentUserState } from '../types';
 
 function toProfile(profile: {
   name?: unknown;
+  email?: unknown;
   picture?: unknown;
   sub?: unknown;
 }): CurrentUserProfile {
   return {
     name: typeof profile.name === 'string' ? profile.name : undefined,
+    email: typeof profile.email === 'string' ? profile.email : undefined,
     picture: typeof profile.picture === 'string' && profile.picture ? profile.picture : undefined,
     sub: typeof profile.sub === 'string' ? profile.sub : undefined,
   };
@@ -26,6 +28,7 @@ export function OidcCurrentUserProvider({ children }: PropsWithChildren) {
       ? {
           status: 'signed-in',
           accessToken: signedInUser.access_token,
+          idToken: signedInUser.id_token,
           queryIdentity: signedInUser.profile.sub,
           profile: toProfile(signedInUser.profile),
           signOut: () =>
@@ -33,6 +36,12 @@ export function OidcCurrentUserProvider({ children }: PropsWithChildren) {
               id_token_hint: signedInUser.id_token,
               post_logout_redirect_uri: window.location.origin,
             }),
+          refreshAccessToken: async () => {
+            const renewed = await auth.signinSilent();
+            if (!renewed?.access_token)
+              throw new Error('OIDC token renewal returned no access token');
+            return renewed.access_token;
+          },
         }
       : {
           status: 'signed-out',

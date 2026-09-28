@@ -3,7 +3,7 @@ import { before, test } from 'node:test';
 
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from 'jose';
 
-import { verifyAccessToken } from './access-token';
+import { verifyAccessToken, verifyProfileIdToken } from './access-token';
 
 const policy = { issuer: 'https://accounts.example.test', audience: 'ap-chats' };
 let privateKey: Awaited<ReturnType<typeof generateKeyPair>>['privateKey'];
@@ -75,4 +75,30 @@ test('rejects a token with a modified signature', async () => {
   assert.ok(firstCharacter);
   const tampered = `${token.slice(0, signatureStart)}${firstCharacter === 'a' ? 'b' : 'a'}${token.slice(signatureStart + 1)}`;
   await assert.rejects(verifyAccessToken(tampered, jwks, policy));
+});
+
+test('accepts profile claims only for the authenticated user and application', async () => {
+  const idToken = await new SignJWT({
+    appId: 'web',
+    name: '  Ada Lovelace  ',
+    picture: 'avatars/ada',
+  })
+    .setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
+    .setIssuer(policy.issuer)
+    .setAudience('chats-web')
+    .setSubject('user-123')
+    .setIssuedAt()
+    .setExpirationTime('5m')
+    .sign(privateKey);
+
+  assert.deepEqual(
+    await verifyProfileIdToken(idToken, jwks, policy.issuer, 'user-123', 'web').then(
+      ({ displayName, avatarPath }) => ({ displayName, avatarPath }),
+    ),
+    { displayName: 'Ada Lovelace', avatarPath: 'avatars/ada' },
+  );
+  await assert.rejects(verifyProfileIdToken(idToken, jwks, policy.issuer, 'another-user', 'web'));
+  await assert.rejects(
+    verifyProfileIdToken(idToken, jwks, policy.issuer, 'user-123', 'another-app'),
+  );
 });

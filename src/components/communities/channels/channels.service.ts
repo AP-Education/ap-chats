@@ -2,8 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
+import { CommunityAccessService } from '../channel-access/community-access.service';
 import { ChannelCategoriesRepository } from '../channel-categories/repository';
-import { CommunityAccessService } from '../community-access.service';
 import type { CreateChannelDto } from './dto/create-channel.dto';
 import type { UpdateChannelDto } from './dto/update-channel.dto';
 import { ChannelsRepository } from './repository';
@@ -27,6 +27,7 @@ export class ChannelsService {
       channelId,
       member.id,
     );
+    if (channel.kind === 'dm') throw new NotFoundException('Channel not found');
     return { ...channel, isMember: await this.access.isChannelMember(channelId, member.id) };
   }
 
@@ -51,6 +52,7 @@ export class ChannelsService {
       channelId,
       member.id,
     );
+    if (channel.kind === 'dm') throw new NotFoundException('Channel not found');
     await this.access.requireManager(channel, member);
     if (dto.name === undefined && dto.categoryId === undefined)
       throw new BadRequestException('No changes provided');
@@ -70,6 +72,7 @@ export class ChannelsService {
       channelId,
       member.id,
     );
+    if (channel.kind === 'dm') throw new NotFoundException('Channel not found');
     await this.access.requireManager(channel, member);
     const removed = await this.channels.remove(member.workspaceId, channelId);
     if (!removed) throw new NotFoundException('Channel not found');

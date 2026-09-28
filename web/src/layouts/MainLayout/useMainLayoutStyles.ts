@@ -19,32 +19,13 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     overflow-x: hidden;
     position: relative;
   `,
-  header: css`
-    padding: 0 24px;
+  mobileBar: css`
+    display: flex;
+    align-items: center;
+    height: 52px;
+    padding: 0 8px;
     border-bottom: 1px solid ${token.colorBorderSecondary};
     background: ${token.colorBgContainer};
-    position: sticky;
-    top: 0;
-    z-index: 120;
-    height: auto;
-    min-height: 64px;
-    line-height: normal;
-
-    @media (max-width: ${token.screenLG - 1}px) {
-      padding: 0 16px;
-    }
-  `,
-  headerContent: css`
-    padding: 8px 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-  `,
-  headerLeft: css`
-    display: flex;
-    align-items: center;
-    gap: 8px;
   `,
   menuButton: css`
     display: inline-flex;
@@ -65,6 +46,17 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     flex-direction: column;
     height: 100%;
     min-height: 0;
+  `,
+  sidebarWorkspace: css`
+    display: flex;
+    align-items: center;
+    height: 60px;
+    flex-shrink: 0;
+  `,
+  sidebarProfile: css`
+    padding: 8px 12px;
+    border-top: 1px solid ${token.colorBorderSecondary};
+    flex-shrink: 0;
   `,
   nav: css`
     display: flex;
@@ -113,10 +105,8 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     overflow-y: auto;
   `,
   mobileDrawer: css`
-    /* Mirrors .header's own padding (8px vertical from .headerContent, 16px
-       horizontal on mobile) so the drawer reads as the same header, relocated. */
     :global(.ant-drawer-header) {
-      padding: 8px 16px;
+      padding: 8px 12px;
       background: ${token.colorBgContainer};
     }
 
@@ -136,7 +126,7 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
 
     :global(.ant-drawer-body) {
       padding: 0 !important;
-      background: ${token.colorBgLayout};
+      background: ${token.colorBgContainer};
     }
 
     @media (max-width: ${token.screenXS}px) {

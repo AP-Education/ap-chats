@@ -3,7 +3,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { WorkspaceMembersRepository } from '@/components/workspaces/members/repository';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { CommunityAccessService } from '../community-access.service';
+import { CommunityAccessService } from '../channel-access/community-access.service';
 import { ChannelMembershipsRepository } from './repository';
 import type { ChannelMembership } from './types';
 
@@ -16,7 +16,12 @@ export class ChannelMembershipsService {
   ) {}
 
   async list(member: WorkspaceMember, channelId: string): Promise<ChannelMembership[]> {
-    await this.access.requireVisibleChannel(member.workspaceId, channelId, member.id);
+    const channel = await this.access.requireVisibleChannel(
+      member.workspaceId,
+      channelId,
+      member.id,
+    );
+    if (channel.kind === 'dm') throw new NotFoundException('Channel not found');
     return this.memberships.findAllActiveForChannel(channelId);
   }
 
@@ -34,6 +39,8 @@ export class ChannelMembershipsService {
       channelId,
       member.id,
     );
+    if (channel.kind === 'dm')
+      throw new ForbiddenException('Direct message participants cannot be changed');
     await this.access.requireChannelMember(channel, member.id);
     const target = await this.workspaceMembers.findById(member.workspaceId, targetMemberId);
     if (!target) throw new NotFoundException('Workspace member not found');
@@ -46,6 +53,7 @@ export class ChannelMembershipsService {
       channelId,
       member.id,
     );
+    if (channel.kind === 'dm') throw new ForbiddenException('Direct messages cannot be left');
     const target = targetMemberId ?? member.id;
     if (target !== member.id) {
       if (!(await this.access.isChannelMember(channelId, member.id))) {
