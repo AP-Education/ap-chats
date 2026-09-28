@@ -1,3 +1,4 @@
+import { BellSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { Link, useParams } from 'react-router-dom';
 
@@ -79,6 +80,10 @@ const useStyles = createStyles(({ token, css }) => ({
     font-weight: 700;
     line-height: 1;
   `,
+  muted: css`
+    flex-shrink: 0;
+    color: ${token.colorTextTertiary};
+  `,
 }));
 
 export function DirectMessageRow({
@@ -94,6 +99,7 @@ export function DirectMessageRow({
   const { channelId } = useParams<{ channelId: string }>();
   const isActive = channelId === item.id;
   const visibleUnreadCount = isActive ? 0 : unreadCount;
+  const isMuted = item.notification.isMuted;
   let preview = 'Нова розмова';
   if (item.lastMessage) {
     preview = item.lastMessage.markdown
@@ -122,6 +128,9 @@ export function DirectMessageRow({
           {preview}
         </span>
       </span>
+      {isMuted && (
+        <BellSlashIcon size={16} className={styles.muted} aria-label="Сповіщення вимкнено" />
+      )}
       {visibleUnreadCount > 0 && (
         <span className={styles.badge} aria-label={`${visibleUnreadCount} непрочитаних`}>
           {visibleUnreadCount > 99 ? '99+' : visibleUnreadCount}

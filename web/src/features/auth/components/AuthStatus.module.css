@@ -1,25 +1,57 @@
-.trigger {
-  display: inline-flex;
+.profile {
+  display: flex;
   align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  padding: 6px 4px;
+  color: var(--ant-color-text);
+}
+
+.identity {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.name,
+.caption {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name {
+  font-weight: 600;
+}
+
+.caption {
+  color: var(--ant-color-text-tertiary);
+  font-size: 12px;
+}
+
+.signOut {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: 0;
+  border-radius: 8px;
   background: transparent;
-  color: var(--ant-color-text);
+  color: var(--ant-color-text-secondary);
   cursor: pointer;
 }
 
-.trigger:focus-visible {
+.signOut:hover {
+  background: var(--ant-color-fill-tertiary);
+  color: var(--ant-color-text);
+}
+
+.signOut:focus-visible {
   outline: 2px solid var(--ant-color-primary);
-  outline-offset: 4px;
-  border-radius: 4px;
-}
-
-.menu :global(.ant-dropdown-menu) {
-  border-radius: 12px;
-  padding: 6px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
-}
-
-.menu :global(.ant-dropdown-menu-item) {
-  border-radius: 8px;
+  outline-offset: 2px;
 }

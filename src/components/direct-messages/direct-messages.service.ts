@@ -94,7 +94,7 @@ export class DirectMessagesService {
   }
 
   async get(member: WorkspaceMember, channelId: string) {
-    const [row] = await this.baseQuery().where(
+    const [row] = await this.baseQuery(member.id).where(
       and(
         eq(directMessages.channelId, channelId),
         eq(directMessages.workspaceId, member.workspaceId),
@@ -110,7 +110,7 @@ export class DirectMessagesService {
 
   async list(member: WorkspaceMember, before?: string) {
     const cursor = before ? decodeCursor(before) : null;
-    const rows = await this.baseQuery()
+    const rows = await this.baseQuery(member.id)
       .where(
         and(
           eq(directMessages.workspaceId, member.workspaceId),
@@ -205,7 +205,7 @@ export class DirectMessagesService {
           ),
         )
         .groupBy(channelEntries.channelId),
-      this.baseQuery().where(
+      this.baseQuery(member.id).where(
         and(
           eq(directMessages.workspaceId, member.workspaceId),
           inArray(directMessages.channelId, ids),
@@ -241,14 +241,44 @@ export class DirectMessagesService {
     return row?.channelId;
   }
 
-  private baseQuery() {
+  async updateMute(
+    member: WorkspaceMember,
+    channelId: string,
+    mode: 'unmute' | 'hour' | 'day' | 'indefinite',
+  ) {
+    await this.get(member, channelId);
+    const mutedUntil =
+      mode === 'hour'
+        ? new Date(Date.now() + 60 * 60 * 1000)
+        : mode === 'day'
+          ? new Date(Date.now() + 24 * 60 * 60 * 1000)
+          : null;
+    await this.drizzle.db
+      .update(channelMemberships)
+      .set({ notificationsMuted: mode === 'indefinite', mutedUntil })
+      .where(
+        and(
+          eq(channelMemberships.workspaceId, member.workspaceId),
+          eq(channelMemberships.channelId, channelId),
+          eq(channelMemberships.memberId, member.id),
+        ),
+      );
+    return this.get(member, channelId);
+  }
+
+  private baseQuery(viewerId: string) {
     const first = alias(workspaceMembers, 'dm_first');
     const second = alias(workspaceMembers, 'dm_second');
     const firstProfile = alias(userProfiles, 'dm_first_profile');
     const secondProfile = alias(userProfiles, 'dm_second_profile');
+    const viewerMembership = alias(channelMemberships, 'dm_viewer_membership');
     return this.drizzle.db
       .select({
         channel: channels,
+        notification: {
+          muted: viewerMembership.notificationsMuted,
+          mutedUntil: viewerMembership.mutedUntil,
+        },
         first: {
           id: first.id,
           status: first.status,
@@ -271,6 +301,10 @@ export class DirectMessagesService {
       })
       .from(directMessages)
       .innerJoin(channels, and(eq(channels.id, directMessages.channelId), eq(channels.kind, 'dm')))
+      .innerJoin(
+        viewerMembership,
+        and(eq(viewerMembership.channelId, channels.id), eq(viewerMembership.memberId, viewerId)),
+      )
       .innerJoin(first, eq(first.id, directMessages.firstMemberId))
       .innerJoin(second, eq(second.id, directMessages.secondMemberId))
       .innerJoin(firstProfile, eq(firstProfile.id, first.userProfileId))
@@ -299,6 +333,12 @@ export class DirectMessagesService {
         displayName: other.displayName,
         avatarPath: other.avatarPath,
         active: other.status === 'active',
+      },
+      notification: {
+        isMuted:
+          row.notification.muted ||
+          Boolean(row.notification.mutedUntil && row.notification.mutedUntil > new Date()),
+        mutedUntil: row.notification.mutedUntil,
       },
       lastMessage: row.lastMessage
         ? {

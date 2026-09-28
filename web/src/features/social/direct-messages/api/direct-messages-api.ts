@@ -9,6 +9,10 @@ export interface DirectMessage {
     avatarPath: string | null;
     active: boolean;
   };
+  notification: {
+    isMuted: boolean;
+    mutedUntil: string | null;
+  };
   lastMessage: {
     id: string;
     markdown: string | null;
@@ -61,6 +65,19 @@ export function openDirectMessage(
     `/api/workspaces/${workspaceId}/direct-messages`,
     token,
     jsonInit('POST', { memberId }),
+  );
+}
+
+export function updateDirectMessageMute(
+  token: string,
+  workspaceId: string,
+  channelId: string,
+  mode: 'unmute' | 'hour' | 'day' | 'indefinite',
+): Promise<DirectMessage> {
+  return apiRequest(
+    `/api/workspaces/${workspaceId}/direct-messages/${channelId}/mute`,
+    token,
+    jsonInit('PATCH', { mode }),
   );
 }
 

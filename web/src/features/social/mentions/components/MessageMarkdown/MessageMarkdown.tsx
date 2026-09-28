@@ -1,5 +1,6 @@
 import { createStyles } from 'antd-style';
 import ReactMarkdown from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 import remarkDirective from 'remark-directive';
 
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
@@ -44,7 +45,7 @@ export function MessageMarkdown({ markdown, mentions = [], inline = false }: Mes
 
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkDirective, mentionDirective]}
+      remarkPlugins={[remarkDirective, mentionDirective, remarkBreaks]}
       allowedElements={[
         'p',
         'strong',

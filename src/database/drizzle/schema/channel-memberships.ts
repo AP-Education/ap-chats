@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   bigint,
+  boolean,
   foreignKey,
   index,
   pgTable,
@@ -22,6 +23,8 @@ export const channelMemberships = pgTable(
     lastReadEntrySeq: bigint('last_read_entry_seq', { mode: 'bigint' })
       .notNull()
       .default(sql`0`),
+    notificationsMuted: boolean('notifications_muted').notNull().default(false),
+    mutedUntil: timestamp('muted_until', { withTimezone: true }),
   },
   (table) => [
     primaryKey({ columns: [table.channelId, table.memberId] }),

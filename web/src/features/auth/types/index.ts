@@ -24,6 +24,7 @@ declare global {
 
 export interface CurrentUserProfile {
   name?: string;
+  email?: string;
   picture?: string;
   sub?: string;
 }

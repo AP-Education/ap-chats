@@ -27,3 +27,8 @@ test('does not index text that only resembles a mention', async () => {
   const result = await markdown.normalize('`@Alex` and @Alex');
   assert.deepEqual(result.mentionedMemberIds, []);
 });
+
+test('preserves single and blank line breaks in stored Markdown', async () => {
+  const result = await markdown.normalize('first\nsecond\n\nthird');
+  assert.equal(result.markdown, 'first\nsecond\n\nthird');
+});

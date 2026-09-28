@@ -33,6 +33,27 @@ export function mergeDirectMessage(
   if (!found) void queryClient.invalidateQueries({ queryKey: key, exact: true });
 }
 
+export function replaceDirectMessage(
+  queryClient: QueryClient,
+  identity: string | undefined,
+  workspaceId: string,
+  updated: DirectMessage,
+) {
+  const key = directMessageKey(identity, workspaceId);
+  queryClient.setQueryData([...key, updated.id], updated);
+  queryClient.setQueryData<InfiniteData<DirectMessagePage, string | undefined>>(key, (current) =>
+    current
+      ? {
+          ...current,
+          pages: current.pages.map((page) => ({
+            ...page,
+            items: page.items.map((item) => (item.id === updated.id ? updated : item)),
+          })),
+        }
+      : current,
+  );
+}
+
 export function confirmDirectMessage(
   queryClient: QueryClient,
   identity: string | undefined,

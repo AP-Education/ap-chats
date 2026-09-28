@@ -40,7 +40,7 @@ export class PinsFacade {
   @Transactional()
   private async addTransaction(member: WorkspaceMember, channelId: string, messageId: string) {
     const channel = await this.access.requirePostAccess(member, channelId);
-    this.access.requireManager(member, channel);
+    if (channel.kind !== 'dm') this.access.requireManager(member, channel);
     if (!(await this.repository.messageIsAvailable(member.workspaceId, channelId, messageId)))
       throw new NotFoundException('Message not found');
     const existing = await this.repository.find(channelId, messageId);
@@ -63,7 +63,7 @@ export class PinsFacade {
   @Transactional()
   private async removeTransaction(member: WorkspaceMember, channelId: string, messageId: string) {
     const channel = await this.access.requirePostAccess(member, channelId);
-    this.access.requireManager(member, channel);
+    if (channel.kind !== 'dm') this.access.requireManager(member, channel);
     return this.repository.remove(channelId, messageId);
   }
 }

@@ -6,11 +6,13 @@ import type { CurrentUserProfile, CurrentUserState } from '../types';
 
 function toProfile(profile: {
   name?: unknown;
+  email?: unknown;
   picture?: unknown;
   sub?: unknown;
 }): CurrentUserProfile {
   return {
     name: typeof profile.name === 'string' ? profile.name : undefined,
+    email: typeof profile.email === 'string' ? profile.email : undefined,
     picture: typeof profile.picture === 'string' && profile.picture ? profile.picture : undefined,
     sub: typeof profile.sub === 'string' ? profile.sub : undefined,
   };

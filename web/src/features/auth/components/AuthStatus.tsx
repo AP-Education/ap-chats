@@ -1,54 +1,15 @@
-import { DownOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
-import { Button, Dropdown, Flex, Spin, Typography } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
+import { SignOutIcon } from '@phosphor-icons/react';
+import { Button, Spin } from 'antd';
 
 import { Avatar } from '../../../shared/ui/Avatar/Avatar';
 import { useCurrentUser } from '../stores/current-user-context';
 import styles from './AuthStatus.module.css';
 
-interface Identity {
-  sub: string;
-  appId: string;
-}
-
-async function fetchIdentity(
-  token: string,
-  refreshAccessToken: (() => Promise<string>) | undefined,
-  signal: AbortSignal,
-): Promise<Identity> {
-  const response = await fetch('/api/auth/me', {
-    headers: { Authorization: `Bearer ${token}` },
-    signal,
-  });
-  if (response.ok) return (await response.json()) as Identity;
-
-  if (response.status !== 401 || !refreshAccessToken) {
-    throw new Error(`Identity check failed: ${response.status}`);
-  }
-  const fresh = await refreshAccessToken();
-  const retried = await fetch('/api/auth/me', {
-    headers: { Authorization: `Bearer ${fresh}` },
-    signal,
-  });
-  if (!retried.ok) throw new Error(`Identity check failed: ${retried.status}`);
-  return (await retried.json()) as Identity;
-}
-
 export function AuthStatus() {
   const user = useCurrentUser();
-  const accessToken = user.status === 'signed-in' ? user.accessToken : undefined;
-  const refreshAccessToken = user.status === 'signed-in' ? user.refreshAccessToken : undefined;
 
-  const identity = useQuery({
-    queryKey: ['auth', 'me', accessToken],
-    queryFn: ({ signal }) => fetchIdentity(accessToken!, refreshAccessToken, signal),
-    enabled: Boolean(accessToken),
-    retry: false,
-  });
-
-  if (user.status === 'loading') {
-    return <Spin size="small" />;
-  }
+  if (user.status === 'loading') return <Spin size="small" />;
 
   if (user.status === 'unavailable') {
     return (
@@ -68,48 +29,26 @@ export function AuthStatus() {
 
   const { profile, signOut } = user;
   return (
-    <Dropdown
-      trigger={['click']}
-      className={styles.menu}
-      menu={{
-        items: [
-          {
-            key: 'name',
-            disabled: true,
-            label: <Typography.Text strong>{profile?.name ?? 'Мій профіль'}</Typography.Text>,
-          },
-          {
-            key: 'status',
-            label: identity.isSuccess
-              ? 'Вхід підтверджено'
-              : identity.isError
-                ? 'Не вдалося перевірити вхід'
-                : 'Перевіряємо вхід',
-            disabled: true,
-          },
-          { type: 'divider' },
-          {
-            key: 'logout',
-            danger: true,
-            icon: <LogoutOutlined />,
-            label: 'Вийти',
-            onClick: signOut,
-          },
-        ],
-      }}
-    >
-      <button className={styles.trigger} type="button" aria-label="Профіль">
-        <Flex align="center" gap={12}>
-          <Avatar
-            path={profile?.picture ?? null}
-            alt={profile?.name ?? 'Профіль'}
-            size="large"
-            shape="circle"
-          />
-
-          <DownOutlined />
-        </Flex>
+    <div className={styles.profile}>
+      <Avatar
+        path={profile?.picture ?? null}
+        alt={profile?.name ?? 'Профіль'}
+        size={36}
+        shape="circle"
+      />
+      <div className={styles.identity}>
+        <span className={styles.name}>{profile?.name ?? 'Мій профіль'}</span>
+        <span className={styles.caption}>{profile?.email ?? 'Обліковий запис'}</span>
+      </div>
+      <button
+        className={styles.signOut}
+        type="button"
+        aria-label="Вийти"
+        title="Вийти"
+        onClick={signOut}
+      >
+        <SignOutIcon size={20} weight="regular" />
       </button>
-    </Dropdown>
+    </div>
   );
 }

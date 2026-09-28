@@ -78,6 +78,13 @@
       "when": 1790533614247,
       "tag": "0010_late_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790592762134,
+      "tag": "0011_exotic_mole_man",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { CaretUpDownIcon, CheckIcon, PencilSimpleIcon, PlusIcon } from '@phosphor-icons/react';
+import { CaretUpDownIcon, CheckIcon, PencilLineIcon, PlusIcon } from '@phosphor-icons/react';
 import { Dropdown, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
@@ -11,17 +11,19 @@ import { WorkspaceFormModal } from '../WorkspaceFormModal';
 
 const useStyles = createStyles(({ token, css }) => ({
   trigger: css`
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 8px;
-    height: 44px;
-    padding: 0 10px 0 6px;
-    border-radius: ${token.borderRadius}px;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    height: 60px;
+    padding: 0 16px;
+    border-radius: 0;
     border: none;
     background: transparent;
     cursor: pointer;
-    max-width: 220px;
     color: ${token.colorText};
+    text-align: left;
     transition: background 0.15s ease;
 
     &:hover,
@@ -30,26 +32,29 @@ const useStyles = createStyles(({ token, css }) => ({
     }
   `,
   name: css`
+    flex: 1;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: 600;
-    font-size: ${token.fontSize}px;
+    font-size: 16px;
   `,
   caret: css`
     flex-shrink: 0;
     color: ${token.colorTextTertiary};
   `,
   panel: css`
-    width: 280px;
-    padding: 6px;
-    border-radius: ${token.borderRadiusLG}px;
+    box-sizing: border-box;
+    width: 290px;
+    max-height: min(520px, calc(100vh - 80px));
+    overflow-y: auto;
+    padding: 8px 0;
     background: ${token.colorBgElevated};
     box-shadow: ${token.boxShadowSecondary};
   `,
   label: css`
-    padding: 8px 10px 4px;
+    padding: 8px 20px 10px;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -59,17 +64,46 @@ const useStyles = createStyles(({ token, css }) => ({
   row: css`
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 8px;
-    border-radius: ${token.borderRadius}px;
-    cursor: pointer;
 
     &:hover {
       background: ${token.colorFillTertiary};
     }
 
-    &:hover [data-role='edit-button'] {
+    &[data-active='true'] {
+      background: ${token.colorPrimaryBg};
+    }
+
+    &[data-active='true']:hover {
+      background: ${token.colorPrimaryBgHover};
+    }
+
+    &:hover [data-role='edit-button'],
+    &:focus-within [data-role='edit-button'] {
       opacity: 1;
+    }
+
+    &:hover [data-role='active-check'],
+    &:focus-within [data-role='active-check'] {
+      opacity: 0;
+    }
+  `,
+  rowMain: css`
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    min-height: 56px;
+    padding: 6px 20px;
+    border: 0;
+    background: transparent;
+    color: ${token.colorText};
+    cursor: pointer;
+    text-align: left;
+
+    &:focus-visible {
+      outline: 2px solid ${token.colorPrimary};
+      outline-offset: -2px;
     }
   `,
   rowName: css`
@@ -78,18 +112,32 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: 500;
+    font-size: 15px;
+    font-weight: 600;
   `,
   check: css`
-    flex-shrink: 0;
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    pointer-events: none;
     color: ${token.colorPrimary};
+    transition: opacity 0.15s ease;
+  `,
+  trailing: css`
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin-right: 12px;
+    flex-shrink: 0;
   `,
   editButton: css`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
     border-radius: 6px;
     border: none;
@@ -103,14 +151,14 @@ const useStyles = createStyles(({ token, css }) => ({
       color: ${token.colorPrimary};
     }
 
+    &:focus-visible {
+      opacity: 1;
+      outline: 2px solid ${token.colorPrimary};
+    }
+
     @media (hover: none) {
       opacity: 1;
     }
-  `,
-  divider: css`
-    height: 1px;
-    margin: 6px 4px;
-    background: ${token.colorBorderSecondary};
   `,
   createIcon: css`
     display: inline-flex;
@@ -123,15 +171,23 @@ const useStyles = createStyles(({ token, css }) => ({
     border: 1.5px dashed ${token.colorBorder};
     color: ${token.colorTextTertiary};
   `,
+  createActionIcon: css`
+    width: 40px;
+    height: 40px;
+    border: 0;
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorPrimary};
+  `,
   createLabel: css`
-    color: ${token.colorTextSecondary};
-    font-weight: 500;
+    color: ${token.colorPrimary};
+    font-weight: 600;
   `,
   loading: css`
     display: flex;
     align-items: center;
-    height: 44px;
-    padding: 0 10px;
+    width: 100%;
+    height: 60px;
+    padding: 0 16px;
   `,
 }));
 
@@ -189,33 +245,47 @@ export function WorkspaceSwitcher() {
     <div className={styles.panel}>
       {(workspaces?.length ?? 0) > 0 && <div className={styles.label}>Робочі простори</div>}
       {(workspaces ?? []).map((item) => (
-        <div key={item.id} className={styles.row} onClick={() => handleSelect(item.id)}>
-          <Avatar path={item.avatarPath} alt={item.name} size={28} shape="rounded" />
-          <span className={styles.rowName}>{item.name}</span>
-          {item.id === activeWorkspace?.id && (
-            <CheckIcon size={16} weight="bold" className={styles.check} />
-          )}
+        <div key={item.id} className={styles.row} data-active={item.id === activeWorkspace?.id}>
           <button
             type="button"
-            className={styles.editButton}
-            data-role="edit-button"
-            aria-label={`Редагувати ${item.name}`}
-            onClick={(event) => {
-              event.stopPropagation();
-              setFormTarget(item);
-              setDropdownOpen(false);
-            }}
+            className={styles.rowMain}
+            aria-pressed={item.id === activeWorkspace?.id}
+            onClick={() => handleSelect(item.id)}
           >
-            <PencilSimpleIcon size={14} />
+            <Avatar path={item.avatarPath} alt={item.name} size={40} shape="rounded" />
+            <span className={styles.rowName}>{item.name}</span>
           </button>
+          <span className={styles.trailing}>
+            {item.id === activeWorkspace?.id && (
+              <CheckIcon
+                size={20}
+                weight="bold"
+                className={styles.check}
+                data-role="active-check"
+              />
+            )}
+            <button
+              type="button"
+              className={styles.editButton}
+              data-role="edit-button"
+              aria-label={`Редагувати ${item.name}`}
+              onClick={() => {
+                setFormTarget(item);
+                setDropdownOpen(false);
+              }}
+            >
+              <PencilLineIcon size={20} />
+            </button>
+          </span>
         </div>
       ))}
-      {(workspaces?.length ?? 0) > 0 && <div className={styles.divider} />}
-      <div className={styles.row} onClick={handleCreate}>
-        <span className={styles.createIcon}>
-          <PlusIcon size={14} />
-        </span>
-        <span className={cx(styles.rowName, styles.createLabel)}>Створити робочий простір</span>
+      <div className={styles.row}>
+        <button type="button" className={styles.rowMain} onClick={handleCreate}>
+          <span className={cx(styles.createIcon, styles.createActionIcon)}>
+            <PlusIcon size={20} />
+          </span>
+          <span className={cx(styles.rowName, styles.createLabel)}>Створити робочий простір</span>
+        </button>
       </div>
     </div>
   );
@@ -234,7 +304,7 @@ export function WorkspaceSwitcher() {
             <Avatar
               path={activeWorkspace.avatarPath}
               alt={activeWorkspace.name}
-              size={30}
+              size={44}
               shape="rounded"
             />
           ) : (

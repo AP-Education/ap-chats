@@ -19,9 +19,10 @@ const useStyles = createStyles(({ token, css }) => ({
     align-items: center;
     gap: 0;
     margin: 2px 4px;
-    min-height: 32px;
+    min-height: 36px;
     border-radius: ${token.borderRadius}px;
     color: ${token.colorTextSecondary};
+    font-weight: 500;
 
     &:hover {
       background: ${token.colorFillTertiary};
@@ -54,7 +55,6 @@ const useStyles = createStyles(({ token, css }) => ({
   rowActive: css`
     background: ${token.colorPrimaryBg};
     color: ${token.colorPrimaryTextActive};
-    font-weight: 600;
 
     &:hover {
       background: ${token.colorPrimaryBgHover};
@@ -70,8 +70,8 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 8px;
-    min-height: 32px;
-    padding: 0 8px;
+    min-height: 36px;
+    padding: 2px 8px;
     text-decoration: none;
 
     &::after {

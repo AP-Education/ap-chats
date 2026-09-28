@@ -18,7 +18,7 @@ const useStyles = createStyles(({ token, css }) => ({
     flex-direction: column;
   `,
   aside: css`
-    width: 270px;
+    width: 300px;
     flex-shrink: 0;
     min-height: 0;
     overflow-y: auto;

@@ -10,8 +10,8 @@ export function MainSider() {
     <Layout.Sider
       className={styles.sidebar}
       theme="light"
-      width={264}
-      style={{ width: 264, minWidth: 264, height: '100%', overflow: 'hidden' }}
+      width={290}
+      style={{ width: 290, minWidth: 290, height: '100%', overflow: 'hidden' }}
     >
       <MainSiderMenu />
     </Layout.Sider>

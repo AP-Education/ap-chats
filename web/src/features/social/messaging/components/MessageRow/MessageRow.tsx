@@ -183,17 +183,17 @@ const useStyles = createStyles(({ token, css }) => ({
   forwarded: css`
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-bottom: 4px;
-    color: ${token.colorTextSecondary};
+    gap: 3px;
+    margin-bottom: 2px;
+    color: ${token.colorPrimary};
     font-size: 14px;
-    line-height: 20px;
+    line-height: 18px;
   `,
   forwardedName: css`
     padding: 0;
     border: 0;
     background: transparent;
-    color: ${token.colorPrimary};
+    color: inherit;
     font: inherit;
     font-weight: 600;
     cursor: pointer;
@@ -214,7 +214,8 @@ const useStyles = createStyles(({ token, css }) => ({
       margin-bottom: 0;
     }
     pre {
-      overflow-x: auto;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
       padding: 9px 11px;
       border-radius: 7px;
       background: ${token.colorFillTertiary};
@@ -489,7 +490,7 @@ export const MessageRow = memo(function MessageRow({
           )}
           {item.message.isForwarded && (
             <div className={styles.forwarded}>
-              <ArrowBendUpRightIcon size={16} aria-hidden />
+              <ArrowBendUpRightIcon size={14} aria-hidden />
               <span>
                 Переслано від{' '}
                 {item.forwardedFrom ? (

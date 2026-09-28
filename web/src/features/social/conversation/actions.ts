@@ -10,6 +10,7 @@ export type ActionTarget =
 export interface ActionContext {
   memberId: string | undefined;
   canManage: boolean;
+  canPin: boolean;
   canPost: boolean;
 }
 

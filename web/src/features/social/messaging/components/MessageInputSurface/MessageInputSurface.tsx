@@ -6,7 +6,7 @@ const useStyles = createStyles(({ token, css }) => ({
     flex: 1;
     min-width: 0;
     border: 1px solid ${token.colorBorder};
-    border-radius: 6px;
+    border-radius: 12px;
     background: ${token.colorBgContainer};
     box-shadow: 0 2px 8px ${token.colorFillQuaternary};
     &:focus-within {
@@ -14,7 +14,8 @@ const useStyles = createStyles(({ token, css }) => ({
     }
     @media (max-width: ${token.screenMD}px) {
       border-color: ${token.colorBorderSecondary};
-      border-radius: 6px;
+      border-radius: 14px;
+      background: ${token.colorFillQuaternary};
       box-shadow: none;
     }
   `,
@@ -24,9 +25,9 @@ const useStyles = createStyles(({ token, css }) => ({
   line: css`
     display: flex;
     align-items: flex-end;
-    gap: 4px;
+    gap: 5px;
     min-width: 0;
-    padding: 8px;
+    padding: 7px 12px;
     @media (max-width: ${token.screenMD}px) {
       gap: 4px;
       padding: 4px 4px 4px 12px;
@@ -37,10 +38,16 @@ const useStyles = createStyles(({ token, css }) => ({
     min-width: 0;
   `,
   compact: css`
+    border-radius: 6px;
     box-shadow: none;
+
+    @media (max-width: ${token.screenMD}px) {
+      background: ${token.colorBgContainer};
+    }
   `,
   compactLine: css`
     align-items: flex-end;
+    gap: 4px;
     padding: 4px 6px 4px 10px;
   `,
 }));

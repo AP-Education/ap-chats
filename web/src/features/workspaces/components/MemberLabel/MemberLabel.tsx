@@ -4,17 +4,19 @@ import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import type { WorkspaceMemberLabel } from '../../hooks/useWorkspaceMemberLabels';
 
-const useStyles = createStyles(({ token, css }) => ({
+const useStyles = createStyles(({ css }) => ({
   row: css`
     display: flex;
     align-items: center;
-    gap: ${token.marginXS}px;
+    gap: 11px;
     min-width: 0;
   `,
   label: css`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 15px;
+    font-weight: 600;
   `,
 }));
 

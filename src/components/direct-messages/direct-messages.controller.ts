@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
-import { IsUUID } from 'class-validator';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { IsIn, IsUUID } from 'class-validator';
 
 import { UseAuthGuards } from '@/components/auth';
 import { CurrentWorkspaceMember } from '@/components/workspaces/members/decorators';
@@ -11,6 +11,11 @@ import { DirectMessagesService } from './direct-messages.service';
 class OpenDirectMessageDto {
   @IsUUID()
   memberId!: string;
+}
+
+class UpdateDirectMessageMuteDto {
+  @IsIn(['unmute', 'hour', 'day', 'indefinite'])
+  mode!: 'unmute' | 'hour' | 'day' | 'indefinite';
 }
 
 @Controller('workspaces/:workspaceId/direct-messages')
@@ -39,5 +44,14 @@ export class DirectMessagesController {
     @Param('channelId', ParseUUIDPipe) channelId: string,
   ) {
     return this.directMessages.get(member, channelId);
+  }
+
+  @Patch(':channelId/mute')
+  updateMute(
+    @CurrentWorkspaceMember() member: WorkspaceMember,
+    @Param('channelId', ParseUUIDPipe) channelId: string,
+    @Body() dto: UpdateDirectMessageMuteDto,
+  ) {
+    return this.directMessages.updateMute(member, channelId, dto.mode);
   }
 }

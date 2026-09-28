@@ -16,8 +16,14 @@ import type { HistoryItem, HistoryPage, MessageAuthor } from '../../types';
 import { MessageRow } from '../MessageRow/MessageRow';
 
 const useStyles = createStyles(({ token, css }) => ({
-  scroll: css`
+  viewport: css`
     position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  `,
+  scroll: css`
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -77,10 +83,11 @@ const useStyles = createStyles(({ token, css }) => ({
     right: 22px;
     bottom: 14px;
     z-index: 3;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 11px;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: 20px;
     background: ${token.colorBgContainer};
@@ -257,8 +264,10 @@ export function MessageTimeline({
       } else {
         container.scrollTop = top;
       }
-      setAwayFromBottom(true);
-      atBottom.current = false;
+      const nearBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight < 110;
+      setAwayFromBottom(!nearBottom);
+      atBottom.current = nearBottom;
     } else {
       container.scrollTop = container.scrollHeight;
     }
@@ -348,82 +357,90 @@ export function MessageTimeline({
   }
 
   return (
-    <div
-      ref={scroll}
-      className={styles.scroll}
-      onScroll={onScroll}
-      onPointerMove={(event) => {
-        if (performance.now() - lastScrollAt.current > 120)
-          delete event.currentTarget.dataset.hoverSuppressed;
-      }}
-      onPointerLeave={(event) => delete event.currentTarget.dataset.hoverSuppressed}
-      role="log"
-      aria-label="Повідомлення каналу"
-      aria-live="off"
-    >
-      <div className={styles.feed}>
-        {hasOlder && (
-          <Button
-            className={styles.load}
-            icon={<ArrowUpIcon />}
-            loading={loadingOlder}
-            onClick={() => void older()}
-          >
-            Раніші повідомлення
-          </Button>
-        )}
-        {!displayItems.length && (
-          <div className={styles.empty}>
-            <Empty image={<HashIcon size={38} />} description="Тут почнеться розмова" />
-          </div>
-        )}
-        {!displayItems.length && <div className={styles.spacer} />}
-        {displayItems.map(({ item, delivery, nonce }, index) => {
-          const previous = displayItems[index - 1]?.item;
-          const day = new Date(item.createdAt).toDateString();
-          const previousDay = previous ? new Date(previous.createdAt).toDateString() : null;
-          const grouped = Boolean(
-            previous &&
-            previousDay === day &&
-            previous.message.authorMemberId === item.message.authorMemberId &&
-            new Date(item.createdAt).getTime() - new Date(previous.createdAt).getTime() < 300_000,
-          );
-          return (
-            <div key={nonce ?? item.message.clientNonce ?? item.message.id}>
-              {previousDay !== day && (
-                <div className={styles.date}>{dateFormat.format(new Date(item.createdAt))}</div>
-              )}
-              {firstUnreadSeq === item.seq && (
-                <div className={styles.unread}>Нові повідомлення</div>
-              )}
-              <MessageRow
-                item={item}
-                grouped={grouped}
-                actionContext={actionContext}
-                actions={actions}
-                onAction={onAction}
-                onJump={onJump}
-                onEdit={onEdit}
-                delivery={delivery}
-                onRetry={nonce ? () => onRetry(nonce) : undefined}
-              />
+    <div className={styles.viewport}>
+      <div
+        ref={scroll}
+        className={styles.scroll}
+        onScroll={onScroll}
+        onPointerMove={(event) => {
+          if (performance.now() - lastScrollAt.current > 120)
+            delete event.currentTarget.dataset.hoverSuppressed;
+        }}
+        onPointerLeave={(event) => delete event.currentTarget.dataset.hoverSuppressed}
+        role="log"
+        aria-label="Повідомлення каналу"
+        aria-live="off"
+      >
+        <div className={styles.feed}>
+          {hasOlder && (
+            <Button
+              className={styles.load}
+              icon={<ArrowUpIcon />}
+              loading={loadingOlder}
+              onClick={() => void older()}
+            >
+              Раніші повідомлення
+            </Button>
+          )}
+          {!displayItems.length && (
+            <div className={styles.empty}>
+              <Empty image={<HashIcon size={38} />} description="Тут почнеться розмова" />
             </div>
-          );
-        })}
-        {hasNewer && (
-          <Button
-            className={styles.load}
-            icon={<ArrowDownIcon />}
-            loading={loadingNewer}
-            onClick={() => void loadNewer()}
-          >
-            Новіші повідомлення
-          </Button>
-        )}
+          )}
+          {!displayItems.length && <div className={styles.spacer} />}
+          {displayItems.map(({ item, delivery, nonce }, index) => {
+            const previous = displayItems[index - 1]?.item;
+            const day = new Date(item.createdAt).toDateString();
+            const previousDay = previous ? new Date(previous.createdAt).toDateString() : null;
+            const grouped = Boolean(
+              previous &&
+              previousDay === day &&
+              previous.message.authorMemberId === item.message.authorMemberId &&
+              new Date(item.createdAt).getTime() - new Date(previous.createdAt).getTime() < 300_000,
+            );
+            return (
+              <div key={nonce ?? item.message.clientNonce ?? item.message.id}>
+                {previousDay !== day && (
+                  <div className={styles.date}>{dateFormat.format(new Date(item.createdAt))}</div>
+                )}
+                {firstUnreadSeq === item.seq && (
+                  <div className={styles.unread}>Нові повідомлення</div>
+                )}
+                <MessageRow
+                  item={item}
+                  grouped={grouped}
+                  actionContext={actionContext}
+                  actions={actions}
+                  onAction={onAction}
+                  onJump={onJump}
+                  onEdit={onEdit}
+                  delivery={delivery}
+                  onRetry={nonce ? () => onRetry(nonce) : undefined}
+                />
+              </div>
+            );
+          })}
+          {hasNewer && (
+            <Button
+              className={styles.load}
+              icon={<ArrowDownIcon />}
+              loading={loadingNewer}
+              onClick={() => void loadNewer()}
+            >
+              Новіші повідомлення
+            </Button>
+          )}
+        </div>
       </div>
       {awayFromBottom && (
-        <button type="button" className={styles.bottom} onClick={goDown}>
-          <ArrowDownIcon size={16} /> {hasNewer ? 'До новіших' : 'До низу'}
+        <button
+          type="button"
+          className={styles.bottom}
+          onClick={goDown}
+          aria-label={hasNewer ? 'До новіших повідомлень' : 'До низу розмови'}
+          title={hasNewer ? 'До новіших повідомлень' : 'До низу розмови'}
+        >
+          <ArrowDownIcon size={18} aria-hidden="true" />
         </button>
       )}
     </div>

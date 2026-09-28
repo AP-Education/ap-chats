@@ -7,9 +7,9 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useOpenDirectMessage } from '@/features/social/direct-messages/hooks/useOpenDirectMessage';
 import { useActiveWorkspace } from '@/features/workspaces/hooks/useActiveWorkspace';
 import { ApiError } from '@/shared/api/http';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import { getMemberProfile } from '../../api/member-profile-api';
+import { MemberIdentity } from '../MemberIdentity';
 
 export interface MemberSummary {
   memberId: string;
@@ -24,24 +24,6 @@ const useStyles = createStyles(({ token, css }) => ({
     background: ${token.colorBgElevated};
     color: ${token.colorText};
     text-align: center;
-  `,
-  avatar: css`
-    display: flex;
-    justify-content: center;
-    margin-bottom: 11px;
-  `,
-  name: css`
-    overflow: hidden;
-    margin: 0 0 3px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 18px;
-    font-weight: 650;
-  `,
-  detail: css`
-    margin: 0;
-    color: ${token.colorTextSecondary};
-    font-size: 13px;
   `,
   actions: css`
     display: flex;
@@ -80,11 +62,7 @@ export function MemberCard({ member }: { member: MemberSummary }) {
 
   return (
     <div className={styles.card}>
-      <div className={styles.avatar}>
-        <Avatar path={avatarPath} alt={name} size={72} shape="circle" />
-      </div>
-      <h3 className={styles.name}>{name}</h3>
-      <p className={styles.detail}>{detail}</p>
+      <MemberIdentity name={name} avatarPath={avatarPath} detail={detail} />
       {profile.isPending && (
         <div className={styles.loading} aria-label="Завантажуємо профіль" role="status">
           <Skeleton.Button active block size="small" />

@@ -23,9 +23,12 @@ const useStyles = createStyles(({ token, css }) => ({
   shell: css`
     flex-shrink: 0;
     display: flex;
+    align-items: flex-end;
+    gap: 10px;
     padding: 0 ${token.paddingLG}px ${token.paddingSM}px;
 
     @media (max-width: ${token.screenMD}px) {
+      gap: 8px;
       padding: 0 16px calc(8px + env(safe-area-inset-bottom, 0px));
     }
   `,
@@ -44,7 +47,7 @@ const useStyles = createStyles(({ token, css }) => ({
       align-items: center;
       justify-content: center;
       width: 44px;
-      height: 44px;
+      height: 52px;
       flex-shrink: 0;
     }
   `,
@@ -196,6 +199,13 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
 
   return (
     <div className={styles.shell}>
+      <span className={styles.mobileOnly}>
+        <Tooltip title="Незабаром">
+          <IconButton size={44} className={styles.toolbarButton} aria-label="Додати файл" disabled>
+            <PaperclipIcon size={22} />
+          </IconButton>
+        </Tooltip>
+      </span>
       <MessageInputSurface
         context={
           intent && (
@@ -216,32 +226,18 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
           )
         }
         leading={
-          <>
-            <span className={styles.mobileOnly}>
-              <Tooltip title="Незабаром">
-                <IconButton
-                  size={44}
-                  className={styles.toolbarButton}
-                  aria-label="Додати файл"
-                  disabled
-                >
-                  <PaperclipIcon size={22} />
-                </IconButton>
-              </Tooltip>
-            </span>
-            <span className={styles.mobileHidden}>
-              <Tooltip title="Незабаром">
-                <IconButton
-                  size={toolbarActionSize}
-                  className={styles.toolbarButton}
-                  aria-label="Додати файл"
-                  disabled
-                >
-                  <PaperclipIcon size={22} />
-                </IconButton>
-              </Tooltip>
-            </span>
-          </>
+          <span className={styles.mobileHidden}>
+            <Tooltip title="Незабаром">
+              <IconButton
+                size={toolbarActionSize}
+                className={styles.toolbarButton}
+                aria-label="Додати файл"
+                disabled
+              >
+                <PaperclipIcon size={22} />
+              </IconButton>
+            </Tooltip>
+          </span>
         }
         trailing={
           <div className={styles.toolbarRight}>
@@ -318,7 +314,6 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
                 </IconButton>
               </Popover>
             </span>
-            <ComposerAction hasContent={hasContent} onSend={handleSend} />
           </div>
         }
       >
@@ -334,6 +329,7 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
           onEscape={() => setIntent(null)}
         />
       </MessageInputSurface>
+      <ComposerAction hasContent={hasContent} onSend={handleSend} />
     </div>
   );
 }

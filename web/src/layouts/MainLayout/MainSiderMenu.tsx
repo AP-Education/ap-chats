@@ -1,9 +1,11 @@
 import { ChatsCircleIcon, ChatsIcon, HouseIcon, VideoCameraIcon } from '@phosphor-icons/react';
 import { Link, useLocation } from 'react-router-dom';
 
+import { AuthStatus } from '../../features/auth/components/AuthStatus';
 import { ChannelsSidebar } from '../../features/communities/components/ChannelsSidebar';
 import { DirectMessageList } from '../../features/social/direct-messages/components/DirectMessageList/DirectMessageList';
 import { UnreadDirectMessages } from '../../features/social/direct-messages/components/UnreadDirectMessages/UnreadDirectMessages';
+import { WorkspaceSwitcher } from '../../features/workspaces/components/WorkspaceSwitcher';
 import { useActiveWorkspace } from '../../features/workspaces/hooks/useActiveWorkspace';
 import { useMainLayoutStyles } from './useMainLayoutStyles';
 
@@ -21,6 +23,9 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className={styles.sidebarStack}>
+      <div className={styles.sidebarWorkspace}>
+        <WorkspaceSwitcher />
+      </div>
       <nav className={styles.nav}>
         {navItems.map(({ key, icon: Icon, label }) => {
           const active = pathname === key || (key !== '/' && pathname.startsWith(`${key}/`));
@@ -45,6 +50,9 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
         ) : (
           <ChannelsSidebar onNavigate={onNavigate} />
         )}
+      </div>
+      <div className={styles.sidebarProfile}>
+        <AuthStatus />
       </div>
     </div>
   );
