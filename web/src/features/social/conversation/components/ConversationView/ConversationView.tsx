@@ -61,12 +61,7 @@ export function ConversationView({
 
   return (
     <div className={styles.shell}>
-      <PinnedMessageBar
-        workspaceId={workspaceId}
-        channelId={channelId}
-        canUnpin={canPin && canPost}
-        onJump={navigation.onJump}
-      />
+      <PinnedMessageBar canUnpin={canPin && canPost} onJump={navigation.onJump} />
       <ConversationHistoryContent
         author={author}
         navigation={navigation}

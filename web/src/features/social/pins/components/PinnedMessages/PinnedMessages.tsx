@@ -1,6 +1,7 @@
 import { Button, Empty, Spin } from 'antd';
 import { createStyles } from 'antd-style';
 
+import { useConversationScope } from '@/features/social/conversation/store';
 import { MessagePreview } from '@/features/social/messaging/components/MessagePreview/MessagePreview';
 
 import { usePins } from '../../hooks/usePins';
@@ -41,13 +42,12 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 interface PinnedMessagesProps {
-  workspaceId: string;
-  channelId: string;
   onJump: (messageId: string) => void;
 }
 
-export function PinnedMessages({ workspaceId, channelId, onJump }: PinnedMessagesProps) {
+export function PinnedMessages({ onJump }: PinnedMessagesProps) {
   const { styles } = useStyles();
+  const { workspaceId, channelId } = useConversationScope();
   const query = usePins(workspaceId, channelId);
 
   if (query.isPending)
