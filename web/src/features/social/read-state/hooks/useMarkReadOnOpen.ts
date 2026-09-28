@@ -5,8 +5,8 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
 import type { HistoryPage } from '../../messaging/types';
 import { markRead } from '../api/read-state-api';
-import { unreadDirectMessagesKey, workspaceUnreadKey } from '../queryKeys';
-import type { ChannelUnread } from './useWorkspaceUnread';
+import { applyReadState } from '../applyReadState';
+import { workspaceUnreadKey } from '../queryKeys';
 
 export function useMarkReadOnOpen(
   workspaceId: string,
@@ -31,18 +31,12 @@ export function useMarkReadOnOpen(
       if (attempted.current === requestKey) return;
       attempted.current = requestKey;
 
-      queryClient.setQueryData<ChannelUnread[]>(queryKey, (current) =>
-        current?.map((item) =>
-          item.channelId === channelId ? { ...item, unreadCount: 0, lastReadEntrySeq: seq } : item,
-        ),
-      );
-      queryClient.setQueryData<Array<{ id: string }>>(
-        unreadDirectMessagesKey(identity, workspaceId),
-        (current) => current?.filter((item) => item.id !== channelId),
-      );
-
+      applyReadState(queryClient, identity, workspaceId, channelId, {
+        lastReadEntrySeq: seq,
+        unreadCount: 0,
+      });
       void markRead(authToken, workspaceId, channelId, seq).then(
-        () => void queryClient.invalidateQueries({ queryKey }),
+        (state) => applyReadState(queryClient, identity, workspaceId, channelId, state),
         () => {
           if (attempted.current === requestKey) attempted.current = null;
           void queryClient.invalidateQueries({ queryKey });

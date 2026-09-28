@@ -1,16 +1,27 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { type InfiniteData, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import { confirmDirectMessage } from '@/features/social/direct-messages/cache';
 
-import { deleteMessages, editMessage, sendMessage } from '../api/messages-api';
+import {
+  deleteMessages,
+  editMessage,
+  getMessage,
+  historyPage,
+  sendMessage,
+} from '../api/messages-api';
+import { catchUpHistory, mergeHistoryItem } from '../history-cache';
 import { messagingQueryKeys } from '../queryKeys';
-import type { SendMessageInput } from '../types';
+import type { HistoryItem, MessageAuthor, SendMessageInput } from '../types';
+import type { HistoryPage } from '../types';
+import type { PageCursor } from './useMessageHistory';
 
 export interface OutgoingMessage {
   input: SendMessageInput;
   createdAt: string;
-  status: 'sending' | 'failed';
+  status: 'sending' | 'failed' | 'confirmed';
+  confirmedItem?: HistoryItem;
 }
 
 function readOutbox(key: string): OutgoingMessage[] {
@@ -33,7 +44,11 @@ function readOutbox(key: string): OutgoingMessage[] {
   }
 }
 
-export function useMessageOperations(workspaceId: string, channelId: string) {
+export function useMessageOperations(
+  workspaceId: string,
+  channelId: string,
+  author: MessageAuthor,
+) {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
   const outboxKey = `ap-chats:outbox:${identity}:${workspaceId}:${channelId}`;
@@ -43,25 +58,23 @@ export function useMessageOperations(workspaceId: string, channelId: string) {
   function updateOutbox(change: (current: OutgoingMessage[]) => OutgoingMessage[]) {
     const next = change(outboxRef.current);
     outboxRef.current = next;
-    localStorage.setItem(outboxKey, JSON.stringify(next));
+    const unresolved = next.filter((item) => item.status !== 'confirmed');
+    if (unresolved.length) localStorage.setItem(outboxKey, JSON.stringify(unresolved));
+    else localStorage.removeItem(outboxKey);
     setOutbox(next);
   }
 
   function refreshHistory() {
     void queryClient.invalidateQueries({
-      queryKey: messagingQueryKeys.channel(identity, workspaceId, channelId),
+      queryKey: messagingQueryKeys.histories(identity, workspaceId, channelId),
     });
   }
 
   async function deliver(outgoing: OutgoingMessage) {
     if (!token) throw new Error('Not signed in');
+    let message;
     try {
-      const message = await sendMessage(token, workspaceId, channelId, outgoing.input);
-      void queryClient.invalidateQueries({ queryKey: ['direct-messages', identity, workspaceId] });
-      updateOutbox((current) =>
-        current.filter((item) => item.input.clientNonce !== outgoing.input.clientNonce),
-      );
-      return message;
+      message = await sendMessage(token, workspaceId, channelId, outgoing.input);
     } catch (error) {
       updateOutbox((current) =>
         current.map((item) =>
@@ -72,6 +85,70 @@ export function useMessageOperations(workspaceId: string, channelId: string) {
       );
       throw error;
     }
+
+    confirmDirectMessage(queryClient, identity, workspaceId, channelId, message);
+    const historyKey = messagingQueryKeys.history(identity, workspaceId, channelId);
+    try {
+      let item: HistoryItem;
+      try {
+        item = await queryClient.fetchQuery({
+          queryKey: [
+            ...messagingQueryKeys.channel(identity, workspaceId, channelId),
+            'item',
+            message.id,
+          ],
+          queryFn: () => getMessage(token, workspaceId, channelId, message.id),
+          staleTime: 30_000,
+        });
+      } catch {
+        item = {
+          type: 'MESSAGE',
+          seq: message.seq,
+          createdAt: message.createdAt,
+          message,
+          author,
+          reply: null,
+          forwardedFrom: null,
+          pin: null,
+        };
+      }
+      await catchUpHistory(
+        queryClient,
+        identity,
+        workspaceId,
+        channelId,
+        historyKey,
+        item.seq,
+        (cursor) => historyPage(token, workspaceId, channelId, 'after', cursor),
+      );
+      mergeHistoryItem(queryClient, identity, workspaceId, channelId, item);
+      updateOutbox((current) =>
+        current.map((entry) =>
+          entry.input.clientNonce === outgoing.input.clientNonce
+            ? { ...entry, status: 'confirmed', confirmedItem: item }
+            : entry,
+        ),
+      );
+      window.setTimeout(() => {
+        const history = queryClient.getQueryData<InfiniteData<HistoryPage, PageCursor>>(historyKey);
+        if (
+          history?.pages.some((page) => page.items.some((entry) => entry.message.id === message.id))
+        )
+          updateOutbox((current) =>
+            current.filter((entry) => entry.input.clientNonce !== outgoing.input.clientNonce),
+          );
+      }, 900);
+    } catch {
+      void queryClient.invalidateQueries({ queryKey: historyKey, exact: true });
+      updateOutbox((current) =>
+        current.map((item) =>
+          item.input.clientNonce === outgoing.input.clientNonce
+            ? { ...item, status: 'confirmed' }
+            : item,
+        ),
+      );
+    }
+    return message;
   }
 
   function send(input: Omit<SendMessageInput, 'clientNonce'>) {

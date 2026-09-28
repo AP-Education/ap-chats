@@ -1,6 +1,8 @@
 export const messagingQueryKeys = {
   channel: (identity: string | undefined, workspaceId: string, channelId: string) =>
     ['messaging', identity, workspaceId, channelId] as const,
+  histories: (identity: string | undefined, workspaceId: string, channelId: string) =>
+    ['messaging', identity, workspaceId, channelId, 'history'] as const,
   history: (
     identity: string | undefined,
     workspaceId: string,

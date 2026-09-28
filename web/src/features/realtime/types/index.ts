@@ -12,7 +12,12 @@ export interface ServerToClientEvents {
     seq?: string;
     lastSeq?: string;
   }) => void;
-  'social:unread': (payload: { workspaceId: string; channelId: string }) => void;
+  'social:unread': (payload: {
+    workspaceId: string;
+    channelId: string;
+    type: string;
+    actorMemberId?: string;
+  }) => void;
 }
 
 interface ClientToServerEvents {

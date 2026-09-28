@@ -5,7 +5,7 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
 import type { HistoryItem, ReadState } from '../../messaging/types';
 import { markRead } from '../api/read-state-api';
-import { workspaceUnreadKey } from '../queryKeys';
+import { applyReadState } from '../applyReadState';
 
 export function useReadReceipts(
   workspaceId: string,
@@ -63,11 +63,9 @@ export function useReadReceipts(
         if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
         const position = next.toString();
         void markRead(token, workspaceId, channelId, position)
-          .then(() => {
+          .then((state) => {
             if (next > sent.current) sent.current = next;
-            void queryClient.invalidateQueries({
-              queryKey: workspaceUnreadKey(identity, workspaceId),
-            });
+            applyReadState(queryClient, identity, workspaceId, channelId, state);
           })
           .catch(() => undefined);
       }, 350);

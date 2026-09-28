@@ -6,6 +6,7 @@ import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { useConnection } from '@/features/realtime/stores/realtime-context';
 
 import { getMessage, historyPage } from '../api/messages-api';
+import { catchUpHistory, mergeHistoryItem } from '../history-cache';
 import { messagingQueryKeys } from '../queryKeys';
 import type { HistoryPage } from '../types';
 import type { PageCursor } from './useMessageHistory';
@@ -63,25 +64,31 @@ export function useChannelRealtime(
             return;
           }
           const cursor = lastPage.items.at(-1)?.seq ?? lastPage.snapshotSeq;
-          const page = await historyPage(token, workspaceId, channelId, 'after', cursor);
-          if (!page.items.length) return;
-          let changedDuringFetch = false;
-          queryClient.setQueryData<InfiniteData<HistoryPage, PageCursor>>(key, (current) => {
-            if (!current) return current;
-            const tail = current.pages.at(-1);
-            if ((tail?.items.at(-1)?.seq ?? tail?.snapshotSeq) !== cursor) {
-              changedDuringFetch = true;
-              return current;
-            }
-            return {
-              pages: [...current.pages, page],
-              pageParams: [
-                ...current.pageParams,
-                { mode: 'after', cursor, snapshot: page.snapshotSeq },
+          const eventSeq = event.lastSeq ?? event.seq;
+          if (eventSeq && BigInt(eventSeq) <= BigInt(cursor)) return;
+          if (eventSeq)
+            await catchUpHistory(
+              queryClient,
+              identity,
+              workspaceId,
+              channelId,
+              key,
+              eventSeq,
+              (cursor) => historyPage(token, workspaceId, channelId, 'after', cursor),
+              event.type === 'social.forward.batch-created',
+            );
+          if (event.type === 'social.message.created' && event.messageId) {
+            const item = await queryClient.fetchQuery({
+              queryKey: [
+                ...messagingQueryKeys.channel(identity, workspaceId, channelId),
+                'item',
+                event.messageId,
               ],
-            };
-          });
-          if (changedDuringFetch) await queryClient.invalidateQueries({ queryKey: key });
+              queryFn: () => getMessage(token, workspaceId, channelId, event.messageId!),
+              staleTime: 30_000,
+            });
+            mergeHistoryItem(queryClient, identity, workspaceId, channelId, item);
+          }
         })
         .catch(() => queryClient.invalidateQueries({ queryKey: key }).then(() => undefined));
       return;

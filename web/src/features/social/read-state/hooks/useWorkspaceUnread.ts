@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { useConnection } from '@/features/realtime/stores/realtime-context';
+import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { apiRequest } from '@/shared/api/http';
 
 import { workspaceUnreadKey } from '../queryKeys';
@@ -17,6 +18,7 @@ export interface ChannelUnread {
 export function useWorkspaceUnread(workspaceId: string) {
   const { token, identity } = useQueryAuth();
   const { socket, status } = useConnection();
+  const { currentMember } = useWorkspaceMemberLabels(workspaceId);
   const queryClient = useQueryClient();
   const queryKey = useMemo(
     () => workspaceUnreadKey(identity, workspaceId),
@@ -41,6 +43,11 @@ export function useWorkspaceUnread(workspaceId: string) {
   }, [socket, status, workspaceId, queryClient, queryKey]);
 
   useSocketEvent('social:unread', (event) => {
+    if (
+      (event.type === 'social.message.created' || event.type === 'social.forward.batch-created') &&
+      event.actorMemberId === currentMember?.id
+    )
+      return;
     if (event.workspaceId === workspaceId)
       void queryClient.invalidateQueries({ queryKey, exact: true });
   });

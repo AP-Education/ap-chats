@@ -8,6 +8,7 @@ import { RealtimeRooms } from '@/globals/realtime';
 interface ChannelEvent {
   workspaceId: string;
   channelId: string;
+  actorMemberId?: string;
 }
 
 export async function deliverChannelEvent<T extends ChannelEvent>(
@@ -54,6 +55,8 @@ export async function deliverChannelEvent<T extends ChannelEvent>(
       socket.emit('social:unread', {
         workspaceId: event.workspaceId,
         channelId: event.channelId,
+        type,
+        actorMemberId: event.actorMemberId,
       });
     }
   } catch (error) {
