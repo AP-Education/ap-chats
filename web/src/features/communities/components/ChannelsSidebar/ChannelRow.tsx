@@ -14,11 +14,11 @@ import { useChannelsSidebarStore } from './channels-sidebar-context';
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 0;
     margin: 2px 4px;
-    padding: 0 8px;
     min-height: 32px;
     border-radius: ${token.borderRadius}px;
     color: ${token.colorTextSecondary};
@@ -70,8 +70,15 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0;
+    min-height: 32px;
+    padding: 0 8px;
     text-decoration: none;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+    }
 
     /* A react-router Link renders a real <a href>, whose UA :link/:visited
        rules carry more specificity than a plain class — restate color on
@@ -139,12 +146,16 @@ const useStyles = createStyles(({ token, css }) => ({
     justify-content: flex-end;
     min-width: 18px;
     height: 28px;
+    margin-right: 8px;
+    pointer-events: none;
 
     @media (hover: none) {
       gap: 6px;
     }
   `,
   actions: css`
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
     gap: 1px;

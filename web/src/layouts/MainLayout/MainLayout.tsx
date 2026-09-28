@@ -20,7 +20,7 @@ export function MainLayout() {
   const isMobile = useIsMobile();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
-  const isChannelPage = pathname.startsWith('/channels') || pathname.startsWith('/messages');
+  const isChannelPage = pathname.startsWith('/channels') || pathname.startsWith('/direct');
   const mobileMenu = useMemo(() => ({ open: () => setMenuOpen(true) }), []);
 
   return (

@@ -35,7 +35,7 @@ export function UnreadDirectMessages({
 }) {
   const { styles } = useStyles();
   const unread = useUnreadDirectMessages(workspaceId);
-  const activeId = useMatch('/messages/:channelId')?.params.channelId;
+  const activeId = useMatch('/direct/:channelId')?.params.channelId;
 
   if (unread.isPending) return null;
   if (unread.isError && !unread.data) {

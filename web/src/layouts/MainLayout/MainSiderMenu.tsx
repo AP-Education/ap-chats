@@ -10,7 +10,7 @@ import { useMainLayoutStyles } from './useMainLayoutStyles';
 const navItems = [
   { key: '/', icon: HouseIcon, label: 'Головна' },
   { key: '/channels', icon: ChatsIcon, label: 'Чати' },
-  { key: '/messages', icon: ChatsCircleIcon, label: 'Особисті' },
+  { key: '/direct', icon: ChatsCircleIcon, label: 'Особисті' },
   { key: '/calls', icon: VideoCameraIcon, label: 'Дзвінки' },
 ];
 
@@ -40,7 +40,7 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
       {workspace && <UnreadDirectMessages workspaceId={workspace.id} onNavigate={onNavigate} />}
       <div className={styles.navDivider} />
       <div className={styles.channelSection}>
-        {pathname.startsWith('/messages') && workspace ? (
+        {pathname.startsWith('/direct') && workspace ? (
           <DirectMessageList workspaceId={workspace.id} onNavigate={onNavigate} />
         ) : (
           <ChannelsSidebar onNavigate={onNavigate} />

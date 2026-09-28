@@ -172,10 +172,11 @@ export function WorkspaceSwitcher() {
   }
 
   function handleSelect(workspaceId: string) {
-    if (workspaceId !== activeWorkspace?.id && location.pathname.startsWith('/channels/')) {
-      navigate('/channels');
-    }
     selectWorkspace(workspaceId);
+    if (workspaceId !== activeWorkspace?.id) {
+      if (location.pathname.startsWith('/channels/')) navigate('/channels');
+      if (location.pathname.startsWith('/direct/')) navigate('/direct');
+    }
     setDropdownOpen(false);
   }
 

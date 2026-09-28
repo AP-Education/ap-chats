@@ -1,9 +1,15 @@
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { Button, Empty, Result } from 'antd';
 import { createStyles } from 'antd-style';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
+import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
+import {
+  forgetConversation,
+  rememberConversation,
+} from '@/features/social/conversation/lastConversation';
 import { ConversationProvider } from '@/features/social/conversation/store';
 import { DirectMessageList } from '@/features/social/direct-messages/components/DirectMessageList/DirectMessageList';
 import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDirectMessages';
@@ -48,9 +54,29 @@ const useStyles = createStyles(({ token, css }) => ({
 export default function DirectMessagePage() {
   const { styles } = useStyles();
   const { id: workspaceId } = useRequiredWorkspace();
+  const { identity } = useQueryAuth();
+  const navigate = useNavigate();
   const { channelId } = useParams<{ channelId: string }>();
   const isMobile = useIsMobile();
   const conversation = useDirectMessage(workspaceId, channelId);
+  const unavailable =
+    conversation.isError &&
+    conversation.error instanceof ApiError &&
+    [403, 404].includes(conversation.error.status);
+  useEffect(() => {
+    if (conversation.data && !conversation.isError) {
+      rememberConversation(identity, workspaceId, 'direct', conversation.data.id);
+    }
+  }, [conversation.data, conversation.isError, identity, workspaceId]);
+  useEffect(() => {
+    if (
+      channelId &&
+      unavailable &&
+      forgetConversation(identity, workspaceId, 'direct', channelId)
+    ) {
+      navigate('/direct', { replace: true });
+    }
+  }, [channelId, identity, navigate, unavailable, workspaceId]);
   const { currentMember } = useWorkspaceMemberLabels(workspaceId);
 
   if (!channelId && isMobile) return <DirectMessageList workspaceId={workspaceId} />;
@@ -62,11 +88,7 @@ export default function DirectMessagePage() {
     );
   }
   if (conversation.isPending) return <ChatLoading />;
-  if (
-    conversation.isError &&
-    conversation.error instanceof ApiError &&
-    [403, 404].includes(conversation.error.status)
-  ) {
+  if (unavailable) {
     return (
       <div className={styles.center}>
         <Empty description="Розмова недоступна" />
@@ -102,7 +124,7 @@ export default function DirectMessagePage() {
         <div className={styles.shell}>
           <div className={styles.header}>
             {isMobile && (
-              <Link to="/messages" className={styles.back} aria-label="Назад до розмов">
+              <Link to="/direct?list=1" className={styles.back} aria-label="Назад до розмов">
                 <ArrowLeftIcon size={20} />
               </Link>
             )}
@@ -112,7 +134,7 @@ export default function DirectMessagePage() {
           <ConversationView
             canPost={participant.active}
             canManage={false}
-            currentMemberId={currentMember?.id}
+            currentMember={currentMember}
           />
         </div>
       </ConversationProvider>

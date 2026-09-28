@@ -104,7 +104,7 @@ export function DirectMessageRow({
   }
   return (
     <Link
-      to={`/messages/${item.id}`}
+      to={`/direct/${item.id}`}
       onClick={onNavigate}
       className={cx(styles.row, isActive && styles.active)}
     >

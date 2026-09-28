@@ -15,7 +15,7 @@ export function useOpenDirectMessage(workspaceId: string) {
     setOpening(true);
     try {
       const conversation = await openDirectMessage(token, workspaceId, memberId);
-      navigate(`/messages/${conversation.id}`);
+      navigate(`/direct/${conversation.id}`);
     } finally {
       setOpening(false);
     }
