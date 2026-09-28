@@ -34,6 +34,12 @@ export function OidcCurrentUserProvider({ children }: PropsWithChildren) {
               id_token_hint: signedInUser.id_token,
               post_logout_redirect_uri: window.location.origin,
             }),
+          refreshAccessToken: async () => {
+            const renewed = await auth.signinSilent();
+            if (!renewed?.access_token)
+              throw new Error('OIDC token renewal returned no access token');
+            return renewed.access_token;
+          },
         }
       : {
           status: 'signed-out',

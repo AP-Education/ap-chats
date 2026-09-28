@@ -39,6 +39,5 @@ export type CurrentUserState =
       queryIdentity: string;
       profile?: CurrentUserProfile;
       signOut: () => void;
-      /** Undefined where the active provider has no way to refresh on demand (e.g. OIDC today). */
       refreshAccessToken?: () => Promise<string>;
     };
