@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '@/components/auth';
 import { ChannelAccessModule } from '@/components/communities/channel-access/channel-access.module';
 import { ChannelAudienceModule } from '@/components/communities/channel-audience/channel-audience.module';
+import { DirectMessagesModule } from '@/components/direct-messages/direct-messages.module';
 import { WorkspacesModule } from '@/components/workspaces';
 
 import { MessagesModule } from '../messages/messages.module';
@@ -17,6 +18,7 @@ import { ForwardingRepository } from './repository/forwarding.repository';
     AuthModule,
     ChannelAccessModule,
     ChannelAudienceModule,
+    DirectMessagesModule,
     WorkspacesModule,
     MessagesModule,
   ],

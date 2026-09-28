@@ -9,6 +9,7 @@ import {
 import { Transactional } from '@nestjs-cls/transactional';
 
 import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
+import { DirectMessagesService } from '@/components/direct-messages/direct-messages.service';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
 
@@ -25,12 +26,13 @@ import { ForwardingRepository } from './repository/forwarding.repository';
 export class ForwardingFacade {
   constructor(
     private readonly access: ChannelAccessFacade,
+    private readonly directMessages: DirectMessagesService,
     private readonly messages: MessagesFacade,
     private readonly repository: ForwardingRepository,
     private readonly events: EventPublisher,
   ) {}
 
-  async forward(member: WorkspaceMember, targetChannelId: string, dto: ForwardMessagesDto) {
+  async forward(member: WorkspaceMember, dto: ForwardMessagesDto) {
     if (
       !Array.isArray(dto.messageIds) ||
       dto.messageIds.length < 1 ||
@@ -38,6 +40,11 @@ export class ForwardingFacade {
       new Set(dto.messageIds).size !== dto.messageIds.length
     )
       throw new BadRequestException('Provide 1 to 100 distinct message IDs');
+    const conversation =
+      dto.target.kind === 'member'
+        ? await this.directMessages.findOrCreate(member, dto.target.id)
+        : null;
+    const targetChannelId = conversation?.id ?? dto.target.id;
     const digest = createHash('sha256')
       .update(
         JSON.stringify({
@@ -61,7 +68,7 @@ export class ForwardingFacade {
           member.id,
         ),
       );
-    return { messages: result.views };
+    return { messages: result.views, conversation };
   }
 
   @Transactional()

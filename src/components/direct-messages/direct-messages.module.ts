@@ -11,5 +11,6 @@ import { DirectMessagesService } from './direct-messages.service';
   imports: [AuthModule, WorkspacesModule, DrizzleModule],
   controllers: [DirectMessagesController],
   providers: [DirectMessagesService],
+  exports: [DirectMessagesService],
 })
 export class DirectMessagesModule {}

@@ -1,18 +1,19 @@
 import { apiRequest, jsonInit } from '@/shared/api/http';
 
+import type { DirectMessage } from '../../direct-messages/api/direct-messages-api';
 import type { Message } from '../../messaging/types';
 
 export function forwardMessages(
   token: string,
   workspaceId: string,
-  targetChannelId: string,
+  target: { kind: 'channel' | 'member'; id: string },
   sourceChannelId: string,
   messageIds: string[],
   batchNonce: string,
-): Promise<{ messages: Message[] }> {
+): Promise<{ messages: Message[]; conversation: DirectMessage | null }> {
   return apiRequest(
-    `/api/workspaces/${workspaceId}/channels/${targetChannelId}/messages/forward`,
+    `/api/workspaces/${workspaceId}/messages/forward`,
     token,
-    jsonInit('POST', { sourceChannelId, messageIds, batchNonce }),
+    jsonInit('POST', { target, sourceChannelId, messageIds, batchNonce }),
   );
 }

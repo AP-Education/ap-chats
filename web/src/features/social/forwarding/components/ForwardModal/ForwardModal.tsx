@@ -1,45 +1,32 @@
+import { ArrowBendUpRightIcon } from '@phosphor-icons/react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, Empty, message, Modal, Select } from 'antd';
+import { Button, message, Modal } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { useChannels } from '@/features/communities/channels/hooks/useChannels';
-import { MessagePreview } from '@/features/social/messaging/components/MessagePreview/MessagePreview';
-import { messagingQueryKeys } from '@/features/social/messaging/queryKeys';
+import { confirmDirectMessage, mergeDirectMessage } from '@/features/social/direct-messages/cache';
 import type { HistoryItem } from '@/features/social/messaging/types';
 
 import { forwardMessages } from '../../api/forwarding-api';
+import type { ForwardTarget } from './forward-targets';
+import { ForwardTargetPicker } from './ForwardTargetPicker';
 
 const useStyles = createStyles(({ token, css }) => ({
-  list: css`
+  footer: css`
     display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 250px;
-    overflow-y: auto;
-    margin: 14px 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
   `,
-  item: css`
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: 8px;
-    background: ${token.colorFillQuaternary};
-  `,
-  preview: css`
-    flex: 1;
+  destination: css`
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  `,
-  label: css`
-    display: block;
-    margin-bottom: 6px;
     color: ${token.colorTextSecondary};
-    font-size: 12px;
+    font-size: 14px;
   `,
 }));
 
@@ -54,31 +41,38 @@ export function ForwardModal({ workspaceId, sourceChannelId, items, onClose }: F
   const { styles } = useStyles();
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
-  const channels = useChannels(workspaceId, 'joined');
-  const [selected, setSelected] = useState(items);
-  const [targetId, setTargetId] = useState<string>();
+  const [target, setTarget] = useState<ForwardTarget | null>(null);
   const [batchNonce, setBatchNonce] = useState(() => crypto.randomUUID());
   const [sending, setSending] = useState(false);
 
   async function submit() {
-    if (!token || !targetId || !selected.length) return;
+    if (!token || !target || sending) return;
     setSending(true);
     try {
-      await forwardMessages(
+      const result = await forwardMessages(
         token,
         workspaceId,
-        targetId,
+        { kind: target.kind === 'person' ? 'member' : 'channel', id: target.id },
         sourceChannelId,
-        selected.map((item) => item.message.id),
+        items.map((item) => item.message.id),
         batchNonce,
       );
-      void queryClient.invalidateQueries({
-        queryKey: messagingQueryKeys.channel(identity, workspaceId, targetId),
-      });
-      message.success(selected.length === 1 ? 'Повідомлення переслано' : 'Повідомлення переслано');
+      if (result.conversation)
+        mergeDirectMessage(queryClient, identity, workspaceId, result.conversation);
+      const targetChannelId = result.conversation?.id ?? target.id;
+      if (target.kind !== 'channel' && result.messages.length) {
+        confirmDirectMessage(
+          queryClient,
+          identity,
+          workspaceId,
+          targetChannelId,
+          result.messages.at(-1)!,
+        );
+      }
+      message.success('Повідомлення переслано');
       onClose();
     } catch {
-      message.error('Не вдалося переслати. Перевірте канал і повторіть спробу.');
+      message.error('Не вдалося переслати повідомлення. Спробуйте ще раз.');
     } finally {
       setSending(false);
     }
@@ -86,57 +80,40 @@ export function ForwardModal({ workspaceId, sourceChannelId, items, onClose }: F
 
   return (
     <Modal
-      title="Переслати повідомлення"
+      title={
+        items.length === 1 ? 'Переслати повідомлення' : `Переслати повідомлення (${items.length})`
+      }
       open
+      width={560}
+      footer={null}
       onCancel={onClose}
-      onOk={() => void submit()}
-      okText="Переслати"
-      okButtonProps={{ disabled: !targetId || !selected.length, loading: sending }}
-      cancelText="Скасувати"
+      maskClosable={!sending}
+      keyboard={!sending}
+      closable={!sending}
       destroyOnHidden
     >
-      <span className={styles.label}>Вибрано: {selected.length}</span>
-      <div className={styles.list}>
-        {selected.length === 0 && <Empty description="Виберіть повідомлення" />}
-        {selected.map((item) => (
-          <div key={item.message.id} className={styles.item}>
-            <span className={styles.preview}>
-              <MessagePreview markdown={item.message.markdown} />
-            </span>
-            <Button
-              type="link"
-              size="small"
-              onClick={() => {
-                setSelected((current) =>
-                  current.filter((entry) => entry.message.id !== item.message.id),
-                );
-                setBatchNonce(crypto.randomUUID());
-              }}
-            >
-              Прибрати
-            </Button>
-          </div>
-        ))}
-      </div>
-      <label className={styles.label} htmlFor="forward-target">
-        Канал призначення
-      </label>
-      <Select
-        id="forward-target"
-        showSearch
-        optionFilterProp="label"
-        value={targetId}
-        onChange={(value) => {
-          setTargetId(value);
+      <ForwardTargetPicker
+        workspaceId={workspaceId}
+        selected={target}
+        onSelect={(next) => {
+          setTarget(next);
           setBatchNonce(crypto.randomUUID());
         }}
-        placeholder="Оберіть канал"
-        style={{ width: '100%' }}
-        options={channels.data
-          ?.filter((channel) => channel.isMember)
-          .map((channel) => ({ value: channel.id, label: `# ${channel.name}` }))}
-        loading={channels.isPending}
       />
+      <div className={styles.footer}>
+        <span className={styles.destination}>
+          {target ? `Куди: ${target.name}` : 'Оберіть адресата'}
+        </span>
+        <Button
+          type="primary"
+          icon={<ArrowBendUpRightIcon size={18} />}
+          disabled={!target}
+          loading={sending}
+          onClick={() => void submit()}
+        >
+          Переслати
+        </Button>
+      </div>
     </Modal>
   );
 }
