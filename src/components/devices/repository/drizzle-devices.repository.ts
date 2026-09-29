@@ -1,20 +1,21 @@
 import { Injectable } from '@nestjs/common';
+import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, eq } from 'drizzle-orm';
 
-import { DrizzleService } from '@/database/drizzle';
 import { devices } from '@/database/drizzle/schema';
+import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 import type { RegisterDeviceDto } from '../dto/register-device.dto';
 import { DevicesRepository } from './devices.repository';
 
 @Injectable()
 export class DrizzleDevicesRepository extends DevicesRepository {
-  constructor(private readonly drizzle: DrizzleService) {
+  constructor(private readonly txHost: TransactionHost<DrizzleTransactionAdapter>) {
     super();
   }
 
   async register(userId: string, dto: RegisterDeviceDto): Promise<void> {
-    await this.drizzle.db
+    await this.txHost.tx
       .insert(devices)
       .values({ userId, ...dto })
       .onConflictDoUpdate({
@@ -29,7 +30,7 @@ export class DrizzleDevicesRepository extends DevicesRepository {
   }
 
   async unregister(userId: string, installationId: string): Promise<void> {
-    await this.drizzle.db
+    await this.txHost.tx
       .delete(devices)
       .where(and(eq(devices.userId, userId), eq(devices.installationId, installationId)));
   }

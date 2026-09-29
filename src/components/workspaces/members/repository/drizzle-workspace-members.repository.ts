@@ -1,20 +1,21 @@
 import { Injectable } from '@nestjs/common';
+import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, eq, ilike, inArray, ne } from 'drizzle-orm';
 
-import { DrizzleService } from '@/database/drizzle';
 import { userProfiles, workspaceMembers } from '@/database/drizzle/schema';
+import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 import type { WorkspaceMember } from '../types';
 import { WorkspaceMembersRepository } from './workspace-members.repository';
 
 @Injectable()
 export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepository {
-  constructor(private readonly drizzle: DrizzleService) {
+  constructor(private readonly txHost: TransactionHost<DrizzleTransactionAdapter>) {
     super();
   }
 
   async findAllForWorkspace(workspaceId: string): Promise<WorkspaceMember[]> {
-    const rows = await this.drizzle.db
+    const rows = await this.txHost.tx
       .select({ member: workspaceMembers, profile: userProfiles })
       .from(workspaceMembers)
       .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
@@ -26,7 +27,7 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
 
   search(workspaceId: string, viewerId: string, query: string) {
     const escaped = query.replace(/[\\%_]/gu, '\\$&');
-    return this.drizzle.db
+    return this.txHost.tx
       .select({
         memberId: workspaceMembers.id,
         displayName: userProfiles.displayName,
@@ -47,7 +48,7 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
   }
 
   async findForUser(workspaceId: string, userId: string): Promise<WorkspaceMember | undefined> {
-    const [member] = await this.drizzle.db
+    const [member] = await this.txHost.tx
       .select({ member: workspaceMembers, profile: userProfiles })
       .from(workspaceMembers)
       .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
@@ -63,7 +64,7 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
   }
 
   async findById(workspaceId: string, memberId: string): Promise<WorkspaceMember | undefined> {
-    const [member] = await this.drizzle.db
+    const [member] = await this.txHost.tx
       .select({ member: workspaceMembers, profile: userProfiles })
       .from(workspaceMembers)
       .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
@@ -78,7 +79,7 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
   }
 
   async remove(workspaceId: string, userId: string): Promise<void> {
-    await this.drizzle.db
+    await this.txHost.tx
       .update(workspaceMembers)
       .set({ status: 'removed', leftAt: new Date(), updatedAt: new Date() })
       .where(
@@ -86,7 +87,7 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
           eq(workspaceMembers.workspaceId, workspaceId),
           inArray(
             workspaceMembers.userProfileId,
-            this.drizzle.db
+            this.txHost.tx
               .select({ id: userProfiles.id })
               .from(userProfiles)
               .where(eq(userProfiles.oidcUserId, userId)),

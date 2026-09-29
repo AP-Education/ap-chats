@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { and, asc, eq, inArray, isNotNull, or } from 'drizzle-orm';
 
-import { DrizzleService } from '@/database/drizzle';
 import { channelMemberships, channels } from '@/database/drizzle/schema';
+import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 import { throwConflictOnUnique } from '../../repository/pg-unique-conflict';
 import type { Channel, ChannelView } from '../types';
@@ -10,7 +11,7 @@ import { ChannelsRepository } from './channels.repository';
 
 @Injectable()
 export class DrizzleChannelsRepository extends ChannelsRepository {
-  constructor(private readonly drizzle: DrizzleService) {
+  constructor(private readonly txHost: TransactionHost<DrizzleTransactionAdapter>) {
     super();
   }
 
@@ -19,7 +20,7 @@ export class DrizzleChannelsRepository extends ChannelsRepository {
     memberId: string,
     scope: 'available' | 'joined',
   ): Promise<ChannelView[]> {
-    const rows = await this.drizzle.db
+    const rows = await this.txHost.tx
       .select({ channel: channels, membership: channelMemberships })
       .from(channels)
       .leftJoin(
@@ -51,30 +52,29 @@ export class DrizzleChannelsRepository extends ChannelsRepository {
   }
 
   async findById(workspaceId: string, channelId: string): Promise<Channel | undefined> {
-    const [channel] = await this.drizzle.db
+    const [channel] = await this.txHost.tx
       .select()
       .from(channels)
       .where(and(eq(channels.workspaceId, workspaceId), eq(channels.id, channelId)));
     return channel && this.toModel(channel);
   }
 
+  @Transactional()
   async create(
     workspaceId: string,
     creatorMemberId: string,
     values: { name: string; kind: Channel['kind']; categoryId: string | null },
   ): Promise<Channel> {
     try {
-      return await this.drizzle.db.transaction(async (tx) => {
-        const [channel] = await tx
-          .insert(channels)
-          .values({ workspaceId, createdByMemberId: creatorMemberId, ...values })
-          .returning();
-        if (!channel) throw new Error('Channel insert did not return a row');
-        await tx
-          .insert(channelMemberships)
-          .values({ workspaceId, channelId: channel.id, memberId: creatorMemberId });
-        return this.toModel(channel);
-      });
+      const [channel] = await this.txHost.tx
+        .insert(channels)
+        .values({ workspaceId, createdByMemberId: creatorMemberId, ...values })
+        .returning();
+      if (!channel) throw new Error('Channel insert did not return a row');
+      await this.txHost.tx
+        .insert(channelMemberships)
+        .values({ workspaceId, channelId: channel.id, memberId: creatorMemberId });
+      return this.toModel(channel);
     } catch (error) {
       return throwConflictOnUnique(error, 'Channel name already exists');
     }
@@ -86,7 +86,7 @@ export class DrizzleChannelsRepository extends ChannelsRepository {
     changes: { name?: string; categoryId?: string | null },
   ): Promise<Channel | undefined> {
     try {
-      const [channel] = await this.drizzle.db
+      const [channel] = await this.txHost.tx
         .update(channels)
         .set({ ...changes, updatedAt: new Date() })
         .where(and(eq(channels.workspaceId, workspaceId), eq(channels.id, channelId)))
@@ -98,7 +98,7 @@ export class DrizzleChannelsRepository extends ChannelsRepository {
   }
 
   async remove(workspaceId: string, channelId: string): Promise<boolean> {
-    const [removed] = await this.drizzle.db
+    const [removed] = await this.txHost.tx
       .delete(channels)
       .where(and(eq(channels.workspaceId, workspaceId), eq(channels.id, channelId)))
       .returning({ id: channels.id });
