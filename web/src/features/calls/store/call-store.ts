@@ -8,6 +8,13 @@ export interface ActiveCallSession extends CallJoinGrant {
   channelId: string;
   /** The channel name or DM participant's name, for the call overlay's header. */
   title: string;
+  /**
+   * Set only when the call has one specific person on the other end (a DM),
+   * so the stage can show who you're calling instead of a generic waiting
+   * state while nobody else has joined yet. `undefined` for channel calls,
+   * which have no single callee; `null` is a known callee with no photo.
+   */
+  calleeAvatarPath?: string | null;
 }
 
 interface CallStoreState {

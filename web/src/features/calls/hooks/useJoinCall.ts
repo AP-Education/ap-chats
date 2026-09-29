@@ -7,7 +7,12 @@ import { useCallStore } from '../store/call-store';
 import { activeCallQueryKey } from './useActiveCall';
 
 /** Joins a call that already exists, whether an incoming ring or an ongoing channel call. */
-export function useJoinCall(workspaceId: string, channelId: string, title: string) {
+export function useJoinCall(
+  workspaceId: string,
+  channelId: string,
+  title: string,
+  calleeAvatarPath?: string | null,
+) {
   const { token } = useQueryAuth();
   const setActive = useCallStore((state) => state.setActive);
   const queryClient = useQueryClient();
@@ -18,7 +23,7 @@ export function useJoinCall(workspaceId: string, channelId: string, title: strin
       return joinCall(token, workspaceId, channelId, callId);
     },
     onSuccess: (grant) => {
-      setActive({ ...grant, workspaceId, channelId, title });
+      setActive({ ...grant, workspaceId, channelId, title, calleeAvatarPath });
       queryClient.invalidateQueries({ queryKey: activeCallQueryKey(workspaceId, channelId) });
     },
   });

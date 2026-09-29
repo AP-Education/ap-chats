@@ -14,6 +14,8 @@ export interface CallView {
 export interface CallJoinGrant {
   callId: string;
   roomName: string;
+  /** When the call itself began, not when this device joined it. */
+  startedAt: string;
   url: string;
   token: string;
   expiresAt: string;
