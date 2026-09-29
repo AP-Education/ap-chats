@@ -3,6 +3,7 @@ import { Button, Drawer, Layout, Skeleton, theme } from 'antd';
 import { Suspense, useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
+import { CallSurface } from '../../features/calls/components/CallSurface';
 import { ConnectionBanner } from '../../features/realtime/components/ConnectionBanner';
 import { useIsMobile } from '../../shared/hooks/useIsMobile';
 import { ChatLoading } from '../../shared/ui/ChatLayout/ChatLoading';
@@ -23,6 +24,7 @@ export function MainLayout() {
 
   return (
     <Layout className={styles.layout}>
+      <CallSurface />
       {isMobile && (
         <div className={styles.mobileBar}>
           <Button

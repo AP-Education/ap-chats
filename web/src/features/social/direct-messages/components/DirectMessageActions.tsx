@@ -1,8 +1,11 @@
+import { LoadingOutlined } from '@ant-design/icons';
 import { BellIcon, BellSlashIcon, PhoneIcon, UserCircleIcon } from '@phosphor-icons/react';
 import { message as toast, Popover, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
+import { callActionLabel } from '@/features/calls/callActionLabel';
+import { useCallAction } from '@/features/calls/hooks/useCallAction';
 import { ConversationActionDivider } from '@/shared/ui/ChatLayout/ConversationPane';
 import { IconButton } from '@/shared/ui/IconButton';
 
@@ -54,8 +57,11 @@ export function DirectMessageActions({
   const { styles, cx } = useStyles();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const mute = useDirectMessageMute(workspaceId, conversation.id);
+  const name = conversation.participant.displayName ?? 'Колега';
+  const call = useCallAction(workspaceId, conversation.id, name);
   const size = compact ? 40 : 36;
   const isMuted = conversation.notification.isMuted;
+  const callTitle = callActionLabel(call, `Подзвонити: ${name}`);
 
   function chooseMute(mode: 'unmute' | 'hour' | 'day' | 'indefinite') {
     mute.mutate(mode, {
@@ -121,10 +127,20 @@ export function DirectMessageActions({
           </IconButton>
         </Tooltip>
       </Popover>
-      <Tooltip title="Особисті дзвінки з’являться пізніше">
+      <Tooltip title={callTitle}>
         <span>
-          <IconButton size={size} className={styles.action} aria-label="Подзвонити" disabled>
-            <PhoneIcon size={21} />
+          <IconButton
+            size={size}
+            className={cx(styles.action, (call.inCall || call.joinable) && styles.active)}
+            aria-label={callTitle}
+            disabled={call.busy || call.pending || !conversation.participant.active}
+            onClick={call.onClick}
+          >
+            {call.pending ? (
+              <LoadingOutlined />
+            ) : (
+              <PhoneIcon size={21} weight={call.joinable ? 'fill' : 'regular'} />
+            )}
           </IconButton>
         </span>
       </Tooltip>

@@ -18,12 +18,10 @@ export function mergeHistoryItem(
     (current) => {
       if (!current?.pages.length) return current;
       const pages = current.pages.map((page) => ({ ...page, items: [...page.items] }));
-      const existingPage = pages.find((page) =>
-        page.items.some((entry) => entry.message.id === item.message.id),
-      );
+      const existingPage = pages.find((page) => page.items.some((entry) => entry.id === item.id));
       if (existingPage) {
         existingPage.items = existingPage.items.map((entry) =>
-          entry.message.id === item.message.id ? item : entry,
+          entry.id === item.id ? item : entry,
         );
       } else {
         const tail = pages.at(-1)!;
