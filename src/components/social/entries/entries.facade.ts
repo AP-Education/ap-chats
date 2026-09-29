@@ -13,4 +13,8 @@ export class EntriesFacade {
   appendMany(workspaceId: string, channelId: string, messageIds: string[]) {
     return this.entries.appendMany(workspaceId, channelId, messageIds);
   }
+
+  appendCall(workspaceId: string, channelId: string, callId: string) {
+    return this.entries.appendCall(workspaceId, channelId, callId);
+  }
 }

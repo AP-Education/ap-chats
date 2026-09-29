@@ -3,7 +3,8 @@ export interface ChannelEntry {
   workspaceId: string;
   channelId: string;
   seq: bigint;
-  messageId: string;
+  messageId: string | null;
+  callId: string | null;
   createdAt: Date;
 }
 
