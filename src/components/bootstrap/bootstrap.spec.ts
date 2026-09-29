@@ -26,6 +26,9 @@ before(async () => {
       if (token === 'alice' || token === 'bob') {
         return { sub: token, appId: 'chats-app' };
       }
+      if (token === 'alice-mobile') {
+        return { sub: 'alice', appId: 'chats-mobile' };
+      }
       if (token === 'expired') {
         const error = new Error('jwt expired') as Error & { code?: string };
         error.code = 'ERR_JWT_EXPIRED';
@@ -81,12 +84,9 @@ test('authenticates a socket and joins only its user room', { timeout: 5000 }, a
   assert.deepEqual(await connect(alice), { userId: 'alice', appId: 'chats-app' });
 
   const namespace = socketServer.of('/chats');
-  assert.equal(namespace.adapter.rooms.get(RealtimeRooms.user('chats-app', 'alice'))?.size, 1);
-  assert.equal(namespace.adapter.rooms.has(RealtimeRooms.user('chats-app', 'bob')), false);
-  assert.equal(
-    namespace.adapter.rooms.has(RealtimeRooms.conversation('chats-app', 'some-id')),
-    false,
-  );
+  assert.equal(namespace.adapter.rooms.get(RealtimeRooms.user('alice'))?.size, 1);
+  assert.equal(namespace.adapter.rooms.has(RealtimeRooms.user('bob')), false);
+  assert.equal(namespace.adapter.rooms.has(RealtimeRooms.conversation('some-id')), false);
 });
 
 test('delivers a personal event to every device of that user', { timeout: 5000 }, async () => {
@@ -100,11 +100,30 @@ test('delivers a personal event to every device of that user', { timeout: 5000 }
   const unexpected: unknown[] = [];
   other.on('notice', (payload) => unexpected.push(payload));
 
-  publisher.toUser('chats-app', 'alice', 'notice', { id: 'notice-1' });
+  publisher.toUser('alice', 'notice', { id: 'notice-1' });
   assert.deepEqual(await firstEvent, { id: 'notice-1' });
   assert.deepEqual(await secondEvent, { id: 'notice-1' });
   assert.deepEqual(unexpected, []);
 });
+
+// A personal event must not depend on which app happens to trigger it: a user
+// signed into two different apps still shares one delivery target.
+test(
+  'delivers a personal event across different apps of the same user',
+  { timeout: 5000 },
+  async () => {
+    const web = client('alice');
+    const mobile = client('alice-mobile');
+    await Promise.all([connect(web), connect(mobile)]);
+
+    const webEvent = new Promise<unknown>((resolve) => web.once('notice', resolve));
+    const mobileEvent = new Promise<unknown>((resolve) => mobile.once('notice', resolve));
+
+    publisher.toUser('alice', 'notice', { id: 'notice-2' });
+    assert.deepEqual(await webEvent, { id: 'notice-2' });
+    assert.deepEqual(await mobileEvent, { id: 'notice-2' });
+  },
+);
 
 test('rejects missing and invalid handshake tokens before joining', { timeout: 5000 }, async () => {
   const missing = client();
