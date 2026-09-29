@@ -1,8 +1,10 @@
-import { Empty, Input, message as toast, Modal, Skeleton } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { Button, Empty, Input, message as toast, Modal, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import { type PersonResult, searchPeople } from '../../api/direct-messages-api';
@@ -32,6 +34,9 @@ const useStyles = createStyles(({ token, css }) => ({
       background: ${token.colorFillTertiary};
     }
   `,
+  error: css`
+    padding: 9px;
+  `,
 }));
 
 interface FindPersonDialogProps {
@@ -48,48 +53,32 @@ export function FindPersonDialog({
   onNavigate,
 }: FindPersonDialogProps) {
   const { styles } = useStyles();
-  const { token } = useQueryAuth();
+  const { token, identity } = useQueryAuth();
   const { open: openConversation, opening } = useOpenDirectMessage(workspaceId);
   const [query, setQuery] = useState('');
-  const [people, setPeople] = useState<PersonResult[]>([]);
-  const [searching, setSearching] = useState(false);
+  const searchTerm = useDebouncedValue(query.trim(), 180);
 
-  useEffect(() => {
-    if (!open || !query.trim() || !token) return;
-    let active = true;
-    const timer = setTimeout(() => {
-      setSearching(true);
-      void searchPeople(token, workspaceId, query.trim())
-        .then((items) => {
-          if (active) setPeople(items);
-        })
-        .catch(() => {
-          if (active) toast.error('Не вдалося знайти людей.');
-        })
-        .finally(() => {
-          if (active) setSearching(false);
-        });
-    }, 180);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [open, query, token, workspaceId]);
+  const people = useQuery({
+    queryKey: ['find-person-search', identity, workspaceId, searchTerm],
+    queryFn: () => searchPeople(token as string, workspaceId, searchTerm),
+    enabled: Boolean(open && token && searchTerm),
+  });
+
+  const hasQuery = Boolean(query.trim());
+  const searching = hasQuery && (searchTerm !== query.trim() || people.isPending);
+  const results = people.data ?? [];
+  const showEmpty = hasQuery && !searching && !people.isError && results.length === 0;
 
   async function choose(person: PersonResult) {
     try {
       await openConversation(person.memberId);
       onClose();
       setQuery('');
-      setPeople([]);
       onNavigate?.();
     } catch {
       toast.error('Не вдалося відкрити розмову.');
     }
   }
-
-  const hasQuery = Boolean(query.trim());
-  const showEmpty = hasQuery && !searching && people.length === 0;
 
   return (
     <Modal title="Написати колезі" open={open} onCancel={onClose} footer={null} destroyOnHidden>
@@ -98,11 +87,7 @@ export function FindPersonDialog({
         placeholder="Ім’я колеги"
         aria-label="Ім’я колеги"
         value={query}
-        onChange={(event) => {
-          setPeople([]);
-          setSearching(Boolean(event.target.value.trim()));
-          setQuery(event.target.value);
-        }}
+        onChange={(event) => setQuery(event.target.value)}
       />
       <div className={styles.people}>
         {!hasQuery && (
@@ -116,12 +101,21 @@ export function FindPersonDialog({
               <Skeleton.Input active size="small" style={{ width: 140 }} />
             </div>
           ))}
+        {hasQuery && !searching && people.isError && (
+          <div role="alert" className={styles.error}>
+            Не вдалося знайти людей.{' '}
+            <Button type="link" onClick={() => void people.refetch()}>
+              Повторити
+            </Button>
+          </div>
+        )}
         {showEmpty && (
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Нікого не знайдено" />
         )}
         {hasQuery &&
           !searching &&
-          people.map((person) => (
+          !people.isError &&
+          results.map((person) => (
             <button
               key={person.memberId}
               type="button"
