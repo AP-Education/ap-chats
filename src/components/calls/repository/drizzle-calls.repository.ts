@@ -87,11 +87,19 @@ export class DrizzleCallsRepository extends CallsRepository {
     return row;
   }
 
+  /**
+   * Matches 'ringing' or 'active', not just 'ringing': the caller's own
+   * start() immediately joins its own call too, which activates it before
+   * the other side ever sees it ring. A DM decline (the only caller of
+   * this — CallsService.decline() no-ops for channels before reaching
+   * here) must still be able to end that call, or a callee who declines
+   * an already-self-activated call silently does nothing.
+   */
   async decline(callId: string): Promise<CallRecord | undefined> {
     const [row] = await this.txHost.tx
       .update(calls)
       .set({ status: 'declined', endedAt: new Date() })
-      .where(and(eq(calls.id, callId), eq(calls.status, 'ringing')))
+      .where(and(eq(calls.id, callId), inArray(calls.status, [...ACTIVE_STATUSES])))
       .returning();
     return row;
   }

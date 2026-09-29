@@ -97,26 +97,44 @@ export class CallsService {
       name: member.profile.displayName ?? member.id,
       ttlSeconds: JOIN_TTL_SECONDS,
     });
-    return { callId: record.id, roomName: record.roomName, ...grant };
+    // The call's real start, not this join: the timer a client renders from
+    // it must read the same elapsed time whether you're joining fresh or
+    // reconnecting after a reload.
+    return { callId: record.id, roomName: record.roomName, startedAt: record.startedAt, ...grant };
   }
 
+  /**
+   * Declining is only a global, terminal action in a 1:1 call — there's
+   * nobody left to talk to once the other side says no. In a channel, the
+   * ring goes out to every member; one person ignoring it must never end
+   * the call for whoever else might still answer, the same line Discord,
+   * Slack and Telegram all draw between a DM call and a group one. A
+   * channel "decline" is therefore a no-op here: the client clears its own
+   * notification locally, and the call itself is untouched.
+   */
   async decline(member: WorkspaceMember, channelId: string, callId: string) {
     const { channel } = await this.own(member, channelId, callId);
+    if (channel.kind !== 'dm') return { ok: true };
     const updated = await this.calls.decline(callId);
     if (updated) await this.notify(member, channel, updated, 'call:declined');
     return { ok: true };
   }
 
   /**
-   * A member disconnecting from the room, not a command to end it for everyone:
-   * the call only actually ends once the media room is confirmed empty. Whoever
-   * happens to trigger the empty check finishes it, everyone else already left.
+   * A member disconnecting from the room, not a command to end it for
+   * everyone: in a channel, the call only actually ends once the media room
+   * is confirmed empty — whoever happens to trigger that check finishes it,
+   * everyone else already left. A DM has no such waiting room: with only
+   * two parties, either one leaving ends the call immediately for both, the
+   * same way hanging up a phone doesn't wait for the line to go silent.
    */
   async leave(member: WorkspaceMember, channelId: string, callId: string) {
     const { channel, record } = await this.own(member, channelId, callId);
     if (!ACTIVE_STATUSES.has(record.status)) return { ok: true };
-    const remaining = await this.provider.countParticipants(record.roomName);
-    if (remaining > 0) return { ok: true };
+    if (channel.kind !== 'dm') {
+      const remaining = await this.provider.countParticipants(record.roomName);
+      if (remaining > 0) return { ok: true };
+    }
     const updated = await this.calls.end(callId);
     if (updated) await this.notify(member, channel, updated, 'call:ended');
     return { ok: true };
