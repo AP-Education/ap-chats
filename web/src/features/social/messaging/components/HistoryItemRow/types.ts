@@ -6,7 +6,7 @@ import type {
   ConversationAction,
 } from '@/features/social/conversation/actions';
 
-import type { OutgoingMessage } from '../../hooks/useMessageOperations';
+import type { DeliveryStatus } from '../../hooks/useMessageOperations';
 import type { HistoryItem, MessageHistoryItem } from '../../types';
 
 // Everything a strategy might need, regardless of which fields its own kind
@@ -18,7 +18,7 @@ export interface HistoryItemRenderContext {
   onAction: (action: ConversationAction, target: ActionTarget) => void;
   onJump: (messageId: string) => void;
   onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
-  delivery: OutgoingMessage['status'] | undefined;
+  delivery: DeliveryStatus | undefined;
   onRetry: (() => void) | undefined;
 }
 

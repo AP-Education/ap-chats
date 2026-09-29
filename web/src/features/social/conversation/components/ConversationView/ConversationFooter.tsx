@@ -38,7 +38,7 @@ function WritableConversationFooter({
     : undefined;
 
   function onSend(input: Omit<SendMessageInput, 'clientNonce'>) {
-    void send(input).catch(() => undefined);
+    send(input);
   }
 
   return (

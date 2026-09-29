@@ -1,5 +1,5 @@
-import { type InfiniteData, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useMemo, useOptimistic, useState, useTransition } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { confirmDirectMessage } from '@/features/social/direct-messages/cache';
@@ -13,55 +13,176 @@ import {
 } from '../api/messages-api';
 import { catchUpHistory, mergeHistoryItem } from '../history-cache';
 import { messagingQueryKeys } from '../queryKeys';
-import type { MessageAuthor, MessageHistoryItem, SendMessageInput } from '../types';
-import type { HistoryPage } from '../types';
-import type { PageCursor } from './useMessageHistory';
+import type { HistoryItem, MessageAuthor, MessageHistoryItem, SendMessageInput } from '../types';
+import { isMessageItem } from '../types';
 
-export interface OutgoingMessage {
-  input: SendMessageInput;
-  createdAt: string;
-  status: 'sending' | 'failed' | 'confirmed';
-  confirmedItem?: MessageHistoryItem;
+export type DeliveryStatus = 'sending' | 'failed' | 'confirmed';
+
+export interface DisplayItem {
+  item: HistoryItem;
+  delivery: DeliveryStatus | undefined;
+  nonce: string | null;
 }
 
-function readOutbox(key: string): OutgoingMessage[] {
+// Reload-survival only: a send whose outcome the current session doesn't yet
+// know. 'sending' is written the moment a send starts, before any await, so a
+// tab closed mid-request still has something to retry; it plays no part in the
+// live-session display, which the optimistic bubble already covers.
+interface PendingSend {
+  input: SendMessageInput;
+  createdAt: string;
+  status: 'sending' | 'failed';
+}
+
+// Matches the `confirmed` keyframe duration in MessageRow.tsx: long enough for
+// the "just sent" flash to play before the row settles into a normal message.
+const CONFIRMED_FLASH_MS = 900;
+
+function outboxKey(identity: string | undefined, workspaceId: string, channelId: string) {
+  return `ap-chats:outbox:${identity}:${workspaceId}:${channelId}`;
+}
+
+function readPendingSends(key: string): PendingSend[] {
   try {
     const stored: unknown = JSON.parse(localStorage.getItem(key) ?? '[]');
     if (!Array.isArray(stored)) return [];
-    return stored
-      .filter((item): item is OutgoingMessage => {
-        if (typeof item !== 'object' || item === null) return false;
-        const candidate = item as Partial<OutgoingMessage>;
-        return (
-          typeof candidate.input?.markdown === 'string' &&
-          typeof candidate.input?.clientNonce === 'string' &&
-          typeof candidate.createdAt === 'string'
-        );
-      })
-      .map((item) => ({ ...item, status: 'failed' }));
+    return (
+      stored
+        .filter((item): item is PendingSend => {
+          if (typeof item !== 'object' || item === null) return false;
+          const candidate = item as Partial<PendingSend>;
+          return (
+            typeof candidate.input?.markdown === 'string' &&
+            typeof candidate.input?.clientNonce === 'string' &&
+            typeof candidate.createdAt === 'string'
+          );
+        })
+        // Whatever was still 'sending' when the tab closed has an unknown
+        // outcome now: treat it the same as a failure, safe to retry (the
+        // server dedupes by clientNonce if it actually went through).
+        .map((item) => ({ ...item, status: 'failed' as const }))
+    );
   } catch {
     return [];
   }
 }
 
+function synthesize(
+  input: SendMessageInput,
+  createdAt: string,
+  author: MessageAuthor,
+  replyTarget: MessageHistoryItem | undefined,
+): MessageHistoryItem {
+  return {
+    type: 'MESSAGE',
+    id: input.clientNonce,
+    seq: '0',
+    createdAt,
+    message: {
+      id: input.clientNonce,
+      seq: '0',
+      authorMemberId: author.memberId,
+      clientNonce: input.clientNonce,
+      markdown: input.markdown,
+      contentVersion: 1,
+      revision: 1,
+      replyToMessageId: input.replyToMessageId ?? null,
+      quoteText: input.quoteText ?? null,
+      isForwarded: false,
+      forwardedFromMemberId: null,
+      createdAt,
+      editedAt: null,
+      deletedAt: null,
+    },
+    author,
+    reply: replyTarget
+      ? {
+          id: replyTarget.message.id,
+          authorMemberId: replyTarget.message.authorMemberId,
+          author: replyTarget.author,
+          markdown: replyTarget.message.markdown,
+        }
+      : null,
+    forwardedFrom: null,
+    pin: null,
+  };
+}
+
+/**
+ * Owns sending: an optimistic bubble shows immediately and quietly becomes the
+ * real message once the server confirms it (React drops the optimistic overlay
+ * on its own once `items` includes it — no polling, no manual bookkeeping to
+ * take it back out). A send that never reaches the server persists across
+ * reloads so it can be retried.
+ */
 export function useMessageOperations(
   workspaceId: string,
   channelId: string,
   author: MessageAuthor,
+  items: HistoryItem[],
 ) {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
-  const outboxKey = `ap-chats:outbox:${identity}:${workspaceId}:${channelId}`;
-  const [outbox, setOutbox] = useState(() => readOutbox(outboxKey));
-  const outboxRef = useRef(outbox);
+  const [, startTransition] = useTransition();
+  const key = outboxKey(identity, workspaceId, channelId);
+  const [pendingSends, setPendingSends] = useState(() => readPendingSends(key));
+  const [confirmedFlash, setConfirmedFlash] = useState<ReadonlySet<string>>(() => new Set());
 
-  function updateOutbox(change: (current: OutgoingMessage[]) => OutgoingMessage[]) {
-    const next = change(outboxRef.current);
-    outboxRef.current = next;
-    const unresolved = next.filter((item) => item.status !== 'confirmed');
-    if (unresolved.length) localStorage.setItem(outboxKey, JSON.stringify(unresolved));
-    else localStorage.removeItem(outboxKey);
-    setOutbox(next);
+  const messages = useMemo(() => items.filter(isMessageItem), [items]);
+  const confirmedNonces = useMemo(
+    () =>
+      new Set(messages.map((item) => item.message.clientNonce).filter((nonce) => nonce !== null)),
+    [messages],
+  );
+
+  const [optimisticItems, addOptimisticItem] = useOptimistic<HistoryItem[], MessageHistoryItem>(
+    items,
+    (state, incoming) =>
+      state.some(
+        (item) => isMessageItem(item) && item.message.clientNonce === incoming.message.clientNonce,
+      )
+        ? state
+        : [...state, incoming],
+  );
+
+  function persistPending(updater: (current: PendingSend[]) => PendingSend[]) {
+    setPendingSends((current) => {
+      const next = updater(current);
+      if (next.length) localStorage.setItem(key, JSON.stringify(next));
+      else localStorage.removeItem(key);
+      return next;
+    });
+  }
+
+  function markSending(input: SendMessageInput, createdAt: string) {
+    persistPending((current) => [
+      ...current.filter((entry) => entry.input.clientNonce !== input.clientNonce),
+      { input, createdAt, status: 'sending' },
+    ]);
+  }
+
+  function markFailed(nonce: string) {
+    persistPending((current) =>
+      current.map((entry) =>
+        entry.input.clientNonce === nonce ? { ...entry, status: 'failed' } : entry,
+      ),
+    );
+  }
+
+  function removePending(nonce: string) {
+    persistPending((current) => current.filter((entry) => entry.input.clientNonce !== nonce));
+  }
+
+  function flashConfirmed(id: string) {
+    setConfirmedFlash((current) => new Set(current).add(id));
+    window.setTimeout(() => {
+      setConfirmedFlash((current) => {
+        if (!current.has(id)) return current;
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
+    }, CONFIRMED_FLASH_MS);
   }
 
   function refreshHistory() {
@@ -70,22 +191,22 @@ export function useMessageOperations(
     });
   }
 
-  async function deliver(outgoing: OutgoingMessage) {
-    if (!token) throw new Error('Not signed in');
+  async function deliver(input: SendMessageInput) {
+    if (!token) {
+      markFailed(input.clientNonce);
+      return;
+    }
     let message;
     try {
-      message = await sendMessage(token, workspaceId, channelId, outgoing.input);
-    } catch (error) {
-      updateOutbox((current) =>
-        current.map((item) =>
-          item.input.clientNonce === outgoing.input.clientNonce
-            ? { ...item, status: 'failed' }
-            : item,
-        ),
-      );
-      throw error;
+      message = await sendMessage(token, workspaceId, channelId, input);
+    } catch {
+      markFailed(input.clientNonce);
+      return;
     }
 
+    // Reached the server: nothing left to recover on reload, regardless of
+    // whether the local cache-sync below succeeds.
+    removePending(input.clientNonce);
     confirmDirectMessage(queryClient, identity, workspaceId, channelId, message);
     const historyKey = messagingQueryKeys.history(identity, workspaceId, channelId);
     try {
@@ -123,52 +244,32 @@ export function useMessageOperations(
         (cursor) => historyPage(token, workspaceId, channelId, 'after', cursor),
       );
       mergeHistoryItem(queryClient, identity, workspaceId, channelId, item);
-      updateOutbox((current) =>
-        current.map((entry) =>
-          entry.input.clientNonce === outgoing.input.clientNonce
-            ? { ...entry, status: 'confirmed', confirmedItem: item }
-            : entry,
-        ),
-      );
-      window.setTimeout(() => {
-        const history = queryClient.getQueryData<InfiniteData<HistoryPage, PageCursor>>(historyKey);
-        if (history?.pages.some((page) => page.items.some((entry) => entry.id === message.id)))
-          updateOutbox((current) =>
-            current.filter((entry) => entry.input.clientNonce !== outgoing.input.clientNonce),
-          );
-      }, 900);
+      flashConfirmed(item.id);
     } catch {
+      // Sent, just not locally merged: fall back to a full refetch rather
+      // than retrying the send.
       void queryClient.invalidateQueries({ queryKey: historyKey, exact: true });
-      updateOutbox((current) =>
-        current.map((item) =>
-          item.input.clientNonce === outgoing.input.clientNonce
-            ? { ...item, status: 'confirmed' }
-            : item,
-        ),
-      );
     }
-    return message;
+  }
+
+  function dispatch(input: SendMessageInput, createdAt: string) {
+    const replyTarget = messages.find((item) => item.message.id === input.replyToMessageId);
+    const optimistic = synthesize(input, createdAt, author, replyTarget);
+    markSending(input, createdAt);
+    startTransition(async () => {
+      addOptimisticItem(optimistic);
+      await deliver(input);
+    });
   }
 
   function send(input: Omit<SendMessageInput, 'clientNonce'>) {
-    const outgoing: OutgoingMessage = {
-      input: { ...input, clientNonce: crypto.randomUUID() },
-      createdAt: new Date().toISOString(),
-      status: 'sending',
-    };
-    updateOutbox((current) => [...current, outgoing]);
-    return deliver(outgoing);
+    dispatch({ ...input, clientNonce: crypto.randomUUID() }, new Date().toISOString());
   }
 
   function retry(nonce: string) {
-    const outgoing = outbox.find((item) => item.input.clientNonce === nonce);
-    if (!outgoing) return;
-    updateOutbox((current) =>
-      current.map((item) =>
-        item.input.clientNonce === nonce ? { ...item, status: 'sending' } : item,
-      ),
-    );
-    return deliver(outgoing);
+    const entry = pendingSends.find((item) => item.input.clientNonce === nonce);
+    if (!entry) return;
+    dispatch(entry.input, entry.createdAt);
   }
 
   async function edit(messageId: string, markdown: string, revision?: number) {
@@ -184,5 +285,32 @@ export function useMessageOperations(
     refreshHistory();
   }
 
-  return { outbox, send, retry, edit, remove };
+  const displayItems = useMemo<DisplayItem[]>(() => {
+    const sending: DisplayItem[] = optimisticItems.map((item) => {
+      const isPending =
+        isMessageItem(item) &&
+        item.message.clientNonce !== null &&
+        !confirmedNonces.has(item.message.clientNonce);
+      return {
+        item,
+        nonce: null,
+        delivery: isPending ? 'sending' : confirmedFlash.has(item.id) ? 'confirmed' : undefined,
+      };
+    });
+    const failed: DisplayItem[] = pendingSends
+      .filter((entry) => entry.status === 'failed')
+      .map((entry) => {
+        const replyTarget = messages.find(
+          (item) => item.message.id === entry.input.replyToMessageId,
+        );
+        return {
+          item: synthesize(entry.input, entry.createdAt, author, replyTarget),
+          nonce: entry.input.clientNonce,
+          delivery: 'failed',
+        };
+      });
+    return [...sending, ...failed];
+  }, [optimisticItems, confirmedNonces, confirmedFlash, pendingSends, messages, author]);
+
+  return { displayItems, send, retry, edit, remove };
 }

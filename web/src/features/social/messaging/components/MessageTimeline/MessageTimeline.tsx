@@ -10,11 +10,10 @@ import type {
 } from '@/features/social/conversation/actions';
 import { useReadReceipts } from '@/features/social/read-state/hooks/useReadReceipts';
 
-import type { OutgoingMessage } from '../../hooks/useMessageOperations';
-import type { HistoryPage, MessageAuthor, MessageHistoryItem } from '../../types';
+import type { DisplayItem } from '../../hooks/useMessageOperations';
+import type { HistoryPage, MessageHistoryItem } from '../../types';
 import { isMessageItem } from '../../types';
 import { HistoryItemRow } from '../HistoryItemRow/HistoryItemRow';
-import { useDisplayItems } from './useDisplayItems';
 import { useScrollAnchoring } from './useScrollAnchoring';
 import { useVisibleEntriesObserver } from './useVisibleEntriesObserver';
 
@@ -118,8 +117,7 @@ interface MessageTimelineProps {
   workspaceId: string;
   channelId: string;
   pages: HistoryPage[];
-  outbox: OutgoingMessage[];
-  author: MessageAuthor;
+  displayItems: DisplayItem[];
   actionContext: ActionContext;
   actions: ConversationAction[];
   onAction: (action: ConversationAction, target: ActionTarget) => void;
@@ -139,8 +137,7 @@ export function MessageTimeline({
   workspaceId,
   channelId,
   pages,
-  outbox,
-  author,
+  displayItems,
   actionContext,
   actions,
   onAction,
@@ -157,7 +154,6 @@ export function MessageTimeline({
 }: MessageTimelineProps) {
   const { styles } = useStyles();
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
-  const displayItems = useDisplayItems(items, outbox, author);
   const initial = pages.find((page) => page.firstUnreadSeq !== null) ?? pages[0];
   const firstUnreadSeq = initial?.firstUnreadSeq ?? null;
   const onVisible = useReadReceipts(

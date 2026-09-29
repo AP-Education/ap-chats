@@ -2,7 +2,7 @@ import { type RefObject, useEffect } from 'react';
 
 import { useIsPageVisible } from '@/shared/hooks/useIsPageVisible';
 
-import type { MessageHistoryItem } from '../../types';
+import type { HistoryItem } from '../../types';
 
 /**
  * Marks entries as read once they've actually been on screen, not merely
@@ -12,7 +12,7 @@ import type { MessageHistoryItem } from '../../types';
  */
 export function useVisibleEntriesObserver(
   containerRef: RefObject<HTMLDivElement | null>,
-  items: MessageHistoryItem[],
+  items: HistoryItem[],
   onVisible: (seq: string) => void,
 ) {
   const pageVisible = useIsPageVisible();
