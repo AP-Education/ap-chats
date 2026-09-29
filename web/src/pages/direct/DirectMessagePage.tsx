@@ -1,22 +1,17 @@
 import { Button, Empty, Result } from 'antd';
 import { createStyles } from 'antd-style';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
-import {
-  forgetConversation,
-  rememberConversation,
-} from '@/features/social/conversation/lastConversation';
 import { ConversationProvider } from '@/features/social/conversation/store';
+import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
 import { DirectMessageActions } from '@/features/social/direct-messages/components/DirectMessageActions';
 import { DirectMessageList } from '@/features/social/direct-messages/components/DirectMessageList/DirectMessageList';
 import { DirectProfilePanel } from '@/features/social/direct-messages/components/DirectProfilePanel/DirectProfilePanel';
 import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDirectMessages';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
-import { ApiError } from '@/shared/api/http';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { ChatLayout } from '@/shared/ui/ChatLayout/ChatLayout';
@@ -49,31 +44,19 @@ const useStyles = createStyles(({ token, css }) => ({
 export default function DirectMessagePage() {
   const { styles } = useStyles();
   const { id: workspaceId } = useRequiredWorkspace();
-  const { identity } = useQueryAuth();
   const navigate = useNavigate();
   const { channelId } = useParams<{ channelId: string }>();
   const isMobile = useIsMobile();
   const [profileVisible, setProfileVisible] = useState<boolean | null>(null);
   const isProfileVisible = profileVisible ?? !isMobile;
   const conversation = useDirectMessage(workspaceId, channelId);
-  const unavailable =
-    conversation.isError &&
-    conversation.error instanceof ApiError &&
-    [403, 404].includes(conversation.error.status);
-  useEffect(() => {
-    if (conversation.data && !conversation.isError) {
-      rememberConversation(identity, workspaceId, 'direct', conversation.data.id);
-    }
-  }, [conversation.data, conversation.isError, identity, workspaceId]);
-  useEffect(() => {
-    if (
-      channelId &&
-      unavailable &&
-      forgetConversation(identity, workspaceId, 'direct', channelId)
-    ) {
-      navigate('/direct', { replace: true });
-    }
-  }, [channelId, identity, navigate, unavailable, workspaceId]);
+  const unavailable = useTrackConversation(
+    'direct',
+    workspaceId,
+    channelId,
+    conversation,
+    '/direct',
+  );
   const { byId, currentMember } = useWorkspaceMemberLabels(workspaceId);
 
   if (!channelId && isMobile) return <DirectMessageList workspaceId={workspaceId} />;
