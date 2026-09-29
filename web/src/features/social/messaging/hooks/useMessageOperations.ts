@@ -13,7 +13,7 @@ import {
 } from '../api/messages-api';
 import { catchUpHistory, mergeHistoryItem } from '../history-cache';
 import { messagingQueryKeys } from '../queryKeys';
-import type { HistoryItem, MessageAuthor, SendMessageInput } from '../types';
+import type { MessageAuthor, MessageHistoryItem, SendMessageInput } from '../types';
 import type { HistoryPage } from '../types';
 import type { PageCursor } from './useMessageHistory';
 
@@ -21,7 +21,7 @@ export interface OutgoingMessage {
   input: SendMessageInput;
   createdAt: string;
   status: 'sending' | 'failed' | 'confirmed';
-  confirmedItem?: HistoryItem;
+  confirmedItem?: MessageHistoryItem;
 }
 
 function readOutbox(key: string): OutgoingMessage[] {
@@ -89,7 +89,7 @@ export function useMessageOperations(
     confirmDirectMessage(queryClient, identity, workspaceId, channelId, message);
     const historyKey = messagingQueryKeys.history(identity, workspaceId, channelId);
     try {
-      let item: HistoryItem;
+      let item: MessageHistoryItem;
       try {
         item = await queryClient.fetchQuery({
           queryKey: [
@@ -103,6 +103,7 @@ export function useMessageOperations(
       } catch {
         item = {
           type: 'MESSAGE',
+          id: message.id,
           seq: message.seq,
           createdAt: message.createdAt,
           message,
@@ -131,9 +132,7 @@ export function useMessageOperations(
       );
       window.setTimeout(() => {
         const history = queryClient.getQueryData<InfiniteData<HistoryPage, PageCursor>>(historyKey);
-        if (
-          history?.pages.some((page) => page.items.some((entry) => entry.message.id === message.id))
-        )
+        if (history?.pages.some((page) => page.items.some((entry) => entry.id === message.id)))
           updateOutbox((current) =>
             current.filter((entry) => entry.input.clientNonce !== outgoing.input.clientNonce),
           );

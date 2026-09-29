@@ -9,7 +9,7 @@ import {
 } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { ApiError } from '@/shared/api/http';
 
-import type { HistoryItem } from '../../types';
+import type { MessageHistoryItem } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -51,8 +51,8 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 interface MessageEditorProps {
-  item: HistoryItem;
-  onEdit: (item: HistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
+  item: MessageHistoryItem;
+  onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
   onClose: () => void;
   minHeight: number;
 }
