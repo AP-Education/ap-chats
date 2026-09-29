@@ -4,9 +4,9 @@ import { message as toast, Popover, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
+import { ConversationActionDivider } from '@/domain/conversation/ConversationPane';
 import { callActionLabel } from '@/features/calls/callActionLabel';
 import { useCallAction } from '@/features/calls/hooks/useCallAction';
-import { ConversationActionDivider } from '@/shared/ui/ChatLayout/ConversationPane';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import type { DirectMessage } from '../api/direct-messages-api';

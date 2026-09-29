@@ -3,6 +3,8 @@ import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 
+import { ChatLayout } from '@/domain/conversation/ChatLayout';
+import { ChatLoading } from '@/domain/conversation/ChatLoading';
 import { ChannelDetail } from '@/features/communities/channels/components/ChannelDetail';
 import { useChannel } from '@/features/communities/channels/hooks/useChannels';
 import { ChannelsSidebar } from '@/features/communities/components/ChannelsSidebar';
@@ -12,8 +14,6 @@ import { useTrackConversation } from '@/features/social/conversation/useTrackCon
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { useMobileMenu } from '@/layouts/MainLayout/stores/mobile-menu-context';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { ChatLayout } from '@/shared/ui/ChatLayout/ChatLayout';
-import { ChatLoading } from '@/shared/ui/ChatLayout/ChatLoading';
 
 const useStyles = createStyles(({ token, css }) => ({
   centered: css`

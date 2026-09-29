@@ -3,6 +3,9 @@ import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { ChatLayout } from '@/domain/conversation/ChatLayout';
+import { ChatLoading } from '@/domain/conversation/ChatLoading';
+import { ConversationPane } from '@/domain/conversation/ConversationPane';
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
 import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
@@ -14,9 +17,6 @@ import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspa
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
-import { ChatLayout } from '@/shared/ui/ChatLayout/ChatLayout';
-import { ChatLoading } from '@/shared/ui/ChatLayout/ChatLoading';
-import { ConversationPane } from '@/shared/ui/ChatLayout/ConversationPane';
 
 const useStyles = createStyles(({ token, css }) => ({
   title: css`

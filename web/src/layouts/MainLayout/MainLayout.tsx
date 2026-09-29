@@ -3,10 +3,11 @@ import { Button, Drawer, Layout, Skeleton, theme } from 'antd';
 import { Suspense, useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
+import { ChatLoading } from '@/domain/conversation/ChatLoading';
+
 import { CallSurface } from '../../features/calls/components/CallSurface';
 import { ConnectionBanner } from '../../features/realtime/components/ConnectionBanner';
 import { useIsMobile } from '../../shared/hooks/useIsMobile';
-import { ChatLoading } from '../../shared/ui/ChatLayout/ChatLoading';
 import { PageSection } from '../../shared/ui/PageSection/PageSection';
 import { MainSider } from './MainSider';
 import { MainSiderMenu } from './MainSiderMenu';

@@ -13,15 +13,15 @@ import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import {
+  ConversationActionDivider,
+  ConversationPane,
+} from '@/domain/conversation/ConversationPane';
 import { callActionLabel } from '@/features/calls/callActionLabel';
 import { useCallAction } from '@/features/calls/hooks/useCallAction';
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { ApiError } from '@/shared/api/http';
-import {
-  ConversationActionDivider,
-  ConversationPane,
-} from '@/shared/ui/ChatLayout/ConversationPane';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { canManageChannel } from '../../../channel-permissions';
