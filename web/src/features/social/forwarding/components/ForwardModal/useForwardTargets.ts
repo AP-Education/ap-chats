@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useChannels } from '@/features/communities/channels/hooks/useChannels';
 import { searchPeople } from '@/features/social/direct-messages/api/direct-messages-api';
 import { useDirectMessages } from '@/features/social/direct-messages/hooks/useDirectMessages';
+import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 
 import type { ForwardTargetGroup, ForwardTargetOption } from './forward-targets';
 
@@ -16,12 +17,7 @@ export function useForwardTargets(workspaceId: string) {
   const conversations = useDirectMessages(workspaceId);
   const [scope, setScope] = useState<ForwardScope>('all');
   const [search, setSearch] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSearchTerm(search.trim()), 180);
-    return () => window.clearTimeout(timer);
-  }, [search]);
+  const searchTerm = useDebouncedValue(search.trim(), 180);
 
   const showDirect = scope !== 'channels';
   const showChannels = scope !== 'direct';
