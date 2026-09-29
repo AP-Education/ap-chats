@@ -1,89 +1,94 @@
 import { useDisconnectButton, useTrackToggle } from '@livekit/components-react';
-import { MicrophoneIcon, MicrophoneSlashIcon, PhoneXIcon } from '@phosphor-icons/react';
+import {
+  MicrophoneIcon,
+  MicrophoneSlashIcon,
+  PhoneXIcon,
+  VideoCameraIcon,
+} from '@phosphor-icons/react';
 import { createStyles, keyframes } from 'antd-style';
 import { Track } from 'livekit-client';
 
-const riseIn = keyframes`
-  from { opacity: 0; transform: translateY(8px) scale(0.96); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-`;
+import { CALL_SURFACE_GRADIENT } from '../../callTheme';
+import { CallActionButton } from './CallActionButton';
 
 const pulse = keyframes`
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
 `;
 
-const useStyles = createStyles(({ css }) => ({
+const useStyles = createStyles(({ token, css }) => ({
   bar: css`
     display: flex;
-    align-items: center;
-    gap: 6px;
-    max-width: min(90vw, 320px);
-    padding: 6px;
-    border-radius: 999px;
-    background: #17181c;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    animation: ${riseIn} 0.15s ease-out;
+    align-items: stretch;
+    gap: 12px;
+    min-height: 56px;
+    padding: 4px 16px;
+    background: ${CALL_SURFACE_GRADIENT};
+    color: ${token.colorWhite};
+
+    @media (max-width: ${token.screenSM}px) {
+      min-height: 48px;
+      padding: 3px 10px;
+    }
   `,
+  // The clickable "return to call" area matters more than any other control
+  // here — it takes almost the full bar height rather than losing most of
+  // it to its own padding on top of the bar's.
   expand: css`
     display: flex;
     align-items: center;
     gap: 10px;
+    flex: 1;
     min-width: 0;
-    padding: 4px 6px 4px 10px;
+    padding: 0 10px;
     border: none;
+    border-radius: ${token.borderRadius}px;
     background: transparent;
+    color: inherit;
     text-align: left;
     cursor: pointer;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
   `,
   dot: css`
     width: 8px;
     height: 8px;
     flex-shrink: 0;
     border-radius: 50%;
-    background: #2bd576;
+    background: #4ade80;
     animation: ${pulse} 1.6s ease-in-out infinite;
   `,
   info: css`
     display: flex;
-    flex-direction: column;
+    align-items: baseline;
+    gap: 8px;
     min-width: 0;
-    color: #fff;
   `,
+  // Named to match CallScreen's own title/duration: restoring or minimizing
+  // morphs one into the other via the browser's View Transitions API
+  // instead of an instant swap.
   title: css`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
+    view-transition-name: active-call-title;
   `,
   duration: css`
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
-  `,
-  button: css`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     flex-shrink: 0;
-    width: 34px;
-    height: 34px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    cursor: pointer;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.22);
-    }
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.72);
+    font-variant-numeric: tabular-nums;
+    view-transition-name: active-call-duration;
   `,
-  leave: css`
-    background: #e5484d;
-
-    &:hover {
-      background: #c6373c;
-    }
+  actions: css`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
   `,
 }));
 
@@ -93,14 +98,15 @@ interface MiniCallBarProps {
   onExpand: () => void;
 }
 
-/** The Telegram/iOS "return to call" pill: the room stays connected, only the stage collapses. */
+/** The app-level "return to call" strip: the room stays connected, only the stage collapses. */
 export function MiniCallBar({ title, duration, onExpand }: MiniCallBarProps) {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
   const mic = useTrackToggle({ source: Track.Source.Microphone });
+  const camera = useTrackToggle({ source: Track.Source.Camera });
   const leave = useDisconnectButton({});
 
   return (
-    <div className={styles.bar}>
+    <div className={styles.bar} role="status">
       <button
         type="button"
         className={styles.expand}
@@ -110,25 +116,36 @@ export function MiniCallBar({ title, duration, onExpand }: MiniCallBarProps) {
         <span className={styles.dot} aria-hidden />
         <span className={styles.info}>
           <span className={styles.title}>{title}</span>
-          <span className={styles.duration}>{duration || 'З’єднуємось'}</span>
+          <span className={styles.duration}>{duration}</span>
         </span>
       </button>
-      <button
-        type="button"
-        className={styles.button}
-        aria-label={mic.enabled ? 'Вимкнути мікрофон' : 'Увімкнути мікрофон'}
-        onClick={mic.buttonProps.onClick}
-      >
-        {mic.enabled ? <MicrophoneIcon size={16} /> : <MicrophoneSlashIcon size={16} />}
-      </button>
-      <button
-        type="button"
-        className={cx(styles.button, styles.leave)}
-        aria-label="Завершити дзвінок"
-        onClick={leave.buttonProps.onClick}
-      >
-        <PhoneXIcon size={16} weight="fill" />
-      </button>
+      <div className={styles.actions}>
+        <CallActionButton
+          size={40}
+          variant={mic.enabled ? 'default' : 'off'}
+          aria-label={mic.enabled ? 'Вимкнути мікрофон' : 'Увімкнути мікрофон'}
+          onClick={mic.buttonProps.onClick}
+        >
+          {mic.enabled ? <MicrophoneIcon size={19} /> : <MicrophoneSlashIcon size={19} />}
+        </CallActionButton>
+        {camera.enabled && (
+          <CallActionButton
+            size={40}
+            aria-label="Вимкнути камеру"
+            onClick={camera.buttonProps.onClick}
+          >
+            <VideoCameraIcon size={19} />
+          </CallActionButton>
+        )}
+        <CallActionButton
+          size={40}
+          variant="leave"
+          aria-label="Завершити дзвінок"
+          onClick={leave.buttonProps.onClick}
+        >
+          <PhoneXIcon size={19} weight="fill" />
+        </CallActionButton>
+      </div>
     </div>
   );
 }
