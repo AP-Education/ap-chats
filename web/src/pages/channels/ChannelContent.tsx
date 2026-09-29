@@ -86,6 +86,7 @@ export default function ChannelContent() {
         scope={{
           workspaceId,
           channelId: channel.id,
+          title: channel.name,
           composer: {
             ariaLabel: `Написати в #${channel.name}`,
             placeholder: `Написати в #${channel.name}`,

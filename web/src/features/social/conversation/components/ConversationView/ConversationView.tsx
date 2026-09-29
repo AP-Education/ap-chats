@@ -1,6 +1,7 @@
 import { createStyles } from 'antd-style';
 import { type ReactNode, useMemo } from 'react';
 
+import { ActiveCallBanner } from '@/features/calls/components/ActiveCallBanner';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import { PinnedMessageBar } from '@/features/social/pins/components/PinnedMessageBar/PinnedMessageBar';
 import type { WorkspaceMember } from '@/features/workspaces/types';
@@ -37,7 +38,7 @@ export function ConversationView({
   readOnlyFooter,
 }: ConversationViewProps) {
   const { styles } = useStyles();
-  const { workspaceId, channelId } = useConversationScope();
+  const { workspaceId, channelId, title, avatarPath } = useConversationScope();
   const navigation = useConversationHistoryNavigation(canPost);
   const author = useMemo(
     () => ({
@@ -62,6 +63,12 @@ export function ConversationView({
   return (
     <div className={styles.shell}>
       <PinnedMessageBar canUnpin={canPin && canPost} onJump={navigation.onJump} />
+      <ActiveCallBanner
+        workspaceId={workspaceId}
+        channelId={channelId}
+        title={title}
+        calleeAvatarPath={avatarPath}
+      />
       <ConversationHistoryContent
         navigation={navigation}
         interaction={interaction}

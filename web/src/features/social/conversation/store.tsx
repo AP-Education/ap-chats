@@ -18,6 +18,10 @@ const ConversationContext = createContext<StoreApi<ConversationState> | null>(nu
 export interface ConversationScope {
   workspaceId: string;
   channelId: string;
+  /** The channel name or DM participant's name: the one display title shared by the composer, the call header and the timeline's call card. */
+  title: string;
+  /** The DM participant's avatar; omitted for channels, which have no single person to show. */
+  avatarPath?: string | null;
   composer: {
     ariaLabel: string;
     placeholder: string;
