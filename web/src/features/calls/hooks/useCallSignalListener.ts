@@ -77,10 +77,9 @@ export function useCallSignalListener(): void {
     const signal = parse(payload);
     if (!signal) return;
     clearIncoming(signal.callId);
-    if (active?.callId === signal.callId) {
-      clearActive();
-      toast.info('Дзвінок завершено.');
-    }
+    // The call screen closing and the leave chime already say this; a toast
+    // on top is redundant.
+    if (active?.callId === signal.callId) clearActive();
     invalidate(signal);
     refreshEntry(signal);
   });
