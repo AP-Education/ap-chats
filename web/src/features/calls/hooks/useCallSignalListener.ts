@@ -88,6 +88,10 @@ export function useCallSignalListener(): void {
     const signal = parse(payload);
     if (!signal) return;
     clearIncoming(signal.callId);
+    if (active?.callId === signal.callId) {
+      clearActive();
+      toast.info('Не відповіли.');
+    }
     invalidate(signal);
     refreshEntry(signal);
   });
