@@ -52,7 +52,7 @@ const useStyles = createStyles(({ token, css }) => ({
     gap: 12px;
     margin: 13px 20px;
     color: ${token.colorTextTertiary};
-    font-size: 12px;
+    font-size: ${token.fontSizeSM}px;
     font-weight: 600;
     white-space: nowrap;
     &::before,
@@ -69,7 +69,7 @@ const useStyles = createStyles(({ token, css }) => ({
     gap: 12px;
     margin: 15px 20px 11px;
     color: ${token.colorPrimary};
-    font-size: 12px;
+    font-size: ${token.fontSizeSM}px;
     font-weight: 700;
     white-space: nowrap;
     &::before,

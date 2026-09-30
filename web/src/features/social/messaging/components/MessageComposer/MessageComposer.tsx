@@ -28,8 +28,10 @@ const useStyles = createStyles(({ token, css }) => ({
     padding: 0 ${token.paddingLG}px ${token.paddingSM}px;
 
     @media (max-width: ${token.screenMD}px) {
-      gap: 8px;
-      padding: 0 16px calc(8px + env(safe-area-inset-bottom, 0px));
+      gap: 6px;
+      padding: 4px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid ${token.colorBorderSecondary};
+      background: ${token.colorBgContainer};
     }
   `,
   mobileHidden: css`
@@ -46,8 +48,8 @@ const useStyles = createStyles(({ token, css }) => ({
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 44px;
-      height: 52px;
+      width: 40px;
+      height: 46px;
       flex-shrink: 0;
     }
   `,
@@ -149,7 +151,7 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
   const intent = useConversation((state) => state.intent);
   const setIntent = useConversation((state) => state.setIntent);
   const isMobile = useIsMobile();
-  const toolbarActionSize = isMobile ? 44 : 38;
+  const toolbarActionSize = isMobile ? 40 : 38;
   const editableRef = useRef<MentionEditorHandle>(null);
   const initialDraft = useMemo(() => readDraft(draftKey), [draftKey]);
   const [contentState, setContentState] = useState(() => ({
@@ -201,7 +203,7 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     <div className={styles.shell}>
       <span className={styles.mobileOnly}>
         <Tooltip title="Незабаром">
-          <IconButton size={44} className={styles.toolbarButton} aria-label="Додати файл" disabled>
+          <IconButton size={40} className={styles.toolbarButton} aria-label="Додати файл" disabled>
             <PaperclipIcon size={22} />
           </IconButton>
         </Tooltip>

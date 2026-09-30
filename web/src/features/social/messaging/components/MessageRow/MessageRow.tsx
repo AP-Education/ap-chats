@@ -1,12 +1,7 @@
-import {
-  ArrowBendUpRightIcon,
-  DotsThreeIcon,
-  QuotesIcon,
-  WarningCircleIcon,
-} from '@phosphor-icons/react';
-import { Button, Dropdown, type MenuProps, Tooltip } from 'antd';
+import { ArrowBendUpRightIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import { Button } from 'antd';
 import { createStyles } from 'antd-style';
-import { memo, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useLayoutEffect, useRef } from 'react';
 
 import type {
   ActionContext,
@@ -14,13 +9,14 @@ import type {
   ConversationAction,
 } from '@/features/social/conversation/actions';
 import { useConversation } from '@/features/social/conversation/store';
-import { MessageMarkdown } from '@/features/social/mentions/components/MessageMarkdown/MessageMarkdown';
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import type { MessageHistoryItem } from '../../types';
 import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
-import { MessageEditor } from './MessageEditor';
+import { MessageActions } from './MessageActions';
+import { MessageActionProvider } from './MessageActionScope';
+import { MessageBody } from './MessageBody';
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
@@ -33,8 +29,7 @@ const useStyles = createStyles(({ token, css }) => ({
     &:hover {
       background: ${token.colorFillQuaternary};
     }
-    [data-hover-suppressed]
-      &:hover:not([data-selected]):not([data-failed]):not([data-mentions-me]) {
+    [data-hover-suppressed] &:hover:not([data-selected]):not([data-failed]) {
       background: transparent;
     }
     &:focus-visible {
@@ -105,21 +100,6 @@ const useStyles = createStyles(({ token, css }) => ({
       }
     }
   `,
-  // Someone replied to your message or @mentioned you — Discord's "this
-  // concerns you" signal, findable at a glance in a busy feed.
-  highlighted: css`
-    background: rgba(250, 173, 20, 0.08);
-    border-left: 3px solid #faad14;
-    padding-left: 17px;
-
-    &:hover {
-      background: rgba(250, 173, 20, 0.14);
-    }
-
-    @media (max-width: ${token.screenMD}px) {
-      padding-left: 9px;
-    }
-  `,
   avatar: css`
     width: 44px;
     flex: 0 0 44px;
@@ -172,11 +152,11 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   time: css`
     color: ${token.colorTextTertiary};
-    font-size: 11px;
+    font-size: 12px;
   `,
   edited: css`
     color: ${token.colorTextQuaternary};
-    font-size: 11px;
+    font-size: 12px;
   `,
   reply: css`
     display: block;
@@ -219,101 +199,20 @@ const useStyles = createStyles(({ token, css }) => ({
       text-decoration: underline;
     }
   `,
-  markdown: css`
-    font-size: 16px;
-    line-height: 1.5;
-    user-select: text;
-    p {
-      margin: 0 0 5px;
-    }
-    p:last-child {
-      margin-bottom: 0;
-    }
-    pre {
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      padding: 9px 11px;
-      border-radius: 7px;
-      background: ${token.colorFillTertiary};
-    }
-    code {
-      padding: 1px 3px;
-      border-radius: 3px;
-      background: ${token.colorFillTertiary};
-      font-size: 0.92em;
-    }
-    pre code {
-      padding: 0;
-      background: transparent;
-    }
-    blockquote {
-      margin: 5px 0;
-      padding-left: 9px;
-      border-left: 3px solid ${token.colorBorder};
-      color: ${token.colorTextSecondary};
-    }
-    ul,
-    ol {
-      margin: 5px 0;
-      padding-left: 21px;
-    }
-    a {
-      color: ${token.colorLink};
-    }
-  `,
   delivery: css`
     display: inline-flex;
     align-items: center;
     gap: 5px;
     margin-top: 4px;
     color: ${token.colorTextTertiary};
-    font-size: 11px;
+    font-size: ${token.fontSizeSM}px;
   `,
   retry: css`
     && {
       padding-inline: 2px;
       height: auto;
-      font-size: 11px;
+      font-size: ${token.fontSizeSM}px;
       line-height: 1.3;
-    }
-  `,
-  toolbar: css`
-    position: absolute;
-    z-index: 2;
-    top: -16px;
-    right: 20px;
-    display: flex;
-    align-items: center;
-    gap: 1px;
-    padding: 3px;
-    border: 1px solid ${token.colorBorderSecondary};
-    border-radius: 9px;
-    background: ${token.colorBgContainer};
-    box-shadow: ${token.boxShadowSecondary};
-    opacity: 0;
-    pointer-events: none;
-    @media (hover: none) {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    @media (max-width: ${token.screenMD}px) {
-      right: 10px;
-    }
-  `,
-  tool: css`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 29px;
-    height: 28px;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: ${token.colorTextSecondary};
-    cursor: pointer;
-    &:hover {
-      background: ${token.colorFillTertiary};
-      color: ${token.colorText};
     }
   `,
   checkbox: css`
@@ -354,123 +253,67 @@ export const MessageRow = memo(function MessageRow({
   const authorName = item.author.displayName ?? 'Ім’я недоступне';
   const replyAuthorName = item.reply?.author?.displayName ?? 'Ім’я недоступне';
   const forwardAuthorName = item.forwardedFrom?.displayName ?? 'Ім’я недоступне';
-  // Your own messages never need to flag themselves back to you.
-  const isOwnMessage = item.message.authorMemberId === actionContext.memberId;
-  const mentionsMe =
-    !isOwnMessage &&
-    (item.mentions?.some((mention) => mention.memberId === actionContext.memberId) ?? false);
-  const isReplyToMe = !isOwnMessage && item.reply?.authorMemberId === actionContext.memberId;
-  const highlighted = mentionsMe || isReplyToMe;
   const isSelected = useConversation((state) => state.selectedIds.includes(item.message.id));
   const hasSelection = useConversation((state) => state.selectedIds.length > 0);
   const toggleSelected = useConversation((state) => state.toggleSelected);
   const editing = useConversation((state) => state.editingId === item.message.id);
   const setEditingId = useConversation((state) => state.setEditingId);
-  const [selectedText, setSelectedText] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
   const contentHeight = useRef(40);
   useLayoutEffect(() => {
     if (!editing && contentRef.current) contentHeight.current = contentRef.current.offsetHeight;
   }, [editing, item.message.markdown]);
-  const messageTarget: ActionTarget = { kind: 'message', items: [item] };
-  const textTarget: ActionTarget = { kind: 'text', items: [item], selectedText };
-  const target = selectedText ? textTarget : messageTarget;
-  const available = delivery
-    ? []
-    : actions.filter((action) => action.available(target, actionContext));
-  const replyAction = actions.find((action) => action.id === 'reply');
-  const quoteAction = actions.find((action) => action.id === 'quote');
-  const prioritizedGroups = [['quote', 'reply'], ['copy'], ['edit', 'pin', 'forward', 'select']];
-  const prioritizedIds = new Set([...prioritizedGroups.flat(), 'delete']);
-  const menuGroups = [
-    ...prioritizedGroups,
-    available.filter((action) => !prioritizedIds.has(action.id)).map((action) => action.id),
-    ['delete'],
-  ];
-  const menuItems: MenuProps['items'] = [];
-  for (const group of menuGroups) {
-    const groupActions = group
-      .map((id) => available.find((action) => action.id === id))
-      .filter((action): action is ConversationAction => Boolean(action));
-    if (!groupActions.length) continue;
-    if (menuItems.length) menuItems.push({ type: 'divider' });
-    for (const action of groupActions) {
-      menuItems.push({
-        key: action.id,
-        label: action.label(target),
-        icon: action.icon,
-        danger: action.id === 'delete',
-      });
-    }
-  }
-  const menu = {
-    items: menuItems,
-    onClick: ({ key }: { key: string }) => {
-      const action = available.find((entry) => entry.id === key);
-      if (action) onAction(action, target);
-    },
-  };
-
-  function captureSelection() {
-    const selection = window.getSelection();
-    const content = contentRef.current;
-    if (!selection || !content || !selection.anchorNode || !selection.focusNode) return;
-    const within = content.contains(selection.anchorNode) && content.contains(selection.focusNode);
-    setSelectedText(within ? selection.toString().trim().slice(0, 2048) : '');
-  }
 
   return (
-    <Dropdown trigger={['contextMenu']} menu={menu}>
-      <div
-        id={`message-${item.message.id}`}
-        data-seq={delivery ? undefined : item.seq}
-        data-selected={isSelected || undefined}
-        data-failed={delivery === 'failed' || undefined}
-        data-mentions-me={highlighted || undefined}
-        tabIndex={delivery ? -1 : 0}
-        aria-label={`Повідомлення від ${authorName}, ${timeFormat.format(new Date(item.message.createdAt))}`}
-        className={cx(
-          styles.row,
-          isSelected && styles.selected,
-          highlighted && styles.highlighted,
-          delivery === 'sending' && styles.sending,
-          delivery === 'failed' && styles.failed,
-          delivery === 'confirmed' && styles.confirmed,
-        )}
-        onMouseUp={captureSelection}
-        onTouchEnd={captureSelection}
-        onContextMenu={captureSelection}
-        onClick={(event) => {
-          if (!hasSelection || window.getSelection()?.toString()) return;
-          if ((event.target as Element).closest('button, a, input, textarea')) return;
-          toggleSelected(item.message.id);
-        }}
-        onKeyDown={(event) => {
-          if (event.target !== event.currentTarget) return;
-          if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-            const rows = [
-              ...(event.currentTarget
-                .closest('[role="log"]')
-                ?.querySelectorAll<HTMLElement>('[data-seq]') ?? []),
-            ];
-            const offset = event.key === 'ArrowUp' ? -1 : 1;
-            rows[rows.indexOf(event.currentTarget) + offset]?.focus();
-            event.preventDefault();
-          }
-          if (
-            event.key.toLowerCase() === 'r' &&
-            replyAction?.available(messageTarget, actionContext)
-          )
-            onAction(replyAction, messageTarget);
-          if (event.key.toLowerCase() === 'e') {
-            const editAction = actions.find((action) => action.id === 'edit');
-            if (editAction?.available(messageTarget, actionContext))
-              onAction(editAction, messageTarget);
-          }
-          if (event.key === ' ' && hasSelection) {
-            event.preventDefault();
+    <MessageActionProvider
+      contentRef={contentRef}
+      value={{
+        item,
+        author: authorName,
+        context: actionContext,
+        actions,
+        onAction,
+        editing,
+        delivery,
+      }}
+    >
+      <MessageActions
+        rowProps={{
+          id: `message-${item.message.id}`,
+          'data-seq': delivery ? undefined : item.seq,
+          'data-selected': isSelected || undefined,
+          'data-failed': delivery === 'failed' || undefined,
+          tabIndex: delivery ? -1 : 0,
+          'aria-label': `Повідомлення від ${authorName}, ${timeFormat.format(new Date(item.message.createdAt))}`,
+          className: cx(
+            styles.row,
+            isSelected && styles.selected,
+            delivery === 'sending' && styles.sending,
+            delivery === 'failed' && styles.failed,
+            delivery === 'confirmed' && styles.confirmed,
+          ),
+          onClick: (event) => {
+            if (!hasSelection || window.getSelection()?.toString()) return;
+            if ((event.target as Element).closest('button, a, input, textarea')) return;
             toggleSelected(item.message.id);
-          }
+          },
+          onKeyDown: (event) => {
+            if (event.target !== event.currentTarget) return;
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+              const rows = [
+                ...(event.currentTarget
+                  .closest('[role="log"]')
+                  ?.querySelectorAll<HTMLElement>('[data-seq]') ?? []),
+              ];
+              const offset = event.key === 'ArrowUp' ? -1 : 1;
+              rows[rows.indexOf(event.currentTarget) + offset]?.focus();
+              event.preventDefault();
+            }
+            if (event.key === ' ' && hasSelection) {
+              event.preventDefault();
+              toggleSelected(item.message.id);
+            }
+          },
         }}
       >
         {hasSelection && (
@@ -535,22 +378,12 @@ export const MessageRow = memo(function MessageRow({
               />
             </button>
           )}
-          {editing ? (
-            <MessageEditor
-              item={item}
-              minHeight={contentHeight.current}
-              onEdit={onEdit}
-              onClose={() => setEditingId(null)}
-            />
-          ) : item.message.markdown === null ? null : (
-            <div ref={contentRef} className={styles.markdown} data-message-text>
-              <MessageMarkdown
-                markdown={item.message.markdown}
-                mentions={item.mentions}
-                viewerMemberId={actionContext.memberId}
-              />
-            </div>
-          )}
+          <MessageBody
+            contentRef={contentRef}
+            minHeight={contentHeight.current}
+            onEdit={onEdit}
+            onCloseEdit={() => setEditingId(null)}
+          />
           {delivery === 'failed' && (
             <div className={styles.delivery}>
               <WarningCircleIcon size={14} /> Не надіслано
@@ -560,40 +393,7 @@ export const MessageRow = memo(function MessageRow({
             </div>
           )}
         </div>
-        {!editing && !delivery && (
-          <div className={styles.toolbar} data-message-actions>
-            {selectedText && quoteAction?.available(textTarget, actionContext) && (
-              <Tooltip title="Цитувати">
-                <button
-                  type="button"
-                  className={styles.tool}
-                  aria-label="Цитувати"
-                  onClick={() => onAction(quoteAction, textTarget)}
-                >
-                  <QuotesIcon size={18} />
-                </button>
-              </Tooltip>
-            )}
-            {replyAction?.available(messageTarget, actionContext) && (
-              <Tooltip title="Відповісти">
-                <button
-                  type="button"
-                  className={styles.tool}
-                  aria-label="Відповісти"
-                  onClick={() => onAction(replyAction, messageTarget)}
-                >
-                  {replyAction.icon}
-                </button>
-              </Tooltip>
-            )}
-            <Dropdown trigger={['click']} menu={menu}>
-              <button type="button" className={styles.tool} aria-label="Дії з повідомленням">
-                <DotsThreeIcon size={20} weight="bold" />
-              </button>
-            </Dropdown>
-          </div>
-        )}
-      </div>
-    </Dropdown>
+      </MessageActions>
+    </MessageActionProvider>
   );
 });

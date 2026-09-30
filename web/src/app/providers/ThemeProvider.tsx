@@ -22,6 +22,7 @@ function getTheme(isMobile: boolean): ThemeConfig {
       fontFamily:
         'Ubuntu Sans, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial',
       padding: 16,
+      paddingContentHorizontalLG: isMobile ? 16 : 24,
     },
     components: {
       Layout: {

@@ -24,8 +24,8 @@ const useStyles = createStyles(({ token, css }) => ({
     }
 
     @media (max-width: ${token.screenMD}px) {
-      width: 52px;
-      height: 52px;
+      width: 46px;
+      height: 46px;
       border-radius: 14px;
     }
   `,
