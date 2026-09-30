@@ -31,15 +31,36 @@ const useStyles = createStyles(({ token, css }) => ({
       background: ${token.colorPrimaryBgHover};
     }
   `,
+  // A mention of you specifically reads differently from a mention of
+  // anyone else — Discord's amber "this is about you" tag. The same accent
+  // as the row highlight, deliberately not antd's stock warning tokens,
+  // which read as a random clash against this app's teal palette.
+  mentionMe: css`
+    background: rgba(250, 173, 20, 0.18);
+    color: #874d00;
+  `,
+  mentionMeTrigger: css`
+    &:hover,
+    &:focus-visible {
+      background: rgba(250, 173, 20, 0.28);
+    }
+  `,
 }));
 
 interface MessageMarkdownProps {
   markdown: string;
   mentions?: MentionLabel[];
   inline?: boolean;
+  /** The current viewer's own member id — highlights a mention of them distinctly. */
+  viewerMemberId?: string;
 }
 
-export function MessageMarkdown({ markdown, mentions = [], inline = false }: MessageMarkdownProps) {
+export function MessageMarkdown({
+  markdown,
+  mentions = [],
+  inline = false,
+  viewerMemberId,
+}: MessageMarkdownProps) {
   const { styles, cx } = useStyles();
   const people = new Map(mentions.map((mention) => [mention.memberId, mention]));
 
@@ -77,7 +98,9 @@ export function MessageMarkdown({ markdown, mentions = [], inline = false }: Mes
           if (!memberId) return <span>{children}</span>;
           const person = people.get(memberId);
           const name = person?.displayName ?? 'учасник';
-          if (inline || !person) return <span className={styles.mention}>@{name}</span>;
+          const isMe = memberId === viewerMemberId;
+          const mentionClass = cx(styles.mention, isMe && styles.mentionMe);
+          if (inline || !person) return <span className={mentionClass}>@{name}</span>;
           return (
             <MemberPopover
               member={{
@@ -86,7 +109,10 @@ export function MessageMarkdown({ markdown, mentions = [], inline = false }: Mes
                 avatarPath: person.avatarPath ?? null,
               }}
             >
-              <button type="button" className={cx(styles.mention, styles.mentionTrigger)}>
+              <button
+                type="button"
+                className={cx(mentionClass, styles.mentionTrigger, isMe && styles.mentionMeTrigger)}
+              >
                 @{name}
               </button>
             </MemberPopover>

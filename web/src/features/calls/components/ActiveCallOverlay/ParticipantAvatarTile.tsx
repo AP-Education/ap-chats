@@ -1,18 +1,13 @@
 import {
+  isTrackReference,
   type TrackReferenceOrPlaceholder,
   useIsMuted,
-  useIsSpeaking,
+  useTrackVolume,
 } from '@livekit/components-react';
 import { MicrophoneSlashIcon } from '@phosphor-icons/react';
-import { createStyles, keyframes } from 'antd-style';
-import type { Participant } from 'livekit-client';
+import { createStyles } from 'antd-style';
 
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
-
-const pulse = keyframes`
-  0%, 100% { box-shadow: 0 0 0 0 rgba(12, 125, 119, 0.55); }
-  50% { box-shadow: 0 0 0 8px rgba(12, 125, 119, 0); }
-`;
 
 const useStyles = createStyles(({ css }) => ({
   tile: css`
@@ -20,23 +15,21 @@ const useStyles = createStyles(({ css }) => ({
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    max-width: 128px;
+    max-width: 160px;
   `,
   ring: css`
     display: flex;
     border-radius: 50%;
     padding: 3px;
-  `,
-  speaking: css`
-    animation: ${pulse} 1.6s ease-out infinite;
+    transition: box-shadow 0.08s ease-out;
   `,
   name: css`
     display: flex;
     align-items: center;
     max-width: 100%;
     color: rgba(255, 255, 255, 0.92);
-    font-size: 14px;
-    font-weight: 550;
+    font-size: 18px;
+    font-weight: 600;
   `,
   nameText: css`
     overflow: hidden;
@@ -47,9 +40,9 @@ const useStyles = createStyles(({ css }) => ({
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
-    margin-left: 5px;
+    width: 20px;
+    height: 20px;
+    margin-left: 6px;
     flex-shrink: 0;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.14);
@@ -58,34 +51,42 @@ const useStyles = createStyles(({ css }) => ({
 }));
 
 interface ParticipantAvatarTileProps {
-  participant: Participant;
   name: string;
   avatarPath: string | null;
   micTrackRef: TrackReferenceOrPlaceholder;
   size?: number;
 }
 
+/** The ring glows in real time with how loud this person's mic actually is —
+ * Telegram's "waving" call indicator — rather than a fixed on/off pulse. */
 export function ParticipantAvatarTile({
-  participant,
   name,
   avatarPath,
   micTrackRef,
   size = 88,
 }: ParticipantAvatarTileProps) {
-  const { styles, cx } = useStyles();
-  const speaking = useIsSpeaking(participant);
+  const { styles } = useStyles();
   const muted = useIsMuted(micTrackRef);
+  const volume = useTrackVolume(isTrackReference(micTrackRef) ? micTrackRef : undefined);
+  const glow = Math.min(volume * 26, 16);
 
   return (
     <div className={styles.tile}>
-      <div className={cx(styles.ring, speaking && styles.speaking)}>
+      <div
+        className={styles.ring}
+        style={
+          glow > 0.5
+            ? { boxShadow: `0 0 0 ${glow}px rgba(12, 125, 119, ${0.15 + volume * 0.4})` }
+            : undefined
+        }
+      >
         <Avatar path={avatarPath} alt={name} size={size} shape="circle" />
       </div>
       <span className={styles.name}>
         <span className={styles.nameText}>{name}</span>
         {muted && (
           <span className={styles.muted} aria-label="Мікрофон вимкнено">
-            <MicrophoneSlashIcon size={12} weight="fill" />
+            <MicrophoneSlashIcon size={13} weight="fill" />
           </span>
         )}
       </span>

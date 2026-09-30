@@ -10,6 +10,7 @@ import { type CallSignal, callSignalSchema } from '../schemas';
 import { useCallStore } from '../store/call-store';
 import type { CallServerToClientEvents } from '../types';
 import { activeCallQueryKey } from './useActiveCall';
+import { callHistoryKey } from './useCallHistory';
 
 function parse(payload: unknown): CallSignal | null {
   const result = callSignalSchema.safeParse(payload);
@@ -34,6 +35,9 @@ export function useCallSignalListener(): void {
     queryClient.invalidateQueries({
       queryKey: activeCallQueryKey(signal.workspaceId, signal.channelId),
     });
+    // Only DM calls ever show in the calls tab, but a channel call's signal
+    // costs nothing extra to ignore versus filtering channelKind here too.
+    queryClient.invalidateQueries({ queryKey: callHistoryKey(identity, signal.workspaceId) });
   }
 
   // The call's status (ringing/active/ended/declined) lives on its timeline
@@ -77,10 +81,9 @@ export function useCallSignalListener(): void {
     const signal = parse(payload);
     if (!signal) return;
     clearIncoming(signal.callId);
-    if (active?.callId === signal.callId) {
-      clearActive();
-      toast.info('Дзвінок завершено.');
-    }
+    // The call screen closing and the leave chime already say this; a toast
+    // on top is redundant.
+    if (active?.callId === signal.callId) clearActive();
     invalidate(signal);
     refreshEntry(signal);
   });
@@ -89,6 +92,10 @@ export function useCallSignalListener(): void {
     const signal = parse(payload);
     if (!signal) return;
     clearIncoming(signal.callId);
+    if (active?.callId === signal.callId) {
+      clearActive();
+      toast.info('Не відповіли.');
+    }
     invalidate(signal);
     refreshEntry(signal);
   });

@@ -58,7 +58,12 @@ export function DirectMessageActions({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const mute = useDirectMessageMute(workspaceId, conversation.id);
   const name = conversation.participant.displayName ?? 'Колега';
-  const call = useCallAction(workspaceId, conversation.id, name);
+  const call = useCallAction(
+    workspaceId,
+    conversation.id,
+    name,
+    conversation.participant.avatarPath,
+  );
   const size = compact ? 40 : 36;
   const isMuted = conversation.notification.isMuted;
   const callTitle = callActionLabel(call, `Подзвонити: ${name}`);

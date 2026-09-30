@@ -9,6 +9,7 @@ import { WorkspacesModule } from '@/components/workspaces';
 import { CallsController } from './calls.controller';
 import { CallsGateway } from './calls.gateway';
 import { CallsService } from './calls.service';
+import { CallsHistoryController } from './calls-history.controller';
 import { CallProvider, LiveKitCallProvider } from './provider';
 import { CallsRepository, DrizzleCallsRepository } from './repository';
 
@@ -20,7 +21,7 @@ import { CallsRepository, DrizzleCallsRepository } from './repository';
     EntriesModule,
     WorkspacesModule,
   ],
-  controllers: [CallsController],
+  controllers: [CallsController, CallsHistoryController],
   providers: [
     CallsService,
     CallsGateway,

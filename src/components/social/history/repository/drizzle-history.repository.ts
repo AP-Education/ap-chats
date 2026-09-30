@@ -144,6 +144,10 @@ export class DrizzleHistoryRepository extends HistoryRepository {
               ? gt(channelEntries.seq, cursor)
               : lt(channelEntries.seq, cursor),
           lt(channelEntries.seq, ceiling + 1n),
+          // A deleted message is a tombstone, not history to show: excluded
+          // from the projection itself rather than fetched and hidden by the
+          // client. Call entries (messageId null) always pass through.
+          or(isNull(channelEntries.messageId), isNull(chatMessages.deletedAt)),
         ),
       )
       .orderBy(direction === 'after' ? asc(channelEntries.seq) : desc(channelEntries.seq))

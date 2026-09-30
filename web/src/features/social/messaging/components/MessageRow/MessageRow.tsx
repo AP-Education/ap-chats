@@ -33,7 +33,8 @@ const useStyles = createStyles(({ token, css }) => ({
     &:hover {
       background: ${token.colorFillQuaternary};
     }
-    [data-hover-suppressed] &:hover:not([data-selected]):not([data-failed]) {
+    [data-hover-suppressed]
+      &:hover:not([data-selected]):not([data-failed]):not([data-mentions-me]) {
       background: transparent;
     }
     &:focus-visible {
@@ -102,6 +103,21 @@ const useStyles = createStyles(({ token, css }) => ({
       100% {
         background: transparent;
       }
+    }
+  `,
+  // Someone replied to your message or @mentioned you — Discord's "this
+  // concerns you" signal, findable at a glance in a busy feed.
+  highlighted: css`
+    background: rgba(250, 173, 20, 0.08);
+    border-left: 3px solid #faad14;
+    padding-left: 17px;
+
+    &:hover {
+      background: rgba(250, 173, 20, 0.14);
+    }
+
+    @media (max-width: ${token.screenMD}px) {
+      padding-left: 9px;
     }
   `,
   avatar: css`
@@ -245,10 +261,6 @@ const useStyles = createStyles(({ token, css }) => ({
       color: ${token.colorLink};
     }
   `,
-  deleted: css`
-    color: ${token.colorTextQuaternary};
-    font-style: italic;
-  `,
   delivery: css`
     display: inline-flex;
     align-items: center;
@@ -342,6 +354,13 @@ export const MessageRow = memo(function MessageRow({
   const authorName = item.author.displayName ?? 'Ім’я недоступне';
   const replyAuthorName = item.reply?.author?.displayName ?? 'Ім’я недоступне';
   const forwardAuthorName = item.forwardedFrom?.displayName ?? 'Ім’я недоступне';
+  // Your own messages never need to flag themselves back to you.
+  const isOwnMessage = item.message.authorMemberId === actionContext.memberId;
+  const mentionsMe =
+    !isOwnMessage &&
+    (item.mentions?.some((mention) => mention.memberId === actionContext.memberId) ?? false);
+  const isReplyToMe = !isOwnMessage && item.reply?.authorMemberId === actionContext.memberId;
+  const highlighted = mentionsMe || isReplyToMe;
   const isSelected = useConversation((state) => state.selectedIds.includes(item.message.id));
   const hasSelection = useConversation((state) => state.selectedIds.length > 0);
   const toggleSelected = useConversation((state) => state.toggleSelected);
@@ -407,11 +426,13 @@ export const MessageRow = memo(function MessageRow({
         data-seq={delivery ? undefined : item.seq}
         data-selected={isSelected || undefined}
         data-failed={delivery === 'failed' || undefined}
+        data-mentions-me={highlighted || undefined}
         tabIndex={delivery ? -1 : 0}
         aria-label={`Повідомлення від ${authorName}, ${timeFormat.format(new Date(item.message.createdAt))}`}
         className={cx(
           styles.row,
           isSelected && styles.selected,
+          highlighted && styles.highlighted,
           delivery === 'sending' && styles.sending,
           delivery === 'failed' && styles.failed,
           delivery === 'confirmed' && styles.confirmed,
@@ -521,11 +542,13 @@ export const MessageRow = memo(function MessageRow({
               onEdit={onEdit}
               onClose={() => setEditingId(null)}
             />
-          ) : item.message.markdown === null ? (
-            <div className={styles.deleted}>Повідомлення видалено</div>
-          ) : (
+          ) : item.message.markdown === null ? null : (
             <div ref={contentRef} className={styles.markdown} data-message-text>
-              <MessageMarkdown markdown={item.message.markdown} mentions={item.mentions} />
+              <MessageMarkdown
+                markdown={item.message.markdown}
+                mentions={item.mentions}
+                viewerMemberId={actionContext.memberId}
+              />
             </div>
           )}
           {delivery === 'failed' && (

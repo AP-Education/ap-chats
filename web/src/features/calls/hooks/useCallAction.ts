@@ -20,13 +20,18 @@ export interface CallAction {
  * Starts this channel's call, joins one already ringing or active, or — if this
  * channel's own call is merely minimized — brings it back to the foreground.
  */
-export function useCallAction(workspaceId: string, channelId: string, title: string): CallAction {
+export function useCallAction(
+  workspaceId: string,
+  channelId: string,
+  title: string,
+  calleeAvatarPath?: string | null,
+): CallAction {
   const activeCall = useActiveCall(workspaceId, channelId);
   const session = useCallStore((state) => state.active);
   const minimized = useCallStore((state) => state.minimized);
   const restore = useCallStore((state) => state.restore);
-  const startCall = useStartCall(workspaceId, channelId, title);
-  const joinCall = useJoinCall(workspaceId, channelId, title);
+  const startCall = useStartCall(workspaceId, channelId, title, calleeAvatarPath);
+  const joinCall = useJoinCall(workspaceId, channelId, title, calleeAvatarPath);
 
   const inCall = session?.channelId === channelId;
   const busy = Boolean(session) && !inCall;

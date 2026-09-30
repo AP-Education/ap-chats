@@ -14,9 +14,22 @@ export interface CallView {
 export interface CallJoinGrant {
   callId: string;
   roomName: string;
+  /** When the call itself began, not when this device joined it. */
+  startedAt: string;
   url: string;
   token: string;
   expiresAt: string;
+}
+
+export interface CallHistoryParticipant {
+  memberId: string;
+  displayName: string | null;
+  avatarPath: string | null;
+  active: boolean;
+}
+
+export interface CallHistoryItem extends CallView {
+  participant: CallHistoryParticipant;
 }
 
 function basePath(workspaceId: string, channelId: string): string {
@@ -63,6 +76,15 @@ export function declineCall(
     token,
     jsonInit('POST', {}),
   );
+}
+
+export function listCallHistory(
+  token: string,
+  workspaceId: string,
+  before?: string,
+): Promise<{ items: CallHistoryItem[]; nextCursor: string | null }> {
+  const suffix = before ? `?before=${encodeURIComponent(before)}` : '';
+  return apiRequest(`/api/workspaces/${workspaceId}/calls${suffix}`, token);
 }
 
 export function leaveCall(

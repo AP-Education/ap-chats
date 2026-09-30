@@ -1,5 +1,10 @@
-import { useDisconnectButton, useTrackToggle } from '@livekit/components-react';
 import {
+  useDisconnectButton,
+  useLocalParticipant,
+  useTrackToggle,
+} from '@livekit/components-react';
+import {
+  ArrowsClockwiseIcon,
   MicrophoneIcon,
   MicrophoneSlashIcon,
   PhoneXIcon,
@@ -9,107 +14,88 @@ import {
 } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { Track } from 'livekit-client';
+import { useState } from 'react';
+
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
+
+import { CallActionButton } from './CallActionButton';
 
 const useStyles = createStyles(({ css }) => ({
   bar: css`
-    position: absolute;
-    left: 50%;
-    bottom: 28px;
-    transform: translateX(-50%);
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(16px);
-
-    @media (max-width: 480px) {
-      bottom: 16px;
-      gap: 6px;
-      padding: 8px;
-    }
-  `,
-  button: css`
-    display: inline-flex;
-    align-items: center;
     justify-content: center;
-    width: 52px;
-    height: 52px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    cursor: pointer;
-    transition: background 0.15s ease;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
+    flex-shrink: 0;
+    gap: 14px;
+    padding: 20px 10px calc(20px + env(safe-area-inset-bottom, 0px));
 
     @media (max-width: 480px) {
-      width: 46px;
-      height: 46px;
-    }
-  `,
-  off: css`
-    background: #fff;
-    color: #17181c;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.85);
-    }
-  `,
-  leave: css`
-    background: #e5484d;
-
-    &:hover {
-      background: #c6373c;
+      gap: 8px;
     }
   `,
 }));
 
 export function CallControls() {
-  const { styles, cx } = useStyles();
+  const { styles } = useStyles();
+  const isMobile = useIsMobile();
   const mic = useTrackToggle({ source: Track.Source.Microphone });
   const camera = useTrackToggle({ source: Track.Source.Camera });
   const screenShare = useTrackToggle({ source: Track.Source.ScreenShare });
   const leave = useDisconnectButton({});
+  const { localParticipant } = useLocalParticipant();
+  // Phones publish the front camera first; there's no reliable cross-browser
+  // way to read a track's current facing side back out, so this just tracks
+  // which one this button last asked for.
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+
+  async function flipCamera() {
+    const track = localParticipant.getTrackPublication(Track.Source.Camera)?.videoTrack;
+    if (!track) return;
+    const next = facingMode === 'user' ? 'environment' : 'user';
+    await track.restartTrack({ facingMode: next });
+    setFacingMode(next);
+  }
 
   return (
     <div className={styles.bar}>
-      <button
-        type="button"
+      <CallActionButton
+        size={52}
+        variant={mic.enabled ? 'default' : 'off'}
         {...mic.buttonProps}
-        className={cx(styles.button, !mic.enabled && styles.off)}
         aria-label={mic.enabled ? 'Вимкнути мікрофон' : 'Увімкнути мікрофон'}
       >
         {mic.enabled ? <MicrophoneIcon size={22} /> : <MicrophoneSlashIcon size={22} />}
-      </button>
-      <button
-        type="button"
+      </CallActionButton>
+      <CallActionButton
+        size={52}
+        variant={camera.enabled ? 'default' : 'off'}
         {...camera.buttonProps}
-        className={cx(styles.button, !camera.enabled && styles.off)}
         aria-label={camera.enabled ? 'Вимкнути камеру' : 'Увімкнути камеру'}
       >
         {camera.enabled ? <VideoCameraIcon size={22} /> : <VideoCameraSlashIcon size={22} />}
-      </button>
-      <button
-        type="button"
+      </CallActionButton>
+      {isMobile && camera.enabled && (
+        <CallActionButton size={52} aria-label="Змінити камеру" onClick={() => void flipCamera()}>
+          <ArrowsClockwiseIcon size={22} />
+        </CallActionButton>
+      )}
+      <CallActionButton
+        size={52}
+        variant={screenShare.enabled ? 'off' : 'default'}
         {...screenShare.buttonProps}
-        className={cx(styles.button, screenShare.enabled && styles.off)}
         aria-label={screenShare.enabled ? 'Зупинити демонстрацію екрана' : 'Демонструвати екран'}
       >
         <ScreencastIcon size={22} />
-      </button>
-      <button
-        type="button"
+      </CallActionButton>
+      <CallActionButton
+        size={52}
+        variant="leave"
         {...leave.buttonProps}
-        className={cx(styles.button, styles.leave)}
         aria-label="Завершити дзвінок"
       >
         <PhoneXIcon size={22} weight="fill" />
-      </button>
+      </CallActionButton>
     </div>
   );
 }

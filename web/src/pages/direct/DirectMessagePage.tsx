@@ -103,6 +103,8 @@ export default function DirectMessagePage() {
         scope={{
           workspaceId,
           channelId,
+          title: name,
+          avatarPath: participant.avatarPath,
           composer: {
             ariaLabel: `Написати ${name}`,
             placeholder: `Повідомлення для ${name}`,

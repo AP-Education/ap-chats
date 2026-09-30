@@ -7,7 +7,12 @@ import { useCallStore } from '../store/call-store';
 import { activeCallQueryKey } from './useActiveCall';
 
 /** Starts a call and joins it immediately: the caller is the first participant, others ring in. */
-export function useStartCall(workspaceId: string, channelId: string, title: string) {
+export function useStartCall(
+  workspaceId: string,
+  channelId: string,
+  title: string,
+  calleeAvatarPath?: string | null,
+) {
   const { token } = useQueryAuth();
   const setActive = useCallStore((state) => state.setActive);
   const queryClient = useQueryClient();
@@ -20,7 +25,7 @@ export function useStartCall(workspaceId: string, channelId: string, title: stri
       return grant;
     },
     onSuccess: (grant) => {
-      setActive({ ...grant, workspaceId, channelId, title });
+      setActive({ ...grant, workspaceId, channelId, title, calleeAvatarPath });
       queryClient.invalidateQueries({ queryKey: activeCallQueryKey(workspaceId, channelId) });
     },
   });

@@ -3,10 +3,7 @@ import type { RouteObject } from 'react-router-dom';
 
 const PlaceholderPage = lazy(() => import('./PlaceholderPage'));
 
-const placeholders = [
-  ['calls', 'Дзвінки', 'Дзвінків поки немає'],
-  ['*', 'Сторінку не знайдено', 'Перевірте адресу сторінки'],
-] as const;
+const placeholders = [['*', 'Сторінку не знайдено', 'Перевірте адресу сторінки']] as const;
 
 export const placeholderRoutes = placeholders.map(([path, title, description]) => ({
   path,
