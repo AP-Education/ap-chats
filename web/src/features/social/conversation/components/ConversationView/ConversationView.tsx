@@ -47,7 +47,7 @@ export function ConversationView({
     }),
     [currentMember?.id, currentMember?.profile.displayName, currentMember?.profile.avatarPath],
   );
-  const operations = useMessageOperations(workspaceId, channelId, author);
+  const operations = useMessageOperations(workspaceId, channelId, author, navigation.items);
   const interaction = useConversationActions({
     items: navigation.items,
     memberId: currentMember?.id,
@@ -61,14 +61,8 @@ export function ConversationView({
 
   return (
     <div className={styles.shell}>
-      <PinnedMessageBar
-        workspaceId={workspaceId}
-        channelId={channelId}
-        canUnpin={canPin && canPost}
-        onJump={navigation.onJump}
-      />
+      <PinnedMessageBar canUnpin={canPin && canPost} onJump={navigation.onJump} />
       <ConversationHistoryContent
-        author={author}
         navigation={navigation}
         interaction={interaction}
         operations={operations}

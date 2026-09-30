@@ -7,6 +7,11 @@ import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional
 
 import { ReadStateRepository } from './read-state.repository';
 
+// A badge never needs the exact count past this: capping what gets scanned keeps
+// a channel someone hasn't opened in months from turning every unread check into
+// a full range scan.
+const UNREAD_COUNT_CAP = 100;
+
 @Injectable()
 export class DrizzleReadStateRepository extends ReadStateRepository {
   constructor(private readonly txHost: TransactionHost<DrizzleTransactionAdapter>) {
@@ -14,28 +19,32 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
   }
 
   async workspaceSummary(workspaceId: string, memberId: string) {
-    const rows = await this.txHost.tx
-      .select({
-        channelId: channelMemberships.channelId,
-        lastReadEntrySeq: channelMemberships.lastReadEntrySeq,
-        unreadCount: sql<number>`count(${chatMessages.id})`.mapWith(Number),
-      })
-      .from(channelMemberships)
-      .leftJoin(
-        channelEntries,
+    // Correlated per membership row via LATERAL: one query, and Postgres stops
+    // each channel's scan at UNREAD_COUNT_CAP instead of walking its full backlog.
+    const unread = this.txHost.tx
+      .select({ seq: channelEntries.seq })
+      .from(channelEntries)
+      .innerJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .where(
         and(
           eq(channelEntries.channelId, channelMemberships.channelId),
           gt(channelEntries.seq, channelMemberships.lastReadEntrySeq),
-        ),
-      )
-      .leftJoin(
-        chatMessages,
-        and(
-          eq(chatMessages.id, channelEntries.messageId),
           ne(chatMessages.authorMemberId, memberId),
           isNull(chatMessages.deletedAt),
         ),
       )
+      .orderBy(channelEntries.seq)
+      .limit(UNREAD_COUNT_CAP)
+      .as('unread');
+
+    const rows = await this.txHost.tx
+      .select({
+        channelId: channelMemberships.channelId,
+        lastReadEntrySeq: channelMemberships.lastReadEntrySeq,
+        unreadCount: sql<number>`count(${unread.seq})`.mapWith(Number),
+      })
+      .from(channelMemberships)
+      .leftJoinLateral(unread, sql`true`)
       .where(
         and(
           eq(channelMemberships.workspaceId, workspaceId),
@@ -43,6 +52,7 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
         ),
       )
       .groupBy(channelMemberships.channelId, channelMemberships.lastReadEntrySeq);
+
     return rows.map((row) => ({
       channelId: row.channelId,
       lastReadEntrySeq: row.lastReadEntrySeq.toString(),
@@ -83,19 +93,33 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
     after: bigint,
     ceiling: bigint,
   ): Promise<number> {
-    const [row] = await this.txHost.tx
-      .select({ count: count() })
+    return this.cappedUnreadCount(channelId, memberId, after, ceiling);
+  }
+
+  /** Counts unread entries up to `UNREAD_COUNT_CAP`, stopping the scan there rather than at the end of the range. */
+  private async cappedUnreadCount(
+    channelId: string,
+    memberId: string,
+    after: bigint,
+    ceiling?: bigint,
+  ): Promise<number> {
+    const capped = this.txHost.tx
+      .select({ seq: channelEntries.seq })
       .from(channelEntries)
       .innerJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
       .where(
         and(
           eq(channelEntries.channelId, channelId),
           gt(channelEntries.seq, after),
-          lte(channelEntries.seq, ceiling),
+          ceiling === undefined ? undefined : lte(channelEntries.seq, ceiling),
           ne(chatMessages.authorMemberId, memberId),
           isNull(chatMessages.deletedAt),
         ),
-      );
+      )
+      .orderBy(channelEntries.seq)
+      .limit(UNREAD_COUNT_CAP)
+      .as('capped');
+    const [row] = await this.txHost.tx.select({ count: count() }).from(capped);
     return row?.count ?? 0;
   }
 }

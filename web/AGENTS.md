@@ -8,7 +8,7 @@
 - features represent user capabilities
 - domain represents business concepts
 - avoid unnecessary comments that describes what code already do, try to avoid ascii chars inside comments or code at all
-- feature/domain modules expose index.ts, but not at the bottom of the module
+- feature/domain modules expose their public surface through types.ts; add index.ts only where a module genuinely needs one entry point, not by default
 
 ## Components:
 

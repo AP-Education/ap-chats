@@ -3,6 +3,7 @@ import { APP_FILTER } from '@nestjs/core';
 
 import { AuthModule } from '@/components/auth';
 import { BootstrapModule } from '@/components/bootstrap';
+import { CallsModule } from '@/components/calls';
 import { CommunitiesModule } from '@/components/communities';
 import { DevicesModule } from '@/components/devices';
 import { DirectMessagesModule } from '@/components/direct-messages/direct-messages.module';
@@ -34,6 +35,7 @@ import { HealthController } from '@/health/health.controller';
     CommunitiesModule,
     SocialModule,
     BootstrapModule,
+    CallsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],

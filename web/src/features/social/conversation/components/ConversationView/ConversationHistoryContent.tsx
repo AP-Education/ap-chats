@@ -2,7 +2,6 @@ import { Alert, Button, Spin } from 'antd';
 import { createStyles } from 'antd-style';
 
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
-import type { MessageAuthor } from '@/features/social/messaging/types';
 
 import { ConversationSelectionBar } from './ConversationSelectionBar';
 import { ConversationTimeline } from './ConversationTimeline';
@@ -19,14 +18,12 @@ const useStyles = createStyles(({ css }) => ({
 }));
 
 interface ConversationHistoryContentProps {
-  author: MessageAuthor;
   navigation: ReturnType<typeof useConversationHistoryNavigation>;
   interaction: ReturnType<typeof useConversationActions>;
   operations: ReturnType<typeof useMessageOperations>;
 }
 
 export function ConversationHistoryContent({
-  author,
   navigation,
   interaction,
   operations,
@@ -56,7 +53,6 @@ export function ConversationHistoryContent({
   return (
     <>
       <ConversationTimeline
-        author={author}
         navigation={navigation}
         interaction={interaction}
         operations={operations}

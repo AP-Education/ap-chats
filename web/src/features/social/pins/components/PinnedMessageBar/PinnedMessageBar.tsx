@@ -6,8 +6,8 @@ import { useState } from 'react';
 import { ReplyExcerpt } from '@/features/social/messaging/components/ReplyExcerpt/ReplyExcerpt';
 import { IconButton } from '@/shared/ui/IconButton';
 
-import { usePinActions, usePins } from '../../hooks/usePins';
 import { PinnedMessages } from '../PinnedMessages/PinnedMessages';
+import { usePinnedMessageBar } from './usePinnedMessageBar';
 
 const useStyles = createStyles(({ token, css }) => ({
   bar: css`
@@ -55,49 +55,34 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 interface PinnedMessageBarProps {
-  workspaceId: string;
-  channelId: string;
   canUnpin: boolean;
   onJump: (messageId: string) => void;
 }
 
-export function PinnedMessageBar({
-  workspaceId,
-  channelId,
-  canUnpin,
-  onJump,
-}: PinnedMessageBarProps) {
+export function PinnedMessageBar({ canUnpin, onJump }: PinnedMessageBarProps) {
   const { styles } = useStyles();
-  const { data: pins } = usePins(workspaceId, channelId);
-  const { update } = usePinActions(workspaceId, channelId);
-  const scopeKey = `${workspaceId}:${channelId}`;
-  const [cursor, setCursor] = useState({ scopeKey, index: 0 });
   const [listOpen, setListOpen] = useState(false);
-  if (cursor.scopeKey !== scopeKey) setCursor({ scopeKey, index: 0 });
+  const bar = usePinnedMessageBar();
 
-  if (!pins?.length) return null;
-
-  const position = Math.min(cursor.index, pins.length - 1);
-  const current = pins[position]!;
+  if (!bar) return null;
+  const { current, position, total, advance, unpin } = bar;
 
   function showAndAdvance() {
     onJump(current.messageId);
-    setCursor({ scopeKey, index: (position + 1) % pins!.length });
+    advance();
   }
 
-  function unpinCurrent() {
-    void update(current.messageId, false).catch(() =>
-      toast.error('Не вдалося відкріпити повідомлення.'),
-    );
+  function handleUnpin() {
+    void unpin().catch(() => toast.error('Не вдалося відкріпити повідомлення.'));
   }
 
   return (
     <div className={styles.bar}>
       <span className={styles.pin}>
         <PushPinIcon size={18} weight="fill" />
-        {pins.length > 1 && (
+        {total > 1 && (
           <span className={styles.count}>
-            {position + 1}/{pins.length}
+            {position + 1}/{total}
           </span>
         )}
       </span>
@@ -113,8 +98,6 @@ export function PinnedMessageBar({
           title="Закріплені повідомлення"
           content={
             <PinnedMessages
-              workspaceId={workspaceId}
-              channelId={channelId}
               onJump={(messageId) => {
                 onJump(messageId);
                 setListOpen(false);
@@ -130,7 +113,7 @@ export function PinnedMessageBar({
         </Popover>
         {canUnpin && (
           <Tooltip title="Відкріпити">
-            <IconButton size={32} aria-label="Відкріпити повідомлення" onClick={unpinCurrent}>
+            <IconButton size={32} aria-label="Відкріпити повідомлення" onClick={handleUnpin}>
               <XIcon size={16} />
             </IconButton>
           </Tooltip>

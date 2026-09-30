@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { MessageComposer } from '@/features/social/messaging/components/MessageComposer';
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import type { HistoryItem, SendMessageInput } from '@/features/social/messaging/types';
+import { isMessageItem } from '@/features/social/messaging/types';
 
 import { useConversation } from '../../store';
 
@@ -33,11 +34,11 @@ function WritableConversationFooter({
 }: Pick<ConversationFooterProps, 'items' | 'send'>) {
   const intent = useConversation((state) => state.intent);
   const replyTarget = intent
-    ? items.find((item) => item.message.id === intent.messageId)
+    ? items.filter(isMessageItem).find((item) => item.message.id === intent.messageId)
     : undefined;
 
   function onSend(input: Omit<SendMessageInput, 'clientNonce'>) {
-    void send(input).catch(() => undefined);
+    send(input);
   }
 
   return (

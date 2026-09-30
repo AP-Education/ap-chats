@@ -1,10 +1,10 @@
 import { ForwardModal } from '@/features/social/forwarding/components/ForwardModal/ForwardModal';
-import type { HistoryItem } from '@/features/social/messaging/types';
+import type { MessageHistoryItem } from '@/features/social/messaging/types';
 
 import { useConversationScope } from '../../store';
 
 interface ConversationForwardingProps {
-  items: HistoryItem[];
+  items: MessageHistoryItem[];
   historyReady: boolean;
   onClose: () => void;
 }

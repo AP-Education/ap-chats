@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 
-import type { HistoryItem } from '../messaging/types';
+import type { MessageHistoryItem } from '../messaging/types';
 
 export type ActionTarget =
-  | { kind: 'message'; items: [HistoryItem] }
-  | { kind: 'text'; items: [HistoryItem]; selectedText: string }
-  | { kind: 'batch'; items: HistoryItem[] };
+  | { kind: 'message'; items: [MessageHistoryItem] }
+  | { kind: 'text'; items: [MessageHistoryItem]; selectedText: string }
+  | { kind: 'batch'; items: MessageHistoryItem[] };
 
 export interface ActionContext {
   memberId: string | undefined;
@@ -15,13 +15,13 @@ export interface ActionContext {
 }
 
 export interface ActionCommands {
-  reply: (item: HistoryItem, quoteText?: string) => void;
-  edit: (item: HistoryItem) => void;
-  remove: (items: HistoryItem[]) => void;
-  select: (item: HistoryItem) => void;
-  copy: (items: HistoryItem[], selectedText?: string) => void;
-  forward: (items: HistoryItem[]) => void;
-  pin: (item: HistoryItem, active: boolean) => void;
+  reply: (item: MessageHistoryItem, quoteText?: string) => void;
+  edit: (item: MessageHistoryItem) => void;
+  remove: (items: MessageHistoryItem[]) => void;
+  select: (item: MessageHistoryItem) => void;
+  copy: (items: MessageHistoryItem[], selectedText?: string) => void;
+  forward: (items: MessageHistoryItem[]) => void;
+  pin: (item: MessageHistoryItem, active: boolean) => void;
 }
 
 export interface ConversationAction {

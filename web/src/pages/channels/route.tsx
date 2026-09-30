@@ -1,9 +1,9 @@
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
 
+import { ChatLoading } from '@/domain/conversation/ChatLoading';
 import { LastConversationRoute } from '@/features/social/conversation/LastConversationRoute';
 import { RequiredWorkspaceLayout } from '@/features/workspaces/layouts/RequiredWorkspaceLayout';
-import { ChatLoading } from '@/shared/ui/ChatLayout/ChatLoading';
 
 const ChannelContent = lazy(() => import('./ChannelContent'));
 

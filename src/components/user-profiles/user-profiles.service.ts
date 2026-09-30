@@ -1,14 +1,15 @@
 import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { TransactionHost } from '@nestjs-cls/transactional';
 import { isNull, lte, or } from 'drizzle-orm';
 
 import { AccountsTokenVerifier } from '@/components/auth';
-import { DrizzleService } from '@/database/drizzle';
 import { userProfiles } from '@/database/drizzle/schema';
+import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 @Injectable()
 export class UserProfilesService {
   constructor(
-    private readonly drizzle: DrizzleService,
+    private readonly txHost: TransactionHost<DrizzleTransactionAdapter>,
     private readonly tokens: AccountsTokenVerifier,
   ) {}
 
@@ -26,7 +27,7 @@ export class UserProfilesService {
       avatarPath: verified.avatarPath,
       syncedAt: verified.issuedAt,
     };
-    await this.drizzle.db
+    await this.txHost.tx
       .insert(userProfiles)
       .values(profile)
       .onConflictDoUpdate({

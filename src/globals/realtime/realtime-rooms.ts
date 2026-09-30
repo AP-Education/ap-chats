@@ -1,6 +1,8 @@
 export const RealtimeRooms = {
-  user(appId: string, userId: string): string {
-    return `app:${appId}:user:${userId}`;
+  // Every device a person is connected from joins the same room: a personal
+  // event (an incoming call, say) must reach all of them, not just one app.
+  user(userId: string): string {
+    return `user:${userId}`;
   },
   socialChannel(workspaceId: string, channelId: string): string {
     return `social:workspace:${workspaceId}:channel:${channelId}`;
@@ -8,7 +10,7 @@ export const RealtimeRooms = {
   socialWorkspace(workspaceId: string): string {
     return `social:workspace:${workspaceId}`;
   },
-  conversation(appId: string, conversationId: string): string {
-    return `app:${appId}:conversation:${conversationId}`;
+  conversation(conversationId: string): string {
+    return `conversation:${conversationId}`;
   },
 } as const;

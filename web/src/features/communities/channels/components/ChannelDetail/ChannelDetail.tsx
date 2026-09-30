@@ -1,3 +1,4 @@
+import { LoadingOutlined } from '@ant-design/icons';
 import {
   CaretDownIcon,
   GearSixIcon,
@@ -12,13 +13,15 @@ import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
-import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
-import { ApiError } from '@/shared/api/http';
 import {
   ConversationActionDivider,
   ConversationPane,
-} from '@/shared/ui/ChatLayout/ConversationPane';
+} from '@/domain/conversation/ConversationPane';
+import { callActionLabel } from '@/features/calls/callActionLabel';
+import { useCallAction } from '@/features/calls/hooks/useCallAction';
+import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
+import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
+import { ApiError } from '@/shared/api/http';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { canManageChannel } from '../../../channel-permissions';
@@ -196,6 +199,8 @@ export function ChannelDetail({
   const [editing, setEditing] = useState(false);
   const canManage = canManageChannel(channel, currentMember);
   const actionSize = onBack ? 40 : 36;
+  const call = useCallAction(workspaceId, channel.id, channel.name);
+  const callTitle = callActionLabel(call, 'Дзвінок у каналі');
 
   function handleJoin() {
     join.mutate(undefined, {
@@ -237,15 +242,23 @@ export function ChannelDetail({
               compact={Boolean(onBack)}
             />
           )}
-          <Tooltip title="Дзвінки в каналі з’являться незабаром">
+          <Tooltip title={callTitle}>
             <span>
               <IconButton
                 size={actionSize}
-                className={styles.headerAction}
-                aria-label="Дзвінок у каналі"
-                disabled
+                className={cx(
+                  styles.headerAction,
+                  (call.inCall || call.joinable) && styles.actionActive,
+                )}
+                aria-label={callTitle}
+                disabled={call.busy || call.pending || !channel.isMember}
+                onClick={call.onClick}
               >
-                <PhoneIcon size={21} />
+                {call.pending ? (
+                  <LoadingOutlined />
+                ) : (
+                  <PhoneIcon size={21} weight={call.joinable ? 'fill' : 'regular'} />
+                )}
               </IconButton>
             </span>
           </Tooltip>

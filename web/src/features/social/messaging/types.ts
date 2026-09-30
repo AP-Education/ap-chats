@@ -15,8 +15,9 @@ export interface Message {
   deletedAt: string | null;
 }
 
-export interface HistoryItem {
+export interface MessageHistoryItem {
   type: 'MESSAGE';
+  id: string;
   seq: string;
   createdAt: string;
   message: Message;
@@ -30,6 +31,34 @@ export interface HistoryItem {
   forwardedFrom: MessageAuthor | null;
   pin: { pinnedAt: string; pinnedByMemberId: string } | null;
   mentions?: { memberId: string; displayName: string | null; avatarPath: string | null }[];
+}
+
+export type CallEntryStatus = 'ringing' | 'active' | 'ended' | 'declined' | 'missed';
+
+export interface CallHistoryItem {
+  type: 'CALL';
+  id: string;
+  seq: string;
+  createdAt: string;
+  call: {
+    id: string;
+    status: CallEntryStatus;
+    startedByMemberId: string;
+    startedAt: string;
+    endedAt: string | null;
+  };
+  startedBy: MessageAuthor;
+}
+
+// A row in the channel timeline: exactly one kind, never a grab-bag of
+// optional message/call fields (mirrors the backend's HistoryRow union).
+export type HistoryItem = MessageHistoryItem | CallHistoryItem;
+
+// The one shared narrowing point: selection, editing, forwarding, pinning and
+// read-receipts are message-only concepts, and all of them filter through this
+// same predicate rather than re-deriving `item.type === 'MESSAGE'` locally.
+export function isMessageItem(item: HistoryItem): item is MessageHistoryItem {
+  return item.type === 'MESSAGE';
 }
 
 export interface MessageAuthor {

@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { confirmDirectMessage, mergeDirectMessage } from '@/features/social/direct-messages/cache';
-import type { HistoryItem } from '@/features/social/messaging/types';
+import type { MessageHistoryItem } from '@/features/social/messaging/types';
 
 import { forwardMessages } from '../../api/forwarding-api';
 import type { ForwardTarget } from './forward-targets';
@@ -33,7 +33,7 @@ const useStyles = createStyles(({ token, css }) => ({
 interface ForwardModalProps {
   workspaceId: string;
   sourceChannelId: string;
-  items: HistoryItem[];
+  items: MessageHistoryItem[];
   onClose: () => void;
 }
 
