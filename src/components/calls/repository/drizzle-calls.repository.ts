@@ -128,7 +128,7 @@ export class DrizzleCallsRepository extends CallsRepository {
     return row;
   }
 
-  async ringRecipients(channelId: string, excludeMemberId: string): Promise<string[]> {
+  async ringRecipients(channelId: string, excludeMemberId: string | null): Promise<string[]> {
     const rows = await this.txHost.tx
       .select({ oidcUserId: userProfiles.oidcUserId })
       .from(channelMemberships)
@@ -137,7 +137,7 @@ export class DrizzleCallsRepository extends CallsRepository {
       .where(
         and(
           eq(channelMemberships.channelId, channelId),
-          ne(channelMemberships.memberId, excludeMemberId),
+          excludeMemberId === null ? undefined : ne(channelMemberships.memberId, excludeMemberId),
         ),
       );
     return rows.map((row) => row.oidcUserId);

@@ -54,7 +54,10 @@ export class CallsService {
           member.id,
         ),
       );
-      await this.notify(member, channel, record, 'call:incoming');
+      // Unlike every other call event, the starter must not hear their own
+      // ring: it would pop their own incoming-call card (and ringtone) for
+      // a call they themselves just placed.
+      await this.notify(member, channel, record, 'call:incoming', { includeActor: false });
     }
     return this.toView(record);
   }
@@ -87,7 +90,7 @@ export class CallsService {
     if (!ACTIVE_STATUSES.has(record.status)) {
       throw new ForbiddenException('Call is no longer available');
     }
-    if (record.status === 'ringing') {
+    if (record.status === 'ringing' && member.id !== record.startedByMemberId) {
       const activated = await this.calls.activate(record.id);
       if (activated) await this.notify(member, channel, activated, 'call:accepted');
     }
@@ -157,14 +160,25 @@ export class CallsService {
     return { channel, record };
   }
 
-  /** Fans out to every other active channel member, on every device they're connected from. */
+  /**
+   * Fans out to every active channel member, on every device they're
+   * connected from — the actor included by default. Client handlers for
+   * these events only refresh cached state (a call's timeline entry, its
+   * "active" query), which the actor needs updated on their own client too,
+   * exactly like everyone else's; excluding them silently left their own
+   * timeline card stuck on stale data. `call:incoming` is the one exception
+   * a caller must pass `includeActor: false` for, since it pops an
+   * incoming-call card (and ringtone) — never appropriate for your own call.
+   */
   private async notify(
     actor: WorkspaceMember,
     channel: ChannelAccessSnapshot,
     call: CallRecord,
     event: 'call:incoming' | 'call:accepted' | 'call:declined' | 'call:ended' | 'call:missed',
+    options?: { includeActor?: boolean },
   ): Promise<void> {
-    const recipients = await this.calls.ringRecipients(channel.id, actor.id);
+    const includeActor = options?.includeActor ?? true;
+    const recipients = await this.calls.ringRecipients(channel.id, includeActor ? null : actor.id);
     const payload = {
       workspaceId: channel.workspaceId,
       channelId: channel.id,
