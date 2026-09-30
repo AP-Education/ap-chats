@@ -7,4 +7,9 @@ export abstract class EntriesRepository {
     channelId: string,
     messageIds: string[],
   ): Promise<EntryPosition[]>;
+  abstract appendCall(
+    workspaceId: string,
+    channelId: string,
+    callId: string,
+  ): Promise<ChannelEntry>;
 }

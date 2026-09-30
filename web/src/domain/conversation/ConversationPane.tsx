@@ -2,7 +2,7 @@ import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import type { PropsWithChildren, ReactNode } from 'react';
 
-import { IconButton } from '../IconButton';
+import { IconButton } from '@/shared/ui/IconButton';
 
 const useStyles = createStyles(({ token, css }) => ({
   shell: css`

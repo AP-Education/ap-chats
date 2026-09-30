@@ -1,9 +1,9 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { and, desc, eq, exists, gt, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
-import { DrizzleService } from '@/database/drizzle';
 import {
   channelEntries,
   channelMemberships,
@@ -13,6 +13,7 @@ import {
   userProfiles,
   workspaceMembers,
 } from '@/database/drizzle/schema';
+import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 type Cursor = { at: string; id: string };
 
@@ -39,13 +40,13 @@ function isUniqueViolation(error: unknown): boolean {
 
 @Injectable()
 export class DirectMessagesService {
-  constructor(private readonly drizzle: DrizzleService) {}
+  constructor(private readonly txHost: TransactionHost<DrizzleTransactionAdapter>) {}
 
   async findOrCreate(member: WorkspaceMember, targetMemberId: string) {
     if (member.id === targetMemberId)
       throw new ConflictException('Choose another workspace member');
     const [firstMemberId, secondMemberId] = [member.id, targetMemberId].sort();
-    const target = await this.drizzle.db
+    const target = await this.txHost.tx
       .select({ id: workspaceMembers.id })
       .from(workspaceMembers)
       .where(
@@ -60,30 +61,13 @@ export class DirectMessagesService {
     const existing = await this.findPair(member.workspaceId, firstMemberId!, secondMemberId!);
     if (existing) return this.get(member, existing);
     try {
-      const channelId = await this.drizzle.db.transaction(async (tx) => {
-        const [channel] = await tx
-          .insert(channels)
-          .values({
-            workspaceId: member.workspaceId,
-            kind: 'dm',
-            name: null,
-            categoryId: null,
-            createdByMemberId: member.id,
-          })
-          .returning({ id: channels.id });
-        if (!channel) throw new Error('Direct message insert failed');
-        await tx.insert(directMessages).values({
-          workspaceId: member.workspaceId,
-          channelId: channel.id,
-          firstMemberId: firstMemberId!,
-          secondMemberId: secondMemberId!,
-        });
-        await tx.insert(channelMemberships).values([
-          { workspaceId: member.workspaceId, channelId: channel.id, memberId: member.id },
-          { workspaceId: member.workspaceId, channelId: channel.id, memberId: targetMemberId },
-        ]);
-        return channel.id;
-      });
+      const channelId = await this.createPair(
+        member.workspaceId,
+        member.id,
+        targetMemberId,
+        firstMemberId!,
+        secondMemberId!,
+      );
       return this.get(member, channelId);
     } catch (error) {
       if (!isUniqueViolation(error)) throw error;
@@ -91,6 +75,38 @@ export class DirectMessagesService {
       if (!channelId) throw error;
       return this.get(member, channelId);
     }
+  }
+
+  @Transactional()
+  private async createPair(
+    workspaceId: string,
+    memberId: string,
+    targetMemberId: string,
+    firstMemberId: string,
+    secondMemberId: string,
+  ): Promise<string> {
+    const [channel] = await this.txHost.tx
+      .insert(channels)
+      .values({
+        workspaceId,
+        kind: 'dm',
+        name: null,
+        categoryId: null,
+        createdByMemberId: memberId,
+      })
+      .returning({ id: channels.id });
+    if (!channel) throw new Error('Direct message insert failed');
+    await this.txHost.tx.insert(directMessages).values({
+      workspaceId,
+      channelId: channel.id,
+      firstMemberId,
+      secondMemberId,
+    });
+    await this.txHost.tx.insert(channelMemberships).values([
+      { workspaceId, channelId: channel.id, memberId },
+      { workspaceId, channelId: channel.id, memberId: targetMemberId },
+    ]);
+    return channel.id;
   }
 
   async get(member: WorkspaceMember, channelId: string) {
@@ -145,7 +161,7 @@ export class DirectMessagesService {
   async unread(member: WorkspaceMember) {
     const unreadEntry = alias(channelEntries, 'dm_unread_entry');
     const unreadMessage = alias(chatMessages, 'dm_unread_message');
-    const hasUnread = this.drizzle.db
+    const hasUnread = this.txHost.tx
       .select({ id: unreadEntry.id })
       .from(unreadEntry)
       .innerJoin(unreadMessage, eq(unreadMessage.id, unreadEntry.messageId))
@@ -157,7 +173,7 @@ export class DirectMessagesService {
           isNull(unreadMessage.deletedAt),
         ),
       );
-    const candidates = await this.drizzle.db
+    const candidates = await this.txHost.tx
       .select({ channelId: channels.id })
       .from(channelMemberships)
       .innerJoin(
@@ -182,7 +198,7 @@ export class DirectMessagesService {
 
     const ids = candidates.map(({ channelId }) => channelId);
     const [counts, conversations] = await Promise.all([
-      this.drizzle.db
+      this.txHost.tx
         .select({
           channelId: channelEntries.channelId,
           unreadCount: sql<number>`count(*)::integer`,
@@ -228,7 +244,7 @@ export class DirectMessagesService {
   }
 
   private async findPair(workspaceId: string, firstMemberId: string, secondMemberId: string) {
-    const [row] = await this.drizzle.db
+    const [row] = await this.txHost.tx
       .select({ channelId: directMessages.channelId })
       .from(directMessages)
       .where(
@@ -253,7 +269,7 @@ export class DirectMessagesService {
         : mode === 'day'
           ? new Date(Date.now() + 24 * 60 * 60 * 1000)
           : null;
-    await this.drizzle.db
+    await this.txHost.tx
       .update(channelMemberships)
       .set({ notificationsMuted: mode === 'indefinite', mutedUntil })
       .where(
@@ -272,7 +288,7 @@ export class DirectMessagesService {
     const firstProfile = alias(userProfiles, 'dm_first_profile');
     const secondProfile = alias(userProfiles, 'dm_second_profile');
     const viewerMembership = alias(channelMemberships, 'dm_viewer_membership');
-    return this.drizzle.db
+    return this.txHost.tx
       .select({
         channel: channels,
         notification: {

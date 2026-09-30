@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, ne } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, ne, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import {
+  calls,
   channelEntries,
   chatMessages,
   messageMentions,
@@ -13,7 +14,7 @@ import {
 } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
-import type { HistoryRowsPage } from '../types/history.types';
+import type { HistoryRow, HistoryRowsPage } from '../types/history.types';
 import { HistoryRepository } from './history.repository';
 
 @Injectable()
@@ -30,12 +31,28 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     return row?.seq ?? null;
   }
 
+  async entrySeq(channelId: string, entryId: string): Promise<bigint | null> {
+    const [row] = await this.txHost.tx
+      .select({ seq: channelEntries.seq })
+      .from(channelEntries)
+      .where(
+        and(
+          eq(channelEntries.channelId, channelId),
+          or(eq(channelEntries.messageId, entryId), eq(channelEntries.callId, entryId)),
+        ),
+      );
+    return row?.seq ?? null;
+  }
+
   async firstUnreadSeq(
     channelId: string,
     memberId: string,
     after: bigint,
     ceiling: bigint,
   ): Promise<bigint | null> {
+    // Calls and future system entries don't carry an author and aren't unread
+    // material for the first increment (docs/channel-history-model.md §3);
+    // the inner join to chat_messages already excludes them.
     const [row] = await this.txHost.tx
       .select({ seq: channelEntries.seq })
       .from(channelEntries)
@@ -54,21 +71,25 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     return row?.seq ?? null;
   }
 
-  async page(
+  // The row shape below is inferred from this query, not hand-duplicated:
+  // `Row` in toHistoryRow() is `Awaited<ReturnType<typeof this.rowsQuery>>[number]`.
+  private rowsQuery(
     channelId: string,
     direction: 'before' | 'after',
     cursor: bigint | undefined,
     ceiling: bigint,
     limit: number,
-  ): Promise<HistoryRowsPage> {
+  ) {
     const replyMessages = alias(chatMessages, 'reply_messages');
     const authorMembers = alias(workspaceMembers, 'author_members');
     const replyAuthorMembers = alias(workspaceMembers, 'reply_author_members');
     const forwardAuthorMembers = alias(workspaceMembers, 'forward_author_members');
+    const startedByMembers = alias(workspaceMembers, 'started_by_members');
     const authors = alias(userProfiles, 'authors');
     const replyAuthors = alias(userProfiles, 'reply_authors');
     const forwardAuthors = alias(userProfiles, 'forward_authors');
-    const rows = await this.txHost.tx
+    const startedByProfiles = alias(userProfiles, 'started_by_profiles');
+    return this.txHost.tx
       .select({
         seq: channelEntries.seq,
         createdAt: channelEntries.createdAt,
@@ -84,11 +105,16 @@ export class DrizzleHistoryRepository extends HistoryRepository {
           avatarPath: forwardAuthors.avatarPath,
         },
         pin: messagePins,
+        call: calls,
+        startedByProfile: {
+          displayName: startedByProfiles.displayName,
+          avatarPath: startedByProfiles.avatarPath,
+        },
       })
       .from(channelEntries)
-      .innerJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
-      .innerJoin(authorMembers, eq(authorMembers.id, chatMessages.authorMemberId))
-      .innerJoin(authors, eq(authors.id, authorMembers.userProfileId))
+      .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .leftJoin(authorMembers, eq(authorMembers.id, chatMessages.authorMemberId))
+      .leftJoin(authors, eq(authors.id, authorMembers.userProfileId))
       .leftJoin(replyMessages, eq(replyMessages.id, chatMessages.replyToMessageId))
       .leftJoin(replyAuthorMembers, eq(replyAuthorMembers.id, replyMessages.authorMemberId))
       .leftJoin(replyAuthors, eq(replyAuthors.id, replyAuthorMembers.userProfileId))
@@ -104,6 +130,9 @@ export class DrizzleHistoryRepository extends HistoryRepository {
           eq(messagePins.messageId, channelEntries.messageId),
         ),
       )
+      .leftJoin(calls, eq(calls.id, channelEntries.callId))
+      .leftJoin(startedByMembers, eq(startedByMembers.id, calls.startedByMemberId))
+      .leftJoin(startedByProfiles, eq(startedByProfiles.id, startedByMembers.userProfileId))
       .where(
         and(
           eq(channelEntries.channelId, channelId),
@@ -119,10 +148,20 @@ export class DrizzleHistoryRepository extends HistoryRepository {
       )
       .orderBy(direction === 'after' ? asc(channelEntries.seq) : desc(channelEntries.seq))
       .limit(limit + 1);
+  }
+
+  async page(
+    channelId: string,
+    direction: 'before' | 'after',
+    cursor: bigint | undefined,
+    ceiling: bigint,
+    limit: number,
+  ): Promise<HistoryRowsPage> {
+    const rows = await this.rowsQuery(channelId, direction, cursor, ceiling, limit);
     const hasMore = rows.length > limit;
     const page = rows.slice(0, limit);
-    const ids = page.map((row) => row.message.id);
-    const mentions = ids.length
+    const messageIds = page.flatMap((row) => (row.message ? [row.message.id] : []));
+    const mentions = messageIds.length
       ? await this.txHost.tx
           .select({
             messageId: messageMentions.messageId,
@@ -133,19 +172,45 @@ export class DrizzleHistoryRepository extends HistoryRepository {
           .from(messageMentions)
           .innerJoin(workspaceMembers, eq(workspaceMembers.id, messageMentions.memberId))
           .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
-          .where(inArray(messageMentions.messageId, ids))
+          .where(inArray(messageMentions.messageId, messageIds))
       : [];
     const byMessage = new Map<string, typeof mentions>();
     for (const mention of mentions)
       byMessage.set(mention.messageId, [...(byMessage.get(mention.messageId) ?? []), mention]);
+    const ordered = direction === 'before' ? page.reverse() : page;
+    return { rows: ordered.map((row) => this.toHistoryRow(row, byMessage)), hasMore };
+  }
+
+  private toHistoryRow(
+    row: Awaited<ReturnType<typeof this.rowsQuery>>[number],
+    mentionsByMessage: Map<
+      string,
+      { memberId: string; displayName: string | null; avatarPath: string | null }[]
+    >,
+  ): HistoryRow {
+    if (row.call) {
+      if (!row.startedByProfile) throw new Error('Call entry missing its starter profile');
+      return {
+        type: 'CALL',
+        seq: row.seq,
+        createdAt: row.createdAt,
+        call: row.call,
+        startedByProfile: row.startedByProfile,
+      };
+    }
+    if (!row.message || !row.authorProfile)
+      throw new Error('channel_entries row has neither message nor call');
     return {
-      rows: (direction === 'before' ? page.reverse() : page).map((row) => ({
-        ...row,
-        mentions: (byMessage.get(row.message.id) ?? []).map(
-          ({ memberId, displayName, avatarPath }) => ({ memberId, displayName, avatarPath }),
-        ),
-      })),
-      hasMore,
+      type: 'MESSAGE',
+      seq: row.seq,
+      createdAt: row.createdAt,
+      message: row.message,
+      authorProfile: row.authorProfile,
+      reply: row.reply,
+      replyAuthorProfile: row.replyAuthorProfile,
+      forwardAuthorProfile: row.forwardAuthorProfile,
+      pin: row.pin,
+      mentions: mentionsByMessage.get(row.message.id) ?? [],
     };
   }
 }

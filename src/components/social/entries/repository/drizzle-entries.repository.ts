@@ -29,6 +29,21 @@ export class DrizzleEntriesRepository extends EntriesRepository {
     return entry;
   }
 
+  async appendCall(workspaceId: string, channelId: string, callId: string): Promise<ChannelEntry> {
+    const [channel] = await this.txHost.tx
+      .update(channels)
+      .set({ lastEntrySeq: sql`${channels.lastEntrySeq} + 1`, updatedAt: new Date() })
+      .where(and(eq(channels.workspaceId, workspaceId), eq(channels.id, channelId)))
+      .returning({ seq: channels.lastEntrySeq });
+    if (!channel) throw new Error('Locked channel disappeared');
+    const [entry] = await this.txHost.tx
+      .insert(channelEntries)
+      .values({ workspaceId, channelId, callId, seq: channel.seq })
+      .returning();
+    if (!entry) throw new Error('Entry insert failed');
+    return entry;
+  }
+
   async appendMany(
     workspaceId: string,
     channelId: string,

@@ -2,9 +2,9 @@ import { ChatCircleDotsIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Empty, message as toast, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
-import { useEffect, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import { searchPeople } from '../../api/direct-messages-api';
@@ -73,12 +73,7 @@ export function PeopleSearchResults({
   const { styles } = useStyles();
   const { token, identity } = useQueryAuth();
   const { open, opening } = useOpenDirectMessage(workspaceId);
-  const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSearchTerm(query.trim()), 180);
-    return () => window.clearTimeout(timer);
-  }, [query]);
+  const searchTerm = useDebouncedValue(query.trim(), 180);
 
   const people = useQuery({
     queryKey: ['dm-people-search', identity, workspaceId, searchTerm],

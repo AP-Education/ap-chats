@@ -12,14 +12,12 @@ export class SocketIoRealtimePublisher extends RealtimePublisher {
     this.namespace = namespace;
   }
 
-  toUser(appId: string, userId: string, event: string, payload: unknown): void {
-    this.requireNamespace().to(RealtimeRooms.user(appId, userId)).emit(event, payload);
+  toUser(userId: string, event: string, payload: unknown): void {
+    this.requireNamespace().to(RealtimeRooms.user(userId)).emit(event, payload);
   }
 
-  toConversation(appId: string, conversationId: string, event: string, payload: unknown): void {
-    this.requireNamespace()
-      .to(RealtimeRooms.conversation(appId, conversationId))
-      .emit(event, payload);
+  toConversation(conversationId: string, event: string, payload: unknown): void {
+    this.requireNamespace().to(RealtimeRooms.conversation(conversationId)).emit(event, payload);
   }
 
   private requireNamespace(): Namespace {

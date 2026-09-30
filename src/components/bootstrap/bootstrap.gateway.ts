@@ -41,7 +41,7 @@ export class BootstrapGateway implements OnGatewayInit, OnGatewayConnection {
     }
 
     try {
-      await socket.join(RealtimeRooms.user(principal.appId, principal.sub));
+      await socket.join(RealtimeRooms.user(principal.sub));
       socket.emit('session:ready', { userId: principal.sub, appId: principal.appId });
     } catch (error) {
       this.logger

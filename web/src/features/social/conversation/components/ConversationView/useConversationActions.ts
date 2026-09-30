@@ -5,7 +5,8 @@ import { forwardingActions } from '@/features/social/forwarding/actions';
 import { messagingActions } from '@/features/social/messaging/actions';
 import { flashMessage } from '@/features/social/messaging/flashMessage';
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
-import type { HistoryItem } from '@/features/social/messaging/types';
+import type { HistoryItem, MessageHistoryItem } from '@/features/social/messaging/types';
+import { isMessageItem } from '@/features/social/messaging/types';
 import { pinActions } from '@/features/social/pins/actions';
 import { usePinActions } from '@/features/social/pins/hooks/usePins';
 
@@ -33,14 +34,14 @@ export function useConversationActions({
 }: UseConversationActionsInput) {
   const { workspaceId, channelId } = useConversationScope();
   const pins = usePinActions(workspaceId, channelId);
-  const [forwardItems, setForwardItems] = useState<HistoryItem[]>([]);
+  const [forwardItems, setForwardItems] = useState<MessageHistoryItem[]>([]);
   const selectedIds = useConversation((state) => state.selectedIds);
   const clearSelection = useConversation((state) => state.clearSelection);
   const toggleSelected = useConversation((state) => state.toggleSelected);
   const setIntent = useConversation((state) => state.setIntent);
   const setEditingId = useConversation((state) => state.setEditingId);
   const selectedItems = useMemo(
-    () => items.filter((item) => selectedIds.includes(item.message.id)),
+    () => items.filter(isMessageItem).filter((item) => selectedIds.includes(item.id)),
     [items, selectedIds],
   );
   const actionContext = useMemo(
@@ -108,7 +109,7 @@ export function useConversationActions({
     editRef.current = operations.edit;
   });
   const onEdit = useCallback(
-    (item: HistoryItem, markdown: string, overwrite?: boolean) =>
+    (item: MessageHistoryItem, markdown: string, overwrite?: boolean) =>
       editRef
         .current(item.message.id, markdown, overwrite ? undefined : item.message.revision)
         .then(() => undefined),

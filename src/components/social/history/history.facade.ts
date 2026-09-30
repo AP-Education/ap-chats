@@ -19,13 +19,13 @@ export class HistoryFacade {
   ) {}
 
   @Transactional()
-  async message(member: WorkspaceMember, channelId: string, messageId: string) {
+  async entry(member: WorkspaceMember, channelId: string, entryId: string) {
     const { channel } = await this.access.requireReadAccess(member, channelId);
-    const seq = await this.history.messageSeq(channelId, messageId);
-    if (seq === null) throw new NotFoundException('Message not found');
+    const seq = await this.history.entrySeq(channelId, entryId);
+    if (seq === null) throw new NotFoundException('Entry not found');
     const page = await this.history.page(channelId, 'after', seq - 1n, channel.lastEntrySeq, 1);
     const row = page.rows[0];
-    if (!row || row.message.id !== messageId) throw new NotFoundException('Message not found');
+    if (!row) throw new NotFoundException('Entry not found');
     return this.item(row, member.id);
   }
 
@@ -118,8 +118,30 @@ export class HistoryFacade {
     };
   }
 
-  private item(
-    {
+  private item(row: HistoryRow, viewerMemberId: string) {
+    if (row.type === 'CALL') {
+      const { seq, createdAt, call, startedByProfile } = row;
+      return {
+        type: 'CALL' as const,
+        id: call.id,
+        seq: seq.toString(),
+        createdAt,
+        call: {
+          id: call.id,
+          status: call.status,
+          startedByMemberId: call.startedByMemberId,
+          startedAt: call.startedAt,
+          endedAt: call.endedAt,
+        },
+        startedBy: {
+          memberId: call.startedByMemberId,
+          displayName: startedByProfile.displayName,
+          avatarPath: startedByProfile.avatarPath,
+        },
+      };
+    }
+
+    const {
       seq,
       createdAt,
       message,
@@ -129,11 +151,10 @@ export class HistoryFacade {
       forwardAuthorProfile,
       pin,
       mentions,
-    }: HistoryRow,
-    viewerMemberId: string,
-  ) {
+    } = row;
     return {
       type: 'MESSAGE' as const,
+      id: message.id,
       seq: seq.toString(),
       createdAt,
       message: messageView(message, seq, viewerMemberId),

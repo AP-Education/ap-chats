@@ -18,6 +18,10 @@ const schema = z
     DIGITAL_OCEAN_SPACES_ACCESS_KEY: z.string().min(1),
     DIGITAL_OCEAN_SPACES_SECRET_KEY: z.string().min(1),
     DIGITAL_OCEAN_SPACES_BUCKET: z.string().min(1),
+    // Calls are off (CallsModule stays unregistered) until all three are set.
+    LIVEKIT_URL: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
+    LIVEKIT_API_KEY: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
+    LIVEKIT_API_SECRET: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
   })
   .superRefine((config, context) => {
     if (config.LOG_TARGET_TYPE !== 'stdout' && !config.LOG_TARGET_DEST) {
@@ -41,6 +45,14 @@ const schema = z
         path: ['OIDC_ISSUER'],
         message: 'HTTPS is required in production',
       });
+    }
+    const livekit = ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET'] as const;
+    if (livekit.some((key) => config[key]) && !livekit.every((key) => config[key])) {
+      for (const key of livekit) {
+        if (!config[key]) {
+          context.addIssue({ code: 'custom', path: [key], message: 'Set all three or none' });
+        }
+      }
     }
   });
 

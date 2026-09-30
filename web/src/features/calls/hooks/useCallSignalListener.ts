@@ -1,0 +1,95 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { message as toast } from 'antd';
+
+import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
+import { getCallEntry } from '@/features/social/messaging/api/messages-api';
+import { mergeHistoryItem } from '@/features/social/messaging/history-cache';
+
+import { type CallSignal, callSignalSchema } from '../schemas';
+import { useCallStore } from '../store/call-store';
+import type { CallServerToClientEvents } from '../types';
+import { activeCallQueryKey } from './useActiveCall';
+
+function parse(payload: unknown): CallSignal | null {
+  const result = callSignalSchema.safeParse(payload);
+  if (!result.success) {
+    console.error('Невалідний call-сигнал', result.error);
+    return null;
+  }
+  return result.data;
+}
+
+/** Keeps the call store, the "active call" indicators, and the channel's
+ * timeline card in sync with the server, app-wide. */
+export function useCallSignalListener(): void {
+  const queryClient = useQueryClient();
+  const { token, identity } = useQueryAuth();
+  const setIncoming = useCallStore((state) => state.setIncoming);
+  const clearIncoming = useCallStore((state) => state.clearIncoming);
+  const active = useCallStore((state) => state.active);
+  const clearActive = useCallStore((state) => state.clearActive);
+
+  function invalidate(signal: CallSignal) {
+    queryClient.invalidateQueries({
+      queryKey: activeCallQueryKey(signal.workspaceId, signal.channelId),
+    });
+  }
+
+  // The call's status (ringing/active/ended/declined) lives on its timeline
+  // card too; refresh that one cached item rather than the whole history.
+  function refreshEntry(signal: CallSignal) {
+    if (!token) return;
+    void getCallEntry(token, signal.workspaceId, signal.channelId, signal.callId)
+      .then((item) =>
+        mergeHistoryItem(queryClient, identity, signal.workspaceId, signal.channelId, item),
+      )
+      .catch(() => undefined);
+  }
+
+  useSocketEvent<CallServerToClientEvents>('call:incoming', (payload) => {
+    const signal = parse(payload);
+    if (!signal) return;
+    if (signal.channelKind === 'dm') setIncoming(signal);
+    invalidate(signal);
+  });
+
+  useSocketEvent<CallServerToClientEvents>('call:accepted', (payload) => {
+    const signal = parse(payload);
+    if (!signal) return;
+    invalidate(signal);
+    refreshEntry(signal);
+  });
+
+  useSocketEvent<CallServerToClientEvents>('call:declined', (payload) => {
+    const signal = parse(payload);
+    if (!signal) return;
+    clearIncoming(signal.callId);
+    if (active?.callId === signal.callId) {
+      clearActive();
+      toast.info('Дзвінок відхилено.');
+    }
+    invalidate(signal);
+    refreshEntry(signal);
+  });
+
+  useSocketEvent<CallServerToClientEvents>('call:ended', (payload) => {
+    const signal = parse(payload);
+    if (!signal) return;
+    clearIncoming(signal.callId);
+    if (active?.callId === signal.callId) {
+      clearActive();
+      toast.info('Дзвінок завершено.');
+    }
+    invalidate(signal);
+    refreshEntry(signal);
+  });
+
+  useSocketEvent<CallServerToClientEvents>('call:missed', (payload) => {
+    const signal = parse(payload);
+    if (!signal) return;
+    clearIncoming(signal.callId);
+    invalidate(signal);
+    refreshEntry(signal);
+  });
+}

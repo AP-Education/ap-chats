@@ -22,13 +22,15 @@ export class HistoryController {
     return this.history.window(member, channelId, query);
   }
 
-  @Get(':messageId')
-  message(
+  // :entryId resolves either a message or a call id — one timeline, one way
+  // to fetch a single position from it, regardless of what occupies it.
+  @Get(':entryId')
+  entry(
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
-    @Param('messageId', ParseUUIDPipe) messageId: string,
+    @Param('entryId', ParseUUIDPipe) entryId: string,
   ) {
-    return this.history.message(member, channelId, messageId);
+    return this.history.entry(member, channelId, entryId);
   }
 
   @Get()

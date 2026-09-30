@@ -18,7 +18,7 @@ import { MessageMarkdown } from '@/features/social/mentions/components/MessageMa
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
-import type { HistoryItem } from '../../types';
+import type { MessageHistoryItem } from '../../types';
 import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
 import { MessageEditor } from './MessageEditor';
 
@@ -316,13 +316,13 @@ const useStyles = createStyles(({ token, css }) => ({
 const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
 
 interface MessageRowProps {
-  item: HistoryItem;
+  item: MessageHistoryItem;
   grouped: boolean;
   actionContext: ActionContext;
   actions: ConversationAction[];
   onAction: (action: ConversationAction, target: ActionTarget) => void;
   onJump: (messageId: string) => void;
-  onEdit: (item: HistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
+  onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
   delivery?: 'sending' | 'failed' | 'confirmed';
   onRetry?: () => void;
 }
