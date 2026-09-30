@@ -1,14 +1,12 @@
 import { LoadingOutlined } from '@ant-design/icons';
 import { PhoneCallIcon, PhoneDisconnectIcon } from '@phosphor-icons/react';
-import { message as toast } from 'antd';
 import { createStyles, keyframes } from 'antd-style';
 
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import { CALL_SURFACE_GRADIENT, CALL_SURFACE_HIGHLIGHT } from '../callTheme';
-import { useDeclineIncomingCall } from '../hooks/useDeclineIncomingCall';
+import { useIncomingCallPresentation } from '../hooks/useIncomingCallPresentation';
 import { useIncomingCallRingtone } from '../hooks/useIncomingCallRingtone';
-import { useJoinCall } from '../hooks/useJoinCall';
 import type { CallSignal } from '../schemas';
 
 const scrimIn = keyframes`
@@ -192,64 +190,50 @@ interface IncomingCallCardProps {
 export function IncomingCallCard({ signal }: IncomingCallCardProps) {
   const { styles, cx } = useStyles();
   useIncomingCallRingtone();
-  const decline = useDeclineIncomingCall();
-  const name = signal.startedByDisplayName ?? 'Колега';
-  const join = useJoinCall(signal.workspaceId, signal.channelId, name, signal.startedByAvatarPath);
-  const pending = decline.isPending || join.isPending;
-
-  function handleDecline() {
-    decline.mutate(signal, {
-      onError: () => toast.error('Не вдалося відхилити дзвінок.'),
-    });
-  }
-
-  function handleAccept() {
-    join.mutate(signal.callId, {
-      onError: () => toast.error('Не вдалося приєднатися до дзвінка.'),
-    });
-  }
+  const { cardAriaLabel, headline, subtitle, avatarPath, avatarAlt, dismiss, accept } =
+    useIncomingCallPresentation(signal);
 
   return (
     <div className={styles.scrim}>
-      <div className={styles.card} role="alertdialog" aria-label={`Вхідний дзвінок від ${name}`}>
+      <div className={styles.card} role="alertdialog" aria-label={cardAriaLabel}>
         <span className={styles.nebula} aria-hidden />
         <div className={styles.avatarWrap}>
           <span className={styles.sonarRing} aria-hidden />
           <span className={styles.sonarRing} style={{ animationDelay: '0.7s' }} aria-hidden />
           <span className={styles.avatarShake}>
-            <Avatar path={signal.startedByAvatarPath} alt={name} size={100} shape="circle" />
+            <Avatar path={avatarPath} alt={avatarAlt} size={100} shape="circle" />
           </span>
         </div>
-        <span className={styles.name}>{name}</span>
-        <span className={styles.status}>Вхідний дзвінок</span>
+        <span className={styles.name}>{headline}</span>
+        <span className={styles.status}>{subtitle}</span>
         <div className={styles.actions}>
           <span className={styles.action}>
             <button
               type="button"
               className={cx(styles.circleButton, styles.decline)}
-              aria-label="Відхилити дзвінок"
-              disabled={pending}
-              onClick={handleDecline}
+              aria-label={dismiss.ariaLabel}
+              disabled={dismiss.pending || accept.pending}
+              onClick={dismiss.onClick}
             >
-              {decline.isPending ? (
+              {dismiss.pending ? (
                 <LoadingOutlined />
               ) : (
                 <PhoneDisconnectIcon size={24} weight="fill" />
               )}
             </button>
-            <span className={styles.actionLabel}>Відхилити</span>
+            <span className={styles.actionLabel}>{dismiss.actionLabel}</span>
           </span>
           <span className={styles.action}>
             <button
               type="button"
               className={cx(styles.circleButton, styles.accept)}
-              aria-label="Прийняти дзвінок"
-              disabled={pending}
-              onClick={handleAccept}
+              aria-label={accept.ariaLabel}
+              disabled={dismiss.pending || accept.pending}
+              onClick={accept.onClick}
             >
-              {join.isPending ? <LoadingOutlined /> : <PhoneCallIcon size={24} weight="fill" />}
+              {accept.pending ? <LoadingOutlined /> : <PhoneCallIcon size={24} weight="fill" />}
             </button>
-            <span className={styles.actionLabel}>Прийняти</span>
+            <span className={styles.actionLabel}>{accept.actionLabel}</span>
           </span>
         </div>
       </div>

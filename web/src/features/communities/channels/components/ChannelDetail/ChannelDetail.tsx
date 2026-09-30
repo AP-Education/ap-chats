@@ -8,7 +8,7 @@ import {
   SignOutIcon,
   UsersThreeIcon,
 } from '@phosphor-icons/react';
-import { Button, Dropdown, type MenuProps, message, Tooltip } from 'antd';
+import { Alert, Button, Dropdown, type MenuProps, message, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -95,7 +95,20 @@ const useStyles = createStyles(({ token, css }) => ({
   joinButton: css`
     flex-shrink: 0;
   `,
+  sizeNotice: css`
+    flex-shrink: 0;
+    padding: 10px 20px 0;
+
+    @media (max-width: ${token.screenMD}px) {
+      padding: 8px 12px 0;
+    }
+  `,
 }));
+
+// A plain call rings every member at once; past this size a scheduled
+// meeting (an agenda, no surprise ring) tends to fit better, so the header's
+// call button pauses here to say so once instead of launching straight in.
+const LARGE_CHANNEL_MEMBER_THRESHOLD = 5;
 
 interface ChannelDetailProps {
   workspaceId: string;
@@ -185,6 +198,37 @@ function JoinChannelFooter({ channel, pending, onJoin }: JoinChannelFooterProps)
   );
 }
 
+interface LargeChannelCallNoticeProps {
+  memberCount: number;
+  onCallAnyway: () => void;
+  onDismiss: () => void;
+}
+
+function LargeChannelCallNotice({
+  memberCount,
+  onCallAnyway,
+  onDismiss,
+}: LargeChannelCallNoticeProps) {
+  const { styles } = useStyles();
+  return (
+    <div className={styles.sizeNotice}>
+      <Alert
+        type="info"
+        showIcon
+        closable
+        onClose={onDismiss}
+        message={`У цьому каналі ${memberCount} учасників`}
+        description="Дзвінок краще підходить для невеликих груп. Для такої кількості людей, можливо, зручніше запланувати окрему зустріч."
+        action={
+          <Button size="small" onClick={onCallAnyway}>
+            Подзвонити
+          </Button>
+        }
+      />
+    </div>
+  );
+}
+
 export function ChannelDetail({
   workspaceId,
   channel,
@@ -195,12 +239,31 @@ export function ChannelDetail({
   const { styles, cx } = useStyles();
   const navigate = useNavigate();
   const { currentMember } = useWorkspaceMemberLabels(workspaceId);
-  const { join, leave } = useChannelMembership(workspaceId, channel.id);
+  const { query: membersQuery, join, leave } = useChannelMembership(workspaceId, channel.id);
   const [editing, setEditing] = useState(false);
+  const [sizeNoticeVisible, setSizeNoticeVisible] = useState(false);
   const canManage = canManageChannel(channel, currentMember);
   const actionSize = onBack ? 40 : 36;
   const call = useCallAction(workspaceId, channel.id, channel.name);
   const callTitle = callActionLabel(call, 'Дзвінок у каналі');
+  const memberCount = membersQuery.data?.length ?? 0;
+  const isLargeChannel = memberCount > LARGE_CHANNEL_MEMBER_THRESHOLD;
+
+  function handleCall() {
+    // Only pause for a call about to start fresh: joining one already
+    // ringing, or getting back to your own minimized call, needs no warning.
+    const startingFresh = !call.inCall && !call.joinable && !call.busy;
+    if (startingFresh && isLargeChannel) {
+      setSizeNoticeVisible(true);
+      return;
+    }
+    call.onClick();
+  }
+
+  function handleCallAnyway() {
+    setSizeNoticeVisible(false);
+    call.onClick();
+  }
 
   function handleJoin() {
     join.mutate(undefined, {
@@ -252,7 +315,7 @@ export function ChannelDetail({
                 )}
                 aria-label={callTitle}
                 disabled={call.busy || call.pending || !channel.isMember}
-                onClick={call.onClick}
+                onClick={handleCall}
               >
                 {call.pending ? (
                   <LoadingOutlined />
@@ -277,6 +340,13 @@ export function ChannelDetail({
         </>
       }
     >
+      {sizeNoticeVisible && !call.inCall && !call.joinable && (
+        <LargeChannelCallNotice
+          memberCount={memberCount}
+          onCallAnyway={handleCallAnyway}
+          onDismiss={() => setSizeNoticeVisible(false)}
+        />
+      )}
       <ConversationView
         canPost={channel.isMember}
         canManage={canManage}
