@@ -154,6 +154,15 @@ export function MessageTimeline({
 }: MessageTimelineProps) {
   const { styles } = useStyles();
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
+  // A deleted message keeps its seq (read state, scroll anchoring, and reply
+  // excerpts elsewhere all still need it), but has nothing left worth a row —
+  // Telegram just removes it rather than leaving a "message deleted" ghost.
+  // Filtered only for what's rendered, so grouping recomputes around the gap
+  // instead of orphaning the next real message from the same author.
+  const visibleItems = useMemo(
+    () => displayItems.filter(({ item }) => !isMessageItem(item) || item.message.markdown !== null),
+    [displayItems],
+  );
   const initial = pages.find((page) => page.firstUnreadSeq !== null) ?? pages[0];
   const firstUnreadSeq = initial?.firstUnreadSeq ?? null;
   const onVisible = useReadReceipts(
@@ -213,8 +222,8 @@ export function MessageTimeline({
             </div>
           )}
           {!displayItems.length && <div className={styles.spacer} />}
-          {displayItems.map(({ item, delivery, nonce }, index) => {
-            const previous = displayItems[index - 1]?.item;
+          {visibleItems.map(({ item, delivery, nonce }, index) => {
+            const previous = visibleItems[index - 1]?.item;
             const day = new Date(item.createdAt).toDateString();
             const previousDay = previous ? new Date(previous.createdAt).toDateString() : null;
             const grouped = Boolean(

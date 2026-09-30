@@ -261,10 +261,6 @@ const useStyles = createStyles(({ token, css }) => ({
       color: ${token.colorLink};
     }
   `,
-  deleted: css`
-    color: ${token.colorTextQuaternary};
-    font-style: italic;
-  `,
   delivery: css`
     display: inline-flex;
     align-items: center;
@@ -546,9 +542,7 @@ export const MessageRow = memo(function MessageRow({
               onEdit={onEdit}
               onClose={() => setEditingId(null)}
             />
-          ) : item.message.markdown === null ? (
-            <div className={styles.deleted}>Повідомлення видалено</div>
-          ) : (
+          ) : item.message.markdown === null ? null : (
             <div ref={contentRef} className={styles.markdown} data-message-text>
               <MessageMarkdown
                 markdown={item.message.markdown}
