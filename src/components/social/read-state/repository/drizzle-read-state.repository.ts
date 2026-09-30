@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, count, eq, gt, isNull, lte, ne, sql } from 'drizzle-orm';
+import { and, count, eq, gt, isNotNull, isNull, lte, ne, or, sql } from 'drizzle-orm';
 
-import { channelEntries, channelMemberships, chatMessages } from '@/database/drizzle/schema';
+import { calls, channelEntries, channelMemberships, chatMessages } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 import { ReadStateRepository } from './read-state.repository';
@@ -24,13 +24,24 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
     const unread = this.txHost.tx
       .select({ seq: channelEntries.seq })
       .from(channelEntries)
-      .innerJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .leftJoin(calls, eq(calls.id, channelEntries.callId))
       .where(
         and(
           eq(channelEntries.channelId, channelMemberships.channelId),
           gt(channelEntries.seq, channelMemberships.lastReadEntrySeq),
-          ne(chatMessages.authorMemberId, memberId),
-          isNull(chatMessages.deletedAt),
+          // A channel_entries row is either a message or a call, never both —
+          // a call someone else started counts as unread the same way a
+          // message from someone else does, so a missed call badges the
+          // channel instead of vanishing silently.
+          or(
+            and(
+              isNotNull(channelEntries.messageId),
+              ne(chatMessages.authorMemberId, memberId),
+              isNull(chatMessages.deletedAt),
+            ),
+            and(isNotNull(channelEntries.callId), ne(calls.startedByMemberId, memberId)),
+          ),
         ),
       )
       .orderBy(channelEntries.seq)
@@ -106,14 +117,21 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
     const capped = this.txHost.tx
       .select({ seq: channelEntries.seq })
       .from(channelEntries)
-      .innerJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .leftJoin(calls, eq(calls.id, channelEntries.callId))
       .where(
         and(
           eq(channelEntries.channelId, channelId),
           gt(channelEntries.seq, after),
           ceiling === undefined ? undefined : lte(channelEntries.seq, ceiling),
-          ne(chatMessages.authorMemberId, memberId),
-          isNull(chatMessages.deletedAt),
+          or(
+            and(
+              isNotNull(channelEntries.messageId),
+              ne(chatMessages.authorMemberId, memberId),
+              isNull(chatMessages.deletedAt),
+            ),
+            and(isNotNull(channelEntries.callId), ne(calls.startedByMemberId, memberId)),
+          ),
         ),
       )
       .orderBy(channelEntries.seq)
