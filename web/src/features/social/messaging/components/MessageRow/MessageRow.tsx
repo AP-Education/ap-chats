@@ -29,7 +29,8 @@ const useStyles = createStyles(({ token, css }) => ({
     &:hover {
       background: ${token.colorFillQuaternary};
     }
-    [data-hover-suppressed] &:hover:not([data-selected]):not([data-failed]) {
+    [data-hover-suppressed]
+      &:hover:not([data-selected]):not([data-failed]):not([data-mentions-me]) {
       background: transparent;
     }
     &:focus-visible {
@@ -98,6 +99,19 @@ const useStyles = createStyles(({ token, css }) => ({
       100% {
         background: transparent;
       }
+    }
+  `,
+  highlighted: css`
+    background: rgba(250, 173, 20, 0.08);
+    border-left: 3px solid #faad14;
+    padding-left: 17px;
+
+    &:hover {
+      background: rgba(250, 173, 20, 0.14);
+    }
+
+    @media (max-width: ${token.screenMD}px) {
+      padding-left: 9px;
     }
   `,
   avatar: css`
@@ -253,6 +267,12 @@ export const MessageRow = memo(function MessageRow({
   const authorName = item.author.displayName ?? 'Ім’я недоступне';
   const replyAuthorName = item.reply?.author?.displayName ?? 'Ім’я недоступне';
   const forwardAuthorName = item.forwardedFrom?.displayName ?? 'Ім’я недоступне';
+  const isOwnMessage = item.message.authorMemberId === actionContext.memberId;
+  const mentionsMe =
+    !isOwnMessage &&
+    (item.mentions?.some((mention) => mention.memberId === actionContext.memberId) ?? false);
+  const isReplyToMe = !isOwnMessage && item.reply?.authorMemberId === actionContext.memberId;
+  const highlighted = mentionsMe || isReplyToMe;
   const isSelected = useConversation((state) => state.selectedIds.includes(item.message.id));
   const hasSelection = useConversation((state) => state.selectedIds.length > 0);
   const toggleSelected = useConversation((state) => state.toggleSelected);
@@ -283,11 +303,13 @@ export const MessageRow = memo(function MessageRow({
           'data-seq': delivery ? undefined : item.seq,
           'data-selected': isSelected || undefined,
           'data-failed': delivery === 'failed' || undefined,
+          'data-mentions-me': highlighted || undefined,
           tabIndex: delivery ? -1 : 0,
           'aria-label': `Повідомлення від ${authorName}, ${timeFormat.format(new Date(item.message.createdAt))}`,
           className: cx(
             styles.row,
             isSelected && styles.selected,
+            highlighted && styles.highlighted,
             delivery === 'sending' && styles.sending,
             delivery === 'failed' && styles.failed,
             delivery === 'confirmed' && styles.confirmed,

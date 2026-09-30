@@ -48,10 +48,6 @@ const useStyles = createStyles(({ token, css }) => ({
       color: ${token.colorLink};
     }
   `,
-  deleted: css`
-    color: ${token.colorTextQuaternary};
-    font-style: italic;
-  `,
 }));
 
 export function MessageReadContent({
@@ -60,15 +56,19 @@ export function MessageReadContent({
   contentRef: RefObject<HTMLDivElement | null>;
 }) {
   const { styles } = useStyles();
-  const { item } = useMessageActionScope();
+  const { item, context } = useMessageActionScope();
 
   if (item.message.markdown === null) {
-    return <div className={styles.deleted}>Повідомлення видалено</div>;
+    return null;
   }
 
   return (
     <div ref={contentRef} className={styles.markdown} data-message-text>
-      <MessageMarkdown markdown={item.message.markdown} mentions={item.mentions} />
+      <MessageMarkdown
+        markdown={item.message.markdown}
+        mentions={item.mentions}
+        viewerMemberId={context.memberId}
+      />
     </div>
   );
 }

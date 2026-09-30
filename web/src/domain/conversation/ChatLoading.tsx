@@ -85,7 +85,7 @@ const useStyles = createStyles(({ token, css }) => ({
     border-left: 1px solid ${token.colorBorderSecondary};
     padding: 20px 14px;
 
-    @media (max-width: ${token.screenMD}px) {
+    @media (max-width: ${token.screenXL}px) {
       display: none;
     }
   `,

@@ -16,6 +16,7 @@ import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspa
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MainSiderMenu } from '@/layouts/MainLayout/MainSiderMenu';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
+import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -47,8 +48,9 @@ export default function DirectMessagePage() {
   const navigate = useNavigate();
   const { channelId } = useParams<{ channelId: string }>();
   const isMobile = useIsMobile();
+  const isNarrowLayout = useIsNarrowLayout();
   const [profileVisible, setProfileVisible] = useState<boolean | null>(null);
-  const isProfileVisible = profileVisible ?? !isMobile;
+  const isProfileVisible = profileVisible ?? !isNarrowLayout;
   const conversation = useDirectMessage(workspaceId, channelId);
   const unavailable = useTrackConversation(
     'direct',
@@ -95,6 +97,7 @@ export default function DirectMessagePage() {
         <DirectProfilePanel
           participant={participant}
           member={byId.get(participant.memberId)?.member}
+          onClose={() => setProfileVisible(false)}
         />
       }
     >
