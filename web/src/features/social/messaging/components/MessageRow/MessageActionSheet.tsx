@@ -20,24 +20,6 @@ const useStyles = createStyles(({ token, css }) => ({
     border-radius: 2px;
     background: ${token.colorBorder};
   `,
-  preview: css`
-    margin: 0 4px 12px;
-    padding: 0 4px 12px;
-    border-bottom: 1px solid ${token.colorBorderSecondary};
-  `,
-  author: css`
-    display: block;
-    font-weight: 650;
-    color: ${token.colorText};
-  `,
-  excerpt: css`
-    display: block;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    color: ${token.colorTextSecondary};
-    font-size: ${token.fontSizeSM}px;
-  `,
   group: css`
     padding: 4px 0;
     & + & {
@@ -69,8 +51,6 @@ const useStyles = createStyles(({ token, css }) => ({
 interface MessageActionSheetProps {
   open: boolean;
   onClose: () => void;
-  author: string;
-  preview: string | null;
   target: ActionTarget;
   groups: ConversationAction[][];
   onAction: (action: ConversationAction, target: ActionTarget) => void;
@@ -79,8 +59,6 @@ interface MessageActionSheetProps {
 export function MessageActionSheet({
   open,
   onClose,
-  author,
-  preview,
   target,
   groups,
   onAction,
@@ -97,10 +75,6 @@ export function MessageActionSheet({
       aria-label="Дії з повідомленням"
     >
       <div className={styles.handle} aria-hidden="true" />
-      <div className={styles.preview}>
-        <span className={styles.author}>{author}</span>
-        <span className={styles.excerpt}>{preview ?? 'Повідомлення видалено'}</span>
-      </div>
       {groups.map((group, index) => (
         <div className={styles.group} key={index}>
           {group.map((action) => (

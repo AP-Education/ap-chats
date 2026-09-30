@@ -1,9 +1,5 @@
 import { createStyles } from 'antd-style';
 
-// Single style source for MainLayout + MainSider (desktop sider and mobile
-// drawer render the same nav/workspace content) — breakpoints come from antd's
-// own screen tokens, not hardcoded px, so this stays in step with the rest of
-// the design system.
 export const useMainLayoutStyles = createStyles(({ token, css }) => ({
   layout: css`
     height: 100dvh;
@@ -52,6 +48,7 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     touch-action: pan-y;
   `,
   sidebarWorkspace: css`
+    position: relative;
     display: flex;
     align-items: center;
     height: 60px;

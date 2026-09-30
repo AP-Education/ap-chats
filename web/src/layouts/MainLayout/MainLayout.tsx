@@ -25,6 +25,7 @@ export function MainLayout() {
   const isChatPage = pathname.startsWith('/channels') || pathname.startsWith('/direct');
   const isEdgeToEdge = isChatPage || pathname.startsWith('/calls');
   const isConversation = useIsConversationRoute();
+  const isNavigationPage = pathname === '/channels' || pathname === '/direct';
   const mobileMenu = useMemo(
     () => ({ open: () => setMenuOpen(true), isConversation }),
     [isConversation],
@@ -38,7 +39,7 @@ export function MainLayout() {
   return (
     <Layout className={styles.layout}>
       <CallSurface />
-      {isMobile && !isConversation && (
+      {isMobile && !isConversation && !isNavigationPage && (
         <div className={styles.mobileBar}>
           <Button
             type="text"
@@ -84,7 +85,7 @@ export function MainLayout() {
         open={isMobile && isMenuOpen}
         onClose={() => setMenuOpen(false)}
         closable={false}
-        width="min(100vw, 420px)"
+        width="100vw"
         className={styles.mobileDrawer}
       >
         <div className={styles.mobileDrawerContent} {...closeGesture}>

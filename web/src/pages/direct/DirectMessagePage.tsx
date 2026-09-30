@@ -10,11 +10,11 @@ import { ConversationView } from '@/features/social/conversation/components/Conv
 import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
 import { DirectMessageActions } from '@/features/social/direct-messages/components/DirectMessageActions';
-import { DirectMessageList } from '@/features/social/direct-messages/components/DirectMessageList/DirectMessageList';
 import { DirectProfilePanel } from '@/features/social/direct-messages/components/DirectProfilePanel/DirectProfilePanel';
 import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDirectMessages';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
+import { MainSiderMenu } from '@/layouts/MainLayout/MainSiderMenu';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
@@ -59,7 +59,7 @@ export default function DirectMessagePage() {
   );
   const { byId, currentMember } = useWorkspaceMemberLabels(workspaceId);
 
-  if (!channelId && isMobile) return <DirectMessageList workspaceId={workspaceId} />;
+  if (!channelId && isMobile) return <MainSiderMenu />;
   if (!channelId) {
     return (
       <div className={styles.center}>

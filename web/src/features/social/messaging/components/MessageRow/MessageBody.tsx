@@ -4,7 +4,6 @@ import type { MessageHistoryItem } from '../../types';
 import { useMessageActionScope } from './MessageActionScope';
 import { MessageEditor } from './MessageEditor';
 import { MessageReadContent } from './MessageReadContent';
-import { MessageTouchActions } from './MessageTouchActions';
 
 interface MessageBodyProps {
   contentRef: RefObject<HTMLDivElement | null>;
@@ -22,9 +21,5 @@ export function MessageBody({ contentRef, minHeight, onEdit, onCloseEdit }: Mess
     );
   }
 
-  return (
-    <MessageTouchActions>
-      <MessageReadContent contentRef={contentRef} />
-    </MessageTouchActions>
-  );
+  return <MessageReadContent contentRef={contentRef} />;
 }

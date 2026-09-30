@@ -7,11 +7,11 @@ import { ChatLayout } from '@/domain/conversation/ChatLayout';
 import { ChatLoading } from '@/domain/conversation/ChatLoading';
 import { ChannelDetail } from '@/features/communities/channels/components/ChannelDetail';
 import { useChannel } from '@/features/communities/channels/hooks/useChannels';
-import { ChannelsSidebar } from '@/features/communities/components/ChannelsSidebar';
 import { ChannelMembersPanel } from '@/features/communities/memberships/components/ChannelMembersPanel';
 import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
+import { MainSiderMenu } from '@/layouts/MainLayout/MainSiderMenu';
 import { useMobileMenu } from '@/layouts/MainLayout/stores/mobile-menu-context';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
@@ -37,7 +37,7 @@ export default function ChannelContent() {
   const isMembersVisible = membersVisible ?? !isMobile;
 
   if (!channelId) {
-    if (isMobile) return <ChannelsSidebar />;
+    if (isMobile) return <MainSiderMenu />;
 
     return (
       <div className={styles.centered}>

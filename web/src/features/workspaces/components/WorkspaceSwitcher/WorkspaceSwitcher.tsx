@@ -46,12 +46,15 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   panel: css`
     box-sizing: border-box;
-    width: 290px;
+    width: 100%;
     max-height: min(520px, calc(100vh - 80px));
     overflow-y: auto;
     padding: 8px 0;
     background: ${token.colorBgElevated};
     box-shadow: ${token.boxShadowSecondary};
+  `,
+  popup: css`
+    width: 100%;
   `,
   label: css`
     padding: 8px 20px 10px;
@@ -297,6 +300,8 @@ export function WorkspaceSwitcher() {
         onOpenChange={setDropdownOpen}
         trigger={['click']}
         placement="bottomLeft"
+        getPopupContainer={(trigger) => trigger.parentElement ?? document.body}
+        classNames={{ root: styles.popup }}
         popupRender={() => panel}
       >
         <button type="button" className={styles.trigger} data-open={dropdownOpen}>

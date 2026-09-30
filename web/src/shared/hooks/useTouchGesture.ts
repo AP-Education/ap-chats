@@ -3,6 +3,8 @@ import { type MouseEvent, type TouchEvent, useEffect, useLayoutEffect, useRef } 
 interface TouchGestureOptions {
   onSwipeRight?: () => boolean | void;
   onSwipeLeft?: () => boolean | void;
+  onSwipeProgress?: (distance: number) => void;
+  onSwipeEnd?: () => void;
   onLongPress?: () => void;
   shouldStart?: (event: TouchEvent<HTMLElement>) => boolean;
   swipeDistance?: number;
@@ -64,10 +66,16 @@ export function useTouchGesture(options: TouchGestureOptions) {
       current.moved = true;
       clearTimer();
     }
+    const dx = touch.clientX - current.x;
+    const dy = touch.clientY - current.y;
+    if (!current.held && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+      optionsRef.current.onSwipeProgress?.(dx);
+    }
   }
 
   function onTouchEnd(event: TouchEvent<HTMLElement>) {
     clearTimer();
+    optionsRef.current.onSwipeEnd?.();
     const current = gesture.current;
     gesture.current = null;
     if (!current || !event.changedTouches.length) return;
@@ -98,6 +106,7 @@ export function useTouchGesture(options: TouchGestureOptions) {
 
   function onTouchCancel() {
     clearTimer();
+    optionsRef.current.onSwipeEnd?.();
     gesture.current = null;
   }
 

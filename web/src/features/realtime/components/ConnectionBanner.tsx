@@ -21,6 +21,13 @@ const useStyles = createStyles(({ token, css }) => ({
     font-weight: ${token.fontWeightStrong};
     line-height: ${token.lineHeight};
     animation: ${slideDown} ${token.motionDurationMid} ${token.motionEaseOut};
+    @media (max-width: ${token.screenMD}px) {
+      justify-content: flex-start;
+      gap: 8px;
+      padding: 4px 12px;
+      font-size: ${token.fontSizeSM}px;
+      line-height: 18px;
+    }
   `,
   warning: css`
     color: ${token.colorWarningTextActive};
@@ -35,6 +42,10 @@ const useStyles = createStyles(({ token, css }) => ({
   icon: css`
     font-size: ${token.fontSizeLG}px;
     display: flex;
+    flex-shrink: 0;
+    @media (max-width: ${token.screenMD}px) {
+      font-size: ${token.fontSize}px;
+    }
   `,
 }));
 
@@ -56,7 +67,7 @@ export function ConnectionBanner() {
     ? 'Не вдалося підключитися до сервера. Оновіть сторінку.'
     : status === 'reconnecting'
       ? 'Відновлюємо з’єднання'
-      : 'Ви офлайн. Намагаємось відновити з’єднання';
+      : 'Ви офлайн. Відновлюємо з’єднання';
 
   return (
     <div className={cx(styles.banner, isAuthError ? styles.error : styles.warning)} role="status">
