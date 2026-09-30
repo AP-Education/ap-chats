@@ -1,6 +1,7 @@
-import { PhoneIcon, PhoneIncomingIcon, PhoneOutgoingIcon, PhoneXIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 
+import { getCallStatusIcon } from '@/features/calls/callStatusIcon';
+import { formatCallDuration } from '@/features/calls/formatCallDuration';
 import { useCallAction } from '@/features/calls/hooks/useCallAction';
 import { useConversationScope } from '@/features/social/conversation/store';
 
@@ -77,13 +78,6 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-function duration(startedAt: string, endedAt: string): string {
-  const seconds = Math.max(0, Math.round((Date.parse(endedAt) - Date.parse(startedAt)) / 1000));
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
-
 function text(item: CallHistoryItem, outgoing: boolean, starterName: string): string {
   if (item.call.status === 'ringing' || item.call.status === 'active')
     return outgoing ? 'Ви розпочали дзвінок.' : `${starterName} розпочав(-ла) дзвінок.`;
@@ -91,7 +85,7 @@ function text(item: CallHistoryItem, outgoing: boolean, starterName: string): st
   if (item.call.status === 'declined') return 'Дзвінок відхилено.';
   const direction = outgoing ? 'Вихідний дзвінок' : 'Вхідний дзвінок';
   if (item.call.status === 'ended' && item.call.endedAt)
-    return `${direction} · ${duration(item.call.startedAt, item.call.endedAt)}.`;
+    return `${direction} · ${formatCallDuration(item.call.startedAt, item.call.endedAt)}.`;
   return `${direction}.`;
 }
 
@@ -110,16 +104,8 @@ export function CallLogRow({ item, viewerMemberId }: CallLogRowProps) {
   const { workspaceId, channelId, title, avatarPath } = useConversationScope();
   const call = useCallAction(workspaceId, channelId, title, avatarPath);
   const outgoing = item.call.startedByMemberId === viewerMemberId;
-  const live = item.call.status === 'ringing' || item.call.status === 'active';
-  const missed = item.call.status === 'missed' || item.call.status === 'declined';
   const starterName = item.startedBy.displayName ?? 'Колега';
-  const Icon = live
-    ? PhoneIcon
-    : missed
-      ? PhoneXIcon
-      : outgoing
-        ? PhoneOutgoingIcon
-        : PhoneIncomingIcon;
+  const { Icon, live, missed } = getCallStatusIcon(item.call.status, outgoing);
 
   return (
     <div className={styles.row} role="status">

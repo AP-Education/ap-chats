@@ -212,6 +212,10 @@ class FakeCallsRepository extends CallsRepository {
       .filter((candidate) => candidate.id !== excludeMemberId)
       .map((candidate) => candidate.profile.oidcUserId);
   }
+
+  async listForMember(): Promise<never[]> {
+    return [];
+  }
 }
 
 function member(id: string): WorkspaceMember {

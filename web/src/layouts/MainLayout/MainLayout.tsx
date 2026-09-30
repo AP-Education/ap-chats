@@ -20,7 +20,11 @@ export function MainLayout() {
   const isMobile = useIsMobile();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
-  const isChannelPage = pathname.startsWith('/channels') || pathname.startsWith('/direct');
+  const isChatPage = pathname.startsWith('/channels') || pathname.startsWith('/direct');
+  // Calls shares the chat surfaces' edge-to-edge canvas (no padded, rounded
+  // card) even though it isn't itself a chat: a floating card read as
+  // inconsistent chrome next to channels/direct sharing the same sider.
+  const isEdgeToEdge = isChatPage || pathname.startsWith('/calls');
   const mobileMenu = useMemo(() => ({ open: () => setMenuOpen(true) }), []);
 
   return (
@@ -42,16 +46,16 @@ export function MainLayout() {
         {!isMobile && <MainSider />}
         <Layout.Content
           className={styles.content}
-          style={{ padding: isMobile || isChannelPage ? 0 : token.paddingXS }}
+          style={{ padding: isMobile || isEdgeToEdge ? 0 : token.paddingXS }}
         >
           <PageSection
-            maxWidth={isChannelPage ? 'none' : 1920}
-            style={isChannelPage ? { padding: 0, borderRadius: 0 } : undefined}
+            maxWidth={isEdgeToEdge ? 'none' : 1920}
+            style={isEdgeToEdge ? { padding: 0, borderRadius: 0 } : undefined}
           >
             <MobileMenuContext.Provider value={mobileMenu}>
               <Suspense
                 fallback={
-                  isChannelPage ? (
+                  isChatPage ? (
                     <ChatLoading />
                   ) : (
                     <div role="status" aria-label="Завантажуємо сторінку" style={{ padding: 24 }}>

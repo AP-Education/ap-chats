@@ -10,6 +10,7 @@ import { type CallSignal, callSignalSchema } from '../schemas';
 import { useCallStore } from '../store/call-store';
 import type { CallServerToClientEvents } from '../types';
 import { activeCallQueryKey } from './useActiveCall';
+import { callHistoryKey } from './useCallHistory';
 
 function parse(payload: unknown): CallSignal | null {
   const result = callSignalSchema.safeParse(payload);
@@ -34,6 +35,9 @@ export function useCallSignalListener(): void {
     queryClient.invalidateQueries({
       queryKey: activeCallQueryKey(signal.workspaceId, signal.channelId),
     });
+    // Only DM calls ever show in the calls tab, but a channel call's signal
+    // costs nothing extra to ignore versus filtering channelKind here too.
+    queryClient.invalidateQueries({ queryKey: callHistoryKey(identity, signal.workspaceId) });
   }
 
   // The call's status (ringing/active/ended/declined) lives on its timeline

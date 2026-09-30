@@ -1,5 +1,12 @@
 import type { CallRecord } from '../types';
 
+export interface CallHistoryParticipant {
+  memberId: string;
+  displayName: string | null;
+  avatarPath: string | null;
+  active: boolean;
+}
+
 export abstract class CallsRepository {
   abstract insert(input: {
     id: string;
@@ -40,4 +47,18 @@ export abstract class CallsRepository {
    * whoever happened to trigger the check must hear about too.
    */
   abstract ringRecipients(channelId: string, excludeMemberId: string | null): Promise<string[]>;
+
+  /**
+   * A member's calls tab, Discord/Slack-style: DM calls only, the other side's
+   * profile riding along so the client can render and re-dial without a
+   * second round trip. Group/channel calls have no single "other participant"
+   * and stay out of this list, the same line CallsService.decline() already
+   * draws between a DM call and a channel one.
+   */
+  abstract listForMember(
+    workspaceId: string,
+    memberId: string,
+    cursor: { startedAt: Date; id: string } | undefined,
+    limit: number,
+  ): Promise<Array<CallRecord & { participant: CallHistoryParticipant }>>;
 }

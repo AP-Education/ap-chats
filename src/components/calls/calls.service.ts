@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -24,6 +25,24 @@ const ACTIVE_STATUSES = new Set(['ringing', 'active']);
 const JOIN_TTL_SECONDS = 4 * 60 * 60;
 // How long a call may ring before it reads as missed, same order of magnitude as a phone ring.
 const RING_TTL_SECONDS = 45;
+const HISTORY_PAGE_SIZE = 50;
+
+type HistoryCursor = { startedAt: string; id: string };
+
+function decodeHistoryCursor(value: string): HistoryCursor {
+  try {
+    const cursor = JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as HistoryCursor;
+    if (!Number.isFinite(Date.parse(cursor.startedAt)) || !/^[0-9a-f-]{36}$/i.test(cursor.id))
+      throw new Error();
+    return cursor;
+  } catch {
+    throw new ConflictException('Invalid calls cursor');
+  }
+}
+
+function encodeHistoryCursor(cursor: HistoryCursor): string {
+  return Buffer.from(JSON.stringify(cursor)).toString('base64url');
+}
 
 @Injectable()
 export class CallsService {
@@ -83,6 +102,25 @@ export class CallsService {
     await this.expireStale(member, channel);
     const record = await this.calls.findActive(channelId);
     return record ? this.toView(record) : null;
+  }
+
+  async list(member: WorkspaceMember, before?: string) {
+    const cursor = before ? decodeHistoryCursor(before) : undefined;
+    const rows = await this.calls.listForMember(
+      member.workspaceId,
+      member.id,
+      cursor ? { startedAt: new Date(cursor.startedAt), id: cursor.id } : undefined,
+      HISTORY_PAGE_SIZE,
+    );
+    const page = rows.slice(0, HISTORY_PAGE_SIZE);
+    const last = page.at(-1);
+    return {
+      items: page.map((row) => this.toHistoryView(row)),
+      nextCursor:
+        rows.length > HISTORY_PAGE_SIZE && last
+          ? encodeHistoryCursor({ startedAt: last.startedAt.toISOString(), id: last.id })
+          : null,
+    };
   }
 
   async join(member: WorkspaceMember, channelId: string, callId: string) {
@@ -203,5 +241,9 @@ export class CallsService {
       startedAt: record.startedAt,
       endedAt: record.endedAt,
     };
+  }
+
+  private toHistoryView(record: Awaited<ReturnType<CallsRepository['listForMember']>>[number]) {
+    return { ...this.toView(record), participant: record.participant };
   }
 }
