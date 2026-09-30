@@ -54,7 +54,9 @@ export function useCallSignalListener(): void {
   useSocketEvent<CallServerToClientEvents>('call:incoming', (payload) => {
     const signal = parse(payload);
     if (!signal) return;
-    if (signal.channelKind === 'dm') setIncoming(signal);
+    // A channel call rings every member the same way a DM does now — only the
+    // card's wording differs (IncomingCallCard), not whether it shows at all.
+    setIncoming(signal);
     invalidate(signal);
   });
 
