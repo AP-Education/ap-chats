@@ -1,5 +1,7 @@
 import { createStyles } from 'antd-style';
 
+import { SWIPE_SETTLE_TRANSITION } from '@/shared/hooks/useTouchGesture';
+
 export const useMainLayoutStyles = createStyles(({ token, css }) => ({
   layout: css`
     height: 100dvh;
@@ -26,7 +28,7 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
       width: 100%;
       background: ${token.colorBgContainer};
       transform: translate3d(0, 0, 0);
-      transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      transition: ${SWIPE_SETTLE_TRANSITION};
       will-change: transform;
 
       &[data-menu-open='true'] {
@@ -46,7 +48,7 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     background: ${token.colorBgContainer};
     touch-action: pan-y;
     transform: translate3d(-32px, 0, 0);
-    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: ${SWIPE_SETTLE_TRANSITION};
 
     &[data-open='true'] {
       transform: translate3d(0, 0, 0);

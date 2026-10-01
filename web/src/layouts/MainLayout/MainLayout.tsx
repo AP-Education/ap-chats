@@ -9,13 +9,13 @@ import { ConnectionBanner } from '../../features/realtime/components/ConnectionB
 import { useWorkspaceUnreadTotal } from '../../features/social/read-state/hooks/useWorkspaceUnreadTotal';
 import { useActiveWorkspace } from '../../features/workspaces/hooks/useActiveWorkspace';
 import { useIsMobile } from '../../shared/hooks/useIsMobile';
-import { useTouchGesture } from '../../shared/hooks/useTouchGesture';
 import { useIsConversationRoute } from '../../shared/router/conversationRoute';
 import { PageSection } from '../../shared/ui/PageSection/PageSection';
 import { MainSider } from './MainSider';
 import { MainSiderMenu } from './MainSiderMenu';
 import { MobileMenuContext } from './stores/mobile-menu-context';
 import { useMainLayoutStyles } from './useMainLayoutStyles';
+import { useMobileNavSheet } from './useMobileNavSheet';
 
 export function MainLayout() {
   const { styles } = useMainLayoutStyles();
@@ -32,33 +32,34 @@ export function MainLayout() {
   );
   const isMenuOpen =
     isMobile && (menuOverride?.locationKey === locationKey ? menuOverride.open : isNavigationPage);
-  const mobilePanelRef = useRef<HTMLElement>(null);
   const wasMenuOpen = useRef(false);
   const setMenuOpen = useCallback(
     (open: boolean) => setMenuOverride({ locationKey, open }),
     [locationKey],
   );
   const unreadCount = useWorkspaceUnreadTotal(workspace?.id);
+  const sheet = useMobileNavSheet({
+    open: isMenuOpen,
+    onOpen: () => setMenuOpen(true),
+    onClose: () => setMenuOpen(false),
+  });
 
   useEffect(() => {
     if (isMenuOpen) {
-      mobilePanelRef.current?.focus();
+      sheet.panelRef.current?.focus();
       wasMenuOpen.current = true;
     } else if (wasMenuOpen.current) {
       document.querySelector<HTMLButtonElement>('[data-mobile-menu-trigger]')?.focus();
       wasMenuOpen.current = false;
     }
+    // sheet.panelRef is a stable ref object from useMobileNavSheet, not reactive state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMenuOpen]);
 
   const mobileMenu = useMemo(
     () => ({ open: () => setMenuOpen(true), isConversation, isOpen: isMenuOpen, unreadCount }),
     [isConversation, isMenuOpen, setMenuOpen, unreadCount],
   );
-  const openGesture = useTouchGesture({
-    shouldStart: (event) => event.touches[0].clientX <= 28,
-    onSwipeRight: () => setMenuOpen(true),
-  });
-  const closeGesture = useTouchGesture({ onSwipeLeft: () => setMenuOpen(false) });
 
   return (
     <Layout className={styles.layout}>
@@ -69,7 +70,12 @@ export function MainLayout() {
         {isMobile && (
           <aside
             id="mobile-navigation"
-            ref={mobilePanelRef}
+            // react-hooks/refs doesn't yet recognize a ref returned from a custom
+            // hook as safe in a `ref=` attribute (confirmed false positive, not an
+            // actual render-time `.current` read) — same below for spreading a
+            // handler object that closes over refs internally.
+            // eslint-disable-next-line react-hooks/refs
+            ref={sheet.panelRef}
             className={styles.mobilePanel}
             data-open={isMenuOpen}
             aria-label="Навігація та розмови"
@@ -78,17 +84,21 @@ export function MainLayout() {
             onKeyDown={(event) => {
               if (event.key === 'Escape') setMenuOpen(false);
             }}
-            {...closeGesture}
+            // eslint-disable-next-line react-hooks/refs
+            {...sheet.closeGesture}
           >
             <MainSiderMenu onNavigate={() => setMenuOpen(false)} />
           </aside>
         )}
         <Layout.Content
+          // eslint-disable-next-line react-hooks/refs
+          ref={sheet.contentRef}
           className={styles.content}
           data-menu-open={isMobile && isMenuOpen}
           style={{ padding: isMobile || isEdgeToEdge ? 0 : token.paddingXS }}
           inert={isMobile && isMenuOpen}
-          {...(isMobile ? openGesture : {})}
+          // eslint-disable-next-line react-hooks/refs
+          {...(isMobile ? sheet.openGesture : {})}
         >
           <PageSection
             maxWidth={isEdgeToEdge ? 'none' : 1920}
