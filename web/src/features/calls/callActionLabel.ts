@@ -1,4 +1,4 @@
-import type { CallAction } from './hooks/useCallAction';
+import type { CallAction } from './types';
 
 /** The shared busy/in-call/joinable phrasing for a call action button, whatever it targets. */
 export function callActionLabel(call: CallAction, target: string): string {

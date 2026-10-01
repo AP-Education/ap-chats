@@ -2,10 +2,9 @@ import { createStyles } from 'antd-style';
 
 import { getCallStatusIcon } from '@/features/calls/callStatusIcon';
 import { formatCallDuration } from '@/features/calls/formatCallDuration';
-import { useCallAction } from '@/features/calls/hooks/useCallAction';
-import { useConversationScope } from '@/features/social/conversation/store';
 
 import type { CallHistoryItem } from '../../types';
+import { RecordedCallJoinButton } from './RecordedCallJoinButton';
 
 const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
 
@@ -52,25 +51,6 @@ const useStyles = createStyles(({ token, css }) => ({
     color: ${token.colorTextSecondary};
     font-size: 14px;
   `,
-  join: css`
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: ${token.colorPrimary};
-    font: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-      text-decoration: underline;
-    }
-
-    &:disabled {
-      color: ${token.colorTextQuaternary};
-      cursor: not-allowed;
-    }
-  `,
   time: css`
     flex-shrink: 0;
     color: ${token.colorTextQuaternary};
@@ -101,8 +81,6 @@ interface CallLogRowProps {
  * row is history, with a join shortcut riding along while it's still live. */
 export function CallLogRow({ item, viewerMemberId }: CallLogRowProps) {
   const { styles, cx } = useStyles();
-  const { workspaceId, channelId, title, avatarPath } = useConversationScope();
-  const call = useCallAction(workspaceId, channelId, title, avatarPath);
   const outgoing = item.call.startedByMemberId === viewerMemberId;
   const starterName = item.startedBy.displayName ?? 'Колега';
   const { Icon, live, missed } = getCallStatusIcon(item.call.status, outgoing);
@@ -114,16 +92,7 @@ export function CallLogRow({ item, viewerMemberId }: CallLogRowProps) {
       </span>
       <span className={styles.content}>
         <span className={styles.text}>{text(item, outgoing, starterName)}</span>
-        {live && (
-          <button
-            type="button"
-            className={styles.join}
-            disabled={call.busy || call.pending}
-            onClick={call.onClick}
-          >
-            Приєднатися до дзвінка
-          </button>
-        )}
+        {live && <RecordedCallJoinButton call={item.call} />}
         <time className={styles.time} dateTime={item.createdAt}>
           {timeFormat.format(new Date(item.createdAt))}
         </time>

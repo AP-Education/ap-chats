@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { callActionLabel } from '@/features/calls/callActionLabel';
 import { getCallStatusIcon } from '@/features/calls/callStatusIcon';
 import { formatCallDuration } from '@/features/calls/formatCallDuration';
-import { useCallAction } from '@/features/calls/hooks/useCallAction';
+import { useKnownCallAction } from '@/features/calls/hooks/useKnownCallAction';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { IconButton } from '@/shared/ui/IconButton';
 
@@ -139,7 +139,13 @@ export function CallHistoryRow({ item, workspaceId }: CallHistoryRowProps) {
   const name = item.participant.displayName ?? 'Колега';
   const outgoing = item.startedByMemberId !== item.participant.memberId;
   const { Icon, tone } = getCallStatusIcon(item.status, outgoing);
-  const call = useCallAction(workspaceId, item.channelId, name, item.participant.avatarPath);
+  const call = useKnownCallAction(
+    workspaceId,
+    item.channelId,
+    name,
+    item.participant.avatarPath,
+    item,
+  );
   const callTitle = callActionLabel(call, `Подзвонити: ${name}`);
 
   return (

@@ -7,8 +7,8 @@ import { IconButton } from '@/shared/ui/IconButton';
 
 import { callActionLabel } from '../callActionLabel';
 import { useActiveCall } from '../hooks/useActiveCall';
-import { useCallAction } from '../hooks/useCallAction';
 import { useDeclineIncomingCall } from '../hooks/useDeclineIncomingCall';
+import { useKnownCallAction } from '../hooks/useKnownCallAction';
 import { useCallDuration } from './ActiveCallOverlay/useCallDuration';
 
 const pulse = keyframes`
@@ -78,7 +78,7 @@ export function ActiveCallBanner({
 }: ActiveCallBannerProps) {
   const { styles } = useStyles();
   const activeCall = useActiveCall(workspaceId, channelId);
-  const call = useCallAction(workspaceId, channelId, title, calleeAvatarPath);
+  const call = useKnownCallAction(workspaceId, channelId, title, calleeAvatarPath, activeCall.data);
   const decline = useDeclineIncomingCall();
   const duration = useCallDuration(activeCall.data ? Date.parse(activeCall.data.startedAt) : null);
   // A DM has exactly one other person to dismiss, so hiding this banner IS

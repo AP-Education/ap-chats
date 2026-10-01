@@ -1,4 +1,4 @@
-import { scheduleBell } from './tone';
+import { scheduleBell } from '@/shared/audio/tone';
 
 // Two alternating phrases, not one loop repeated verbatim — a call that
 // keeps ringing shouldn't sound like it's stuck on the same note. Both are
