@@ -1,0 +1,56 @@
+import { useEffect } from 'react';
+
+import { answerCall } from '../utils/answer-call';
+import { extractCallMetadata } from '../utils/call-metadata';
+import { loadCallKitModule } from '../utils/callkit-module';
+import { endCallSession } from '../utils/end-call';
+import { setCallMuted } from '../utils/mute-call';
+import { trackSession } from '../utils/session-registry';
+
+/** Wires CallKit/Telecom's lifecycle events to the same REST endpoints and
+ * LiveKit room the web app's calls feature uses. Mount once near the app root,
+ * same as PushRegistration — a VoIP push can answer/end a call at any time, so
+ * this needs to stay subscribed for the app's entire lifetime. */
+export function CallSession() {
+  useEffect(() => {
+    let cancelled = false;
+    let subscriptions: { remove(): void }[] = [];
+
+    void (async () => {
+      const [CallKit, { registerGlobals }] = await Promise.all([
+        loadCallKitModule(),
+        import('@livekit/react-native'),
+      ]);
+      if (!CallKit || cancelled) return;
+
+      try {
+        registerGlobals();
+      } catch (error) {
+        if (__DEV__) console.warn('[calls] registerGlobals() failed', error);
+      }
+
+      subscriptions = [
+        CallKit.addCallSessionAddedListener((event) => {
+          const metadata = extractCallMetadata(event);
+          const incoming = event.session.incomingCallEvent;
+          if (!metadata || !incoming) return; // an outgoing session — not handled by this phase.
+          trackSession(event.session.id, {
+            serverCallId: incoming.serverCallId,
+            metadata,
+            caller: incoming.caller,
+          });
+        }),
+        CallKit.addCallAnsweredListener((event) => void answerCall(event, CallKit)),
+        CallKit.addCallEndedListener((event) => void endCallSession(event)),
+        CallKit.addSetMutedActionListener((event) => void setCallMuted(event, CallKit)),
+      ];
+    })();
+
+    return () => {
+      cancelled = true;
+      subscriptions.forEach((subscription) => subscription.remove());
+    };
+  }, []);
+
+  return null;
+}

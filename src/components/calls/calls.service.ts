@@ -17,6 +17,7 @@ import { EventPublisher } from '@/globals/publisher/event-publisher';
 import { RealtimePublisher } from '@/globals/realtime';
 
 import { CALL_ENTRY_CREATED_EVENT, CallEntryCreatedEvent } from './events/call-entry-created.event';
+import { CALL_SIGNAL_EVENT, CallSignalEvent } from './events/call-signal.event';
 import { CallProvider } from './provider';
 import { CallsRepository } from './repository';
 import type { CallRecord } from './types';
@@ -230,6 +231,7 @@ export class CallsService {
     for (const oidcUserId of recipients) {
       this.realtime.toUser(oidcUserId, event, payload);
     }
+    this.events.publish(CALL_SIGNAL_EVENT, new CallSignalEvent(event, payload, recipients));
   }
 
   private toView(record: CallRecord) {

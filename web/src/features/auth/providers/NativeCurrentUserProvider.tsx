@@ -1,5 +1,7 @@
 import { type PropsWithChildren, useState } from 'react';
 
+import { randomId } from '@/shared/lib/random-id';
+
 import { refreshNativeToken, requestNativeSignOut } from '../api/native-bridge';
 import { useNativeAuthBridge } from '../hooks/useNativeAuthBridge';
 import { CurrentUserContext } from '../stores/current-user-context';
@@ -7,7 +9,7 @@ import type { CurrentUserState } from '../types';
 
 export function NativeCurrentUserProvider({ children }: PropsWithChildren) {
   const native = useNativeAuthBridge();
-  const [sessionIdentity] = useState(() => crypto.randomUUID());
+  const [sessionIdentity] = useState(randomId);
 
   const state: CurrentUserState =
     native.status === 'signed-in'

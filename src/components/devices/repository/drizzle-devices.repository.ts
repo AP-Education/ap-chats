@@ -6,6 +6,7 @@ import { devices } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 import type { RegisterDeviceDto } from '../dto/register-device.dto';
+import type { DeviceRecord } from '../types';
 import { DevicesRepository } from './devices.repository';
 
 @Injectable()
@@ -33,5 +34,9 @@ export class DrizzleDevicesRepository extends DevicesRepository {
     await this.txHost.tx
       .delete(devices)
       .where(and(eq(devices.userId, userId), eq(devices.installationId, installationId)));
+  }
+
+  async listForUser(userId: string): Promise<DeviceRecord[]> {
+    return this.txHost.tx.select().from(devices).where(eq(devices.userId, userId));
   }
 }

@@ -11,5 +11,6 @@ import { DevicesRepository, DrizzleDevicesRepository } from './repository';
   imports: [DrizzleModule, AuthModule],
   controllers: [DevicesController],
   providers: [DevicesService, { provide: DevicesRepository, useClass: DrizzleDevicesRepository }],
+  exports: [DevicesService],
 })
 export class DevicesModule {}

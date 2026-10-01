@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { confirmDirectMessage, mergeDirectMessage } from '@/features/social/direct-messages/cache';
 import type { MessageHistoryItem } from '@/features/social/messaging/types';
+import { randomId } from '@/shared/lib/random-id';
 
 import { forwardMessages } from '../../api/forwarding-api';
 import type { ForwardTarget } from './forward-targets';
@@ -42,7 +43,7 @@ export function ForwardModal({ workspaceId, sourceChannelId, items, onClose }: F
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
   const [target, setTarget] = useState<ForwardTarget | null>(null);
-  const [batchNonce, setBatchNonce] = useState(() => crypto.randomUUID());
+  const [batchNonce, setBatchNonce] = useState(randomId);
   const [sending, setSending] = useState(false);
 
   async function submit() {
@@ -97,7 +98,7 @@ export function ForwardModal({ workspaceId, sourceChannelId, items, onClose }: F
         selected={target}
         onSelect={(next) => {
           setTarget(next);
-          setBatchNonce(crypto.randomUUID());
+          setBatchNonce(randomId());
         }}
       />
       <div className={styles.footer}>

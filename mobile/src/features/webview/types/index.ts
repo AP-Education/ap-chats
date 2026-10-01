@@ -11,4 +11,10 @@ export type NativeToWebMessage =
   /** Native has no OIDC client configured (e.g. local dev) — no token is coming, ever. */
   | { type: 'auth/unavailable' };
 
-export type WebToNativeMessage = { type: 'auth/sign-out' } | { type: 'auth/refresh-request' };
+export type WebToNativeMessage =
+  | { type: 'auth/sign-out' }
+  | { type: 'auth/refresh-request' }
+  /** __DEV__ only — see debug-console.ts. Lets web/'s own console show up in the
+   * RN console, since the WebView runs in a separate JS context Metro can't see. */
+  | { type: 'debug/console'; level: 'log' | 'warn' | 'error'; args: string[] }
+  | { type: 'debug/error'; message: string };

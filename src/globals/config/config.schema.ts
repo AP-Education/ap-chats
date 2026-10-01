@@ -22,6 +22,18 @@ const schema = z
     LIVEKIT_URL: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
     LIVEKIT_API_KEY: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
     LIVEKIT_API_SECRET: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
+    // iOS VoIP push (CallKit wake-up). Off — call ringing then only reaches
+    // devices with the app already open — until all four are set.
+    APNS_KEY_ID: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
+    APNS_TEAM_ID: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
+    APNS_PRIVATE_KEY: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
+    APNS_VOIP_TOPIC: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
+    // Android VoIP push (Telecom wake-up via a high-priority FCM data message).
+    FCM_PROJECT_ID: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
+    FCM_SERVICE_ACCOUNT_JSON: z.preprocess(
+      (value) => value || undefined,
+      z.string().min(1).optional(),
+    ),
   })
   .superRefine((config, context) => {
     if (config.LOG_TARGET_TYPE !== 'stdout' && !config.LOG_TARGET_DEST) {
@@ -51,6 +63,27 @@ const schema = z
       for (const key of livekit) {
         if (!config[key]) {
           context.addIssue({ code: 'custom', path: [key], message: 'Set all three or none' });
+        }
+      }
+    }
+    const apnsVoip = [
+      'APNS_KEY_ID',
+      'APNS_TEAM_ID',
+      'APNS_PRIVATE_KEY',
+      'APNS_VOIP_TOPIC',
+    ] as const;
+    if (apnsVoip.some((key) => config[key]) && !apnsVoip.every((key) => config[key])) {
+      for (const key of apnsVoip) {
+        if (!config[key]) {
+          context.addIssue({ code: 'custom', path: [key], message: 'Set all four or none' });
+        }
+      }
+    }
+    const fcm = ['FCM_PROJECT_ID', 'FCM_SERVICE_ACCOUNT_JSON'] as const;
+    if (fcm.some((key) => config[key]) && !fcm.every((key) => config[key])) {
+      for (const key of fcm) {
+        if (!config[key]) {
+          context.addIssue({ code: 'custom', path: [key], message: 'Set both or neither' });
         }
       }
     }

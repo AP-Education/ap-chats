@@ -3,10 +3,16 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
+import type {
+  WebViewErrorEvent,
+  WebViewHttpErrorEvent,
+  WebViewTerminatedEvent,
+} from 'react-native-webview/lib/WebViewTypes';
 
 import { useAuthStore } from '../../auth/index';
 import { unregisterCurrentDevice } from '../../push/api/unregister-current-device';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
+import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
 import { buildBridgeScript } from '../utils/inject-bridge';
 import { APP_SHELL_USER_AGENT } from '../utils/shell-user-agent';
 import { ConnectionErrorScreen } from './ConnectionErrorScreen';
@@ -62,6 +68,10 @@ export function WebViewHost() {
     } else if (message.type === 'auth/refresh-request') {
       // Updates the store; the effect above picks up the new token and re-injects it.
       void useAuthStore.getState().refreshNow();
+    } else if (__DEV__ && message.type === 'debug/console') {
+      console[message.level](`[webview]`, ...message.args);
+    } else if (__DEV__ && message.type === 'debug/error') {
+      console.error('[webview] uncaught error:', message.message);
     }
   }
 
@@ -81,6 +91,16 @@ export function WebViewHost() {
         applicationNameForUserAgent={APP_SHELL_USER_AGENT}
         onMessage={handleMessage}
         onLoadEnd={() => setLoadCount((count) => count + 1)}
+        injectedJavaScriptBeforeContentLoaded={__DEV__ ? DEBUG_CONSOLE_SCRIPT : undefined}
+        onError={(event: WebViewErrorEvent) =>
+          console.error('[webview] onError', event.nativeEvent)
+        }
+        onHttpError={(event: WebViewHttpErrorEvent) =>
+          console.error('[webview] onHttpError', event.nativeEvent)
+        }
+        onContentProcessDidTerminate={(event: WebViewTerminatedEvent) =>
+          console.error('[webview] render process terminated', event.nativeEvent)
+        }
         renderError={() => <ConnectionErrorScreen onRetry={() => webViewRef.current?.reload()} />}
       />
       <StatusBar style="dark" />
