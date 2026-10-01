@@ -10,13 +10,14 @@ import { ConversationView } from '@/features/social/conversation/components/Conv
 import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
 import { DirectMessageActions } from '@/features/social/direct-messages/components/DirectMessageActions';
-import { DirectMessageList } from '@/features/social/direct-messages/components/DirectMessageList/DirectMessageList';
 import { DirectProfilePanel } from '@/features/social/direct-messages/components/DirectProfilePanel/DirectProfilePanel';
 import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDirectMessages';
 import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
+import { MainSiderMenu } from '@/layouts/MainLayout/MainSiderMenu';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
+import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -48,8 +49,9 @@ export default function DirectMessagePage() {
   const navigate = useNavigate();
   const { channelId } = useParams<{ channelId: string }>();
   const isMobile = useIsMobile();
+  const isNarrowLayout = useIsNarrowLayout();
   const [profileVisible, setProfileVisible] = useState<boolean | null>(null);
-  const isProfileVisible = profileVisible ?? !isMobile;
+  const isProfileVisible = profileVisible ?? !isNarrowLayout;
   const conversation = useDirectMessage(workspaceId, channelId);
   const unavailable = useTrackConversation(
     'direct',
@@ -60,7 +62,7 @@ export default function DirectMessagePage() {
   );
   const { byId, currentMember } = useWorkspaceMemberLabels(workspaceId);
 
-  if (!channelId && isMobile) return <DirectMessageList workspaceId={workspaceId} />;
+  if (!channelId && isMobile) return <MainSiderMenu />;
   if (!channelId) {
     return (
       <div className={styles.center}>
@@ -96,6 +98,7 @@ export default function DirectMessagePage() {
         <DirectProfilePanel
           participant={participant}
           member={byId.get(participant.memberId)?.member}
+          onClose={() => setProfileVisible(false)}
         />
       }
     >

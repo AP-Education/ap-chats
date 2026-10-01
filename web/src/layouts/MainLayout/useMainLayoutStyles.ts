@@ -1,12 +1,8 @@
 import { createStyles } from 'antd-style';
 
-// Single style source for MainLayout + MainSider (desktop sider and mobile
-// drawer render the same nav/workspace content) — breakpoints come from antd's
-// own screen tokens, not hardcoded px, so this stays in step with the rest of
-// the design system.
 export const useMainLayoutStyles = createStyles(({ token, css }) => ({
   layout: css`
-    height: 100vh;
+    height: 100dvh;
     overflow: hidden;
   `,
   mainArea: css`
@@ -47,7 +43,12 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     height: 100%;
     min-height: 0;
   `,
+  mobileDrawerContent: css`
+    height: 100%;
+    touch-action: pan-y;
+  `,
   sidebarWorkspace: css`
+    position: relative;
     display: flex;
     align-items: center;
     height: 60px;
@@ -126,34 +127,9 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     overflow-y: auto;
   `,
   mobileDrawer: css`
-    :global(.ant-drawer-header) {
-      padding: 8px 12px;
-      background: ${token.colorBgContainer};
-    }
-
-    :global(.ant-drawer-close) {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      margin-inline-end: 0;
-      border-radius: ${token.borderRadius}px;
-
-      &:hover {
-        background: ${token.colorFillTertiary};
-      }
-    }
-
     :global(.ant-drawer-body) {
       padding: 0 !important;
       background: ${token.colorBgContainer};
-    }
-
-    @media (max-width: ${token.screenXS}px) {
-      :global(.ant-drawer-content-wrapper) {
-        width: 88vw !important;
-      }
     }
   `,
 }));

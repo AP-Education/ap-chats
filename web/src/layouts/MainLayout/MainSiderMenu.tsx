@@ -1,6 +1,8 @@
 import { ChatsCircleIcon, ChatsIcon, HouseIcon, VideoCameraIcon } from '@phosphor-icons/react';
 import { Link, useLocation } from 'react-router-dom';
 
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
+
 import { AuthStatus } from '../../features/auth/components/AuthStatus';
 import { ChannelsSidebar } from '../../features/communities/components/ChannelsSidebar';
 import { DirectMessageList } from '../../features/social/direct-messages/components/DirectMessageList/DirectMessageList';
@@ -24,6 +26,7 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
   const { styles, cx } = useMainLayoutStyles();
   const { pathname } = useLocation();
   const { workspace } = useActiveWorkspace();
+  const isMobile = useIsMobile();
 
   return (
     <div className={styles.sidebarStack}>
@@ -36,7 +39,7 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
           return (
             <Link
               key={key}
-              to={key}
+              to={isMobile && (key === '/channels' || key === '/direct') ? `${key}?list=1` : key}
               onClick={onNavigate}
               className={cx(styles.navItem, active && styles.navItemActive)}
             >

@@ -1,5 +1,6 @@
 import { createStyles } from 'antd-style';
 
+import { ChatPanelHeader } from '@/domain/conversation/ChatPanelHeader';
 import type { DirectMessage } from '@/features/social/direct-messages/api/direct-messages-api';
 import { MemberIdentity } from '@/features/social/people/components/MemberIdentity';
 import type { WorkspaceMember } from '@/features/workspaces/types';
@@ -12,9 +13,11 @@ const joinedFormat = new Intl.DateTimeFormat('uk-UA', {
 
 const useStyles = createStyles(({ token, css }) => ({
   shell: css`
-    padding: 22px;
     color: ${token.colorText};
     text-align: center;
+  `,
+  body: css`
+    padding: 22px;
   `,
   details: css`
     margin-top: 20px;
@@ -28,9 +31,10 @@ const useStyles = createStyles(({ token, css }) => ({
 interface DirectProfilePanelProps {
   participant: DirectMessage['participant'];
   member?: WorkspaceMember;
+  onClose: () => void;
 }
 
-export function DirectProfilePanel({ participant, member }: DirectProfilePanelProps) {
+export function DirectProfilePanel({ participant, member, onClose }: DirectProfilePanelProps) {
   const { styles } = useStyles();
   const name = member?.profile.displayName ?? participant.displayName ?? 'Ім’я недоступне';
   const avatarPath = member?.profile.avatarPath ?? participant.avatarPath;
@@ -42,7 +46,8 @@ export function DirectProfilePanel({ participant, member }: DirectProfilePanelPr
 
   return (
     <div className={styles.shell}>
-      <section aria-label={`Профіль ${name}`}>
+      <ChatPanelHeader title="Профіль" closeLabel="Закрити профіль" onClose={onClose} />
+      <section className={styles.body} aria-label={`Профіль ${name}`}>
         <MemberIdentity name={name} avatarPath={avatarPath} detail={role} headingLevel="h2" />
         {member?.createdAt && (
           <div className={styles.details}>

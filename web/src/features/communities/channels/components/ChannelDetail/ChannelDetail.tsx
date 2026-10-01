@@ -326,7 +326,7 @@ export function ChannelDetail({
             </span>
           </Tooltip>
           <ConversationActionDivider />
-          <Tooltip title={membersVisible ? 'Сховати учасників' : 'Показати учасників'}>
+          <Tooltip title="Показати учасників" open={membersVisible ? false : undefined}>
             <IconButton
               size={actionSize}
               className={cx(styles.headerAction, membersVisible && styles.actionActive)}

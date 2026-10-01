@@ -30,7 +30,7 @@ const useStyles = createStyles(({ token, css }) => ({
     padding: 7px 12px;
     @media (max-width: ${token.screenMD}px) {
       gap: 4px;
-      padding: 4px 4px 4px 12px;
+      padding: 2px 4px 2px 6px;
     }
   `,
   body: css`

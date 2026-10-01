@@ -88,7 +88,13 @@ export function MessageMarkdown({
           inline ? (
             <span>{children}</span>
           ) : (
-            <a {...props} target="_blank" rel="noopener noreferrer">
+            <a
+              {...props}
+              target="_blank"
+              rel="noopener noreferrer"
+              onTouchStart={(event) => event.stopPropagation()}
+              onContextMenu={(event) => event.stopPropagation()}
+            >
               {children}
             </a>
           ),
@@ -112,6 +118,8 @@ export function MessageMarkdown({
               <button
                 type="button"
                 className={cx(mentionClass, styles.mentionTrigger, isMe && styles.mentionMeTrigger)}
+                onTouchStart={(event) => event.stopPropagation()}
+                onContextMenu={(event) => event.stopPropagation()}
               >
                 @{name}
               </button>
