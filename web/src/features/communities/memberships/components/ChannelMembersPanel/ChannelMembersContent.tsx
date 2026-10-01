@@ -151,7 +151,7 @@ export function ChannelMembersContent({
                     size="small"
                     className={styles.remove}
                     data-role="remove-member"
-                    icon={<UserMinusIcon size={17} />}
+                    icon={<UserMinusIcon size={18} />}
                     aria-label={`Прибрати ${entry.label}`}
                   />
                 </Tooltip>

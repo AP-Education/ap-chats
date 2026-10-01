@@ -1,13 +1,14 @@
-import { LoadingOutlined } from '@ant-design/icons';
-import { BellIcon, BellSlashIcon, PhoneIcon, UserCircleIcon } from '@phosphor-icons/react';
+import { BellIcon, BellSlashIcon, UserCircleIcon } from '@phosphor-icons/react';
 import { message as toast, Popover, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import { ConversationActionDivider } from '@/domain/conversation/ConversationPane';
 import { callActionLabel } from '@/features/calls/callActionLabel';
+import { CallIcon } from '@/features/calls/callIcons';
 import { useCallAction } from '@/features/calls/hooks/useCallAction';
 import { IconButton } from '@/shared/ui/IconButton';
+import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 
 import type { DirectMessage } from '../api/direct-messages-api';
 import { useDirectMessageMute } from '../hooks/useDirectMessageMute';
@@ -128,7 +129,7 @@ export function DirectMessageActions({
             aria-label="Сповіщення розмови"
             aria-expanded={notificationsOpen}
           >
-            {isMuted ? <BellSlashIcon size={21} weight="duotone" /> : <BellIcon size={21} />}
+            {isMuted ? <BellSlashIcon size={22} /> : <BellIcon size={22} />}
           </IconButton>
         </Tooltip>
       </Popover>
@@ -141,11 +142,7 @@ export function DirectMessageActions({
             disabled={call.busy || call.pending || !conversation.participant.active}
             onClick={call.onClick}
           >
-            {call.pending ? (
-              <LoadingOutlined />
-            ) : (
-              <PhoneIcon size={21} weight={call.joinable ? 'fill' : 'regular'} />
-            )}
+            {call.pending ? <LoadingIcon size={22} /> : <CallIcon size={22} />}
           </IconButton>
         </span>
       </Tooltip>
@@ -158,7 +155,7 @@ export function DirectMessageActions({
           aria-pressed={profileVisible}
           onClick={onToggleProfile}
         >
-          <UserCircleIcon size={22} weight={profileVisible ? 'duotone' : 'regular'} />
+          <UserCircleIcon size={22} />
         </IconButton>
       </Tooltip>
     </>

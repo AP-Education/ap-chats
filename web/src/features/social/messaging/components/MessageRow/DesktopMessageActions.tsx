@@ -1,6 +1,8 @@
-import { DotsThreeIcon, QuotesIcon } from '@phosphor-icons/react';
+import { DotsThreeIcon } from '@phosphor-icons/react';
 import { Dropdown, type MenuProps, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
+
+import { QuoteIcon } from '@/features/social/conversation/actionIcons';
 
 import { groupMessageActions } from './messageActionGroups';
 import type { MessageActionsProps } from './MessageActions';
@@ -14,8 +16,8 @@ const useStyles = createStyles(({ token, css }) => ({
     right: 20px;
     display: flex;
     align-items: center;
-    gap: 1px;
-    padding: 3px;
+    gap: 2px;
+    padding: 4px;
     border: 1px solid ${token.colorBorderSecondary};
     border-radius: 9px;
     background: ${token.colorBgContainer};
@@ -27,8 +29,9 @@ const useStyles = createStyles(({ token, css }) => ({
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 29px;
+    width: 28px;
     height: 28px;
+    padding: 0;
     border: 0;
     border-radius: 6px;
     background: transparent;
@@ -100,7 +103,7 @@ export function DesktopMessageActions({ rowProps, children }: MessageActionsProp
                   aria-label="Цитувати"
                   onClick={() => scope.onAction(quote, scope.textTarget)}
                 >
-                  <QuotesIcon size={18} />
+                  <QuoteIcon size={18} />
                 </button>
               </Tooltip>
             )}
@@ -118,7 +121,7 @@ export function DesktopMessageActions({ rowProps, children }: MessageActionsProp
             )}
             <Dropdown trigger={['click']} menu={menu}>
               <button type="button" className={styles.tool} aria-label="Дії з повідомленням">
-                <DotsThreeIcon size={20} weight="bold" />
+                <DotsThreeIcon size={20} />
               </button>
             </Dropdown>
           </div>

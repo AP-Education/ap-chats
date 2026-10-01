@@ -118,7 +118,7 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
                 aria-label="Керувати категоріями"
                 onClick={() => setManagingCategories(true)}
               >
-                <GearSixIcon size={16} />
+                <GearSixIcon size={18} />
               </IconButton>
             </Tooltip>
           </div>

@@ -1,4 +1,4 @@
-import { ChatCircleDotsIcon } from '@phosphor-icons/react';
+import { ChatTextIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Empty, message as toast, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
@@ -141,7 +141,7 @@ export function PeopleSearchResults({
             shape="circle"
           />
           <span className={styles.name}>{person.displayName ?? 'Ім’я недоступне'}</span>
-          <ChatCircleDotsIcon className={styles.action} size={18} aria-hidden="true" />
+          <ChatTextIcon className={styles.action} size={20} aria-hidden="true" />
         </button>
       ))}
     </section>

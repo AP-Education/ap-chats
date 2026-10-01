@@ -174,7 +174,7 @@ export function ChannelSectionView({ section }: ChannelSectionViewProps) {
               });
             }}
           >
-            <PlusIcon size={16} />
+            <PlusIcon size={18} />
           </button>
         )}
       </div>

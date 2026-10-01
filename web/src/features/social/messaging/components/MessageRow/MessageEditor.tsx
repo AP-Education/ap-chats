@@ -94,7 +94,7 @@ export function MessageEditor({ item, onEdit, onClose, minHeight }: MessageEdito
               aria-label="Скасувати редагування"
               onClick={onClose}
             >
-              <XIcon size={17} />
+              <XIcon size={18} />
             </button>
             <button
               type="button"
@@ -103,7 +103,7 @@ export function MessageEditor({ item, onEdit, onClose, minHeight }: MessageEdito
               disabled={saving || !hasContent}
               onClick={() => void save()}
             >
-              <CheckIcon size={17} />
+              <CheckIcon size={18} />
             </button>
           </div>
         }

@@ -1,13 +1,4 @@
-import { LoadingOutlined } from '@ant-design/icons';
-import {
-  CaretDownIcon,
-  GearSixIcon,
-  HashIcon,
-  LockSimpleIcon,
-  PhoneIcon,
-  SignOutIcon,
-  UsersThreeIcon,
-} from '@phosphor-icons/react';
+import { CaretDownIcon, GearSixIcon, SignOutIcon, UsersThreeIcon } from '@phosphor-icons/react';
 import { Alert, Button, Dropdown, type MenuProps, message, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
@@ -18,15 +9,18 @@ import {
   ConversationPane,
 } from '@/domain/conversation/ConversationPane';
 import { callActionLabel } from '@/features/calls/callActionLabel';
+import { CallIcon } from '@/features/calls/callIcons';
 import { useCallAction } from '@/features/calls/hooks/useCallAction';
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { ApiError } from '@/shared/api/http';
 import { IconButton } from '@/shared/ui/IconButton';
+import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 
 import { canManageChannel } from '../../../channel-permissions';
 import { useChannelMembership } from '../../../memberships/hooks/useChannelMembership';
 import { ChannelNotificationsPopover } from '../../../notifications/components/Popover';
+import { PrivateChannelIcon, PublicChannelIcon } from '../../channelIcons';
 import type { Channel } from '../../types';
 import { ChannelFormModal } from '../ChannelFormModal';
 
@@ -132,18 +126,18 @@ function ChannelTitle({ channel, canManage, onSettings, onLeave }: ChannelTitleP
     menuItems.push({
       key: 'settings',
       label: 'Налаштування каналу',
-      icon: <GearSixIcon size={17} />,
+      icon: <GearSixIcon size={18} />,
     });
   if (channel.isMember)
     menuItems.push({
       key: 'leave',
       label: 'Вийти з каналу',
-      icon: <SignOutIcon size={17} />,
+      icon: <SignOutIcon size={18} />,
       danger: true,
     });
 
   const channelIcon =
-    channel.kind === 'private' ? <LockSimpleIcon size={21} /> : <HashIcon size={21} />;
+    channel.kind === 'private' ? <PrivateChannelIcon size={22} /> : <PublicChannelIcon size={22} />;
   const title = (
     <>
       {channelIcon}
@@ -317,11 +311,7 @@ export function ChannelDetail({
                 disabled={call.busy || call.pending || !channel.isMember}
                 onClick={handleCall}
               >
-                {call.pending ? (
-                  <LoadingOutlined />
-                ) : (
-                  <PhoneIcon size={21} weight={call.joinable ? 'fill' : 'regular'} />
-                )}
+                {call.pending ? <LoadingIcon size={22} /> : <CallIcon size={22} />}
               </IconButton>
             </span>
           </Tooltip>
@@ -334,7 +324,7 @@ export function ChannelDetail({
               aria-pressed={membersVisible}
               onClick={onToggleMembers}
             >
-              <UsersThreeIcon size={22} weight={membersVisible ? 'duotone' : 'regular'} />
+              <UsersThreeIcon size={22} />
             </IconButton>
           </Tooltip>
         </>

@@ -86,7 +86,7 @@ export function ParticipantAvatarTile({
         <span className={styles.nameText}>{name}</span>
         {muted && (
           <span className={styles.muted} aria-label="Мікрофон вимкнено">
-            <MicrophoneSlashIcon size={13} weight="fill" />
+            <MicrophoneSlashIcon size={14} weight="fill" />
           </span>
         )}
       </span>

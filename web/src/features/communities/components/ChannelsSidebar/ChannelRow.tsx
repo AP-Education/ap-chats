@@ -1,4 +1,4 @@
-import { GearSixIcon, HashIcon, LockSimpleIcon, UserPlusIcon } from '@phosphor-icons/react';
+import { GearSixIcon, UserPlusIcon } from '@phosphor-icons/react';
 import { Popover, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { canManageChannel } from '../../channel-permissions';
+import { PrivateChannelIcon, PublicChannelIcon } from '../../channels/channelIcons';
 import { ChannelFormModal } from '../../channels/components/ChannelFormModal';
 import type { Channel } from '../../channels/types';
 import { AddChannelMemberControl } from '../../memberships/components/AddChannelMemberControl';
@@ -105,7 +106,6 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   icon: css`
     flex-shrink: 0;
-    opacity: 0.8;
   `,
   name: css`
     flex: 1;
@@ -220,9 +220,9 @@ export function ChannelRow({ channel }: ChannelRowProps) {
     >
       <Link to={`/channels/${channel.id}`} onClick={onNavigate} className={styles.link}>
         {channel.kind === 'private' ? (
-          <LockSimpleIcon size={16} className={styles.icon} />
+          <PrivateChannelIcon size={18} className={styles.icon} />
         ) : (
-          <HashIcon size={16} className={styles.icon} />
+          <PublicChannelIcon size={18} className={styles.icon} />
         )}
         <span className={styles.name}>{channel.name}</span>
       </Link>
@@ -252,7 +252,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
                       aria-label={`Додати учасника до ${channel.name}`}
                       onClick={(event) => event.stopPropagation()}
                     >
-                      <UserPlusIcon size={16} />
+                      <UserPlusIcon size={18} />
                     </IconButton>
                   </Tooltip>
                 </Popover>
@@ -265,7 +265,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
                     aria-label={`Налаштування каналу ${channel.name}`}
                     onClick={() => setSettingsOpen(true)}
                   >
-                    <GearSixIcon size={16} />
+                    <GearSixIcon size={18} />
                   </IconButton>
                 </Tooltip>
               )}

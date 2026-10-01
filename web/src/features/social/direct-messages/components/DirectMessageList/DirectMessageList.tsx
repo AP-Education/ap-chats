@@ -48,13 +48,13 @@ export function DirectMessageList({
         <Button
           type="text"
           aria-label="Написати колезі"
-          icon={<NotePencilIcon size={19} />}
+          icon={<NotePencilIcon size={20} />}
           onClick={() => setComposeOpen(true)}
         />
       </div>
       <div className={styles.search}>
         <Input
-          prefix={<MagnifyingGlassIcon size={16} />}
+          prefix={<MagnifyingGlassIcon size={18} />}
           placeholder="Розмова або колега"
           aria-label="Знайти розмову або колегу"
           value={filter}

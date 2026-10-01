@@ -7,7 +7,6 @@ import {
   ArrowsClockwiseIcon,
   MicrophoneIcon,
   MicrophoneSlashIcon,
-  PhoneXIcon,
   ScreencastIcon,
   VideoCameraIcon,
   VideoCameraSlashIcon,
@@ -18,6 +17,7 @@ import { useState } from 'react';
 
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
+import { EndCallIcon } from '../../callIcons';
 import { CallActionButton } from './CallActionButton';
 
 const useStyles = createStyles(({ css }) => ({
@@ -94,7 +94,7 @@ export function CallControls() {
         {...leave.buttonProps}
         aria-label="Завершити дзвінок"
       >
-        <PhoneXIcon size={22} weight="fill" />
+        <EndCallIcon size={22} weight="fill" />
       </CallActionButton>
     </div>
   );

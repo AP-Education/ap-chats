@@ -200,7 +200,7 @@ export function ChannelFormModal({
         >
           <Input
             className={styles.nameInput}
-            prefix={<HashIcon size={15} />}
+            prefix={<HashIcon size={16} />}
             placeholder="загальне"
             autoFocus
             disabled={remove.isPending}
@@ -229,7 +229,7 @@ export function ChannelFormModal({
             cancelText="Скасувати"
             onConfirm={() => void handleDelete()}
           >
-            <Button type="text" danger loading={remove.isPending} icon={<TrashIcon size={17} />}>
+            <Button type="text" danger loading={remove.isPending} icon={<TrashIcon size={18} />}>
               Видалити канал
             </Button>
           </Popconfirm>

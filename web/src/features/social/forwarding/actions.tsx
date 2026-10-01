@@ -1,11 +1,10 @@
-import { ArrowBendUpRightIcon } from '@phosphor-icons/react';
-
+import { ForwardIcon } from '../conversation/actionIcons';
 import type { ConversationAction } from '../conversation/actions';
 
 export const forwardingActions: ConversationAction[] = [
   {
     id: 'forward',
-    icon: <ArrowBendUpRightIcon size={17} />,
+    icon: <ForwardIcon size={18} />,
     label: () => 'Переслати',
     available: (target) =>
       target.kind !== 'text' &&

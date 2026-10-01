@@ -94,7 +94,7 @@ export function ChannelNotificationsPopover({
           aria-expanded={open}
           aria-haspopup="dialog"
         >
-          {isMuted ? <BellSlashIcon size={21} weight="duotone" /> : <BellIcon size={21} />}
+          {isMuted ? <BellSlashIcon size={22} weight="duotone" /> : <BellIcon size={22} />}
         </IconButton>
       </Tooltip>
     </Popover>

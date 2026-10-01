@@ -1,7 +1,11 @@
-import { CheckIcon, HashIcon, LockSimpleIcon } from '@phosphor-icons/react';
+import { CheckIcon } from '@phosphor-icons/react';
 import { Button, Empty, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 
+import {
+  PrivateChannelIcon,
+  PublicChannelIcon,
+} from '@/features/communities/channels/channelIcons';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import type { ForwardTarget, ForwardTargetGroup, ForwardTargetOption } from './forward-targets';
@@ -117,7 +121,7 @@ function TargetRow({
     >
       {target.kind === 'channel' ? (
         <span className={styles.icon} aria-hidden="true">
-          {target.private ? <LockSimpleIcon size={20} /> : <HashIcon size={20} />}
+          {target.private ? <PrivateChannelIcon size={20} /> : <PublicChannelIcon size={20} />}
         </span>
       ) : (
         <Avatar path={target.avatarPath ?? null} alt={target.name} size={40} shape="circle" />

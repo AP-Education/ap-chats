@@ -1,15 +1,15 @@
-import { LoadingOutlined } from '@ant-design/icons';
-import { PhoneIcon } from '@phosphor-icons/react';
 import { Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { Link } from 'react-router-dom';
 
 import { callActionLabel } from '@/features/calls/callActionLabel';
+import { CallIcon } from '@/features/calls/callIcons';
 import { getCallStatusIcon } from '@/features/calls/callStatusIcon';
 import { formatCallDuration } from '@/features/calls/formatCallDuration';
 import { useCallAction } from '@/features/calls/hooks/useCallAction';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { IconButton } from '@/shared/ui/IconButton';
+import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 
 import type { CallHistoryItem } from '../../api/calls-api';
 
@@ -183,11 +183,7 @@ export function CallHistoryRow({ item, workspaceId }: CallHistoryRowProps) {
               (call.inCall || call.joinable) && styles.callButtonActive,
             )}
           >
-            {call.pending ? (
-              <LoadingOutlined style={{ fontSize: 20 }} />
-            ) : (
-              <PhoneIcon size={21} weight={call.joinable ? 'fill' : 'regular'} />
-            )}
+            {call.pending ? <LoadingIcon size={20} /> : <CallIcon size={22} />}
           </IconButton>
         </span>
       </Tooltip>

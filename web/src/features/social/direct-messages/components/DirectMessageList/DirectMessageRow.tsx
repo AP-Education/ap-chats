@@ -129,7 +129,7 @@ export function DirectMessageRow({
         </span>
       </span>
       {isMuted && (
-        <BellSlashIcon size={16} className={styles.muted} aria-label="Сповіщення вимкнено" />
+        <BellSlashIcon size={18} className={styles.muted} aria-label="Сповіщення вимкнено" />
       )}
       {visibleUnreadCount > 0 && (
         <span className={styles.badge} aria-label={`${visibleUnreadCount} непрочитаних`}>

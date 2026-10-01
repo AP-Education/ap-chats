@@ -1,4 +1,4 @@
-import { ChatsCircleIcon, ChatsIcon, HouseIcon, VideoCameraIcon } from '@phosphor-icons/react';
+import { ChatsIcon, ChatTextIcon, HouseIcon, PhoneIcon } from '@phosphor-icons/react';
 import { Link, useLocation } from 'react-router-dom';
 
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
@@ -14,8 +14,8 @@ import { useMainLayoutStyles } from './useMainLayoutStyles';
 const navItems = [
   { key: '/', icon: HouseIcon, label: 'Головна' },
   { key: '/channels', icon: ChatsIcon, label: 'Чати' },
-  { key: '/direct', icon: ChatsCircleIcon, label: 'Особисті' },
-  { key: '/calls', icon: VideoCameraIcon, label: 'Дзвінки' },
+  { key: '/direct', icon: ChatTextIcon, label: 'Особисті' },
+  { key: '/calls', icon: PhoneIcon, label: 'Дзвінки' },
 ];
 
 export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
@@ -39,7 +39,7 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
               onClick={onNavigate}
               className={cx(styles.navItem, active && styles.navItemActive)}
             >
-              <Icon size={18} weight={active ? 'fill' : 'regular'} />
+              <Icon size={20} weight={active ? 'fill' : 'regular'} />
               <span>{label}</span>
             </Link>
           );

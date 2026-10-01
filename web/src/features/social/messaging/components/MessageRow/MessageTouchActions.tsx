@@ -1,7 +1,7 @@
-import { ArrowBendUpLeftIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { useRef, useState } from 'react';
 
+import { ReplyIcon } from '@/features/social/conversation/actionIcons';
 import { useTouchGesture } from '@/shared/hooks/useTouchGesture';
 
 import { groupMessageActions } from './messageActionGroups';
@@ -94,7 +94,7 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
     <>
       <div className={styles.gestureArea}>
         <span ref={replyHint} className={styles.replyHint} aria-hidden="true">
-          <ArrowBendUpLeftIcon size={20} />
+          <ReplyIcon size={20} />
         </span>
         <div
           {...rowProps}

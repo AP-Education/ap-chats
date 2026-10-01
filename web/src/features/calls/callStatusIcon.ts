@@ -1,6 +1,7 @@
-import { PhoneIcon, PhoneIncomingIcon, PhoneOutgoingIcon, PhoneXIcon } from '@phosphor-icons/react';
+import { PhoneIncomingIcon, PhoneOutgoingIcon, PhoneXIcon } from '@phosphor-icons/react';
 
 import type { CallStatus } from './api/calls-api';
+import { CallIcon } from './callIcons';
 
 export type CallStatusTone = 'live' | 'missed' | 'neutral';
 
@@ -11,7 +12,7 @@ export function getCallStatusIcon(status: CallStatus, outgoing: boolean) {
   const missed = status === 'missed' || status === 'declined';
   const tone: CallStatusTone = live ? 'live' : missed ? 'missed' : 'neutral';
   const Icon = live
-    ? PhoneIcon
+    ? CallIcon
     : missed
       ? PhoneXIcon
       : outgoing
