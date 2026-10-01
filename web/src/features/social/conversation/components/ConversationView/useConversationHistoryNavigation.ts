@@ -5,7 +5,7 @@ import { flashMessage } from '@/features/social/messaging/flashMessage';
 import { useChannelRealtime } from '@/features/social/messaging/hooks/useChannelRealtime';
 import { useMessageHistory } from '@/features/social/messaging/hooks/useMessageHistory';
 import type { HistoryPage } from '@/features/social/messaging/types';
-import { useMarkReadOnOpen } from '@/features/social/read-state/hooks/useMarkReadOnOpen';
+import { useActiveConversationReadState } from '@/features/social/read-state/hooks/useActiveConversationReadState';
 
 import { useConversation, useConversationScope } from '../../store';
 
@@ -21,7 +21,7 @@ export function useConversationHistoryNavigation(canPost: boolean) {
   const pages = history.data?.pages ?? emptyPages;
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
 
-  useMarkReadOnOpen(workspaceId, channelId, history.data?.pages[0]);
+  useActiveConversationReadState(workspaceId, channelId, history.data?.pages[0]);
   useChannelRealtime(workspaceId, channelId, canPost, historyTargetId);
 
   const onJump = useCallback(

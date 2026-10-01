@@ -1,7 +1,6 @@
 import { MessageTimeline } from '@/features/social/messaging/components/MessageTimeline/MessageTimeline';
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 
-import { useConversationScope } from '../../store';
 import type { useConversationActions } from './useConversationActions';
 import { conversationActions } from './useConversationActions';
 import type { useConversationHistoryNavigation } from './useConversationHistoryNavigation';
@@ -17,15 +16,12 @@ export function ConversationTimeline({
   interaction,
   operations,
 }: ConversationTimelineProps) {
-  const { workspaceId, channelId } = useConversationScope();
   const { history, pages, historyTargetId, targetMessageId, onJump } = navigation;
   const { actionContext, onAction, onEdit } = interaction;
 
   return (
     <MessageTimeline
       key={historyTargetId ?? 'unread'}
-      workspaceId={workspaceId}
-      channelId={channelId}
       pages={pages}
       displayItems={operations.displayItems}
       actionContext={actionContext}
