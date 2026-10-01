@@ -17,15 +17,19 @@ export function CallSurface() {
   useCallSignalListener();
   const incoming = useCallStore((state) => state.incoming);
   const active = useCallStore((state) => state.active);
+  const isMobile = getAppShell().kind === 'mobile';
 
-  // The native shell owns ringing and the in-call screen itself (CallKit/Telecom) —
-  // rendering this too would double-ring and fight it for the same LiveKit room. The
-  // listener above still runs there, keeping the calls tab's history in sync.
-  if (getAppShell().kind === 'mobile') return null;
-
+  // The native shell (CallKit/Telecom) owns ringing on mobile — it's the only thing
+  // that can wake the app while backgrounded or killed, and it rings regardless of
+  // whether the app happens to be open, so showing this card too would double-ring.
+  // `active` is a different story: it's only ever set by this app's own web code
+  // (starting a call, or accepting one from this card), meaning the person is already
+  // looking at the WebView — so the in-call screen stays the familiar one everywhere,
+  // the same way Telegram/Discord hand off from the system call screen to their own
+  // UI as soon as the app itself is frontmost.
   return (
     <>
-      {incoming && !active && <IncomingCallCard signal={incoming} />}
+      {incoming && !active && !isMobile && <IncomingCallCard signal={incoming} />}
       {active && (
         <Suspense fallback={null}>
           <ActiveCallOverlay session={active} />

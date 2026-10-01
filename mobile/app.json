@@ -29,7 +29,14 @@
       "expo-web-browser",
       "expo-secure-store",
       "expo-notifications",
-      "expo-callkit-telecom",
+      [
+        "expo-callkit-telecom",
+        {
+          "sounds": ["./assets/sounds/ringtone.wav"],
+          "defaultRingtoneIos": "ringtone.wav",
+          "defaultRingtoneAndroid": "ringtone.wav"
+        }
+      ],
       "@livekit/react-native-expo-plugin",
       "@config-plugins/react-native-webrtc"
     ],
