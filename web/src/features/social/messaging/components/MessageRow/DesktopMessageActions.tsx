@@ -1,5 +1,5 @@
 import { DotsThreeIcon } from '@phosphor-icons/react';
-import { Dropdown, type MenuProps, Tooltip } from 'antd';
+import { Dropdown, type MenuProps } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { QuoteIcon } from '@/features/social/conversation/actionIcons';
@@ -96,28 +96,24 @@ export function DesktopMessageActions({ rowProps, children }: MessageActionsProp
         {!scope.editing && !scope.delivery && (
           <div className={styles.toolbar} data-message-actions>
             {scope.selectedText && quote?.available(scope.textTarget, scope.context) && (
-              <Tooltip title="Цитувати">
-                <button
-                  type="button"
-                  className={styles.tool}
-                  aria-label="Цитувати"
-                  onClick={() => scope.onAction(quote, scope.textTarget)}
-                >
-                  <QuoteIcon size={18} />
-                </button>
-              </Tooltip>
+              <button
+                type="button"
+                className={styles.tool}
+                aria-label="Цитувати"
+                onClick={() => scope.onAction(quote, scope.textTarget)}
+              >
+                <QuoteIcon size={18} />
+              </button>
             )}
             {reply?.available(scope.messageTarget, scope.context) && (
-              <Tooltip title="Відповісти">
-                <button
-                  type="button"
-                  className={styles.tool}
-                  aria-label="Відповісти"
-                  onClick={() => scope.onAction(reply, scope.messageTarget)}
-                >
-                  {reply.icon}
-                </button>
-              </Tooltip>
+              <button
+                type="button"
+                className={styles.tool}
+                aria-label="Відповісти"
+                onClick={() => scope.onAction(reply, scope.messageTarget)}
+              >
+                {reply.icon}
+              </button>
             )}
             <Dropdown trigger={['click']} menu={menu}>
               <button type="button" className={styles.tool} aria-label="Дії з повідомленням">

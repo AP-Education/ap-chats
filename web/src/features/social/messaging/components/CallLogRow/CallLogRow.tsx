@@ -50,7 +50,8 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   text: css`
     color: ${token.colorTextSecondary};
-    font-size: 14px;
+    font-size: ${token.fontSize}px;
+    line-height: 1.5;
   `,
   join: css`
     padding: 0;
@@ -58,7 +59,7 @@ const useStyles = createStyles(({ token, css }) => ({
     background: transparent;
     color: ${token.colorPrimary};
     font: inherit;
-    font-size: 14px;
+    font-size: ${token.fontSize}px;
     font-weight: 600;
     cursor: pointer;
 

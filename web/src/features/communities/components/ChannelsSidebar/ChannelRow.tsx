@@ -1,9 +1,10 @@
 import { GearSixIcon, UserPlusIcon } from '@phosphor-icons/react';
-import { Popover, Tooltip } from 'antd';
+import { Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { canManageChannel } from '../../channel-permissions';
@@ -12,6 +13,7 @@ import { ChannelFormModal } from '../../channels/components/ChannelFormModal';
 import type { Channel } from '../../channels/types';
 import { AddChannelMemberControl } from '../../memberships/components/AddChannelMemberControl';
 import { useChannelsSidebarStore } from './channels-sidebar-context';
+import { MobileChannelActions } from './MobileChannelActions';
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
@@ -32,6 +34,10 @@ const useStyles = createStyles(({ token, css }) => ({
 
     @media (max-width: ${token.screenMD}px) {
       margin-inline: 4px;
+      min-height: 36px;
+      touch-action: pan-y;
+      user-select: none;
+      -webkit-touch-callout: none;
     }
   `,
   rowWithActions: css`
@@ -52,12 +58,21 @@ const useStyles = createStyles(({ token, css }) => ({
         opacity: 1;
       }
     }
+
+    @media (max-width: ${token.screenMD}px) {
+      &:hover [data-role='unread-badge'],
+      &:focus-within [data-role='unread-badge'] {
+        opacity: 1;
+      }
+    }
   `,
   rowActive: css`
-    background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimaryTextActive};
+    && {
+      background: ${token.colorPrimaryBg};
+      color: ${token.colorPrimaryTextActive};
+    }
 
-    &:hover {
+    &&:hover {
       background: ${token.colorPrimaryBgHover};
       color: ${token.colorPrimaryTextActive};
     }
@@ -103,9 +118,21 @@ const useStyles = createStyles(({ token, css }) => ({
       outline-offset: 2px;
       border-radius: ${token.borderRadius}px;
     }
+
+    @media (max-width: ${token.screenMD}px) {
+      min-height: 36px;
+      gap: 8px;
+      padding: 2px 6px;
+      -webkit-touch-callout: none;
+    }
   `,
   icon: css`
     flex-shrink: 0;
+
+    @media (max-width: ${token.screenMD}px) {
+      width: 20px;
+      height: 20px;
+    }
   `,
   name: css`
     flex: 1;
@@ -114,6 +141,11 @@ const useStyles = createStyles(({ token, css }) => ({
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: ${token.fontSize}px;
+
+    @media (max-width: ${token.screenMD}px) {
+      font-size: 16px;
+      line-height: 24px;
+    }
   `,
   unread: css`
     position: absolute;
@@ -152,6 +184,10 @@ const useStyles = createStyles(({ token, css }) => ({
     @media (hover: none) {
       gap: 6px;
     }
+
+    @media (max-width: ${token.screenMD}px) {
+      margin-right: 8px;
+    }
   `,
   actions: css`
     position: relative;
@@ -167,6 +203,10 @@ const useStyles = createStyles(({ token, css }) => ({
       opacity: 1;
       pointer-events: auto;
     }
+
+    @media (max-width: ${token.screenMD}px) {
+      display: none;
+    }
   `,
   action: css`
     background: transparent;
@@ -177,6 +217,11 @@ const useStyles = createStyles(({ token, css }) => ({
       background: transparent;
       color: ${token.colorPrimary};
     }
+
+    @media (max-width: ${token.screenMD}px) {
+      width: 32px;
+      height: 32px;
+    }
   `,
 }));
 
@@ -186,10 +231,12 @@ interface ChannelRowProps {
 
 export function ChannelRow({ channel }: ChannelRowProps) {
   const { styles, cx } = useStyles();
+  const isMobile = useIsMobile();
   const {
     workspaceId,
     currentMember,
     selectedChannelId,
+    openChannelId,
     unreadByChannel,
     onNavigate,
     setDraggingChannel,
@@ -199,10 +246,10 @@ export function ChannelRow({ channel }: ChannelRowProps) {
   const isActive = channel.id === selectedChannelId;
   const canAddMember = channel.isMember;
   const canManage = canManageChannel(channel, currentMember);
-  const unreadCount = isActive ? 0 : (unreadByChannel.get(channel.id) ?? 0);
+  const unreadCount = channel.id === openChannelId ? 0 : (unreadByChannel.get(channel.id) ?? 0);
   const hasActions = canAddMember || canManage;
 
-  return (
+  const row = (
     <div
       className={cx(
         styles.row,
@@ -210,7 +257,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
         hasActions && styles.rowWithActions,
         draggingChannel?.id === channel.id && styles.dragging,
       )}
-      draggable={canManage}
+      draggable={canManage && !isMobile}
       onDragStart={(event) => {
         event.dataTransfer.effectAllowed = 'move';
         event.dataTransfer.setData('text/plain', channel.id);
@@ -245,29 +292,25 @@ export function ChannelRow({ channel }: ChannelRowProps) {
                   placement="right"
                   content={<AddChannelMemberControl workspaceId={workspaceId} channel={channel} />}
                 >
-                  <Tooltip title="Додати учасника">
-                    <IconButton
-                      size={28}
-                      className={styles.action}
-                      aria-label={`Додати учасника до ${channel.name}`}
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <UserPlusIcon size={18} />
-                    </IconButton>
-                  </Tooltip>
-                </Popover>
-              )}
-              {canManage && (
-                <Tooltip title="Налаштування каналу">
                   <IconButton
                     size={28}
                     className={styles.action}
-                    aria-label={`Налаштування каналу ${channel.name}`}
-                    onClick={() => setSettingsOpen(true)}
+                    aria-label={`Додати учасника до ${channel.name}`}
+                    onClick={(event) => event.stopPropagation()}
                   >
-                    <GearSixIcon size={18} />
+                    <UserPlusIcon size={20} />
                   </IconButton>
-                </Tooltip>
+                </Popover>
+              )}
+              {canManage && (
+                <IconButton
+                  size={28}
+                  className={styles.action}
+                  aria-label={`Налаштування каналу ${channel.name}`}
+                  onClick={() => setSettingsOpen(true)}
+                >
+                  <GearSixIcon size={20} />
+                </IconButton>
               )}
             </div>
           )}
@@ -282,5 +325,19 @@ export function ChannelRow({ channel }: ChannelRowProps) {
         />
       )}
     </div>
+  );
+
+  if (!isMobile || !hasActions) return row;
+
+  return (
+    <MobileChannelActions
+      channel={channel}
+      workspaceId={workspaceId}
+      canAddMember={canAddMember}
+      canManage={canManage}
+      onSettings={() => setSettingsOpen(true)}
+    >
+      {row}
+    </MobileChannelActions>
   );
 }

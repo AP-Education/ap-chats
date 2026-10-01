@@ -1,10 +1,34 @@
-import { Empty, Typography } from 'antd';
+import { Empty } from 'antd';
+import { createStyles } from 'antd-style';
+
+import { ConversationPane } from '@/domain/conversation/ConversationPane';
+import { MobileMenuButton } from '@/layouts/MainLayout/MobileMenuButton';
+
+const useStyles = createStyles(({ css }) => ({
+  body: css`
+    flex: 1;
+    display: grid;
+    place-items: center;
+    min-height: 0;
+    padding: 16px;
+  `,
+}));
 
 export default function OverviewPage() {
+  const { styles } = useStyles();
+
   return (
-    <section className="page">
-      <Typography.Title level={2}>Розмови</Typography.Title>
-      <Empty description="Розмов поки немає" />
-    </section>
+    <ConversationPane
+      title={
+        <>
+          <MobileMenuButton />
+          Головна
+        </>
+      }
+    >
+      <div className={styles.body}>
+        <Empty description="Розмов поки немає" />
+      </div>
+    </ConversationPane>
   );
 }

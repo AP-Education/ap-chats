@@ -61,7 +61,7 @@ const useStyles = createStyles(({ token, css }) => ({
     }
     @media (max-width: ${token.screenMD}px) {
       gap: 8px;
-      padding: 6px 12px;
+      padding: 8px 12px;
     }
   `,
   selected: css`
@@ -168,6 +168,10 @@ const useStyles = createStyles(({ token, css }) => ({
   time: css`
     color: ${token.colorTextTertiary};
     font-size: 12px;
+
+    @media (max-width: ${token.screenMD}px) {
+      color: ${token.colorTextSecondary};
+    }
   `,
   edited: css`
     color: ${token.colorTextQuaternary};

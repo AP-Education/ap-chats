@@ -1,6 +1,6 @@
 import { ChatTextIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, message as toast, Skeleton, Tooltip } from 'antd';
+import { Button, message as toast, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
@@ -84,11 +84,7 @@ export function MemberCard({ member }: { member: MemberSummary }) {
           >
             Написати
           </Button>
-          <Tooltip title="Особисті дзвінки з’являться пізніше">
-            <span>
-              <Button icon={<CallIcon size={20} />} aria-label="Подзвонити" disabled />
-            </span>
-          </Tooltip>
+          <Button icon={<CallIcon size={20} />} aria-label="Подзвонити" disabled />
         </div>
       )}
     </div>

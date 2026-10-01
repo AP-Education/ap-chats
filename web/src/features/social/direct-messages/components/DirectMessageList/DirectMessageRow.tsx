@@ -2,9 +2,22 @@ import { BellSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { Link, useParams } from 'react-router-dom';
 
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
+
+const dateFormat = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'numeric' });
+
+function formatRecentTime(value: string) {
+  const date = new Date(value);
+  const minutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60_000));
+  if (minutes < 1) return 'щойно';
+  if (minutes < 60) return `${minutes} хв`;
+  if (minutes < 1_440) return `${Math.floor(minutes / 60)} год`;
+  if (minutes < 10_080) return `${Math.floor(minutes / 1_440)} дн`;
+  return dateFormat.format(date);
+}
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
@@ -31,6 +44,12 @@ const useStyles = createStyles(({ token, css }) => ({
       outline: 2px solid ${token.colorPrimary};
       outline-offset: -2px;
     }
+
+    @media (max-width: ${token.screenMD}px) {
+      min-height: 64px;
+      gap: 12px;
+      padding: 6px 12px;
+    }
   `,
   active: css`
     background: ${token.colorPrimaryBg};
@@ -50,6 +69,13 @@ const useStyles = createStyles(({ token, css }) => ({
     text-overflow: ellipsis;
     color: ${token.colorTextSecondary};
     font-weight: 500;
+
+    @media (max-width: ${token.screenMD}px) {
+      color: ${token.colorText};
+      font-size: 16px;
+      line-height: 24px;
+      font-weight: 600;
+    }
   `,
   unreadName: css`
     color: ${token.colorText};
@@ -62,10 +88,20 @@ const useStyles = createStyles(({ token, css }) => ({
     text-overflow: ellipsis;
     color: ${token.colorTextTertiary};
     font-size: 12px;
+
+    @media (max-width: ${token.screenMD}px) {
+      color: ${token.colorTextTertiary};
+      font-size: 14px;
+      line-height: 20px;
+    }
   `,
   unreadPreview: css`
     color: ${token.colorTextSecondary};
     font-weight: 500;
+
+    @media (max-width: ${token.screenMD}px) {
+      color: ${token.colorTextSecondary};
+    }
   `,
   badge: css`
     min-width: 20px;
@@ -84,6 +120,34 @@ const useStyles = createStyles(({ token, css }) => ({
     flex-shrink: 0;
     color: ${token.colorTextTertiary};
   `,
+  trailing: css`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+
+    @media (max-width: ${token.screenMD}px) {
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+  `,
+  time: css`
+    display: none;
+
+    @media (max-width: ${token.screenMD}px) {
+      display: block;
+      color: ${token.colorTextTertiary};
+      font-size: 12px;
+      line-height: 18px;
+      white-space: nowrap;
+    }
+  `,
+  indicators: css`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  `,
 }));
 
 export function DirectMessageRow({
@@ -96,6 +160,7 @@ export function DirectMessageRow({
   onNavigate?: () => void;
 }) {
   const { styles, cx } = useStyles();
+  const isMobile = useIsMobile();
   const { channelId } = useParams<{ channelId: string }>();
   const isActive = channelId === item.id;
   const visibleUnreadCount = isActive ? 0 : unreadCount;
@@ -117,7 +182,7 @@ export function DirectMessageRow({
       <Avatar
         path={item.participant.avatarPath}
         alt={item.participant.displayName ?? 'Колега'}
-        size={36}
+        size={isMobile ? 44 : 36}
         shape="circle"
       />
       <span className={styles.body}>
@@ -128,12 +193,29 @@ export function DirectMessageRow({
           {preview}
         </span>
       </span>
-      {isMuted && (
-        <BellSlashIcon size={18} className={styles.muted} aria-label="Сповіщення вимкнено" />
-      )}
-      {visibleUnreadCount > 0 && (
-        <span className={styles.badge} aria-label={`${visibleUnreadCount} непрочитаних`}>
-          {visibleUnreadCount > 99 ? '99+' : visibleUnreadCount}
+      {(item.lastMessage || isMuted || visibleUnreadCount > 0) && (
+        <span className={styles.trailing}>
+          {item.lastMessage && (
+            <time className={styles.time} dateTime={item.lastMessage.createdAt}>
+              {formatRecentTime(item.lastMessage.createdAt)}
+            </time>
+          )}
+          {(isMuted || visibleUnreadCount > 0) && (
+            <span className={styles.indicators}>
+              {isMuted && (
+                <BellSlashIcon
+                  size={18}
+                  className={styles.muted}
+                  aria-label="Сповіщення вимкнено"
+                />
+              )}
+              {visibleUnreadCount > 0 && (
+                <span className={styles.badge} aria-label={`${visibleUnreadCount} непрочитаних`}>
+                  {visibleUnreadCount > 99 ? '99+' : visibleUnreadCount}
+                </span>
+              )}
+            </span>
+          )}
         </span>
       )}
     </Link>

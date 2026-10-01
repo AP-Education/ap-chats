@@ -1,5 +1,5 @@
 import { UserMinusIcon } from '@phosphor-icons/react';
-import { Button, Empty, Popconfirm, Skeleton, Tooltip } from 'antd';
+import { Button, Empty, Popconfirm, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
@@ -145,16 +145,14 @@ export function ChannelMembersContent({
                 cancelText="Скасувати"
                 onConfirm={() => onRemove(membership.memberId)}
               >
-                <Tooltip title="Прибрати з каналу">
-                  <Button
-                    type="text"
-                    size="small"
-                    className={styles.remove}
-                    data-role="remove-member"
-                    icon={<UserMinusIcon size={18} />}
-                    aria-label={`Прибрати ${entry.label}`}
-                  />
-                </Tooltip>
+                <Button
+                  type="text"
+                  size="small"
+                  className={styles.remove}
+                  data-role="remove-member"
+                  icon={<UserMinusIcon size={18} />}
+                  aria-label={`Прибрати ${entry.label}`}
+                />
               </Popconfirm>
             )}
           </div>

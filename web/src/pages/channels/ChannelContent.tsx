@@ -5,14 +5,14 @@ import { useParams } from 'react-router-dom';
 
 import { ChatLayout } from '@/domain/conversation/ChatLayout';
 import { ChatLoading } from '@/domain/conversation/ChatLoading';
+import { ConversationPane } from '@/domain/conversation/ConversationPane';
 import { ChannelDetail } from '@/features/communities/channels/components/ChannelDetail';
 import { useChannel } from '@/features/communities/channels/hooks/useChannels';
 import { ChannelMembersPanel } from '@/features/communities/memberships/components/ChannelMembersPanel';
 import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
-import { MainSiderMenu } from '@/layouts/MainLayout/MainSiderMenu';
-import { useMobileMenu } from '@/layouts/MainLayout/stores/mobile-menu-context';
+import { MobileMenuButton } from '@/layouts/MainLayout/MobileMenuButton';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
 
@@ -32,14 +32,28 @@ export default function ChannelContent() {
   const { channelId } = useParams<{ channelId?: string }>();
   const query = useChannel(workspaceId, channelId);
   const unavailable = useTrackConversation('channels', workspaceId, channelId, query, '/channels');
-  const openMobileMenu = useMobileMenu().open;
   const isMobile = useIsMobile();
   const isNarrowLayout = useIsNarrowLayout();
   const [membersVisible, setMembersVisible] = useState<boolean | null>(null);
   const isMembersVisible = membersVisible ?? !isNarrowLayout;
 
   if (!channelId) {
-    if (isMobile) return <MainSiderMenu />;
+    if (isMobile) {
+      return (
+        <ConversationPane
+          title={
+            <>
+              <MobileMenuButton />
+              Чати
+            </>
+          }
+        >
+          <div className={styles.centered}>
+            <Empty description="Оберіть канал зі списку" />
+          </div>
+        </ConversationPane>
+      );
+    }
 
     return (
       <div className={styles.centered}>
@@ -106,7 +120,7 @@ export default function ChannelContent() {
           channel={channel}
           membersVisible={isMembersVisible}
           onToggleMembers={() => setMembersVisible(!isMembersVisible)}
-          onBack={isMobile ? openMobileMenu : undefined}
+          leading={<MobileMenuButton />}
         />
       </ConversationProvider>
     </ChatLayout>
