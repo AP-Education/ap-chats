@@ -9,7 +9,7 @@ import { apiRequest } from '@/shared/api/http';
 
 import { applyReadState } from '../applyReadState';
 import { applyUnreadMutation } from '../applyUnreadMutation';
-import { workspaceUnreadKey } from '../queryKeys';
+import { unreadDirectMessagesKey, workspaceUnreadKey } from '../queryKeys';
 
 export interface ChannelUnread {
   channelId: string;
@@ -48,6 +48,10 @@ export function useWorkspaceUnread(workspaceId: string) {
     if (status !== 'connected') return;
     if (connection.current.hasConnected) {
       void queryClient.invalidateQueries({ queryKey, exact: true });
+      void queryClient.invalidateQueries({
+        queryKey: unreadDirectMessagesKey(identity, workspaceId),
+        exact: true,
+      });
     }
     connection.current.hasConnected = true;
   }, [status, workspaceId, identity, queryClient, queryKey]);
