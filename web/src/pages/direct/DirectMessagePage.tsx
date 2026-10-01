@@ -13,6 +13,7 @@ import { DirectMessageActions } from '@/features/social/direct-messages/componen
 import { DirectMessageList } from '@/features/social/direct-messages/components/DirectMessageList/DirectMessageList';
 import { DirectProfilePanel } from '@/features/social/direct-messages/components/DirectProfilePanel/DirectProfilePanel';
 import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDirectMessages';
+import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
@@ -112,6 +113,7 @@ export default function DirectMessagePage() {
           },
         }}
       >
+        <WorkspaceChannelPresence channelId={channelId} />
         <ConversationPane
           title={
             <div className={styles.title}>

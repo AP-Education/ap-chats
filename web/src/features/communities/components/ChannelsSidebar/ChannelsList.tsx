@@ -1,10 +1,10 @@
 import { GearSixIcon } from '@phosphor-icons/react';
 import { Button, message, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { matchPath, useLocation } from 'react-router-dom';
 
-import { useWorkspaceUnread } from '@/features/social/read-state/hooks/useWorkspaceUnread';
+import { useWorkspaceUnreadStore } from '@/features/social/read-state/workspace-unread-context';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { ChannelCategoriesModal } from '../../channel-categories/components/ChannelCategoriesModal';
@@ -51,11 +51,7 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
   const { isLoading, isError, retry, isOwner, currentMember, sections, createCategory } =
     useChannelSections(workspaceId);
   const { update } = useChannelActions(workspaceId);
-  const unread = useWorkspaceUnread(workspaceId);
-  const unreadByChannel = useMemo(
-    () => new Map(unread.data?.map((state) => [state.channelId, state.unreadCount]) ?? []),
-    [unread.data],
-  );
+  const { unreadByChannel } = useWorkspaceUnreadStore();
   const location = useLocation();
   const selectedChannelId = matchPath('/channels/:channelId', location.pathname)?.params.channelId;
 

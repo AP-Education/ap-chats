@@ -7,9 +7,13 @@ import { DirectMessageList } from '../../features/social/direct-messages/compone
 import { UnreadDirectMessages } from '../../features/social/direct-messages/components/UnreadDirectMessages/UnreadDirectMessages';
 import { WorkspaceSwitcher } from '../../features/workspaces/components/WorkspaceSwitcher';
 import { useActiveWorkspace } from '../../features/workspaces/hooks/useActiveWorkspace';
+import { ChannelsNavBadge } from './ChannelsNavBadge';
+import { DirectMessagesNavBadge } from './DirectMessagesNavBadge';
 import { useMainLayoutStyles } from './useMainLayoutStyles';
 
-const navItems = [
+type NavKey = '/' | '/channels' | '/direct' | '/calls';
+
+const navItems: { key: NavKey; icon: typeof HouseIcon; label: string }[] = [
   { key: '/', icon: HouseIcon, label: 'Головна' },
   { key: '/channels', icon: ChatsIcon, label: 'Чати' },
   { key: '/direct', icon: ChatsCircleIcon, label: 'Особисті' },
@@ -37,12 +41,14 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
               className={cx(styles.navItem, active && styles.navItemActive)}
             >
               <Icon size={18} weight={active ? 'fill' : 'regular'} />
-              <span>{label}</span>
+              <span className={styles.navLabel}>{label}</span>
+              {workspace && key === '/channels' && <ChannelsNavBadge />}
+              {workspace && key === '/direct' && <DirectMessagesNavBadge />}
             </Link>
           );
         })}
       </nav>
-      {workspace && <UnreadDirectMessages workspaceId={workspace.id} onNavigate={onNavigate} />}
+      {workspace && <UnreadDirectMessages onNavigate={onNavigate} />}
       <div className={styles.navDivider} />
       <div className={styles.channelSection}>
         {pathname.startsWith('/direct') && workspace ? (

@@ -1,6 +1,6 @@
+import type { NotificationLevel } from '../../types';
 import { MuteDurationView } from './MuteDurationView';
 import { NotificationLevelsView } from './NotificationLevelsView';
-import type { NotificationLevel } from './useChannelNotificationPreference';
 
 interface NotificationPopoverContentProps {
   view: 'levels' | 'mute';

@@ -1,8 +1,7 @@
 import { Button, Empty } from 'antd';
 import { createStyles } from 'antd-style';
-import { useMemo } from 'react';
 
-import { useWorkspaceUnread } from '@/features/social/read-state/hooks/useWorkspaceUnread';
+import { useWorkspaceUnreadStore } from '@/features/social/read-state/workspace-unread-context';
 
 import { useDirectMessages } from '../../hooks/useDirectMessages';
 import { DirectMessageListSkeleton } from './DirectMessageListSkeleton';
@@ -34,11 +33,7 @@ export function DirectMessageResults({
 }) {
   const { styles } = useStyles();
   const conversations = useDirectMessages(workspaceId);
-  const unread = useWorkspaceUnread(workspaceId);
-  const unreadById = useMemo(
-    () => new Map(unread.data?.map((item) => [item.channelId, item.unreadCount]) ?? []),
-    [unread.data],
-  );
+  const { unreadByChannel } = useWorkspaceUnreadStore();
 
   if (conversations.isPending) return <DirectMessageListSkeleton />;
   if (conversations.isError && !conversations.data)
@@ -72,7 +67,7 @@ export function DirectMessageResults({
         <DirectMessageRow
           key={item.id}
           item={item}
-          unreadCount={unreadById.get(item.id) ?? 0}
+          unreadCount={unreadByChannel.get(item.id) ?? 0}
           onNavigate={onNavigate}
         />
       ))}

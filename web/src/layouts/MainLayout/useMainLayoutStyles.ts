@@ -93,6 +93,27 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
       color: ${token.colorPrimaryTextActive};
     }
   `,
+  navLabel: css`
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
+  navBadge: css`
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: ${token.colorError};
+    color: ${token.colorWhite};
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+  `,
   navDivider: css`
     height: 1px;
     margin: 4px 16px 8px;
