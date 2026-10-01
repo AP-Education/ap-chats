@@ -26,6 +26,11 @@ const useStyles = createStyles(({ token, css }) => ({
     text-align: left;
     transition: background 0.15s ease;
 
+    @media (max-width: ${token.screenMD}px) {
+      height: 56px;
+      padding-inline: 16px;
+    }
+
     &:hover,
     &[data-open='true'] {
       background: ${token.colorFillTertiary};

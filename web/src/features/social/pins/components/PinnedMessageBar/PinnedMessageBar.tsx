@@ -1,5 +1,5 @@
 import { ListBulletsIcon, PushPinIcon, XIcon } from '@phosphor-icons/react';
-import { message as toast, Popover, Tooltip } from 'antd';
+import { message as toast, Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -105,18 +105,14 @@ export function PinnedMessageBar({ canUnpin, onJump }: PinnedMessageBarProps) {
             />
           }
         >
-          <Tooltip title="Усі закріплені повідомлення">
-            <IconButton size={32} aria-label="Усі закріплені повідомлення">
-              <ListBulletsIcon size={18} />
-            </IconButton>
-          </Tooltip>
+          <IconButton size={32} aria-label="Усі закріплені повідомлення">
+            <ListBulletsIcon size={18} />
+          </IconButton>
         </Popover>
         {canUnpin && (
-          <Tooltip title="Відкріпити">
-            <IconButton size={32} aria-label="Відкріпити повідомлення" onClick={handleUnpin}>
-              <XIcon size={16} />
-            </IconButton>
-          </Tooltip>
+          <IconButton size={32} aria-label="Відкріпити повідомлення" onClick={handleUnpin}>
+            <XIcon size={16} />
+          </IconButton>
         )}
       </div>
     </div>

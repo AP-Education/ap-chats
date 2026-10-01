@@ -1,10 +1,13 @@
 import { GearSixIcon } from '@phosphor-icons/react';
-import { Button, message, Tooltip } from 'antd';
+import { Button, message } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { matchPath, useLocation } from 'react-router-dom';
 
+import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import { getLastConversation } from '@/features/social/conversation/lastConversation';
 import { useWorkspaceUnreadStore } from '@/features/social/read-state/workspace-unread-context';
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { ChannelCategoriesModal } from '../../channel-categories/components/ChannelCategoriesModal';
@@ -52,8 +55,13 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
     useChannelSections(workspaceId);
   const { update } = useChannelActions(workspaceId);
   const { unreadByChannel } = useWorkspaceUnreadStore();
+  const { identity } = useQueryAuth();
+  const isMobile = useIsMobile();
   const location = useLocation();
-  const selectedChannelId = matchPath('/channels/:channelId', location.pathname)?.params.channelId;
+  const routedChannelId = matchPath('/channels/:channelId', location.pathname)?.params.channelId;
+  const selectedChannelId =
+    routedChannelId ??
+    (isMobile ? (getLastConversation(identity, workspaceId, 'channels') ?? undefined) : undefined);
 
   const [creatingChannel, setCreatingChannel] = useState<CreateChannelTarget | null>(null);
   const [managingCategories, setManagingCategories] = useState(false);
@@ -85,6 +93,7 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
     workspaceId,
     currentMember,
     selectedChannelId,
+    openChannelId: routedChannelId,
     unreadByChannel,
     onNavigate,
     requestCreateChannel: setCreatingChannel,
@@ -108,15 +117,13 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
               isPending={createCategory.isPending}
               onCreate={(name) => createCategory.mutateAsync({ name })}
             />
-            <Tooltip title="Керувати категоріями">
-              <IconButton
-                size={28}
-                aria-label="Керувати категоріями"
-                onClick={() => setManagingCategories(true)}
-              >
-                <GearSixIcon size={16} />
-              </IconButton>
-            </Tooltip>
+            <IconButton
+              size={28}
+              aria-label="Керувати категоріями"
+              onClick={() => setManagingCategories(true)}
+            >
+              <GearSixIcon size={18} />
+            </IconButton>
           </div>
         </div>
       )}

@@ -49,7 +49,8 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   text: css`
     color: ${token.colorTextSecondary};
-    font-size: 14px;
+    font-size: ${token.fontSize}px;
+    line-height: 1.5;
   `,
   time: css`
     flex-shrink: 0;
@@ -88,7 +89,7 @@ export function CallLogRow({ item, viewerMemberId }: CallLogRowProps) {
   return (
     <div className={styles.row} role="status">
       <span className={cx(styles.icon, live && styles.iconLive, missed && styles.iconMissed)}>
-        <Icon size={19} weight={live || missed ? 'fill' : 'regular'} />
+        <Icon size={20} weight={live || missed ? 'fill' : 'regular'} />
       </span>
       <span className={styles.content}>
         <span className={styles.text}>{text(item, outgoing, starterName)}</span>

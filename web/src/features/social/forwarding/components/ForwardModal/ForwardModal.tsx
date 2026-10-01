@@ -1,10 +1,10 @@
-import { ArrowBendUpRightIcon } from '@phosphor-icons/react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button, message, Modal } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import { ForwardIcon } from '@/features/social/conversation/actionIcons';
 import { confirmDirectMessage, mergeDirectMessage } from '@/features/social/direct-messages/cache';
 import type { MessageHistoryItem } from '@/features/social/messaging/types';
 
@@ -106,7 +106,7 @@ export function ForwardModal({ workspaceId, sourceChannelId, items, onClose }: F
         </span>
         <Button
           type="primary"
-          icon={<ArrowBendUpRightIcon size={18} />}
+          icon={<ForwardIcon size={18} />}
           disabled={!target}
           loading={sending}
           onClick={() => void submit()}

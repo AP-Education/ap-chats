@@ -1,15 +1,15 @@
-import { LoadingOutlined } from '@ant-design/icons';
-import { PhoneIcon } from '@phosphor-icons/react';
-import { Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { Link } from 'react-router-dom';
 
 import { callActionLabel } from '@/features/calls/callActionLabel';
+import { CallIcon } from '@/features/calls/callIcons';
 import { getCallStatusIcon } from '@/features/calls/callStatusIcon';
 import { formatCallDuration } from '@/features/calls/formatCallDuration';
 import { useKnownCallAction } from '@/features/calls/hooks/useKnownCallAction';
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { IconButton } from '@/shared/ui/IconButton';
+import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 
 import type { CallHistoryItem } from '../../api/calls-api';
 
@@ -26,6 +26,11 @@ const useStyles = createStyles(({ token, css }) => ({
 
     &:hover {
       background: ${token.colorFillTertiary};
+    }
+
+    @media (max-width: ${token.screenMD}px) {
+      min-height: 72px;
+      padding: 10px 12px;
     }
   `,
   identity: css`
@@ -70,6 +75,11 @@ const useStyles = createStyles(({ token, css }) => ({
     color: ${token.colorText};
     font-weight: 600;
     line-height: 1.3;
+
+    @media (max-width: ${token.screenMD}px) {
+      font-size: 16px;
+      line-height: 24px;
+    }
   `,
   nameMissed: css`
     color: ${token.colorError};
@@ -84,6 +94,12 @@ const useStyles = createStyles(({ token, css }) => ({
     color: ${token.colorTextTertiary};
     font-size: 13px;
     line-height: 1.3;
+
+    @media (max-width: ${token.screenMD}px) {
+      color: ${token.colorTextSecondary};
+      font-size: 14px;
+      line-height: 20px;
+    }
   `,
   statusIcon: css`
     flex-shrink: 0;
@@ -136,6 +152,7 @@ interface CallHistoryRowProps {
 
 export function CallHistoryRow({ item, workspaceId }: CallHistoryRowProps) {
   const { styles, cx } = useStyles();
+  const isMobile = useIsMobile();
   const name = item.participant.displayName ?? 'Колега';
   const outgoing = item.startedByMemberId !== item.participant.memberId;
   const { Icon, tone } = getCallStatusIcon(item.status, outgoing);
@@ -155,7 +172,12 @@ export function CallHistoryRow({ item, workspaceId }: CallHistoryRowProps) {
         className={styles.identity}
         aria-label={`Відкрити розмову з ${name}`}
       >
-        <Avatar path={item.participant.avatarPath} alt={name} size={40} shape="circle" />
+        <Avatar
+          path={item.participant.avatarPath}
+          alt={name}
+          size={isMobile ? 48 : 40}
+          shape="circle"
+        />
         <span className={styles.body}>
           <span className={styles.nameLine}>
             <span className={cx(styles.name, tone === 'missed' && styles.nameMissed)}>{name}</span>
@@ -177,26 +199,15 @@ export function CallHistoryRow({ item, workspaceId }: CallHistoryRowProps) {
           </span>
         </span>
       </Link>
-      <Tooltip title={callTitle}>
-        <span>
-          <IconButton
-            size={44}
-            aria-label={callTitle}
-            disabled={call.busy || call.pending || !item.participant.active}
-            onClick={call.onClick}
-            className={cx(
-              styles.callButton,
-              (call.inCall || call.joinable) && styles.callButtonActive,
-            )}
-          >
-            {call.pending ? (
-              <LoadingOutlined style={{ fontSize: 20 }} />
-            ) : (
-              <PhoneIcon size={21} weight={call.joinable ? 'fill' : 'regular'} />
-            )}
-          </IconButton>
-        </span>
-      </Tooltip>
+      <IconButton
+        size={44}
+        aria-label={callTitle}
+        disabled={call.busy || call.pending || !item.participant.active}
+        onClick={call.onClick}
+        className={cx(styles.callButton, (call.inCall || call.joinable) && styles.callButtonActive)}
+      >
+        {call.pending ? <LoadingIcon size={20} /> : <CallIcon size={22} />}
+      </IconButton>
     </div>
   );
 }

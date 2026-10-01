@@ -1,12 +1,6 @@
-import {
-  ChatCircleDotsIcon,
-  CopyIcon,
-  PencilSimpleIcon,
-  QuotesIcon,
-  SelectionIcon,
-  TrashIcon,
-} from '@phosphor-icons/react';
+import { CopyIcon, PencilSimpleIcon, SelectionIcon, TrashIcon } from '@phosphor-icons/react';
 
+import { QuoteIcon, ReplyIcon } from '../conversation/actionIcons';
 import type { ConversationAction } from '../conversation/actions';
 
 const textAvailable = (markdown: string | null) => markdown !== null;
@@ -14,7 +8,7 @@ const textAvailable = (markdown: string | null) => markdown !== null;
 export const messagingActions: ConversationAction[] = [
   {
     id: 'reply',
-    icon: <ChatCircleDotsIcon size={17} />,
+    icon: <ReplyIcon size={18} />,
     label: () => 'Відповісти',
     available: (target, context) =>
       target.kind === 'message' &&
@@ -24,7 +18,7 @@ export const messagingActions: ConversationAction[] = [
   },
   {
     id: 'quote',
-    icon: <QuotesIcon size={17} />,
+    icon: <QuoteIcon size={18} />,
     label: () => 'Цитувати',
     available: (target, context) =>
       target.kind === 'text' && context.canPost && textAvailable(target.items[0].message.markdown),
@@ -34,7 +28,7 @@ export const messagingActions: ConversationAction[] = [
   },
   {
     id: 'copy',
-    icon: <CopyIcon size={17} />,
+    icon: <CopyIcon size={18} />,
     label: () => 'Копіювати текст',
     available: (target) => target.items.some((item) => textAvailable(item.message.markdown)),
     execute: (target, commands) =>
@@ -42,14 +36,14 @@ export const messagingActions: ConversationAction[] = [
   },
   {
     id: 'select',
-    icon: <SelectionIcon size={17} />,
+    icon: <SelectionIcon size={18} />,
     label: () => 'Вибрати',
     available: (target) => target.kind === 'message',
     execute: (target, commands) => commands.select(target.items[0]!),
   },
   {
     id: 'edit',
-    icon: <PencilSimpleIcon size={17} />,
+    icon: <PencilSimpleIcon size={18} />,
     label: () => 'Редагувати',
     available: (target, context) =>
       target.kind === 'message' &&
@@ -60,7 +54,7 @@ export const messagingActions: ConversationAction[] = [
   },
   {
     id: 'delete',
-    icon: <TrashIcon size={17} />,
+    icon: <TrashIcon size={18} />,
     label: () => 'Видалити',
     available: (target, context) =>
       context.canPost &&

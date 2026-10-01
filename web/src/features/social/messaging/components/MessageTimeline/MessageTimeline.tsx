@@ -9,6 +9,7 @@ import type {
   ConversationAction,
 } from '@/features/social/conversation/actions';
 import { useMobileMenu } from '@/layouts/MainLayout/stores/mobile-menu-context';
+import { MOBILE_NAV_EDGE_WIDTH } from '@/layouts/MainLayout/useMobileNavSheet';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { useTouchGesture } from '@/shared/hooks/useTouchGesture';
 
@@ -152,7 +153,10 @@ export function MessageTimeline({
   const { styles } = useStyles();
   const isMobile = useIsMobile();
   const mobileMenu = useMobileMenu();
-  const navigationGesture = useTouchGesture({ onSwipeRight: mobileMenu.open });
+  const navigationGesture = useTouchGesture({
+    shouldStart: (event) => event.touches[0].clientX > MOBILE_NAV_EDGE_WIDTH,
+    onSwipeRight: mobileMenu.open,
+  });
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   // A deleted message keeps its seq (read state, scroll anchoring, and reply
   // excerpts elsewhere all still need it), but has nothing left worth a row —

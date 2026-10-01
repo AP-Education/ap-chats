@@ -1,8 +1,8 @@
-import { ArrowBendUpLeftIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { useRef, useState } from 'react';
 
-import { useTouchGesture } from '@/shared/hooks/useTouchGesture';
+import { ReplyIcon } from '@/features/social/conversation/actionIcons';
+import { SWIPE_SETTLE_TRANSITION, useTouchGesture } from '@/shared/hooks/useTouchGesture';
 
 import { groupMessageActions } from './messageActionGroups';
 import type { MessageActionsProps } from './MessageActions';
@@ -40,6 +40,9 @@ const useStyles = createStyles(({ token, css }) => ({
     opacity: 0;
     transform: translateY(-50%);
     pointer-events: none;
+    transition:
+      opacity 220ms ease-out,
+      scale 220ms ease-out;
   `,
 }));
 
@@ -60,6 +63,7 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
     if (!target || !hint) return;
     const offset = Math.min(maxOffset, Math.max(0, -distance - 8) * 0.8);
     target.style.transition = 'none';
+    hint.style.transition = 'none';
     target.style.transform = `translate3d(${-offset}px, 0, 0)`;
     hint.style.opacity = String(offset / maxOffset);
     hint.style.scale = distance <= -replyThreshold ? '1' : '0.85';
@@ -69,7 +73,8 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
     const target = row.current;
     const hint = replyHint.current;
     if (!target || !hint) return;
-    target.style.transition = 'transform 180ms ease-out';
+    target.style.transition = SWIPE_SETTLE_TRANSITION;
+    hint.style.transition = '';
     target.style.transform = 'translate3d(0, 0, 0)';
     hint.style.opacity = '0';
     hint.style.scale = '0.85';
@@ -94,7 +99,7 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
     <>
       <div className={styles.gestureArea}>
         <span ref={replyHint} className={styles.replyHint} aria-hidden="true">
-          <ArrowBendUpLeftIcon size={20} />
+          <ReplyIcon size={20} />
         </span>
         <div
           {...rowProps}
