@@ -5,6 +5,17 @@ import type { Socket } from 'socket.io-client';
 // signature is assignable to it, so it constrains without narrowing.
 export type SocketEventMap = Record<string, (...args: never[]) => unknown>;
 
+export interface UnreadMutation {
+  workspaceId: string;
+  channelId: string;
+  kind: 'public' | 'private' | 'dm';
+  eventId: string;
+  operation: 'append' | 'remove';
+  subject: 'message' | 'call';
+  entries: { seq: string; authorMemberId: string }[];
+  alert: boolean;
+}
+
 // Mirrors src/components/bootstrap/bootstrap.gateway.ts on the API, kept in sync by hand.
 // Only realtime's own protocol lives here: session lifecycle and the watch/unwatch
 // subscription model. A business domain (e.g. calls) owns its own event map instead
@@ -23,19 +34,18 @@ export type ServerToClientEvents = {
     seq?: string;
     lastSeq?: string;
   }) => void;
-  'social:unread': (payload: {
+  'social:unread': (payload: UnreadMutation) => void;
+  'social:read-state': (payload: {
     workspaceId: string;
     channelId: string;
-    type: string;
-    actorMemberId?: string;
+    lastReadEntrySeq: string;
+    unreadCount: number;
   }) => void;
 };
 
 interface ClientToServerEvents {
   'social:watch': (payload: { workspaceId: string; channelId: string }) => void;
   'social:unwatch': (payload: { workspaceId: string; channelId: string }) => void;
-  'social:watch-workspace': (payload: { workspaceId: string }) => void;
-  'social:unwatch-workspace': (payload: { workspaceId: string }) => void;
 }
 
 export type RealtimeSocketClient = Socket<ServerToClientEvents, ClientToServerEvents>;

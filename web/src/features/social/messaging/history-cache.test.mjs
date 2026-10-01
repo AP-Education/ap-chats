@@ -9,6 +9,7 @@ import { messagingQueryKeys } from './queryKeys.ts';
 function item(id, seq) {
   return {
     type: 'MESSAGE',
+    id,
     seq,
     createdAt: '2026-09-27T12:00:00.000Z',
     message: {

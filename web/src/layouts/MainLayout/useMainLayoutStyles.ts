@@ -1,5 +1,7 @@
 import { createStyles } from 'antd-style';
 
+import { SWIPE_SETTLE_TRANSITION } from '@/shared/hooks/useTouchGesture';
+
 export const useMainLayoutStyles = createStyles(({ token, css }) => ({
   layout: css`
     height: 100dvh;
@@ -8,29 +10,53 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
   mainArea: css`
     min-height: 0;
     overflow: hidden;
+
+    @media (max-width: ${token.screenMD}px) {
+      position: relative;
+      isolation: isolate;
+    }
   `,
   content: css`
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     position: relative;
+
+    @media (max-width: ${token.screenMD}px) {
+      z-index: 1;
+      flex: 0 0 100%;
+      width: 100%;
+      background: ${token.colorBgContainer};
+      transform: translate3d(0, 0, 0);
+      transition: ${SWIPE_SETTLE_TRANSITION};
+      will-change: transform;
+
+      &[data-menu-open='true'] {
+        transform: translate3d(100%, 0, 0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
   `,
-  mobileBar: css`
-    display: flex;
-    align-items: center;
-    height: 52px;
-    padding: 0 8px;
-    border-bottom: 1px solid ${token.colorBorderSecondary};
+  mobilePanel: css`
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 100%;
+    overflow: hidden;
     background: ${token.colorBgContainer};
-  `,
-  menuButton: css`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    font-size: 20px;
+    touch-action: pan-y;
+    transform: translate3d(-32px, 0, 0);
+    transition: ${SWIPE_SETTLE_TRANSITION};
+
+    &[data-open='true'] {
+      transform: translate3d(0, 0, 0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
   `,
   sidebar: css`
     border-right: 1px solid ${token.colorBorderSecondary};
@@ -43,21 +69,25 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     height: 100%;
     min-height: 0;
   `,
-  mobileDrawerContent: css`
-    height: 100%;
-    touch-action: pan-y;
-  `,
   sidebarWorkspace: css`
     position: relative;
     display: flex;
     align-items: center;
     height: 60px;
     flex-shrink: 0;
+
+    @media (max-width: ${token.screenMD}px) {
+      height: 56px;
+    }
   `,
   sidebarProfile: css`
     padding: 8px 12px;
     border-top: 1px solid ${token.colorBorderSecondary};
     flex-shrink: 0;
+
+    @media (max-width: ${token.screenMD}px) {
+      padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    }
   `,
   nav: css`
     display: flex;
@@ -65,6 +95,10 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     gap: 2px;
     padding: 10px 12px;
     flex-shrink: 0;
+
+    @media (max-width: ${token.screenMD}px) {
+      padding: 8px 12px;
+    }
   `,
   navItem: css`
     display: flex;
@@ -72,13 +106,26 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     gap: 10px;
     height: 38px;
     padding: 0 10px;
+    width: 100%;
+    border: 0;
     border-radius: ${token.borderRadius}px;
+    background: transparent;
     color: ${token.colorTextSecondary};
+    font: inherit;
     font-weight: 500;
+    text-align: left;
+    cursor: pointer;
     text-decoration: none;
     transition:
       background 0.15s ease,
       color 0.15s ease;
+
+    @media (max-width: ${token.screenMD}px) {
+      height: 44px;
+      gap: 12px;
+      padding-inline: 12px;
+      font-size: 16px;
+    }
 
     &:hover {
       background: ${token.colorFillTertiary};
@@ -94,6 +141,27 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
       color: ${token.colorPrimaryTextActive};
     }
   `,
+  navLabel: css`
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `,
+  navBadge: css`
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: ${token.colorError};
+    color: ${token.colorWhite};
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+  `,
   navDivider: css`
     height: 1px;
     margin: 4px 16px 8px;
@@ -105,10 +173,7 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     min-height: 0;
     overflow-y: auto;
   `,
-  mobileDrawer: css`
-    :global(.ant-drawer-body) {
-      padding: 0 !important;
-      background: ${token.colorBgContainer};
-    }
+  channelSectionHidden: css`
+    display: none;
   `,
 }));

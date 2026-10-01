@@ -1,5 +1,4 @@
-import { UserOutlined } from '@ant-design/icons';
-import { SignOutIcon } from '@phosphor-icons/react';
+import { SignOutIcon, UserIcon } from '@phosphor-icons/react';
 import { Button, Spin } from 'antd';
 
 import { Avatar } from '../../../shared/ui/Avatar/Avatar';
@@ -13,7 +12,7 @@ export function AuthStatus() {
 
   if (user.status === 'unavailable') {
     return (
-      <Button type="text" icon={<UserOutlined />} disabled>
+      <Button type="text" icon={<UserIcon size={18} />} disabled>
         Увійти
       </Button>
     );

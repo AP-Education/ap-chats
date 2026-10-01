@@ -8,8 +8,8 @@ import type {
   ActionTarget,
   ConversationAction,
 } from '@/features/social/conversation/actions';
-import { useReadReceipts } from '@/features/social/read-state/hooks/useReadReceipts';
 import { useMobileMenu } from '@/layouts/MainLayout/stores/mobile-menu-context';
+import { MOBILE_NAV_EDGE_WIDTH } from '@/layouts/MainLayout/useMobileNavSheet';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { useTouchGesture } from '@/shared/hooks/useTouchGesture';
 
@@ -18,7 +18,6 @@ import type { HistoryPage, MessageHistoryItem } from '../../types';
 import { isMessageItem } from '../../types';
 import { HistoryItemRow } from '../HistoryItemRow/HistoryItemRow';
 import { useScrollAnchoring } from './useScrollAnchoring';
-import { useVisibleEntriesObserver } from './useVisibleEntriesObserver';
 
 const useStyles = createStyles(({ token, css }) => ({
   viewport: css`
@@ -117,8 +116,6 @@ const dateFormat = new Intl.DateTimeFormat('uk-UA', {
 });
 
 interface MessageTimelineProps {
-  workspaceId: string;
-  channelId: string;
   pages: HistoryPage[];
   displayItems: DisplayItem[];
   actionContext: ActionContext;
@@ -137,8 +134,6 @@ interface MessageTimelineProps {
 }
 
 export function MessageTimeline({
-  workspaceId,
-  channelId,
   pages,
   displayItems,
   actionContext,
@@ -158,7 +153,10 @@ export function MessageTimeline({
   const { styles } = useStyles();
   const isMobile = useIsMobile();
   const mobileMenu = useMobileMenu();
-  const navigationGesture = useTouchGesture({ onSwipeRight: mobileMenu.open });
+  const navigationGesture = useTouchGesture({
+    shouldStart: (event) => event.touches[0].clientX > MOBILE_NAV_EDGE_WIDTH,
+    onSwipeRight: mobileMenu.open,
+  });
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   // A deleted message keeps its seq (read state, scroll anchoring, and reply
   // excerpts elsewhere all still need it), but has nothing left worth a row —
@@ -169,16 +167,7 @@ export function MessageTimeline({
     () => displayItems.filter(({ item }) => !isMessageItem(item) || item.message.markdown !== null),
     [displayItems],
   );
-  const initial = pages.find((page) => page.firstUnreadSeq !== null) ?? pages[0];
-  const firstUnreadSeq = initial?.firstUnreadSeq ?? null;
-  const onVisible = useReadReceipts(
-    workspaceId,
-    channelId,
-    items,
-    firstUnreadSeq,
-    initial?.readState ?? null,
-    actionContext.memberId,
-  );
+  const firstUnreadSeq = pages.find((page) => page.firstUnreadSeq !== null)?.firstUnreadSeq ?? null;
 
   const { scrollRef, awayFromBottom, lastScrollAt, onScroll, older, goDown } = useScrollAnchoring({
     pages,
@@ -193,8 +182,6 @@ export function MessageTimeline({
     loadOlder,
     loadNewer,
   });
-
-  useVisibleEntriesObserver(scrollRef, items, onVisible);
 
   return (
     <div className={styles.viewport}>

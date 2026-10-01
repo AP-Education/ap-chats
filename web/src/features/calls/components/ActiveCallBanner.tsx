@@ -1,4 +1,4 @@
-import { PhoneIcon, XIcon } from '@phosphor-icons/react';
+import { XIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles, keyframes } from 'antd-style';
 import { useState } from 'react';
@@ -6,9 +6,10 @@ import { useState } from 'react';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { callActionLabel } from '../callActionLabel';
+import { CallIcon } from '../callIcons';
 import { useActiveCall } from '../hooks/useActiveCall';
-import { useCallAction } from '../hooks/useCallAction';
 import { useDeclineIncomingCall } from '../hooks/useDeclineIncomingCall';
+import { useKnownCallAction } from '../hooks/useKnownCallAction';
 import { useCallDuration } from './ActiveCallOverlay/useCallDuration';
 
 const pulse = keyframes`
@@ -78,7 +79,7 @@ export function ActiveCallBanner({
 }: ActiveCallBannerProps) {
   const { styles } = useStyles();
   const activeCall = useActiveCall(workspaceId, channelId);
-  const call = useCallAction(workspaceId, channelId, title, calleeAvatarPath);
+  const call = useKnownCallAction(workspaceId, channelId, title, calleeAvatarPath, activeCall.data);
   const decline = useDeclineIncomingCall();
   const duration = useCallDuration(activeCall.data ? Date.parse(activeCall.data.startedAt) : null);
   // A DM has exactly one other person to dismiss, so hiding this banner IS
@@ -102,7 +103,7 @@ export function ActiveCallBanner({
   return (
     <div className={styles.banner} role="status">
       <span className={styles.dot} aria-hidden />
-      <PhoneIcon size={17} weight="fill" />
+      <CallIcon size={18} weight="fill" />
       <span className={styles.info}>
         <span className={styles.label}>
           {activeCall.data.status === 'ringing' ? 'Вхідний дзвінок' : 'Дзвінок триває'}

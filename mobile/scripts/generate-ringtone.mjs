@@ -41,7 +41,7 @@ const TOTAL_SAMPLES = Math.round(DURATION_SECONDS * SAMPLE_RATE);
 const notesL = new Float64Array(TOTAL_SAMPLES);
 const notesR = new Float64Array(TOTAL_SAMPLES);
 
-// Mirrors scheduleBell() in web/src/features/calls/sound/tone.ts.
+// Mirrors scheduleBell() in web/src/shared/audio/tone.ts.
 function scheduleBell(startTime, frequency, { gain = 0.22, attack = 0.006, decay = 1.1, pan = 0 }) {
   const x = (pan + 1) / 2;
   const gainL = Math.cos((x * Math.PI) / 2);

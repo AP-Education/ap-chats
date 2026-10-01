@@ -1,4 +1,4 @@
-import { scheduleBell } from './tone';
+import { scheduleBell } from '@/shared/audio/tone';
 
 // The old version struck a chord and then went almost silent for over two
 // seconds before the next one — that dead air was the actual problem, not

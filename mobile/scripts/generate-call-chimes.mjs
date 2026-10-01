@@ -21,7 +21,7 @@ const PARTIALS = [
   { ratio: 3.98, gain: 0.2, decayScale: 0.3 },
 ];
 
-// Mirrors scheduleBell() in web/src/features/calls/sound/tone.ts, rendered
+// Mirrors scheduleBell() in web/src/shared/audio/tone.ts, rendered
 // into fixed-size stereo buffers instead of scheduled on an AudioContext.
 function scheduleBell(notesL, notesR, totalSamples, startTime, frequency, { gain, decay }) {
   // pan = 0 for every chime note, same as callChimes.ts never passing one —

@@ -1,4 +1,4 @@
-import { scheduleBell } from './tone';
+import { scheduleBell } from '@/shared/audio/tone';
 
 interface MotifOptions {
   gain?: number;

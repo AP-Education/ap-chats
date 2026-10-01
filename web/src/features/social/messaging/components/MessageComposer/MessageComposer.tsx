@@ -1,5 +1,5 @@
 import { GifIcon, PaperclipIcon, SmileyIcon, StickerIcon, XIcon } from '@phosphor-icons/react';
-import { Popover, Tooltip } from 'antd';
+import { Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 
@@ -202,11 +202,9 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
   return (
     <div className={styles.shell}>
       <span className={styles.mobileOnly}>
-        <Tooltip title="Незабаром">
-          <IconButton size={36} className={styles.toolbarButton} aria-label="Додати файл" disabled>
-            <PaperclipIcon size={22} />
-          </IconButton>
-        </Tooltip>
+        <IconButton size={36} className={styles.toolbarButton} aria-label="Додати файл" disabled>
+          <PaperclipIcon size={22} />
+        </IconButton>
       </span>
       <MessageInputSurface
         context={
@@ -229,16 +227,14 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
         }
         leading={
           <span className={styles.mobileHidden}>
-            <Tooltip title="Незабаром">
-              <IconButton
-                size={toolbarActionSize}
-                className={styles.toolbarButton}
-                aria-label="Додати файл"
-                disabled
-              >
-                <PaperclipIcon size={22} />
-              </IconButton>
-            </Tooltip>
+            <IconButton
+              size={toolbarActionSize}
+              className={styles.toolbarButton}
+              aria-label="Додати файл"
+              disabled
+            >
+              <PaperclipIcon size={22} />
+            </IconButton>
           </span>
         }
         trailing={

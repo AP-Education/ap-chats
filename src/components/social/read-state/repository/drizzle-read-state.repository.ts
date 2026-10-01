@@ -2,9 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, count, eq, gt, isNotNull, isNull, lte, ne, or, sql } from 'drizzle-orm';
 
-import { calls, channelEntries, channelMemberships, chatMessages } from '@/database/drizzle/schema';
-import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
+import type { DrizzleTransactionAdapter } from '@/database/drizzle';
+import {
+  calls,
+  channelEntries,
+  channelMemberships,
+  channels,
+  chatMessages,
+} from '@/database/drizzle/schema';
 
+import type { WorkspaceChannelUnread } from '../types';
 import { ReadStateRepository } from './read-state.repository';
 
 // A badge never needs the exact count past this: capping what gets scanned keeps
@@ -18,7 +25,7 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
     super();
   }
 
-  async workspaceSummary(workspaceId: string, memberId: string) {
+  async workspaceSummary(workspaceId: string, memberId: string): Promise<WorkspaceChannelUnread[]> {
     // Correlated per membership row via LATERAL: one query, and Postgres stops
     // each channel's scan at UNREAD_COUNT_CAP instead of walking its full backlog.
     const unread = this.txHost.tx
@@ -51,10 +58,12 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
     const rows = await this.txHost.tx
       .select({
         channelId: channelMemberships.channelId,
+        kind: channels.kind,
         lastReadEntrySeq: channelMemberships.lastReadEntrySeq,
         unreadCount: sql<number>`count(${unread.seq})`.mapWith(Number),
       })
       .from(channelMemberships)
+      .innerJoin(channels, eq(channels.id, channelMemberships.channelId))
       .leftJoinLateral(unread, sql`true`)
       .where(
         and(
@@ -62,10 +71,11 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
           eq(channelMemberships.memberId, memberId),
         ),
       )
-      .groupBy(channelMemberships.channelId, channelMemberships.lastReadEntrySeq);
+      .groupBy(channelMemberships.channelId, channels.kind, channelMemberships.lastReadEntrySeq);
 
     return rows.map((row) => ({
       channelId: row.channelId,
+      kind: row.kind,
       lastReadEntrySeq: row.lastReadEntrySeq.toString(),
       unreadCount: row.unreadCount,
     }));
@@ -92,7 +102,9 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
   async advance(channelId: string, memberId: string, seq: bigint): Promise<void> {
     await this.txHost.tx
       .update(channelMemberships)
-      .set({ lastReadEntrySeq: seq })
+      .set({
+        lastReadEntrySeq: sql`greatest(${channelMemberships.lastReadEntrySeq}, ${seq})`,
+      })
       .where(
         and(eq(channelMemberships.channelId, channelId), eq(channelMemberships.memberId, memberId)),
       );

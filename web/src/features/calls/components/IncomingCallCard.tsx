@@ -1,9 +1,9 @@
-import { LoadingOutlined } from '@ant-design/icons';
-import { PhoneCallIcon, PhoneDisconnectIcon } from '@phosphor-icons/react';
 import { createStyles, keyframes } from 'antd-style';
 
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 
+import { CallIcon, EndCallIcon } from '../callIcons';
 import { CALL_SURFACE_GRADIENT, CALL_SURFACE_HIGHLIGHT } from '../callTheme';
 import { useIncomingCallPresentation } from '../hooks/useIncomingCallPresentation';
 import { useIncomingCallRingtone } from '../hooks/useIncomingCallRingtone';
@@ -216,9 +216,9 @@ export function IncomingCallCard({ signal }: IncomingCallCardProps) {
               onClick={dismiss.onClick}
             >
               {dismiss.pending ? (
-                <LoadingOutlined />
+                <LoadingIcon size={24} />
               ) : (
-                <PhoneDisconnectIcon size={24} weight="fill" />
+                <EndCallIcon size={24} weight="fill" />
               )}
             </button>
             <span className={styles.actionLabel}>{dismiss.actionLabel}</span>
@@ -231,7 +231,7 @@ export function IncomingCallCard({ signal }: IncomingCallCardProps) {
               disabled={dismiss.pending || accept.pending}
               onClick={accept.onClick}
             >
-              {accept.pending ? <LoadingOutlined /> : <PhoneCallIcon size={24} weight="fill" />}
+              {accept.pending ? <LoadingIcon size={24} /> : <CallIcon size={24} weight="fill" />}
             </button>
             <span className={styles.actionLabel}>{accept.actionLabel}</span>
           </span>

@@ -1,78 +1,43 @@
-import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-export type NotificationLevel = 'default' | 'all' | 'mentions' | 'none';
+import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
-interface NotificationPreference {
-  level: NotificationLevel;
-  mutedUntil: number | null;
-}
-
-const defaultPreference: NotificationPreference = { level: 'default', mutedUntil: null };
-
-function isNotificationLevel(value: unknown): value is NotificationLevel {
-  return value === 'default' || value === 'all' || value === 'mentions' || value === 'none';
-}
-
-function readPreference(key: string): NotificationPreference {
-  try {
-    const stored = window.localStorage.getItem(key);
-    if (!stored) return defaultPreference;
-    const parsed: unknown = JSON.parse(stored);
-    if (!parsed || typeof parsed !== 'object') return defaultPreference;
-    const value = parsed as Partial<NotificationPreference>;
-    if (!isNotificationLevel(value.level)) return defaultPreference;
-    return {
-      level: value.level,
-      mutedUntil:
-        typeof value.mutedUntil === 'number' && value.mutedUntil > Date.now()
-          ? value.mutedUntil
-          : null,
-    };
-  } catch {
-    return defaultPreference;
-  }
-}
+import {
+  changeChannelNotificationSettings,
+  getChannelNotificationSettings,
+} from '../../api/channel-notifications-api';
+import type {
+  ChangeNotificationSettings,
+  ChannelNotificationSettings,
+  NotificationLevel,
+} from '../../types';
 
 export function useChannelNotificationPreference(workspaceId: string, channelId: string) {
-  const key = `ap-chats:channel-notifications:${workspaceId}:${channelId}`;
-  const [preference, setPreference] = useState(() => readPreference(key));
-  const isMuted = preference.level === 'none' || Boolean(preference.mutedUntil);
+  const { token, identity } = useQueryAuth();
+  const queryClient = useQueryClient();
+  const queryKey = ['notification-settings', identity, workspaceId, channelId] as const;
+  const query = useQuery({
+    queryKey,
+    queryFn: () => getChannelNotificationSettings(token as string, workspaceId, channelId),
+    enabled: Boolean(token),
+  });
+  const change = useMutation({
+    mutationFn: (command: ChangeNotificationSettings) =>
+      changeChannelNotificationSettings(token as string, workspaceId, channelId, command),
+    onSuccess: (settings: ChannelNotificationSettings) =>
+      queryClient.setQueryData(queryKey, settings),
+  });
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(key, JSON.stringify(preference));
-    } catch {
-      // Browser storage may be unavailable; keep the current session's choice.
-    }
-  }, [key, preference]);
-
-  useEffect(() => {
-    if (!preference.mutedUntil) return;
-    const remaining = preference.mutedUntil - Date.now();
-    const timeout = window.setTimeout(
-      () => setPreference((current) => ({ ...current, mutedUntil: null })),
-      Math.max(0, remaining),
-    );
-    return () => window.clearTimeout(timeout);
-  }, [preference.mutedUntil]);
-
-  function chooseLevel(level: NotificationLevel) {
-    setPreference({ level, mutedUntil: null });
-  }
-
-  function chooseMute(milliseconds: number) {
-    setPreference((current) => ({
-      level: current.level === 'none' ? 'default' : current.level,
-      mutedUntil: Date.now() + milliseconds,
-    }));
-  }
-
-  function unmute() {
-    setPreference((current) => ({
-      level: current.level === 'none' ? 'default' : current.level,
-      mutedUntil: null,
-    }));
-  }
-
-  return { level: preference.level, isMuted, chooseLevel, chooseMute, unmute };
+  return {
+    level: query.data?.level ?? 'default',
+    isMuted: query.data?.isMuted ?? false,
+    isLoading: query.isPending,
+    isError: query.isError,
+    isPending: change.isPending,
+    retry: query.refetch,
+    chooseLevel: (level: NotificationLevel) => change.mutateAsync({ type: 'level', level }),
+    chooseMute: (milliseconds: number) =>
+      change.mutateAsync({ type: 'mute', duration: milliseconds <= 3_600_000 ? 'hour' : 'day' }),
+    unmute: () => change.mutateAsync({ type: 'unmute' }),
+  };
 }

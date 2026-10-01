@@ -1,16 +1,7 @@
-import { LoadingOutlined } from '@ant-design/icons';
-import {
-  CaretDownIcon,
-  GearSixIcon,
-  HashIcon,
-  LockSimpleIcon,
-  PhoneIcon,
-  SignOutIcon,
-  UsersThreeIcon,
-} from '@phosphor-icons/react';
-import { Alert, Button, Dropdown, type MenuProps, message, Tooltip } from 'antd';
+import { CaretDownIcon, GearSixIcon, SignOutIcon, UsersThreeIcon } from '@phosphor-icons/react';
+import { Alert, Button, Dropdown, type MenuProps, message } from 'antd';
 import { createStyles } from 'antd-style';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -18,15 +9,19 @@ import {
   ConversationPane,
 } from '@/domain/conversation/ConversationPane';
 import { callActionLabel } from '@/features/calls/callActionLabel';
+import { CallIcon } from '@/features/calls/callIcons';
 import { useCallAction } from '@/features/calls/hooks/useCallAction';
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { ApiError } from '@/shared/api/http';
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { IconButton } from '@/shared/ui/IconButton';
+import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 
 import { canManageChannel } from '../../../channel-permissions';
 import { useChannelMembership } from '../../../memberships/hooks/useChannelMembership';
 import { ChannelNotificationsPopover } from '../../../notifications/components/Popover';
+import { PrivateChannelIcon, PublicChannelIcon } from '../../channelIcons';
 import type { Channel } from '../../types';
 import { ChannelFormModal } from '../ChannelFormModal';
 
@@ -53,8 +48,6 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: ${token.fontSizeLG}px;
-    font-weight: 650;
   `,
   headerAction: css`
     color: ${token.colorTextSecondary};
@@ -115,7 +108,7 @@ interface ChannelDetailProps {
   channel: Channel;
   membersVisible: boolean;
   onToggleMembers: () => void;
-  onBack?: () => void;
+  leading?: ReactNode;
 }
 
 interface ChannelTitleProps {
@@ -132,18 +125,18 @@ function ChannelTitle({ channel, canManage, onSettings, onLeave }: ChannelTitleP
     menuItems.push({
       key: 'settings',
       label: 'Налаштування каналу',
-      icon: <GearSixIcon size={17} />,
+      icon: <GearSixIcon size={18} />,
     });
   if (channel.isMember)
     menuItems.push({
       key: 'leave',
       label: 'Вийти з каналу',
-      icon: <SignOutIcon size={17} />,
+      icon: <SignOutIcon size={18} />,
       danger: true,
     });
 
   const channelIcon =
-    channel.kind === 'private' ? <LockSimpleIcon size={21} /> : <HashIcon size={21} />;
+    channel.kind === 'private' ? <PrivateChannelIcon size={22} /> : <PublicChannelIcon size={22} />;
   const title = (
     <>
       {channelIcon}
@@ -234,16 +227,17 @@ export function ChannelDetail({
   channel,
   membersVisible,
   onToggleMembers,
-  onBack,
+  leading,
 }: ChannelDetailProps) {
   const { styles, cx } = useStyles();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { currentMember } = useWorkspaceMemberLabels(workspaceId);
   const { query: membersQuery, join, leave } = useChannelMembership(workspaceId, channel.id);
   const [editing, setEditing] = useState(false);
   const [sizeNoticeVisible, setSizeNoticeVisible] = useState(false);
   const canManage = canManageChannel(channel, currentMember);
-  const actionSize = onBack ? 40 : 36;
+  const actionSize = isMobile ? 40 : 36;
   const call = useCallAction(workspaceId, channel.id, channel.name);
   const callTitle = callActionLabel(call, 'Дзвінок у каналі');
   const memberCount = membersQuery.data?.length ?? 0;
@@ -285,15 +279,16 @@ export function ChannelDetail({
 
   return (
     <ConversationPane
-      onBack={onBack}
-      backLabel="Назад до каналів"
       title={
-        <ChannelTitle
-          channel={channel}
-          canManage={canManage}
-          onSettings={() => setEditing(true)}
-          onLeave={handleLeave}
-        />
+        <>
+          {leading}
+          <ChannelTitle
+            channel={channel}
+            canManage={canManage}
+            onSettings={() => setEditing(true)}
+            onLeave={handleLeave}
+          />
+        </>
       }
       actions={
         <>
@@ -302,41 +297,31 @@ export function ChannelDetail({
               key={`${workspaceId}:${channel.id}`}
               workspaceId={workspaceId}
               channelId={channel.id}
-              compact={Boolean(onBack)}
+              compact={isMobile}
             />
           )}
-          <Tooltip title={callTitle}>
-            <span>
-              <IconButton
-                size={actionSize}
-                className={cx(
-                  styles.headerAction,
-                  (call.inCall || call.joinable) && styles.actionActive,
-                )}
-                aria-label={callTitle}
-                disabled={call.busy || call.pending || !channel.isMember}
-                onClick={handleCall}
-              >
-                {call.pending ? (
-                  <LoadingOutlined />
-                ) : (
-                  <PhoneIcon size={21} weight={call.joinable ? 'fill' : 'regular'} />
-                )}
-              </IconButton>
-            </span>
-          </Tooltip>
+          <IconButton
+            size={actionSize}
+            className={cx(
+              styles.headerAction,
+              (call.inCall || call.joinable) && styles.actionActive,
+            )}
+            aria-label={callTitle}
+            disabled={call.busy || call.pending || !channel.isMember}
+            onClick={handleCall}
+          >
+            {call.pending ? <LoadingIcon size={22} /> : <CallIcon size={22} />}
+          </IconButton>
           <ConversationActionDivider />
-          <Tooltip title="Показати учасників" open={membersVisible ? false : undefined}>
-            <IconButton
-              size={actionSize}
-              className={cx(styles.headerAction, membersVisible && styles.actionActive)}
-              aria-label={membersVisible ? 'Сховати учасників' : 'Показати учасників'}
-              aria-pressed={membersVisible}
-              onClick={onToggleMembers}
-            >
-              <UsersThreeIcon size={22} weight={membersVisible ? 'duotone' : 'regular'} />
-            </IconButton>
-          </Tooltip>
+          <IconButton
+            size={actionSize}
+            className={cx(styles.headerAction, membersVisible && styles.actionActive)}
+            aria-label={membersVisible ? 'Сховати учасників' : 'Показати учасників'}
+            aria-pressed={membersVisible}
+            onClick={onToggleMembers}
+          >
+            <UsersThreeIcon size={22} />
+          </IconButton>
         </>
       }
     >

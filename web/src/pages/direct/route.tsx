@@ -4,7 +4,6 @@ import type { RouteObject } from 'react-router-dom';
 import { ChatLoading } from '@/domain/conversation/ChatLoading';
 import { LastConversationRoute } from '@/features/social/conversation/LastConversationRoute';
 import { RequiredWorkspaceLayout } from '@/features/workspaces/layouts/RequiredWorkspaceLayout';
-import { conversationRoute } from '@/shared/router/conversationRoute';
 
 const DirectMessagePage = lazy(() => import('./DirectMessagePage'));
 
@@ -21,7 +20,7 @@ export const directRoutes = [
           </LastConversationRoute>
         ),
       },
-      { path: ':channelId', handle: conversationRoute, element: <DirectMessagePage /> },
+      { path: ':channelId', element: <DirectMessagePage /> },
     ],
   },
 ] satisfies RouteObject[];

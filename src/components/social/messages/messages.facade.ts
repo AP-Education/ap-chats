@@ -173,7 +173,14 @@ export class MessagesFacade {
       const item = changed[0]!;
       this.events.publish(
         MESSAGE_DELETED_EVENT,
-        new MessageDeletedEvent(member.workspaceId, channelId, item.id, item.seq, member.id),
+        new MessageDeletedEvent(
+          member.workspaceId,
+          channelId,
+          item.id,
+          item.seq,
+          member.id,
+          item.authorMemberId,
+        ),
       );
     } else if (changed.length > 1) {
       this.events.publish(
@@ -183,6 +190,7 @@ export class MessagesFacade {
           channelId,
           changed.map(({ id }) => id),
           member.id,
+          changed.map(({ seq, authorMemberId }) => ({ seq, authorMemberId })),
         ),
       );
     }
@@ -205,7 +213,11 @@ export class MessagesFacade {
     await this.repository.tombstone(pending.map(({ message }) => message.id));
     await this.mentions.removeForMessages(pending.map(({ message }) => message.id));
     await this.pins.removeForMessages(pending.map(({ message }) => message.id));
-    return pending.map(({ message, seq }) => ({ id: message.id, seq: seq.toString() }));
+    return pending.map(({ message, seq }) => ({
+      id: message.id,
+      seq: seq.toString(),
+      authorMemberId: message.authorMemberId,
+    }));
   }
 
   findMany(channelId: string, ids: string[]) {

@@ -12,8 +12,33 @@ export function applyReadState(
   workspaceId: string,
   channelId: string,
   state: ReadState,
-) {
-  queryClient.setQueryData<ChannelUnread[]>(workspaceUnreadKey(identity, workspaceId), (current) =>
+): void {
+  writeReadState(queryClient, identity, workspaceId, channelId, state, true);
+}
+
+export function applyOptimisticReadState(
+  queryClient: QueryClient,
+  identity: string | undefined,
+  workspaceId: string,
+  channelId: string,
+  state: ReadState,
+): void {
+  writeReadState(queryClient, identity, workspaceId, channelId, state, false);
+}
+
+function writeReadState(
+  queryClient: QueryClient,
+  identity: string | undefined,
+  workspaceId: string,
+  channelId: string,
+  state: ReadState,
+  reconcile: boolean,
+): void {
+  const summaryKey = workspaceUnreadKey(identity, workspaceId);
+  const snapshotWasFetching = queryClient.getQueryState(summaryKey)?.fetchStatus === 'fetching';
+  void queryClient.cancelQueries({ queryKey: summaryKey, exact: true });
+  const hasSnapshot = Boolean(queryClient.getQueryData(summaryKey));
+  queryClient.setQueryData<ChannelUnread[]>(summaryKey, (current) =>
     current?.map((entry) =>
       entry.channelId === channelId &&
       BigInt(state.lastReadEntrySeq) >= BigInt(entry.lastReadEntrySeq)
@@ -21,6 +46,9 @@ export function applyReadState(
         : entry,
     ),
   );
+  if (reconcile && (!hasSnapshot || snapshotWasFetching)) {
+    void queryClient.invalidateQueries({ queryKey: summaryKey, exact: true });
+  }
   if (state.unreadCount === 0) {
     queryClient.setQueryData<Array<{ id: string }>>(
       unreadDirectMessagesKey(identity, workspaceId),
@@ -32,12 +60,18 @@ export function applyReadState(
     (current) =>
       current && {
         ...current,
-        pages: current.pages.map((page) => ({
-          ...page,
-          unreadCount: state.unreadCount,
-          firstUnreadSeq: state.unreadCount === 0 ? null : page.firstUnreadSeq,
-          readState: state,
-        })),
+        pages: current.pages.map((page) => {
+          if (
+            page.readState &&
+            BigInt(state.lastReadEntrySeq) < BigInt(page.readState.lastReadEntrySeq)
+          )
+            return page;
+          return {
+            ...page,
+            unreadCount: state.unreadCount,
+            readState: state,
+          };
+        }),
       },
   );
 }

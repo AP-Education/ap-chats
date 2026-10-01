@@ -2,7 +2,7 @@ import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import { useMatch } from 'react-router-dom';
 
-import { useUnreadDirectMessages } from '../../hooks/useUnreadDirectMessages';
+import { useUnreadDirectMessagesStore } from '../../unread-direct-messages-context';
 import { DirectMessageRow } from '../DirectMessageList/DirectMessageRow';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -18,6 +18,10 @@ const useStyles = createStyles(({ token, css }) => ({
     color: ${token.colorTextTertiary};
     font-size: 12px;
     font-weight: 600;
+
+    @media (max-width: ${token.screenMD}px) {
+      padding-inline: 12px;
+    }
   `,
   error: css`
     padding: 8px 12px;
@@ -26,15 +30,9 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-export function UnreadDirectMessages({
-  workspaceId,
-  onNavigate,
-}: {
-  workspaceId: string;
-  onNavigate?: () => void;
-}) {
+export function UnreadDirectMessages({ onNavigate }: { onNavigate?: () => void }) {
   const { styles } = useStyles();
-  const unread = useUnreadDirectMessages(workspaceId);
+  const unread = useUnreadDirectMessagesStore();
   const activeId = useMatch('/direct/:channelId')?.params.channelId;
 
   if (unread.isPending) return null;

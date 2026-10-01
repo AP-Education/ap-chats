@@ -66,6 +66,7 @@ export class ForwardingFacade {
           result.views[0]!.seq,
           result.views.at(-1)!.seq,
           member.id,
+          result.views.map(({ seq }) => seq),
         ),
       );
     return { messages: result.views, conversation };

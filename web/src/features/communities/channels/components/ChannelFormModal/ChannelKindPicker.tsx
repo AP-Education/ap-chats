@@ -1,7 +1,7 @@
-import { HashIcon, LockSimpleIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
+import { PrivateChannelIcon, PublicChannelIcon } from '../../channelIcons';
 import type { ChannelKind } from '../../types';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -86,13 +86,13 @@ export function ChannelKindPicker({ value, onChange }: ChannelKindPickerProps) {
       kind: 'public',
       label: 'Публічний',
       hint: 'Бачать і можуть вступити всі учасники простору',
-      icon: <HashIcon size={16} weight="bold" />,
+      icon: <PublicChannelIcon size={18} />,
     },
     {
       kind: 'private',
       label: 'Приватний',
       hint: 'Видно лише запрошеним учасникам',
-      icon: <LockSimpleIcon size={16} weight="bold" />,
+      icon: <PrivateChannelIcon size={18} />,
     },
   ];
 

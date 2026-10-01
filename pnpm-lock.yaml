@@ -256,9 +256,6 @@ importers:
 
   web:
     dependencies:
-      '@ant-design/icons':
-        specifier: 6.3.4
-        version: 6.3.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@livekit/components-react':
         specifier: ^2.9.24
         version: 2.9.24(livekit-client@2.22.3(@types/dom-mediacapture-record@1.0.22))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tslib@2.8.1)

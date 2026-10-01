@@ -1,7 +1,7 @@
 import { CaretRightIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 
-import type { NotificationLevel } from './useChannelNotificationPreference';
+import type { NotificationLevel } from '../../types';
 
 const levels: Array<{ value: NotificationLevel; title: string; description?: string }> = [
   { value: 'default', title: 'За замовчуванням', description: 'Лише згадки' },
@@ -100,7 +100,7 @@ export function NotificationLevelsView({
         onClick={isMuted ? onUnmute : onOpenMute}
       >
         <span>{isMuted ? 'Увімкнути канал' : 'Вимкнути канал'}</span>
-        {!isMuted && <CaretRightIcon size={15} />}
+        {!isMuted && <CaretRightIcon size={16} />}
       </button>
       <div className={styles.divider} />
       <div role="radiogroup" aria-label="Сповіщення каналу">

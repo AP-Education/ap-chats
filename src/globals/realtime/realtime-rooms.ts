@@ -7,9 +7,6 @@ export const RealtimeRooms = {
   socialChannel(workspaceId: string, channelId: string): string {
     return `social:workspace:${workspaceId}:channel:${channelId}`;
   },
-  socialWorkspace(workspaceId: string): string {
-    return `social:workspace:${workspaceId}`;
-  },
   conversation(conversationId: string): string {
     return `conversation:${conversationId}`;
   },

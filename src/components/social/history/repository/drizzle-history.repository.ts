@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, ne, or } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, lte, ne, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import {
@@ -50,20 +50,24 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     after: bigint,
     ceiling: bigint,
   ): Promise<bigint | null> {
-    // Calls and future system entries don't carry an author and aren't unread
-    // material for the first increment (docs/channel-history-model.md §3);
-    // the inner join to chat_messages already excludes them.
     const [row] = await this.txHost.tx
       .select({ seq: channelEntries.seq })
       .from(channelEntries)
-      .innerJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .leftJoin(calls, eq(calls.id, channelEntries.callId))
       .where(
         and(
           eq(channelEntries.channelId, channelId),
           gt(channelEntries.seq, after),
           lte(channelEntries.seq, ceiling),
-          ne(chatMessages.authorMemberId, memberId),
-          isNull(chatMessages.deletedAt),
+          or(
+            and(
+              isNotNull(channelEntries.messageId),
+              ne(chatMessages.authorMemberId, memberId),
+              isNull(chatMessages.deletedAt),
+            ),
+            and(isNotNull(channelEntries.callId), ne(calls.startedByMemberId, memberId)),
+          ),
         ),
       )
       .orderBy(asc(channelEntries.seq))

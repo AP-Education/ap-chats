@@ -1,13 +1,14 @@
-import { LoadingOutlined } from '@ant-design/icons';
-import { BellIcon, BellSlashIcon, PhoneIcon, UserCircleIcon } from '@phosphor-icons/react';
-import { message as toast, Popover, Tooltip } from 'antd';
+import { BellIcon, BellSlashIcon, UserCircleIcon } from '@phosphor-icons/react';
+import { message as toast, Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import { ConversationActionDivider } from '@/domain/conversation/ConversationPane';
 import { callActionLabel } from '@/features/calls/callActionLabel';
+import { CallIcon } from '@/features/calls/callIcons';
 import { useCallAction } from '@/features/calls/hooks/useCallAction';
 import { IconButton } from '@/shared/ui/IconButton';
+import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 
 import type { DirectMessage } from '../api/direct-messages-api';
 import { useDirectMessageMute } from '../hooks/useDirectMessageMute';
@@ -121,46 +122,34 @@ export function DirectMessageActions({
           </div>
         }
       >
-        <Tooltip title={isMuted ? 'Сповіщення вимкнено' : 'Сповіщення розмови'}>
-          <IconButton
-            size={size}
-            className={cx(styles.action, (notificationsOpen || isMuted) && styles.active)}
-            aria-label="Сповіщення розмови"
-            aria-expanded={notificationsOpen}
-          >
-            {isMuted ? <BellSlashIcon size={21} weight="duotone" /> : <BellIcon size={21} />}
-          </IconButton>
-        </Tooltip>
-      </Popover>
-      <Tooltip title={callTitle}>
-        <span>
-          <IconButton
-            size={size}
-            className={cx(styles.action, (call.inCall || call.joinable) && styles.active)}
-            aria-label={callTitle}
-            disabled={call.busy || call.pending || !conversation.participant.active}
-            onClick={call.onClick}
-          >
-            {call.pending ? (
-              <LoadingOutlined />
-            ) : (
-              <PhoneIcon size={21} weight={call.joinable ? 'fill' : 'regular'} />
-            )}
-          </IconButton>
-        </span>
-      </Tooltip>
-      <ConversationActionDivider />
-      <Tooltip title="Показати профіль" open={profileVisible ? false : undefined}>
         <IconButton
           size={size}
-          className={cx(styles.action, profileVisible && styles.active)}
-          aria-label={profileVisible ? 'Сховати профіль' : 'Показати профіль'}
-          aria-pressed={profileVisible}
-          onClick={onToggleProfile}
+          className={cx(styles.action, (notificationsOpen || isMuted) && styles.active)}
+          aria-label="Сповіщення розмови"
+          aria-expanded={notificationsOpen}
         >
-          <UserCircleIcon size={22} weight={profileVisible ? 'duotone' : 'regular'} />
+          {isMuted ? <BellSlashIcon size={22} /> : <BellIcon size={22} />}
         </IconButton>
-      </Tooltip>
+      </Popover>
+      <IconButton
+        size={size}
+        className={cx(styles.action, (call.inCall || call.joinable) && styles.active)}
+        aria-label={callTitle}
+        disabled={call.busy || call.pending || !conversation.participant.active}
+        onClick={call.onClick}
+      >
+        {call.pending ? <LoadingIcon size={22} /> : <CallIcon size={22} />}
+      </IconButton>
+      <ConversationActionDivider />
+      <IconButton
+        size={size}
+        className={cx(styles.action, profileVisible && styles.active)}
+        aria-label={profileVisible ? 'Сховати профіль' : 'Показати профіль'}
+        aria-pressed={profileVisible}
+        onClick={onToggleProfile}
+      >
+        <UserCircleIcon size={22} />
+      </IconButton>
     </>
   );
 }

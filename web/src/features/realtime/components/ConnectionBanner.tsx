@@ -1,5 +1,7 @@
-import { LoadingOutlined, WarningFilled } from '@ant-design/icons';
+import { WarningCircleIcon } from '@phosphor-icons/react';
 import { createStyles, keyframes } from 'antd-style';
+
+import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 
 import { useSocketEvent } from '../hooks/useSocketEvent';
 import { sessionReadySchema } from '../schemas';
@@ -71,7 +73,9 @@ export function ConnectionBanner() {
 
   return (
     <div className={cx(styles.banner, isAuthError ? styles.error : styles.warning)} role="status">
-      <span className={styles.icon}>{isAuthError ? <WarningFilled /> : <LoadingOutlined />}</span>
+      <span className={styles.icon}>
+        {isAuthError ? <WarningCircleIcon size={18} weight="fill" /> : <LoadingIcon size={18} />}
+      </span>
       {message}
     </div>
   );

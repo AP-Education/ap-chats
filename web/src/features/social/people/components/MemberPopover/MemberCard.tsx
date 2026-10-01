@@ -1,9 +1,10 @@
-import { ChatCircleDotsIcon, PhoneIcon } from '@phosphor-icons/react';
+import { ChatTextIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, message as toast, Skeleton, Tooltip } from 'antd';
+import { Button, message as toast, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import { CallIcon } from '@/features/calls/callIcons';
 import { useOpenDirectMessage } from '@/features/social/direct-messages/hooks/useOpenDirectMessage';
 import { useActiveWorkspace } from '@/features/workspaces/hooks/useActiveWorkspace';
 import { ApiError } from '@/shared/api/http';
@@ -74,7 +75,7 @@ export function MemberCard({ member }: { member: MemberSummary }) {
           <Button
             type="primary"
             className={styles.message}
-            icon={<ChatCircleDotsIcon size={18} />}
+            icon={<ChatTextIcon size={20} />}
             loading={opening}
             disabled={unavailable}
             onClick={() => {
@@ -83,11 +84,7 @@ export function MemberCard({ member }: { member: MemberSummary }) {
           >
             Написати
           </Button>
-          <Tooltip title="Особисті дзвінки з’являться пізніше">
-            <span>
-              <Button icon={<PhoneIcon size={18} />} aria-label="Подзвонити" disabled />
-            </span>
-          </Tooltip>
+          <Button icon={<CallIcon size={20} />} aria-label="Подзвонити" disabled />
         </div>
       )}
     </div>

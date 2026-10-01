@@ -7,7 +7,6 @@ import {
   ArrowsClockwiseIcon,
   MicrophoneIcon,
   MicrophoneSlashIcon,
-  PhoneXIcon,
   ScreencastIcon,
   VideoCameraIcon,
   VideoCameraSlashIcon,
@@ -18,6 +17,7 @@ import { type MouseEvent, useState } from 'react';
 
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
+import { EndCallIcon } from '../../callIcons';
 import { playMuteChime, playUnmuteChime } from '../../sound/callChimes';
 import { CallActionButton } from './CallActionButton';
 
@@ -101,7 +101,7 @@ export function CallControls() {
         {...leave.buttonProps}
         aria-label="Завершити дзвінок"
       >
-        <PhoneXIcon size={22} weight="fill" />
+        <EndCallIcon size={22} weight="fill" />
       </CallActionButton>
     </div>
   );

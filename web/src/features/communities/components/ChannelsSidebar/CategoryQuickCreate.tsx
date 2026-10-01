@@ -68,7 +68,7 @@ export function CategoryQuickCreate({ isPending, onCreate }: CategoryQuickCreate
       <Button
         type="text"
         size="small"
-        icon={<PlusIcon size={16} />}
+        icon={<PlusIcon size={18} />}
         aria-label="Створити категорію"
       >
         Категорія
