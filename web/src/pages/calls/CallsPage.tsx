@@ -6,6 +6,7 @@ import { ConversationPane } from '@/domain/conversation/ConversationPane';
 import type { CallHistoryFilter } from '@/features/calls/components/CallHistoryList/CallHistoryList';
 import { CallHistoryList } from '@/features/calls/components/CallHistoryList/CallHistoryList';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
+import { MobileMenuButton } from '@/layouts/MainLayout/MobileMenuButton';
 
 const useStyles = createStyles(({ token, css }) => ({
   title: css`
@@ -13,15 +14,16 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: ${token.colorText};
-    font-size: ${token.fontSizeLG}px;
-    font-weight: 650;
   `,
   body: css`
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     padding: 12px 20px 20px;
+
+    @media (max-width: ${token.screenMD}px) {
+      padding: 12px 8px 20px;
+    }
   `,
 }));
 
@@ -32,7 +34,12 @@ export default function CallsPage() {
 
   return (
     <ConversationPane
-      title={<span className={styles.title}>Дзвінки</span>}
+      title={
+        <>
+          <MobileMenuButton />
+          <span className={styles.title}>Дзвінки</span>
+        </>
+      }
       actions={
         <Segmented
           value={filter}

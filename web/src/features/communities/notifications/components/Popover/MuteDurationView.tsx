@@ -71,7 +71,7 @@ export function MuteDurationView({
   return (
     <>
       <button type="button" className={styles.back} onClick={onBack}>
-        <ArrowLeftIcon size={15} /> Вимкнути канал
+        <ArrowLeftIcon size={16} /> Вимкнути канал
       </button>
       <div className={styles.divider} />
       {muteDurations.map((duration) => (

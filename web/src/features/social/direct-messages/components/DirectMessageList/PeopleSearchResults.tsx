@@ -1,10 +1,11 @@
-import { ChatCircleDotsIcon } from '@phosphor-icons/react';
+import { ChatTextIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Empty, message as toast, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import { searchPeople } from '../../api/direct-messages-api';
@@ -38,6 +39,12 @@ const useStyles = createStyles(({ token, css }) => ({
       outline: 2px solid ${token.colorPrimary};
       outline-offset: -2px;
     }
+
+    @media (max-width: ${token.screenMD}px) {
+      min-height: 64px;
+      gap: 12px;
+      padding: 6px 12px;
+    }
   `,
   name: css`
     flex: 1;
@@ -46,6 +53,10 @@ const useStyles = createStyles(({ token, css }) => ({
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: 600;
+
+    @media (max-width: ${token.screenMD}px) {
+      font-size: 16px;
+    }
   `,
   action: css`
     color: ${token.colorTextTertiary};
@@ -71,6 +82,7 @@ export function PeopleSearchResults({
   onNavigate,
 }: PeopleSearchResultsProps) {
   const { styles } = useStyles();
+  const isMobile = useIsMobile();
   const { token, identity } = useQueryAuth();
   const { open, opening } = useOpenDirectMessage(workspaceId);
   const searchTerm = useDebouncedValue(query.trim(), 180);
@@ -99,7 +111,7 @@ export function PeopleSearchResults({
         <div className={styles.heading}>Люди</div>
         {[0, 1].map((row) => (
           <div key={row} className={styles.row}>
-            <Skeleton.Avatar active size={36} shape="circle" />
+            <Skeleton.Avatar active size={isMobile ? 44 : 36} shape="circle" />
             <Skeleton.Input active size="small" style={{ width: 120 }} />
           </div>
         ))}
@@ -137,11 +149,11 @@ export function PeopleSearchResults({
           <Avatar
             path={person.avatarPath}
             alt={person.displayName ?? 'Колега'}
-            size={36}
+            size={isMobile ? 44 : 36}
             shape="circle"
           />
           <span className={styles.name}>{person.displayName ?? 'Ім’я недоступне'}</span>
-          <ChatCircleDotsIcon className={styles.action} size={18} aria-hidden="true" />
+          <ChatTextIcon className={styles.action} size={20} aria-hidden="true" />
         </button>
       ))}
     </section>

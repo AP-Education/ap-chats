@@ -1,8 +1,5 @@
-import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import type { PropsWithChildren, ReactNode } from 'react';
-
-import { IconButton } from '@/shared/ui/IconButton';
 
 const useStyles = createStyles(({ token, css }) => ({
   shell: css`
@@ -31,9 +28,9 @@ const useStyles = createStyles(({ token, css }) => ({
     gap: 4px;
     flex: 1;
     min-width: 0;
-  `,
-  back: css`
     color: ${token.colorText};
+    font-size: ${token.fontSizeLG}px;
+    font-weight: 650;
   `,
   actions: css`
     display: flex;
@@ -59,32 +56,17 @@ const useStyles = createStyles(({ token, css }) => ({
 
 interface ConversationPaneProps extends PropsWithChildren {
   title: ReactNode;
-  actions: ReactNode;
-  onBack?: () => void;
-  backLabel?: string;
+  actions?: ReactNode;
 }
 
-export function ConversationPane({
-  title,
-  actions,
-  onBack,
-  backLabel = 'Назад',
-  children,
-}: ConversationPaneProps) {
+export function ConversationPane({ title, actions, children }: ConversationPaneProps) {
   const { styles } = useStyles();
 
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
-        <div className={styles.title}>
-          {onBack && (
-            <IconButton size={40} className={styles.back} aria-label={backLabel} onClick={onBack}>
-              <ArrowLeftIcon size={20} />
-            </IconButton>
-          )}
-          {title}
-        </div>
-        <div className={styles.actions}>{actions}</div>
+        <div className={styles.title}>{title}</div>
+        {actions && <div className={styles.actions}>{actions}</div>}
       </header>
       {children}
     </div>

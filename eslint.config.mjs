@@ -50,4 +50,20 @@ export default defineConfig(
       globals: { ...globals.browser, ...globals.node, ...globals.es2023 },
     },
   },
+  {
+    files: ['web/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@ant-design/icons',
+              message: 'Use @phosphor-icons/react for web interface icons.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

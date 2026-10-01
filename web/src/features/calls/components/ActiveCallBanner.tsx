@@ -1,4 +1,4 @@
-import { PhoneIcon, XIcon } from '@phosphor-icons/react';
+import { XIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles, keyframes } from 'antd-style';
 import { useState } from 'react';
@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { callActionLabel } from '../callActionLabel';
+import { CallIcon } from '../callIcons';
 import { useActiveCall } from '../hooks/useActiveCall';
 import { useCallAction } from '../hooks/useCallAction';
 import { useDeclineIncomingCall } from '../hooks/useDeclineIncomingCall';
@@ -102,7 +103,7 @@ export function ActiveCallBanner({
   return (
     <div className={styles.banner} role="status">
       <span className={styles.dot} aria-hidden />
-      <PhoneIcon size={17} weight="fill" />
+      <CallIcon size={18} weight="fill" />
       <span className={styles.info}>
         <span className={styles.label}>
           {activeCall.data.status === 'ringing' ? 'Вхідний дзвінок' : 'Дзвінок триває'}

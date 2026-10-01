@@ -100,7 +100,7 @@ export function NotificationLevelsView({
         onClick={isMuted ? onUnmute : onOpenMute}
       >
         <span>{isMuted ? 'Увімкнути канал' : 'Вимкнути канал'}</span>
-        {!isMuted && <CaretRightIcon size={15} />}
+        {!isMuted && <CaretRightIcon size={16} />}
       </button>
       <div className={styles.divider} />
       <div role="radiogroup" aria-label="Сповіщення каналу">

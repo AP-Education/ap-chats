@@ -1,13 +1,9 @@
 import { useDisconnectButton, useTrackToggle } from '@livekit/components-react';
-import {
-  MicrophoneIcon,
-  MicrophoneSlashIcon,
-  PhoneXIcon,
-  VideoCameraIcon,
-} from '@phosphor-icons/react';
+import { MicrophoneIcon, MicrophoneSlashIcon, VideoCameraIcon } from '@phosphor-icons/react';
 import { createStyles, keyframes } from 'antd-style';
 import { Track } from 'livekit-client';
 
+import { EndCallIcon } from '../../callIcons';
 import { CALL_SURFACE_GRADIENT } from '../../callTheme';
 import { CallActionButton } from './CallActionButton';
 
@@ -126,7 +122,7 @@ export function MiniCallBar({ title, duration, onExpand }: MiniCallBarProps) {
           aria-label={mic.enabled ? 'Вимкнути мікрофон' : 'Увімкнути мікрофон'}
           onClick={mic.buttonProps.onClick}
         >
-          {mic.enabled ? <MicrophoneIcon size={19} /> : <MicrophoneSlashIcon size={19} />}
+          {mic.enabled ? <MicrophoneIcon size={20} /> : <MicrophoneSlashIcon size={20} />}
         </CallActionButton>
         {camera.enabled && (
           <CallActionButton
@@ -134,7 +130,7 @@ export function MiniCallBar({ title, duration, onExpand }: MiniCallBarProps) {
             aria-label="Вимкнути камеру"
             onClick={camera.buttonProps.onClick}
           >
-            <VideoCameraIcon size={19} />
+            <VideoCameraIcon size={20} />
           </CallActionButton>
         )}
         <CallActionButton
@@ -143,7 +139,7 @@ export function MiniCallBar({ title, duration, onExpand }: MiniCallBarProps) {
           aria-label="Завершити дзвінок"
           onClick={leave.buttonProps.onClick}
         >
-          <PhoneXIcon size={19} weight="fill" />
+          <EndCallIcon size={20} weight="fill" />
         </CallActionButton>
       </div>
     </div>

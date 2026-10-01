@@ -1,7 +1,7 @@
 import { Button, Empty, Result } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import { ChatLayout } from '@/domain/conversation/ChatLayout';
 import { ChatLoading } from '@/domain/conversation/ChatLoading';
@@ -14,12 +14,12 @@ import { DirectProfilePanel } from '@/features/social/direct-messages/components
 import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDirectMessages';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
-import { MainSiderMenu } from '@/layouts/MainLayout/MainSiderMenu';
+import { MobileMenuButton } from '@/layouts/MainLayout/MobileMenuButton';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
-const useStyles = createStyles(({ token, css }) => ({
+const useStyles = createStyles(({ css }) => ({
   title: css`
     display: flex;
     align-items: center;
@@ -31,9 +31,6 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: ${token.colorText};
-    font-size: ${token.fontSizeLG}px;
-    font-weight: 650;
   `,
   center: css`
     display: grid;
@@ -45,7 +42,6 @@ const useStyles = createStyles(({ token, css }) => ({
 export default function DirectMessagePage() {
   const { styles } = useStyles();
   const { id: workspaceId } = useRequiredWorkspace();
-  const navigate = useNavigate();
   const { channelId } = useParams<{ channelId: string }>();
   const isMobile = useIsMobile();
   const isNarrowLayout = useIsNarrowLayout();
@@ -61,7 +57,22 @@ export default function DirectMessagePage() {
   );
   const { byId, currentMember } = useWorkspaceMemberLabels(workspaceId);
 
-  if (!channelId && isMobile) return <MainSiderMenu />;
+  if (!channelId && isMobile) {
+    return (
+      <ConversationPane
+        title={
+          <>
+            <MobileMenuButton />
+            Особисті
+          </>
+        }
+      >
+        <div className={styles.center}>
+          <Empty description="Оберіть розмову або напишіть колезі" />
+        </div>
+      </ConversationPane>
+    );
+  }
   if (!channelId) {
     return (
       <div className={styles.center}>
@@ -117,10 +128,13 @@ export default function DirectMessagePage() {
       >
         <ConversationPane
           title={
-            <div className={styles.title}>
-              <Avatar path={participant.avatarPath} alt={name} size={32} shape="circle" />
-              <span className={styles.name}>{name}</span>
-            </div>
+            <>
+              <MobileMenuButton />
+              <div className={styles.title}>
+                <Avatar path={participant.avatarPath} alt={name} size={40} shape="circle" />
+                <span className={styles.name}>{name}</span>
+              </div>
+            </>
           }
           actions={
             <DirectMessageActions
@@ -131,8 +145,6 @@ export default function DirectMessagePage() {
               compact={isMobile}
             />
           }
-          onBack={isMobile ? () => navigate('/direct?list=1') : undefined}
-          backLabel="Назад до розмов"
         >
           <ConversationView
             canPost={participant.active}

@@ -1,5 +1,5 @@
 import { UserPlusIcon } from '@phosphor-icons/react';
-import { Button, message, Select, Tooltip } from 'antd';
+import { Button, message, Select } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -65,17 +65,15 @@ export function AddChannelMemberControl({
         options={candidateOptions}
         onChange={setAddingMemberId}
       />
-      <Tooltip title="Додати">
-        <Button
-          type="primary"
-          size={size}
-          icon={<UserPlusIcon size={14} />}
-          disabled={!addingMemberId}
-          loading={add.isPending}
-          aria-label="Додати учасника"
-          onClick={handleAdd}
-        />
-      </Tooltip>
+      <Button
+        type="primary"
+        size={size}
+        icon={<UserPlusIcon size={14} />}
+        disabled={!addingMemberId}
+        loading={add.isPending}
+        aria-label="Додати учасника"
+        onClick={handleAdd}
+      />
     </div>
   );
 }

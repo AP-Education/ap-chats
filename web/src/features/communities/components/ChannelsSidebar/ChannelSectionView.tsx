@@ -35,6 +35,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
     @media (max-width: ${token.screenMD}px) {
       padding-inline: 8px;
+      min-height: 44px;
     }
   `,
   collapseButton: css`
@@ -48,6 +49,10 @@ const useStyles = createStyles(({ token, css }) => ({
     background: transparent;
     text-align: left;
     cursor: pointer;
+
+    @media (max-width: ${token.screenMD}px) {
+      min-height: 36px;
+    }
 
     &:focus-visible {
       outline: 2px solid ${token.colorPrimary};
@@ -73,6 +78,11 @@ const useStyles = createStyles(({ token, css }) => ({
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: ${token.colorTextTertiary};
+
+    @media (max-width: ${token.screenMD}px) {
+      font-size: 12px;
+      color: ${token.colorTextSecondary};
+    }
   `,
   add: css`
     display: inline-flex;
@@ -101,6 +111,11 @@ const useStyles = createStyles(({ token, css }) => ({
 
     @media (hover: none) {
       opacity: 1;
+    }
+
+    @media (max-width: ${token.screenMD}px) {
+      width: 36px;
+      height: 36px;
     }
   `,
   emptyHint: css`
@@ -155,7 +170,7 @@ export function ChannelSectionView({ section }: ChannelSectionViewProps) {
           onClick={() => setCollapsed((prev) => !prev)}
         >
           <CaretRightIcon
-            size={10}
+            size={12}
             weight="bold"
             className={cx(styles.chevron, !collapsed && styles.chevronOpen)}
           />
@@ -174,7 +189,7 @@ export function ChannelSectionView({ section }: ChannelSectionViewProps) {
               });
             }}
           >
-            <PlusIcon size={16} />
+            <PlusIcon size={20} />
           </button>
         )}
       </div>

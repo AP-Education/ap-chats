@@ -5,7 +5,7 @@ import type { ConversationAction } from '../conversation/actions';
 export const pinActions: ConversationAction[] = [
   {
     id: 'pin',
-    icon: <PushPinIcon size={17} />,
+    icon: <PushPinIcon size={18} />,
     label: (target) => (target.items[0]?.pin ? 'Відкріпити' : 'Закріпити'),
     available: (target, context) =>
       target.kind === 'message' &&

@@ -20,9 +20,19 @@ const useStyles = createStyles(({ token, css }) => ({
     justify-content: space-between;
     padding: 14px 16px 8px;
     font-weight: 650;
+
+    @media (max-width: ${token.screenMD}px) {
+      min-height: 44px;
+      padding: 6px 12px 4px;
+      font-size: 16px;
+    }
   `,
   search: css`
     padding: 0 12px 10px;
+
+    @media (max-width: ${token.screenMD}px) {
+      padding: 0 12px 8px;
+    }
   `,
   list: css`
     min-height: 0;
@@ -48,13 +58,13 @@ export function DirectMessageList({
         <Button
           type="text"
           aria-label="Написати колезі"
-          icon={<NotePencilIcon size={19} />}
+          icon={<NotePencilIcon size={22} />}
           onClick={() => setComposeOpen(true)}
         />
       </div>
       <div className={styles.search}>
         <Input
-          prefix={<MagnifyingGlassIcon size={16} />}
+          prefix={<MagnifyingGlassIcon size={20} />}
           placeholder="Розмова або колега"
           aria-label="Знайти розмову або колегу"
           value={filter}

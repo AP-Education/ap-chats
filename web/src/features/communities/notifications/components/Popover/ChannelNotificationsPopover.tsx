@@ -1,5 +1,5 @@
 import { BellIcon, BellSlashIcon } from '@phosphor-icons/react';
-import { Popover, Tooltip } from 'antd';
+import { Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -86,17 +86,15 @@ export function ChannelNotificationsPopover({
         </div>
       }
     >
-      <Tooltip title="Сповіщення каналу">
-        <IconButton
-          size={compact ? 40 : 36}
-          className={cx(styles.trigger, (open || isMuted) && styles.triggerActive)}
-          aria-label="Сповіщення каналу"
-          aria-expanded={open}
-          aria-haspopup="dialog"
-        >
-          {isMuted ? <BellSlashIcon size={21} weight="duotone" /> : <BellIcon size={21} />}
-        </IconButton>
-      </Tooltip>
+      <IconButton
+        size={compact ? 40 : 36}
+        className={cx(styles.trigger, (open || isMuted) && styles.triggerActive)}
+        aria-label="Сповіщення каналу"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+      >
+        {isMuted ? <BellSlashIcon size={22} weight="duotone" /> : <BellIcon size={22} />}
+      </IconButton>
     </Popover>
   );
 }

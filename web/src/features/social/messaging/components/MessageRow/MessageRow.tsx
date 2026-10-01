@@ -1,8 +1,9 @@
-import { ArrowBendUpRightIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import { WarningCircleIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import { memo, useLayoutEffect, useRef } from 'react';
 
+import { ForwardIcon } from '@/features/social/conversation/actionIcons';
 import type {
   ActionContext,
   ActionTarget,
@@ -60,7 +61,7 @@ const useStyles = createStyles(({ token, css }) => ({
     }
     @media (max-width: ${token.screenMD}px) {
       gap: 8px;
-      padding: 6px 12px;
+      padding: 8px 12px;
     }
   `,
   selected: css`
@@ -167,6 +168,10 @@ const useStyles = createStyles(({ token, css }) => ({
   time: css`
     color: ${token.colorTextTertiary};
     font-size: 12px;
+
+    @media (max-width: ${token.screenMD}px) {
+      color: ${token.colorTextSecondary};
+    }
   `,
   edited: css`
     color: ${token.colorTextQuaternary};
@@ -376,7 +381,7 @@ export const MessageRow = memo(function MessageRow({
           )}
           {item.message.isForwarded && (
             <div className={styles.forwarded}>
-              <ArrowBendUpRightIcon size={14} aria-hidden />
+              <ForwardIcon size={14} aria-hidden />
               <span>
                 Переслано від{' '}
                 {item.forwardedFrom ? (
