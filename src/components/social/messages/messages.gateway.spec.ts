@@ -44,7 +44,7 @@ test('sends a channel invalidation only to currently authorized sockets', async 
     new MessageCreatedEvent('workspace', 'channel', 'message', '12', 'actor'),
   );
 
-  assert.equal(received.length, 2);
+  assert.equal(received.length, 1);
   assert.deepEqual(received[0], {
     userId: 'allowed',
     event: 'social:changed',
@@ -54,16 +54,6 @@ test('sends a channel invalidation only to currently authorized sockets', async 
       channelId: 'channel',
       messageId: 'message',
       seq: '12',
-      actorMemberId: 'actor',
-    },
-  });
-  assert.deepEqual(received[1], {
-    userId: 'allowed',
-    event: 'social:unread',
-    payload: {
-      workspaceId: 'workspace',
-      channelId: 'channel',
-      type: 'social.message.created',
       actorMemberId: 'actor',
     },
   });

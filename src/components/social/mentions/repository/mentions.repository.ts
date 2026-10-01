@@ -1,4 +1,5 @@
 export abstract class MentionsRepository {
+  abstract mentionedMemberIds(messageIds: string[]): Promise<string[]>;
   abstract candidates(
     workspaceId: string,
     channelId: string,

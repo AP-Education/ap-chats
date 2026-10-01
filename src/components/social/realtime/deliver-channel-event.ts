@@ -22,10 +22,7 @@ export async function deliverChannelEvent<T extends ChannelEvent>(
 
   const room = RealtimeRooms.socialChannel(event.workspaceId, event.channelId);
   try {
-    const [sockets, workspaceSockets] = await Promise.all([
-      namespace.in(room).fetchSockets(),
-      namespace.in(RealtimeRooms.socialWorkspace(event.workspaceId)).fetchSockets(),
-    ]);
+    const sockets = await namespace.in(room).fetchSockets();
 
     const userIdOf = (socket: (typeof sockets)[number]) =>
       (socket.data as { principal?: AuthenticatedUser }).principal?.sub;
@@ -41,23 +38,6 @@ export async function deliverChannelEvent<T extends ChannelEvent>(
         continue;
       }
       socket.emit('social:changed', { type, ...event });
-    }
-
-    const workspaceCandidates = [
-      ...new Set(workspaceSockets.map(userIdOf).filter((id): id is string => !!id)),
-    ];
-    const workspaceAllowed = new Set(
-      await audience.allowedUserIds(event.workspaceId, event.channelId, workspaceCandidates),
-    );
-    for (const socket of workspaceSockets) {
-      const userId = userIdOf(socket);
-      if (!userId || !workspaceAllowed.has(userId)) continue;
-      socket.emit('social:unread', {
-        workspaceId: event.workspaceId,
-        channelId: event.channelId,
-        type,
-        actorMemberId: event.actorMemberId,
-      });
     }
   } catch (error) {
     logger
