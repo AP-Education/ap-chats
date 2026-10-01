@@ -10,6 +10,7 @@ import type {
 } from 'react-native-webview/lib/WebViewTypes';
 
 import { useAuthStore } from '../../auth/index';
+import { connectBridgedCall } from '../../calls';
 import { unregisterCurrentDevice } from '../../push/api/unregister-current-device';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
 import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
@@ -68,6 +69,8 @@ export function WebViewHost() {
     } else if (message.type === 'auth/refresh-request') {
       // Updates the store; the effect above picks up the new token and re-injects it.
       void useAuthStore.getState().refreshNow();
+    } else if (message.type === 'calls/connect') {
+      void connectBridgedCall(message.payload);
     } else if (__DEV__ && message.type === 'debug/console') {
       console[message.level](`[webview]`, ...message.args);
     } else if (__DEV__ && message.type === 'debug/error') {

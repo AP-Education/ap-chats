@@ -17,19 +17,19 @@ export function CallSurface() {
   useCallSignalListener();
   const incoming = useCallStore((state) => state.incoming);
   const active = useCallStore((state) => state.active);
-  const isMobile = getAppShell().kind === 'mobile';
 
-  // The native shell (CallKit/Telecom) owns ringing on mobile — it's the only thing
-  // that can wake the app while backgrounded or killed, and it rings regardless of
-  // whether the app happens to be open, so showing this card too would double-ring.
-  // `active` is a different story: it's only ever set by this app's own web code
-  // (starting a call, or accepting one from this card), meaning the person is already
-  // looking at the WebView — so the in-call screen stays the familiar one everywhere,
-  // the same way Telegram/Discord hand off from the system call screen to their own
-  // UI as soon as the app itself is frontmost.
+  // The native shell owns the whole call lifecycle on mobile — not just ringing
+  // (CallKit/Telecom is the only thing that can wake the app while backgrounded
+  // or killed), but the connected call too: the WebView can't reliably capture
+  // the microphone (insecure http:// context during local dev, and no WebView
+  // media-permission grant configured either way), so useStartCall/useJoinCall
+  // hand the join grant to native instead of ever setting `active` here — see
+  // NativeCallConnectPayload. NativeInCallScreen is the in-app screen on mobile.
+  if (getAppShell().kind === 'mobile') return null;
+
   return (
     <>
-      {incoming && !active && !isMobile && <IncomingCallCard signal={incoming} />}
+      {incoming && !active && <IncomingCallCard signal={incoming} />}
       {active && (
         <Suspense fallback={null}>
           <ActiveCallOverlay session={active} />

@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import { getAppShell } from '@/lib/app-shell';
 
 import { joinCall, startCall } from '../api/calls-api';
+import { requestNativeCallConnect } from '../api/native-call-bridge';
 import { useCallStore } from '../store/call-store';
 import { activeCallQueryKey } from './useActiveCall';
 
@@ -25,7 +27,13 @@ export function useStartCall(
       return grant;
     },
     onSuccess: (grant) => {
-      setActive({ ...grant, workspaceId, channelId, title, calleeAvatarPath });
+      // The native shell connects the LiveKit room and owns the in-call screen
+      // itself on mobile — see NativeCallConnectPayload.
+      if (getAppShell().kind === 'mobile') {
+        requestNativeCallConnect({ workspaceId, channelId, title, calleeAvatarPath, grant });
+      } else {
+        setActive({ ...grant, workspaceId, channelId, title, calleeAvatarPath });
+      }
       queryClient.invalidateQueries({ queryKey: activeCallQueryKey(workspaceId, channelId) });
     },
   });

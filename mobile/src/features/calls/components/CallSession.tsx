@@ -33,7 +33,10 @@ export function CallSession() {
         CallKit.addCallSessionAddedListener((event) => {
           const metadata = extractCallMetadata(event);
           const incoming = event.session.incomingCallEvent;
-          if (!metadata || !incoming) return; // an outgoing session — not handled by this phase.
+          // An outgoing (app- or system-initiated) session has no incomingCallEvent to
+          // read metadata off — connectBridgedCall tracks those itself, synchronously,
+          // with what it already has from the WebView bridge message.
+          if (!metadata || !incoming) return;
           trackSession(event.session.id, {
             serverCallId: incoming.serverCallId,
             metadata,

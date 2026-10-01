@@ -1,11 +1,19 @@
 import type { CallParticipant } from 'expo-callkit-telecom';
 import type { Room } from 'livekit-client';
 
-import type { CallSignalMetadata } from '../types';
+// Only what endCallSession/answerCall actually need to reach the REST API —
+// not the full (validated) CallSignalMetadata off the incoming push event,
+// since an app-initiated outgoing call has no push event to validate at all.
+// CallSignalMetadata is a structural superset, so tracking an incoming
+// session still just works without a cast.
+export interface TrackedSessionMetadata {
+  workspaceId: string;
+  channelId: string;
+}
 
 export interface TrackedSession {
   serverCallId: string;
-  metadata: CallSignalMetadata;
+  metadata: TrackedSessionMetadata;
   caller: CallParticipant;
   room?: Room;
 }

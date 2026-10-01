@@ -16,3 +16,15 @@ export interface CallJoinGrant {
   token: string;
   expiresAt: string;
 }
+
+/** Sent by web/'s useStartCall/useJoinCall over the WebView bridge: the WebView
+ * can't reliably capture the microphone (insecure http:// context, no WebView
+ * media-permission grant configured), so the native shell connects the LiveKit
+ * room and owns the in-call screen instead, the same as an answered incoming call. */
+export interface NativeCallConnectPayload {
+  workspaceId: string;
+  channelId: string;
+  title: string;
+  calleeAvatarPath?: string | null;
+  grant: CallJoinGrant;
+}
