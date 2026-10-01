@@ -16,6 +16,9 @@ export interface TrackedSession {
   metadata: TrackedSessionMetadata;
   caller: CallParticipant;
   room?: Room;
+  /** Unsubscribes trackRemoteParticipant's room listeners — called once, from
+   * endCallSession, alongside the room disconnect itself. */
+  stopTrackingRemote?: () => void;
 }
 
 // Keyed by the OS-assigned CallSession id — the one thing every
@@ -34,4 +37,13 @@ export function untrackSession(sessionId: string): TrackedSession | undefined {
   const session = sessions.get(sessionId);
   sessions.delete(sessionId);
   return session;
+}
+
+/** CallSignalSocket needs the OS session id to address CallKit by, but only
+ * ever has the backend's own call id (what the realtime signal carries). */
+export function findTrackedSessionIdByServerCallId(serverCallId: string): string | undefined {
+  for (const [sessionId, session] of sessions) {
+    if (session.serverCallId === serverCallId) return sessionId;
+  }
+  return undefined;
 }

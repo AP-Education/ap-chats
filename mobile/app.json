@@ -9,7 +9,8 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.apeducation.native"
+      "bundleIdentifier": "com.apeducation.native",
+      "buildNumber": "9"
     },
     "android": {
       "package": "com.apeducation.native",

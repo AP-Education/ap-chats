@@ -6,6 +6,7 @@ import type { loadCallKitModule } from './callkit-module';
 import { connectRoom, waitForAudioSessionActive } from './livekit-room';
 import { requireAccessToken } from './require-access-token';
 import { getTrackedSession } from './session-registry';
+import { trackRemoteParticipant } from './track-remote-participant';
 
 /** The user answered from the system UI — join the same LiveKit room the web
  * app's useJoinCall would, then tell CallKit/Telecom media is ready. Takes the
@@ -30,19 +31,21 @@ export async function answerCall(
       session.serverCallId,
     );
     session.room = await connectRoom(grant.url, grant.token);
+    session.stopTrackingRemote = trackRemoteParticipant(session.room, (update) =>
+      useNativeCallStore.getState().updateCall(update),
+    );
 
     await waitForAudioSessionActive(CallKit);
     await session.room.localParticipant.setMicrophoneEnabled(true);
 
     await CallKit.fulfillIncomingCallConnected(event.requestId);
-    useNativeCallStore
-      .getState()
-      .setCall({
-        sessionId: event.id,
-        caller: session.caller,
-        status: 'connected',
-        isMuted: false,
-      });
+    useNativeCallStore.getState().setCall({
+      sessionId: event.id,
+      caller: session.caller,
+      status: 'connected',
+      isMuted: false,
+      connectedAt: Date.now(),
+    });
   } catch (error) {
     if (__DEV__) console.warn('[calls] answer failed', error);
     await CallKit.failIncomingCallConnected(event.id, event.requestId).catch(() => undefined);

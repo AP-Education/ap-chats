@@ -1,5 +1,13 @@
+import { View } from 'react-native';
+
 import { AuthGate } from './features/auth/components/AuthGate';
-import { CallSession, NativeInCallScreen } from './features/calls';
+import {
+  CallSession,
+  CallSignalSocket,
+  NativeInCallScreen,
+  NativeIncomingCallScreen,
+  NativeMiniCallBar,
+} from './features/calls';
 import { PushPrimingGate } from './features/push/components/PushPrimingGate';
 import { PushRegistration } from './features/push/components/PushRegistration';
 import { WebViewHost } from './features/webview';
@@ -15,11 +23,26 @@ export default function App() {
       <ErrorBoundary label="call-session">
         <CallSession />
       </ErrorBoundary>
-      <AuthGate>
-        <PushPrimingGate>
-          <WebViewHost />
-        </PushPrimingGate>
-      </AuthGate>
+      <ErrorBoundary label="call-signal-socket">
+        <CallSignalSocket />
+      </ErrorBoundary>
+      {/* A normal flex column, not a Fragment: NativeMiniCallBar is a regular
+          sibling here (not an absolute overlay) so the WebView actually
+          shrinks to make room for it instead of it covering the WebView's
+          own top edge. */}
+      <View style={{ flex: 1 }}>
+        <ErrorBoundary label="native-mini-call-bar">
+          <NativeMiniCallBar />
+        </ErrorBoundary>
+        <AuthGate>
+          <PushPrimingGate>
+            <WebViewHost />
+          </PushPrimingGate>
+        </AuthGate>
+      </View>
+      <ErrorBoundary label="native-incoming-call-screen">
+        <NativeIncomingCallScreen />
+      </ErrorBoundary>
       <ErrorBoundary label="native-in-call-screen">
         <NativeInCallScreen />
       </ErrorBoundary>

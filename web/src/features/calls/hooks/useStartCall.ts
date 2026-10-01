@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { message as toast } from 'antd';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { getAppShell } from '@/lib/app-shell';
@@ -21,6 +22,9 @@ export function useStartCall(
 
   return useMutation({
     mutationFn: async () => {
+      // RequireAuth never renders this button before status is 'signed-in',
+      // and that variant's accessToken isn't optional — this is a type
+      // narrowing, not a real runtime path.
       if (!token) throw new Error('Not signed in');
       const call = await startCall(token, workspaceId, channelId);
       const grant = await joinCall(token, workspaceId, channelId, call.id);
@@ -35,6 +39,10 @@ export function useStartCall(
         setActive({ ...grant, workspaceId, channelId, title, calleeAvatarPath });
       }
       queryClient.invalidateQueries({ queryKey: activeCallQueryKey(workspaceId, channelId) });
+    },
+    onError: (error) => {
+      console.error('[calls] failed to start call', error);
+      toast.error('Не вдалося подзвонити. Спробуй ще раз.');
     },
   });
 }

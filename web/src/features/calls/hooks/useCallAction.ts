@@ -43,6 +43,11 @@ export function useCallAction(
       return;
     }
     if (busy) return;
+    // A fast double-tap can land both calls before React re-renders the
+    // button disabled — isPending itself is already up to date by then, so
+    // checking it directly here closes that window instead of trusting the
+    // consumer's `disabled={pending}` to re-render in time.
+    if (startCall.isPending || joinCall.isPending) return;
     if (activeCall.data) joinCall.mutate(activeCall.data.id);
     else startCall.mutate();
   }

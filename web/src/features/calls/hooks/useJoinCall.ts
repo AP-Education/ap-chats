@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { message as toast } from 'antd';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { getAppShell } from '@/lib/app-shell';
@@ -21,6 +22,7 @@ export function useJoinCall(
 
   return useMutation({
     mutationFn: (callId: string) => {
+      // See useStartCall — RequireAuth guarantees this, just not in the type.
       if (!token) throw new Error('Not signed in');
       return joinCall(token, workspaceId, channelId, callId);
     },
@@ -33,6 +35,10 @@ export function useJoinCall(
         setActive({ ...grant, workspaceId, channelId, title, calleeAvatarPath });
       }
       queryClient.invalidateQueries({ queryKey: activeCallQueryKey(workspaceId, channelId) });
+    },
+    onError: (error) => {
+      console.error('[calls] failed to join call', error);
+      toast.error('Не вдалося приєднатися до дзвінка. Спробуй ще раз.');
     },
   });
 }

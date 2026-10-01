@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+import { useNativeCallStore } from '../store/native-call-store';
 import { answerCall } from '../utils/answer-call';
 import { extractCallMetadata } from '../utils/call-metadata';
 import { loadCallKitModule } from '../utils/callkit-module';
@@ -42,6 +43,18 @@ export function CallSession() {
             metadata,
             caller: incoming.caller,
           });
+          // Mounts NativeIncomingCallScreen immediately — same call session the
+          // system's own incoming-call UI is showing, so whichever one the person
+          // actually sees (did they open the app, or tap the system notification?)
+          // reflects the same ringing state and answers/declines the same way.
+          useNativeCallStore
+            .getState()
+            .setCall({
+              sessionId: event.session.id,
+              caller: incoming.caller,
+              status: 'ringing',
+              isMuted: false,
+            });
         }),
         CallKit.addCallAnsweredListener((event) => void answerCall(event, CallKit)),
         CallKit.addCallEndedListener((event) => void endCallSession(event)),

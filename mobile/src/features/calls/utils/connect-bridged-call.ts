@@ -5,6 +5,7 @@ import type { NativeCallConnectPayload } from '../types';
 import { loadCallKitModule } from './callkit-module';
 import { connectRoom, waitForAudioSessionActive } from './livekit-room';
 import { getTrackedSession, trackSession } from './session-registry';
+import { trackRemoteParticipant } from './track-remote-participant';
 
 /** The web UI started or joined a call (useStartCall/useJoinCall) while running
  * inside the mobile shell. Reports it to CallKit/Telecom as an outgoing call —
@@ -55,12 +56,15 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
 
   try {
     session.room = await connectRoom(payload.grant.url, payload.grant.token);
+    session.stopTrackingRemote = trackRemoteParticipant(session.room, (update) =>
+      useNativeCallStore.getState().updateCall(update),
+    );
     await waitForAudioSessionActive(CallKit);
     await session.room.localParticipant.setMicrophoneEnabled(true);
     await CallKit.reportOutgoingCallConnected(sessionId);
     useNativeCallStore
       .getState()
-      .setCall({ sessionId, caller, status: 'connected', isMuted: false });
+      .setCall({ sessionId, caller, status: 'connected', isMuted: false, connectedAt: Date.now() });
   } catch (error) {
     if (__DEV__) console.warn('[calls] outgoing connect failed', error);
     await CallKit.endCall(sessionId).catch(() => undefined);

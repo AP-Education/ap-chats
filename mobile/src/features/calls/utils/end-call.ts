@@ -16,6 +16,7 @@ export async function endCallSession(event: CallEndedEvent): Promise<void> {
   const { workspaceId, channelId } = session.metadata;
   try {
     if (session.room) {
+      session.stopTrackingRemote?.();
       await session.room.disconnect();
       await leaveCall(requireAccessToken(), workspaceId, channelId, session.serverCallId);
     } else {
