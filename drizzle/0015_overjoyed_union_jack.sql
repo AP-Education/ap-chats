@@ -1,0 +1,1 @@
+ALTER TABLE "channel_memberships" ADD CONSTRAINT "channel_memberships_notification_level_check" CHECK ("channel_memberships"."notification_level" in ('default', 'all', 'mentions', 'none'));

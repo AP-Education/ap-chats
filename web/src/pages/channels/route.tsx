@@ -4,7 +4,6 @@ import type { RouteObject } from 'react-router-dom';
 import { ChatLoading } from '@/domain/conversation/ChatLoading';
 import { LastConversationRoute } from '@/features/social/conversation/LastConversationRoute';
 import { RequiredWorkspaceLayout } from '@/features/workspaces/layouts/RequiredWorkspaceLayout';
-import { conversationRoute } from '@/shared/router/conversationRoute';
 
 const ChannelContent = lazy(() => import('./ChannelContent'));
 
@@ -21,7 +20,7 @@ export const channelsRoutes = [
           </LastConversationRoute>
         ),
       },
-      { path: ':channelId', handle: conversationRoute, element: <ChannelContent /> },
+      { path: ':channelId', element: <ChannelContent /> },
     ],
   },
 ] satisfies RouteObject[];

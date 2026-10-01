@@ -1,12 +1,12 @@
 import { GearSixIcon } from '@phosphor-icons/react';
 import { Button, message } from 'antd';
 import { createStyles } from 'antd-style';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { matchPath, useLocation } from 'react-router-dom';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { getLastConversation } from '@/features/social/conversation/lastConversation';
-import { useWorkspaceUnread } from '@/features/social/read-state/hooks/useWorkspaceUnread';
+import { useWorkspaceUnreadStore } from '@/features/social/read-state/workspace-unread-context';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { IconButton } from '@/shared/ui/IconButton';
 
@@ -54,11 +54,7 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
   const { isLoading, isError, retry, isOwner, currentMember, sections, createCategory } =
     useChannelSections(workspaceId);
   const { update } = useChannelActions(workspaceId);
-  const unread = useWorkspaceUnread(workspaceId);
-  const unreadByChannel = useMemo(
-    () => new Map(unread.data?.map((state) => [state.channelId, state.unreadCount]) ?? []),
-    [unread.data],
-  );
+  const { unreadByChannel } = useWorkspaceUnreadStore();
   const { identity } = useQueryAuth();
   const isMobile = useIsMobile();
   const location = useLocation();

@@ -7,6 +7,7 @@ import { CallsModule } from '@/components/calls';
 import { CommunitiesModule } from '@/components/communities';
 import { DevicesModule } from '@/components/devices';
 import { DirectMessagesModule } from '@/components/direct-messages/direct-messages.module';
+import { NotificationsModule } from '@/components/notifications/notifications.module';
 import { SocialModule } from '@/components/social/social.module';
 import { UploadsModule } from '@/components/uploads';
 import { UserProfilesModule } from '@/components/user-profiles/user-profiles.module';
@@ -30,6 +31,7 @@ import { HealthController } from '@/health/health.controller';
     UserProfilesModule,
     DevicesModule,
     DirectMessagesModule,
+    NotificationsModule,
     UploadsModule,
     WorkspacesModule,
     CommunitiesModule,

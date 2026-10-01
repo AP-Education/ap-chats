@@ -2,10 +2,12 @@ import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
+  check,
   foreignKey,
   index,
   pgTable,
   primaryKey,
+  text,
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
@@ -25,10 +27,19 @@ export const channelMemberships = pgTable(
       .default(sql`0`),
     notificationsMuted: boolean('notifications_muted').notNull().default(false),
     mutedUntil: timestamp('muted_until', { withTimezone: true }),
+    notificationLevel: text('notification_level', {
+      enum: ['default', 'all', 'mentions', 'none'],
+    })
+      .notNull()
+      .default('default'),
   },
   (table) => [
     primaryKey({ columns: [table.channelId, table.memberId] }),
     index('channel_memberships_member_channel_idx').on(table.memberId, table.channelId),
+    check(
+      'channel_memberships_notification_level_check',
+      sql`${table.notificationLevel} in ('default', 'all', 'mentions', 'none')`,
+    ),
     foreignKey({
       columns: [table.workspaceId, table.channelId],
       foreignColumns: [channels.workspaceId, channels.id],

@@ -1,15 +1,13 @@
 import { BellIcon, BellSlashIcon } from '@phosphor-icons/react';
-import { Popover } from 'antd';
+import { App, Button, Popover, Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import { IconButton } from '@/shared/ui/IconButton';
 
+import type { NotificationLevel } from '../../types';
 import { NotificationPopoverContent } from './NotificationPopoverContent';
-import {
-  type NotificationLevel,
-  useChannelNotificationPreference,
-} from './useChannelNotificationPreference';
+import { useChannelNotificationPreference } from './useChannelNotificationPreference';
 
 const useStyles = createStyles(({ token, css }) => ({
   trigger: css`
@@ -36,29 +34,28 @@ export function ChannelNotificationsPopover({
   compact = false,
 }: ChannelNotificationsPopoverProps) {
   const { styles, cx } = useStyles();
-  const { level, isMuted, chooseLevel, chooseMute, unmute } = useChannelNotificationPreference(
-    workspaceId,
-    channelId,
-  );
+  const { message } = App.useApp();
+  const { level, isMuted, isLoading, isError, isPending, retry, chooseLevel, chooseMute, unmute } =
+    useChannelNotificationPreference(workspaceId, channelId);
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<'levels' | 'mute'>('levels');
 
-  function handleChooseLevel(nextLevel: NotificationLevel) {
-    chooseLevel(nextLevel);
-    setOpen(false);
-    setView('levels');
+  async function applyChange(change: () => Promise<unknown>) {
+    try {
+      await change();
+      setOpen(false);
+      setView('levels');
+    } catch {
+      void message.error('Не вдалося оновити сповіщення каналу.');
+    }
   }
 
   function handleChooseMute(milliseconds: number) {
-    chooseMute(milliseconds);
-    setOpen(false);
-    setView('levels');
+    void applyChange(() => chooseMute(milliseconds));
   }
 
   function handleUnmute() {
-    unmute();
-    setOpen(false);
-    setView('levels');
+    void applyChange(unmute);
   }
 
   return (
@@ -73,16 +70,26 @@ export function ChannelNotificationsPopover({
       }}
       content={
         <div className={styles.menu} role="dialog" aria-label="Сповіщення каналу">
-          <NotificationPopoverContent
-            view={view}
-            level={level}
-            isMuted={isMuted}
-            onBack={() => setView('levels')}
-            onOpenMute={() => setView('mute')}
-            onUnmute={handleUnmute}
-            onChooseLevel={handleChooseLevel}
-            onChooseMute={handleChooseMute}
-          />
+          {isLoading ? (
+            <Spin size="small" />
+          ) : isError ? (
+            <Button type="link" onClick={() => void retry()}>
+              Повторити завантаження
+            </Button>
+          ) : (
+            <NotificationPopoverContent
+              view={view}
+              level={level}
+              isMuted={isMuted}
+              onBack={() => setView('levels')}
+              onOpenMute={() => setView('mute')}
+              onUnmute={handleUnmute}
+              onChooseLevel={(nextLevel: NotificationLevel) =>
+                void applyChange(() => chooseLevel(nextLevel))
+              }
+              onChooseMute={handleChooseMute}
+            />
+          )}
         </div>
       }
     >
@@ -92,6 +99,7 @@ export function ChannelNotificationsPopover({
         aria-label="Сповіщення каналу"
         aria-expanded={open}
         aria-haspopup="dialog"
+        disabled={isPending}
       >
         {isMuted ? <BellSlashIcon size={22} weight="duotone" /> : <BellIcon size={22} />}
       </IconButton>

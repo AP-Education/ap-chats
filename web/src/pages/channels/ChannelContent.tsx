@@ -11,6 +11,7 @@ import { useChannel } from '@/features/communities/channels/hooks/useChannels';
 import { ChannelMembersPanel } from '@/features/communities/memberships/components/ChannelMembersPanel';
 import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
+import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/MainLayout/MobileMenuButton';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
@@ -115,6 +116,7 @@ export default function ChannelContent() {
           },
         }}
       >
+        <WorkspaceChannelPresence channelId={channel.id} />
         <ChannelDetail
           workspaceId={workspaceId}
           channel={channel}

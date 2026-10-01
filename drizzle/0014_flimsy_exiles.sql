@@ -1,0 +1,1 @@
+ALTER TABLE "channel_memberships" ADD COLUMN "notification_level" text DEFAULT 'default' NOT NULL;

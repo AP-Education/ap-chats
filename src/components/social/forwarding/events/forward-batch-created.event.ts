@@ -8,5 +8,6 @@ export class ForwardBatchCreatedEvent {
     public readonly firstSeq: string,
     public readonly lastSeq: string,
     public readonly actorMemberId: string,
+    public readonly entrySeqs: string[],
   ) {}
 }

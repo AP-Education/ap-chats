@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 
 import { useTouchGesture } from '@/shared/hooks/useTouchGesture';
 
-const EDGE_WIDTH = 28;
+export const MOBILE_NAV_EDGE_WIDTH = 28;
 // How far the resting (closed) nav panel peeks in from the left edge — matches
 // the `-32px` resting transform in useMainLayoutStyles's `mobilePanel`.
 const PANEL_REST_OFFSET = 32;
@@ -70,7 +70,7 @@ export function useMobileNavSheet({ open, onOpen, onClose }: UseMobileNavSheetOp
   }, [open]);
 
   const openGesture = useTouchGesture({
-    shouldStart: (event) => !open && event.touches[0].clientX <= EDGE_WIDTH,
+    shouldStart: (event) => !open && event.touches[0].clientX <= MOBILE_NAV_EDGE_WIDTH,
     onSwipeProgress: (dx) => {
       draggingRef.current = true;
       setPosition(Math.max(0, dx) / widthRef.current, false);

@@ -1,4 +1,4 @@
-import { scheduleBell } from './tone';
+import { scheduleBell } from '@/shared/audio/tone';
 
 /** A brief, self-contained context per chime: these fire once and are gone
  * well under a second later, so there's no lifecycle to manage. */

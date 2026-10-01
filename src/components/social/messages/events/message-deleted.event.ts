@@ -7,5 +7,6 @@ export class MessageDeletedEvent {
     public readonly messageId: string,
     public readonly seq: string,
     public readonly actorMemberId: string,
+    public readonly authorMemberId: string,
   ) {}
 }

@@ -18,6 +18,15 @@ export class DrizzleMentionsRepository extends MentionsRepository {
     super();
   }
 
+  async mentionedMemberIds(messageIds: string[]): Promise<string[]> {
+    if (!messageIds.length) return [];
+    const rows = await this.txHost.tx
+      .selectDistinct({ memberId: messageMentions.memberId })
+      .from(messageMentions)
+      .where(inArray(messageMentions.messageId, messageIds));
+    return rows.map((row) => row.memberId);
+  }
+
   async candidates(workspaceId: string, channelId: string, query: string) {
     const escaped = query.replace(/[\\%_]/gu, '\\$&');
     return this.txHost.tx

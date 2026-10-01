@@ -2,15 +2,32 @@ import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, eq, inArray } from 'drizzle-orm';
 
+import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import { channelMemberships, userProfiles, workspaceMembers } from '@/database/drizzle/schema';
-import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
+import type { ChannelRecipient } from '../types';
 import { ChannelAudienceRepository } from './channel-audience.repository';
 
 @Injectable()
 export class DrizzleChannelAudienceRepository extends ChannelAudienceRepository {
   constructor(private readonly txHost: TransactionHost<DrizzleTransactionAdapter>) {
     super();
+  }
+
+  async recipients(workspaceId: string, channelId: string): Promise<ChannelRecipient[]> {
+    const rows = await this.txHost.tx
+      .select({ memberId: workspaceMembers.id, userId: userProfiles.oidcUserId })
+      .from(channelMemberships)
+      .innerJoin(workspaceMembers, eq(workspaceMembers.id, channelMemberships.memberId))
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
+      .where(
+        and(
+          eq(channelMemberships.workspaceId, workspaceId),
+          eq(channelMemberships.channelId, channelId),
+          eq(workspaceMembers.status, 'active'),
+        ),
+      );
+    return rows;
   }
 
   async allowedUserIds(

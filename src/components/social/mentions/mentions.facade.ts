@@ -13,6 +13,10 @@ export class MentionsFacade {
     private readonly access: ChannelAccessFacade,
   ) {}
 
+  mentionedMemberIds(messageIds: string[]): Promise<string[]> {
+    return this.repository.mentionedMemberIds(messageIds);
+  }
+
   @Transactional()
   async candidates(member: WorkspaceMember, channelId: string, query: string) {
     const { isMember } = await this.access.requireReadAccess(member, channelId);

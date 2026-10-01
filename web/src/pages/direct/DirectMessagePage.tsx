@@ -12,6 +12,7 @@ import { useTrackConversation } from '@/features/social/conversation/useTrackCon
 import { DirectMessageActions } from '@/features/social/direct-messages/components/DirectMessageActions';
 import { DirectProfilePanel } from '@/features/social/direct-messages/components/DirectProfilePanel/DirectProfilePanel';
 import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDirectMessages';
+import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/MainLayout/MobileMenuButton';
@@ -126,6 +127,7 @@ export default function DirectMessagePage() {
           },
         }}
       >
+        <WorkspaceChannelPresence channelId={channelId} />
         <ConversationPane
           title={
             <>

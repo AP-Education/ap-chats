@@ -1,15 +1,13 @@
 import { Layout, Skeleton, theme } from 'antd';
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
 import { ChatLoading } from '@/domain/conversation/ChatLoading';
 
 import { CallSurface } from '../../features/calls/components/CallSurface';
 import { ConnectionBanner } from '../../features/realtime/components/ConnectionBanner';
-import { useWorkspaceUnreadTotal } from '../../features/social/read-state/hooks/useWorkspaceUnreadTotal';
-import { useActiveWorkspace } from '../../features/workspaces/hooks/useActiveWorkspace';
+import { WorkspaceUnreadContext } from '../../features/social/read-state/workspace-unread-context';
 import { useIsMobile } from '../../shared/hooks/useIsMobile';
-import { useIsConversationRoute } from '../../shared/router/conversationRoute';
 import { PageSection } from '../../shared/ui/PageSection/PageSection';
 import { MainSider } from './MainSider';
 import { MainSiderMenu } from './MainSiderMenu';
@@ -21,11 +19,10 @@ export function MainLayout() {
   const { styles } = useMainLayoutStyles();
   const { token } = theme.useToken();
   const isMobile = useIsMobile();
-  const { workspace } = useActiveWorkspace();
+  const unread = useContext(WorkspaceUnreadContext);
   const { pathname, key: locationKey } = useLocation();
   const isChatPage = pathname.startsWith('/channels') || pathname.startsWith('/direct');
   const isEdgeToEdge = isChatPage || pathname.startsWith('/calls') || pathname === '/';
-  const isConversation = useIsConversationRoute();
   const isNavigationPage = pathname === '/channels' || pathname === '/direct';
   const [menuOverride, setMenuOverride] = useState<{ locationKey: string; open: boolean } | null>(
     null,
@@ -37,7 +34,7 @@ export function MainLayout() {
     (open: boolean) => setMenuOverride({ locationKey, open }),
     [locationKey],
   );
-  const unreadCount = useWorkspaceUnreadTotal(workspace?.id);
+  const unreadCount = (unread?.channelTotal ?? 0) + (unread?.directTotal ?? 0);
   const sheet = useMobileNavSheet({
     open: isMenuOpen,
     onOpen: () => setMenuOpen(true),
@@ -57,8 +54,8 @@ export function MainLayout() {
   }, [isMenuOpen]);
 
   const mobileMenu = useMemo(
-    () => ({ open: () => setMenuOpen(true), isConversation, isOpen: isMenuOpen, unreadCount }),
-    [isConversation, isMenuOpen, setMenuOpen, unreadCount],
+    () => ({ open: () => setMenuOpen(true), isOpen: isMenuOpen, unreadCount }),
+    [isMenuOpen, setMenuOpen, unreadCount],
   );
 
   return (
