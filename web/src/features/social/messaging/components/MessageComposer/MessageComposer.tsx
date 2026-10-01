@@ -9,6 +9,7 @@ import {
   MentionEditor,
   type MentionEditorHandle,
 } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
+import { useTypingBroadcast } from '@/features/social/typing/hooks/useTypingBroadcast';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { IconButton } from '@/shared/ui/IconButton';
 
@@ -144,6 +145,7 @@ function readDraft(key: string): { markdown: string; labels: Record<string, stri
 export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageComposerProps) {
   const { styles, cx } = useStyles();
   const { workspaceId, channelId, composer } = useConversationScope();
+  const { notifyTyping, notifyStopped } = useTypingBroadcast(workspaceId, channelId);
   const { identity } = useQueryAuth();
   const draftKey = `ap-chats:draft:${identity}:${workspaceId}:${channelId}`;
   const intent = useConversation((state) => state.intent);
@@ -176,6 +178,8 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     if (markdown) localStorage.setItem(draftKey, JSON.stringify({ markdown, labels }));
     else localStorage.removeItem(draftKey);
     setContentState({ draftKey, hasContent: markdown.trim().length > 0 });
+    if (markdown.trim()) notifyTyping();
+    else notifyStopped();
   }
 
   function handleSend() {
@@ -186,6 +190,7 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
       ...(intent ? { replyToMessageId: intent.messageId } : {}),
       ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
     });
+    notifyStopped();
     editableRef.current?.clear();
     localStorage.removeItem(draftKey);
     setContentState({ draftKey, hasContent: false });
