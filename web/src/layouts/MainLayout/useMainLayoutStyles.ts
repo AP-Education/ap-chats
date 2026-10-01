@@ -43,10 +43,6 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     height: 100%;
     min-height: 0;
   `,
-  mobileDrawerContent: css`
-    height: 100%;
-    touch-action: pan-y;
-  `,
   sidebarWorkspace: css`
     position: relative;
     display: flex;
@@ -104,11 +100,5 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-  `,
-  mobileDrawer: css`
-    :global(.ant-drawer-body) {
-      padding: 0 !important;
-      background: ${token.colorBgContainer};
-    }
   `,
 }));

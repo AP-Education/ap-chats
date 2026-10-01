@@ -1,5 +1,5 @@
 import { ListIcon } from '@phosphor-icons/react';
-import { Button, Drawer, Layout, Skeleton, theme } from 'antd';
+import { Button, Layout, Skeleton, theme } from 'antd';
 import { Suspense, useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
@@ -8,16 +8,18 @@ import { ChatLoading } from '@/domain/conversation/ChatLoading';
 import { CallSurface } from '../../features/calls/components/CallSurface';
 import { ConnectionBanner } from '../../features/realtime/components/ConnectionBanner';
 import { useIsMobile } from '../../shared/hooks/useIsMobile';
-import { useTouchGesture } from '../../shared/hooks/useTouchGesture';
 import { useIsConversationRoute } from '../../shared/router/conversationRoute';
 import { PageSection } from '../../shared/ui/PageSection/PageSection';
 import { MainSider } from './MainSider';
 import { MainSiderMenu } from './MainSiderMenu';
 import { MobileMenuContext } from './stores/mobile-menu-context';
 import { useMainLayoutStyles } from './useMainLayoutStyles';
+import { useMobileNavSheet } from './useMobileNavSheet';
+import { useMobileNavSheetStyles } from './useMobileNavSheetStyles';
 
 export function MainLayout() {
   const { styles } = useMainLayoutStyles();
+  const { styles: sheetStyles } = useMobileNavSheetStyles();
   const { token } = theme.useToken();
   const isMobile = useIsMobile();
   const [isMenuOpen, setMenuOpen] = useState(false);
@@ -30,11 +32,11 @@ export function MainLayout() {
     () => ({ open: () => setMenuOpen(true), isConversation }),
     [isConversation],
   );
-  const openGesture = useTouchGesture({
-    shouldStart: (event) => event.touches[0].clientX <= 28,
-    onSwipeRight: () => setMenuOpen(true),
+  const sheet = useMobileNavSheet({
+    open: isMobile && isMenuOpen,
+    onOpen: () => setMenuOpen(true),
+    onClose: () => setMenuOpen(false),
   });
-  const closeGesture = useTouchGesture({ onSwipeLeft: () => setMenuOpen(false) });
 
   return (
     <Layout className={styles.layout}>
@@ -56,7 +58,7 @@ export function MainLayout() {
         <Layout.Content
           className={styles.content}
           style={{ padding: isMobile || isEdgeToEdge ? 0 : token.paddingXS }}
-          {...(isMobile ? openGesture : {})}
+          {...(isMobile ? sheet.openGesture : {})}
         >
           <PageSection
             maxWidth={isEdgeToEdge ? 'none' : 1920}
@@ -80,18 +82,33 @@ export function MainLayout() {
           </PageSection>
         </Layout.Content>
       </Layout>
-      <Drawer
-        placement="left"
-        open={isMobile && isMenuOpen}
-        onClose={() => setMenuOpen(false)}
-        closable={false}
-        width="100vw"
-        className={styles.mobileDrawer}
-      >
-        <div className={styles.mobileDrawerContent} {...closeGesture}>
-          <MainSiderMenu onNavigate={() => setMenuOpen(false)} />
-        </div>
-      </Drawer>
+      {isMobile && (
+        <>
+          <div
+            ref={sheet.backdropRef}
+            className={sheetStyles.backdrop}
+            style={{ opacity: 0, pointerEvents: 'none' }}
+            onClick={() => setMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            // react-hooks/refs doesn't yet recognize a ref returned from a custom
+            // hook as safe in a `ref=` attribute (confirmed false positive, not an
+            // actual render-time `.current` read) — same below for spreading a
+            // handler object that closes over refs internally.
+            // eslint-disable-next-line react-hooks/refs
+            ref={sheet.panelRef}
+            className={sheetStyles.panel}
+            style={{ transform: 'translate3d(-100%, 0, 0)' }}
+            role="dialog"
+            aria-modal="true"
+            // eslint-disable-next-line react-hooks/refs
+            {...sheet.closeGesture}
+          >
+            <MainSiderMenu onNavigate={() => setMenuOpen(false)} />
+          </div>
+        </>
+      )}
     </Layout>
   );
 }
