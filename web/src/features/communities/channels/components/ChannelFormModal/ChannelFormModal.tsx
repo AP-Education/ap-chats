@@ -12,8 +12,39 @@ import type { Channel, ChannelKind } from '../../types';
 import { ChannelKindPicker } from './ChannelKindPicker';
 
 const useStyles = createStyles(({ token, css }) => ({
+  modal: css`
+    @media (max-width: ${token.screenSM}px) {
+      width: calc(100vw - 24px) !important;
+      max-width: 440px;
+
+      :global(.ant-modal-content) {
+        padding-block: 20px 16px;
+        border-radius: 16px;
+      }
+
+      :global(.ant-modal-footer) {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 20px;
+      }
+
+      :global(.ant-modal-footer .ant-btn) {
+        min-height: 44px;
+        margin-inline-start: 0;
+      }
+
+      :global(.ant-form-item) {
+        margin-bottom: 18px;
+      }
+    }
+  `,
   header: css`
     margin-bottom: ${token.marginLG}px;
+    @media (max-width: ${token.screenSM}px) {
+      margin-bottom: 20px;
+      padding-right: 28px;
+    }
   `,
   title: css`
     margin-bottom: 4px !important;
@@ -120,6 +151,7 @@ export function ChannelFormModal({
 
   return (
     <Modal
+      className={styles.modal}
       open={open}
       onCancel={handleClose}
       onOk={() => form.submit()}

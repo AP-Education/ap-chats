@@ -150,7 +150,7 @@ export function DirectMessageActions({
         </span>
       </Tooltip>
       <ConversationActionDivider />
-      <Tooltip title={profileVisible ? 'Сховати профіль' : 'Показати профіль'}>
+      <Tooltip title="Показати профіль" open={profileVisible ? false : undefined}>
         <IconButton
           size={size}
           className={cx(styles.action, profileVisible && styles.active)}

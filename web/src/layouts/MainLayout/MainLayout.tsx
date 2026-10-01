@@ -8,6 +8,8 @@ import { ChatLoading } from '@/domain/conversation/ChatLoading';
 import { CallSurface } from '../../features/calls/components/CallSurface';
 import { ConnectionBanner } from '../../features/realtime/components/ConnectionBanner';
 import { useIsMobile } from '../../shared/hooks/useIsMobile';
+import { useTouchGesture } from '../../shared/hooks/useTouchGesture';
+import { useIsConversationRoute } from '../../shared/router/conversationRoute';
 import { PageSection } from '../../shared/ui/PageSection/PageSection';
 import { MainSider } from './MainSider';
 import { MainSiderMenu } from './MainSiderMenu';
@@ -21,16 +23,23 @@ export function MainLayout() {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
   const isChatPage = pathname.startsWith('/channels') || pathname.startsWith('/direct');
-  // Calls shares the chat surfaces' edge-to-edge canvas (no padded, rounded
-  // card) even though it isn't itself a chat: a floating card read as
-  // inconsistent chrome next to channels/direct sharing the same sider.
   const isEdgeToEdge = isChatPage || pathname.startsWith('/calls');
-  const mobileMenu = useMemo(() => ({ open: () => setMenuOpen(true) }), []);
+  const isConversation = useIsConversationRoute();
+  const isNavigationPage = pathname === '/channels' || pathname === '/direct';
+  const mobileMenu = useMemo(
+    () => ({ open: () => setMenuOpen(true), isConversation }),
+    [isConversation],
+  );
+  const openGesture = useTouchGesture({
+    shouldStart: (event) => event.touches[0].clientX <= 28,
+    onSwipeRight: () => setMenuOpen(true),
+  });
+  const closeGesture = useTouchGesture({ onSwipeLeft: () => setMenuOpen(false) });
 
   return (
     <Layout className={styles.layout}>
       <CallSurface />
-      {isMobile && (
+      {isMobile && !isConversation && !isNavigationPage && (
         <div className={styles.mobileBar}>
           <Button
             type="text"
@@ -47,6 +56,7 @@ export function MainLayout() {
         <Layout.Content
           className={styles.content}
           style={{ padding: isMobile || isEdgeToEdge ? 0 : token.paddingXS }}
+          {...(isMobile ? openGesture : {})}
         >
           <PageSection
             maxWidth={isEdgeToEdge ? 'none' : 1920}
@@ -71,14 +81,16 @@ export function MainLayout() {
         </Layout.Content>
       </Layout>
       <Drawer
-        title="Меню"
         placement="left"
         open={isMobile && isMenuOpen}
         onClose={() => setMenuOpen(false)}
-        width={290}
+        closable={false}
+        width="100vw"
         className={styles.mobileDrawer}
       >
-        <MainSiderMenu onNavigate={() => setMenuOpen(false)} />
+        <div className={styles.mobileDrawerContent} {...closeGesture}>
+          <MainSiderMenu onNavigate={() => setMenuOpen(false)} />
+        </div>
       </Drawer>
     </Layout>
   );

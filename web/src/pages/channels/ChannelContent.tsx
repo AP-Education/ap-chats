@@ -7,13 +7,14 @@ import { ChatLayout } from '@/domain/conversation/ChatLayout';
 import { ChatLoading } from '@/domain/conversation/ChatLoading';
 import { ChannelDetail } from '@/features/communities/channels/components/ChannelDetail';
 import { useChannel } from '@/features/communities/channels/hooks/useChannels';
-import { ChannelsSidebar } from '@/features/communities/components/ChannelsSidebar';
 import { ChannelMembersPanel } from '@/features/communities/memberships/components/ChannelMembersPanel';
 import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
+import { MainSiderMenu } from '@/layouts/MainLayout/MainSiderMenu';
 import { useMobileMenu } from '@/layouts/MainLayout/stores/mobile-menu-context';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
+import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
 
 const useStyles = createStyles(({ token, css }) => ({
   centered: css`
@@ -33,11 +34,12 @@ export default function ChannelContent() {
   const unavailable = useTrackConversation('channels', workspaceId, channelId, query, '/channels');
   const openMobileMenu = useMobileMenu().open;
   const isMobile = useIsMobile();
+  const isNarrowLayout = useIsNarrowLayout();
   const [membersVisible, setMembersVisible] = useState<boolean | null>(null);
-  const isMembersVisible = membersVisible ?? !isMobile;
+  const isMembersVisible = membersVisible ?? !isNarrowLayout;
 
   if (!channelId) {
-    if (isMobile) return <ChannelsSidebar />;
+    if (isMobile) return <MainSiderMenu />;
 
     return (
       <div className={styles.centered}>
@@ -79,7 +81,13 @@ export default function ChannelContent() {
     <ChatLayout
       asideOpen={isMembersVisible}
       onCloseAside={() => setMembersVisible(false)}
-      aside={<ChannelMembersPanel workspaceId={workspaceId} channel={channel} />}
+      aside={
+        <ChannelMembersPanel
+          workspaceId={workspaceId}
+          channel={channel}
+          onClose={() => setMembersVisible(false)}
+        />
+      }
     >
       <ConversationProvider
         key={`${workspaceId}:${channel.id}`}

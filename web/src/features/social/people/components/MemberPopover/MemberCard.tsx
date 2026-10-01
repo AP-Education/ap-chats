@@ -19,6 +19,7 @@ export interface MemberSummary {
 
 const useStyles = createStyles(({ token, css }) => ({
   card: css`
+    box-sizing: border-box;
     width: min(288px, calc(100vw - 32px));
     padding: 22px;
     background: ${token.colorBgElevated};
