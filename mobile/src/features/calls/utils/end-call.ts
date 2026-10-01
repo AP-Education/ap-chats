@@ -2,6 +2,7 @@ import type { CallEndedEvent } from 'expo-callkit-telecom';
 
 import { declineCall, leaveCall } from '../api/calls-api';
 import { useNativeCallStore } from '../store/native-call-store';
+import { playLeaveChime } from './call-chimes';
 import { requireAccessToken } from './require-access-token';
 import { untrackSession } from './session-registry';
 
@@ -18,6 +19,7 @@ export async function endCallSession(event: CallEndedEvent): Promise<void> {
     if (session.room) {
       session.stopTrackingRemote?.();
       await session.room.disconnect();
+      playLeaveChime();
       await leaveCall(requireAccessToken(), workspaceId, channelId, session.serverCallId);
     } else {
       // Never answered — a hangup from the system UI before connecting is a decline.

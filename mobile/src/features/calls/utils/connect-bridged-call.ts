@@ -2,6 +2,7 @@ import type { CallParticipant } from 'expo-callkit-telecom';
 
 import { useNativeCallStore } from '../store/native-call-store';
 import type { NativeCallConnectPayload } from '../types';
+import { playJoinChime } from './call-chimes';
 import { loadCallKitModule } from './callkit-module';
 import { connectRoom, waitForAudioSessionActive } from './livekit-room';
 import { getTrackedSession, trackSession } from './session-registry';
@@ -65,6 +66,7 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
     useNativeCallStore
       .getState()
       .setCall({ sessionId, caller, status: 'connected', isMuted: false, connectedAt: Date.now() });
+    playJoinChime();
   } catch (error) {
     if (__DEV__) console.warn('[calls] outgoing connect failed', error);
     await CallKit.endCall(sessionId).catch(() => undefined);

@@ -2,6 +2,7 @@ import type { CallAnsweredEvent } from 'expo-callkit-telecom';
 
 import { joinCall } from '../api/calls-api';
 import { useNativeCallStore } from '../store/native-call-store';
+import { playJoinChime } from './call-chimes';
 import type { loadCallKitModule } from './callkit-module';
 import { connectRoom, waitForAudioSessionActive } from './livekit-room';
 import { requireAccessToken } from './require-access-token';
@@ -46,6 +47,7 @@ export async function answerCall(
       isMuted: false,
       connectedAt: Date.now(),
     });
+    playJoinChime();
   } catch (error) {
     if (__DEV__) console.warn('[calls] answer failed', error);
     await CallKit.failIncomingCallConnected(event.id, event.requestId).catch(() => undefined);

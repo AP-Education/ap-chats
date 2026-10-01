@@ -1,6 +1,7 @@
 import type { SetMutedActionEvent } from 'expo-callkit-telecom';
 
 import { useNativeCallStore } from '../store/native-call-store';
+import { playMuteChime, playUnmuteChime } from './call-chimes';
 import type { loadCallKitModule } from './callkit-module';
 import { getTrackedSession } from './session-registry';
 
@@ -17,6 +18,7 @@ export async function setCallMuted(
     await session.room.localParticipant.setMicrophoneEnabled(!event.isMuted);
     await CallKit.setMuted(event.id, event.isMuted);
     useNativeCallStore.getState().updateCall({ isMuted: event.isMuted });
+    (event.isMuted ? playMuteChime : playUnmuteChime)();
   } catch (error) {
     if (__DEV__) console.warn('[calls] mute failed', error);
   }
