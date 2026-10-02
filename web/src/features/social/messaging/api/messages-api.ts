@@ -42,7 +42,8 @@ export function sendMessage(
   channelId: string,
   input: SendMessageInput,
 ): Promise<Message> {
-  return apiRequest(messagesUrl(workspaceId, channelId), token, jsonInit('POST', input));
+  const payload = { ...input, attachments: undefined };
+  return apiRequest(messagesUrl(workspaceId, channelId), token, jsonInit('POST', payload));
 }
 
 // One route resolves either subject id (backend: HistoryFacade.entry()). The

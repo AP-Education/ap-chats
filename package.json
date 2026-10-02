@@ -14,6 +14,7 @@
     "build:web": "pnpm --filter @ap-chats/web build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "node --import tsx --test \"src/**/*.spec.ts\"",
+    "test:uploads:web": "tsc --noEmit -p web/test/attachments/tsconfig.json && playwright test",
     "lint": "eslint src",
     "lint:web": "pnpm --filter @ap-chats/web lint",
     "lint:mobile": "pnpm --filter @ap-chats/mobile lint",
@@ -27,10 +28,12 @@
     "start": "node dist/main.js",
     "prepare": "husky",
     "lint-staged": "lint-staged",
-    "commitlint": "commitlint --edit"
+    "commitlint": "commitlint --edit",
+    "test:uploads:integration": "pnpm build && node test/uploads.integration.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1139.0",
+    "@aws-sdk/s3-request-presigner": "^3.1144.0",
     "@fastify/multipart": "^10.1.2",
     "@nestjs-cls/transactional": "^4.0.1",
     "@nestjs-cls/transactional-adapter-drizzle-orm": "^2.0.1",
@@ -65,6 +68,7 @@
     "@commitlint/config-conventional": "21.2.3",
     "@eslint/js": "10.0.1",
     "@nestjs/cli": "12.0.5",
+    "@playwright/test": "^1.63.0",
     "@types/node": "24.13.6",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.11",

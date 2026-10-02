@@ -85,6 +85,7 @@ function synthesize(
       authorMemberId: author.memberId,
       clientNonce: input.clientNonce,
       markdown: input.markdown,
+      attachments: input.attachments ?? [],
       contentVersion: 1,
       revision: 1,
       replyToMessageId: input.replyToMessageId ?? null,

@@ -1,4 +1,15 @@
-import { IsArray, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayUnique,
+  IsArray,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class SendMessageDto {
   @IsString()
@@ -7,6 +18,17 @@ export class SendMessageDto {
 
   @IsUUID()
   clientNonce!: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @ArrayUnique()
+  @IsUUID('all', { each: true })
+  attachmentIds?: string[];
+
+  @IsOptional()
+  @IsObject()
+  attachmentDescriptions?: Record<string, string>;
 
   @IsOptional()
   @IsUUID()

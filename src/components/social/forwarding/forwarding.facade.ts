@@ -114,6 +114,7 @@ export class ForwardingFacade {
         sourceMessageId: source.id,
         sourceAuthorMemberId: source.authorMemberId,
         contentMarkdown: source.contentMarkdown,
+        attachments: source.attachments,
         clientNonce: nonces[index]!,
       };
     });

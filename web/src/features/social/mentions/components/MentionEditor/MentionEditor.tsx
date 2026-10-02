@@ -38,6 +38,7 @@ interface MentionEditorProps {
   onChange?: (draft: MentionDraft) => void;
   onSubmit?: () => void;
   onEscape?: () => void;
+  onPasteFiles?: (files: File[]) => void;
   editorRef?: Ref<MentionEditorHandle>;
 }
 
@@ -78,6 +79,7 @@ export function MentionEditor({
   onChange,
   onSubmit,
   onEscape,
+  onPasteFiles,
   editorRef,
 }: MentionEditorProps) {
   const { styles, cx } = useStyles();
@@ -236,6 +238,11 @@ export function MentionEditor({
         }}
         onPaste={(event) => {
           event.preventDefault();
+          const files = Array.from(event.clipboardData.files);
+          if (files.length && onPasteFiles) {
+            onPasteFiles(files);
+            return;
+          }
           insertText(event.clipboardData.getData('text/plain'));
         }}
       />
