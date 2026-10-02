@@ -3,6 +3,7 @@ import { useMemo, useOptimistic, useState, useTransition } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { confirmDirectMessage } from '@/features/social/direct-messages/cache';
+import { randomId } from '@/shared/lib/random-id';
 
 import {
   deleteMessages,
@@ -263,7 +264,7 @@ export function useMessageOperations(
   }
 
   function send(input: Omit<SendMessageInput, 'clientNonce'>) {
-    dispatch({ ...input, clientNonce: crypto.randomUUID() }, new Date().toISOString());
+    dispatch({ ...input, clientNonce: randomId() }, new Date().toISOString());
   }
 
   function retry(nonce: string) {

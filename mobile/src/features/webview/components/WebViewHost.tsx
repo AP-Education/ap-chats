@@ -3,10 +3,17 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
+import type {
+  WebViewErrorEvent,
+  WebViewHttpErrorEvent,
+  WebViewTerminatedEvent,
+} from 'react-native-webview/lib/WebViewTypes';
 
 import { useAuthStore } from '../../auth/index';
+import { connectBridgedCall, useIsMiniCallBarVisible } from '../../calls';
 import { unregisterCurrentDevice } from '../../push/api/unregister-current-device';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
+import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
 import { buildBridgeScript } from '../utils/inject-bridge';
 import { APP_SHELL_USER_AGENT } from '../utils/shell-user-agent';
 import { ConnectionErrorScreen } from './ConnectionErrorScreen';
@@ -17,6 +24,7 @@ const webUrl = process.env.EXPO_PUBLIC_WEB_URL;
 export function WebViewHost() {
   const webViewRef = useRef<WebView>(null);
   const auth = useAuthStore();
+  const miniCallBarVisible = useIsMiniCallBarVisible();
   // injectJavaScript silently drops calls made before the page has actually finished
   // loading (no JS context to run in yet) — this counts WebView loads (initial + any
   // reload) so the effect below only fires once there's a page to inject into, and
@@ -62,6 +70,12 @@ export function WebViewHost() {
     } else if (message.type === 'auth/refresh-request') {
       // Updates the store; the effect above picks up the new token and re-injects it.
       void useAuthStore.getState().refreshNow();
+    } else if (message.type === 'calls/connect') {
+      void connectBridgedCall(message.payload);
+    } else if (__DEV__ && message.type === 'debug/console') {
+      console[message.level](`[webview]`, ...message.args);
+    } else if (__DEV__ && message.type === 'debug/error') {
+      console.error('[webview] uncaught error:', message.message);
     }
   }
 
@@ -72,15 +86,39 @@ export function WebViewHost() {
   return (
     // Keeps the WebView clear of the notch/Dynamic Island and the home indicator — the
     // WebView is a plain native UIView and won't respect safe-area insets on its own the
-    // way a native screen or a web page with env(safe-area-inset-*) would.
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    // way a native screen or a web page with env(safe-area-inset-*) would. Only the
+    // 'top' edge is conditional: NativeMiniCallBar already claims that inset for
+    // itself when it's showing above this (see useIsMiniCallBarVisible) — reserving
+    // it here too would double it, leaving a gap between the bar and this view.
+    <SafeAreaView
+      style={styles.container}
+      edges={miniCallBarVisible ? ['bottom'] : ['top', 'bottom']}
+    >
       <WebView
         ref={webViewRef}
         source={{ uri: webUrl }}
         style={styles.webview}
         applicationNameForUserAgent={APP_SHELL_USER_AGENT}
         onMessage={handleMessage}
-        onLoadEnd={() => setLoadCount((count) => count + 1)}
+        onLoadEnd={() => {
+          setLoadCount((count) => count + 1);
+          // WKWebView doesn't reliably become first responder on its own —
+          // without this, the very first tap anywhere after a (re)load gets
+          // consumed establishing focus instead of reaching its target,
+          // which reads as "the button needs two taps" (confirmed: only
+          // ever happens inside this WebView, never on desktop).
+          webViewRef.current?.requestFocus();
+        }}
+        injectedJavaScriptBeforeContentLoaded={__DEV__ ? DEBUG_CONSOLE_SCRIPT : undefined}
+        onError={(event: WebViewErrorEvent) =>
+          console.error('[webview] onError', event.nativeEvent)
+        }
+        onHttpError={(event: WebViewHttpErrorEvent) =>
+          console.error('[webview] onHttpError', event.nativeEvent)
+        }
+        onContentProcessDidTerminate={(event: WebViewTerminatedEvent) =>
+          console.error('[webview] render process terminated', event.nativeEvent)
+        }
         renderError={() => <ConnectionErrorScreen onRetry={() => webViewRef.current?.reload()} />}
       />
       <StatusBar style="dark" />

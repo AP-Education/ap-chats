@@ -13,11 +13,12 @@ import {
 } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { Track } from 'livekit-client';
-import { useState } from 'react';
+import { type MouseEvent, useState } from 'react';
 
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 import { EndCallIcon } from '../../callIcons';
+import { playMuteChime, playUnmuteChime } from '../../sound/callChimes';
 import { CallActionButton } from './CallActionButton';
 
 const useStyles = createStyles(({ css }) => ({
@@ -57,12 +58,18 @@ export function CallControls() {
     setFacingMode(next);
   }
 
+  function handleMicClick(event: MouseEvent<HTMLButtonElement>) {
+    (mic.enabled ? playMuteChime : playUnmuteChime)();
+    mic.buttonProps.onClick?.(event);
+  }
+
   return (
     <div className={styles.bar}>
       <CallActionButton
         size={52}
         variant={mic.enabled ? 'default' : 'off'}
         {...mic.buttonProps}
+        onClick={handleMicClick}
         aria-label={mic.enabled ? 'Вимкнути мікрофон' : 'Увімкнути мікрофон'}
       >
         {mic.enabled ? <MicrophoneIcon size={22} /> : <MicrophoneSlashIcon size={22} />}

@@ -1,4 +1,16 @@
+import type { CallJoinGrant } from '../api/calls-api';
 import type { CallSignal } from '../schemas';
+
+/** Sent to the native mobile shell over the WebView bridge so it can connect the
+ * LiveKit room itself — the WebView can't reliably capture the microphone
+ * (insecure http:// context, no WebView media-permission grant configured). */
+export interface NativeCallConnectPayload {
+  workspaceId: string;
+  channelId: string;
+  title: string;
+  calleeAvatarPath?: string | null;
+  grant: CallJoinGrant;
+}
 
 export interface CallAction {
   onClick: () => void;

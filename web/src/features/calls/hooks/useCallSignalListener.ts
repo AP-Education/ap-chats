@@ -63,6 +63,10 @@ export function useCallSignalListener(): void {
   useSocketEvent<CallServerToClientEvents>('call:accepted', (payload) => {
     const signal = parse(payload);
     if (!signal) return;
+    // Someone answered — on whichever device, including a different one of
+    // this same user's. Any device still showing this as "ringing" (this one
+    // included, if it hasn't itself joined) needs to drop that now.
+    clearIncoming(signal.callId);
     invalidate(signal);
     refreshEntry(signal);
   });

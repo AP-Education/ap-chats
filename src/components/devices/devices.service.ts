@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import type { RegisterDeviceDto } from './dto/register-device.dto';
 import { DevicesRepository } from './repository';
+import type { DeviceRecord } from './types';
 
 @Injectable()
 export class DevicesService {
@@ -13,5 +14,9 @@ export class DevicesService {
 
   unregister(userId: string, installationId: string): Promise<void> {
     return this.devicesRepository.unregister(userId, installationId);
+  }
+
+  listForUser(userId: string): Promise<DeviceRecord[]> {
+    return this.devicesRepository.listForUser(userId);
   }
 }

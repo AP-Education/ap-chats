@@ -20,10 +20,13 @@ services:
   livekit:
     image: livekit/livekit-server:latest
     command: ['--dev', '--keys', 'devkey: devsecret']
+    # Bound to all interfaces, not just loopback: a physical phone on the LAN
+    # connects to this directly (same reason EXPO_PUBLIC_WEB_URL/API_URL/OIDC_ISSUER
+    # are the Mac's LAN IP, not localhost) — localhost on the phone is the phone itself.
     ports:
-      - '127.0.0.1:7880:7880'
-      - '127.0.0.1:7881:7881'
-      - '127.0.0.1:7882:7882/udp'
+      - '7880:7880'
+      - '7881:7881'
+      - '7882:7882/udp'
 
 volumes:
   chats_postgres:

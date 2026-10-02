@@ -1,5 +1,7 @@
 import { lazy, Suspense } from 'react';
 
+import { getAppShell } from '@/lib/app-shell';
+
 import { useCallSignalListener } from '../hooks/useCallSignalListener';
 import { useCallStore } from '../store/call-store';
 import { IncomingCallCard } from './IncomingCallCard';
@@ -15,6 +17,15 @@ export function CallSurface() {
   useCallSignalListener();
   const incoming = useCallStore((state) => state.incoming);
   const active = useCallStore((state) => state.active);
+
+  // The native shell owns the whole call lifecycle on mobile — not just ringing
+  // (CallKit/Telecom is the only thing that can wake the app while backgrounded
+  // or killed), but the connected call too: the WebView can't reliably capture
+  // the microphone (insecure http:// context during local dev, and no WebView
+  // media-permission grant configured either way), so useStartCall/useJoinCall
+  // hand the join grant to native instead of ever setting `active` here — see
+  // NativeCallConnectPayload. NativeInCallScreen is the in-app screen on mobile.
+  if (getAppShell().kind === 'mobile') return null;
 
   return (
     <>
