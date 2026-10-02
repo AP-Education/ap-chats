@@ -11,7 +11,12 @@ export interface NativeAuthTokenPayload {
 export type NativeToWebMessage =
   | { type: 'auth/token'; payload: NativeAuthTokenPayload }
   /** Native has no OIDC client configured (e.g. local dev) — no token is coming, ever. */
-  | { type: 'auth/unavailable' };
+  | { type: 'auth/unavailable' }
+  /** Lets the composer's picker panel open at the system keyboard's own height instead
+   * of guessing, and swap with it without a layout jump. `duration` is in ms, from the
+   * platform's own keyboard animation (0 on Android, which doesn't report one). */
+  | { type: 'keyboard/show'; height: number; duration: number }
+  | { type: 'keyboard/hide'; duration: number };
 
 export type WebToNativeMessage =
   | { type: 'auth/sign-out' }
