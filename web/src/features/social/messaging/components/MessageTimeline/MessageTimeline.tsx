@@ -37,6 +37,11 @@ const useStyles = createStyles(({ token, css }) => ({
   feed: css`
     display: flex;
     flex-direction: column;
+    // A short history should hug the bottom of the viewport like any chat app, not
+    // leave empty space under the last message — the scroll-to-bottom effect in
+    // useScrollAnchoring only sets scrollTop, which does nothing once content already
+    // fits, so the layout itself has to push it down instead.
+    justify-content: flex-end;
     min-height: 100%;
     padding: 16px 0 20px;
 
