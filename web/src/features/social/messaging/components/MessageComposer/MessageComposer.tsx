@@ -119,6 +119,11 @@ const useStyles = createStyles(({ token, css }) => ({
 
     &:empty::before {
       content: attr(data-placeholder);
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
       color: ${token.colorTextQuaternary};
       pointer-events: none;
     }
@@ -127,10 +132,6 @@ const useStyles = createStyles(({ token, css }) => ({
       min-height: 40px;
       max-height: 160px;
       padding: 8px 0;
-
-      &:empty::before {
-        content: attr(data-mobile-placeholder);
-      }
     }
   `,
   toolbarButton: css`

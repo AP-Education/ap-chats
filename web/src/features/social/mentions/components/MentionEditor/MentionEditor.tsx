@@ -58,6 +58,11 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow-wrap: anywhere;
     &:empty::before {
       content: attr(data-placeholder);
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
       color: ${token.colorTextQuaternary};
       pointer-events: none;
     }
