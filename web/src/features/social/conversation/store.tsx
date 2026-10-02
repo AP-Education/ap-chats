@@ -8,10 +8,14 @@ interface ConversationState {
   selectedIds: string[];
   intent: ComposerIntent;
   editingId: string | null;
+  /** Bumped by the timeline on scroll so the composer can dismiss the on-screen
+   * keyboard — a counter rather than a boolean since there's nothing to "unset". */
+  blurComposerToken: number;
   toggleSelected: (id: string) => void;
   clearSelection: () => void;
   setIntent: (intent: ComposerIntent) => void;
   setEditingId: (id: string | null) => void;
+  requestComposerBlur: () => void;
 }
 
 const ConversationContext = createContext<StoreApi<ConversationState> | null>(null);
@@ -35,6 +39,7 @@ function createConversationStore() {
     selectedIds: [],
     intent: null,
     editingId: null,
+    blurComposerToken: 0,
     toggleSelected: (id) =>
       set((state) => ({
         selectedIds: state.selectedIds.includes(id)
@@ -44,6 +49,7 @@ function createConversationStore() {
     clearSelection: () => set({ selectedIds: [] }),
     setIntent: (intent) => set({ intent, editingId: null }),
     setEditingId: (editingId) => set({ editingId, intent: null }),
+    requestComposerBlur: () => set((state) => ({ blurComposerToken: state.blurComposerToken + 1 })),
   }));
 }
 

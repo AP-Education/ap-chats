@@ -8,6 +8,7 @@ import type {
   ActionTarget,
   ConversationAction,
 } from '@/features/social/conversation/actions';
+import { useConversation } from '@/features/social/conversation/store';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 import type { DisplayItem } from '../../hooks/useMessageOperations';
@@ -160,6 +161,7 @@ export function MessageTimeline({
 }: MessageTimelineProps) {
   const { styles } = useStyles();
   const isMobile = useIsMobile();
+  const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   // A deleted message keeps its seq (read state, scroll anchoring, and reply
   // excerpts elsewhere all still need it), but has nothing left worth a row —
@@ -192,7 +194,10 @@ export function MessageTimeline({
       <div
         ref={scrollRef}
         className={styles.scroll}
-        onScroll={onScroll}
+        onScroll={() => {
+          onScroll();
+          requestComposerBlur();
+        }}
         onPointerMove={(event) => {
           if (performance.now() - lastScrollAt.current > 120)
             delete event.currentTarget.dataset.hoverSuppressed;

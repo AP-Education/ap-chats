@@ -1,7 +1,7 @@
 import { GifIcon, PaperclipIcon, SmileyIcon, StickerIcon, XIcon } from '@phosphor-icons/react';
 import { Popover } from 'antd';
 import { createStyles } from 'antd-style';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversation, useConversationScope } from '@/features/social/conversation/store';
@@ -180,6 +180,7 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
   const draftKey = `ap-chats:draft:${identity}:${workspaceId}:${channelId}`;
   const intent = useConversation((state) => state.intent);
   const setIntent = useConversation((state) => state.setIntent);
+  const blurComposerToken = useConversation((state) => state.blurComposerToken);
   const isMobile = useIsMobile();
   const hasCoarsePointer = useHasCoarsePointer();
   // A tablet (or a touch laptop) doesn't match the narrow-width isMobile check, but
@@ -204,6 +205,18 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
   useLayoutEffect(() => {
     if (intent || (composer.autoFocus && !isCompact)) editableRef.current?.focus();
   }, [composer.autoFocus, intent, isCompact]);
+
+  // Scrolling the history should dismiss the on-screen keyboard, same as any native chat
+  // app — the timeline bumps blurComposerToken on scroll (see MessageTimeline.tsx). Skips
+  // the token's initial value so mounting doesn't blur a composer that just autofocused.
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    editableRef.current?.blur();
+  }, [blurComposerToken]);
 
   function syncHasContent({
     markdown,
