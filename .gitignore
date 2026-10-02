@@ -14,3 +14,22 @@ coverage/
 .DS_Store
 mobile/android/
 mobile/ios/
+
+# Infra: Terraform workspace/state
+infra/terraform/**/.terraform/
+infra/terraform/**/*.tfstate
+infra/terraform/**/*.tfstate.*
+infra/terraform/**/*.tfplan
+infra/terraform/tenants/backend.*.tfbackend
+!infra/terraform/tenants/backend.sample.tfbackend
+
+# Infra: Ansible Vault secrets and local build env
+infra/ansible/inventory/group_vars/*/vault.yml
+!infra/ansible/inventory/group_vars/*/vault.yml.example
+infra/ansible/.vault-pass
+infra/docker/web-build.env
+
+# Infra: collections installed by `ansible-galaxy collection install -r
+# requirements.yml` — keep only our own vendored ap_education collection.
+infra/ansible/collections/ansible_collections/*
+!infra/ansible/collections/ansible_collections/ap_education/

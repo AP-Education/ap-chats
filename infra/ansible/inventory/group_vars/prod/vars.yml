@@ -1,0 +1,11 @@
+---
+# Shared across roles in this play — kept here rather than in a single
+# role's defaults so compose_runtime and postgres_backup agree on them
+# without depending on Ansible's role-defaults-leak-into-the-play behavior.
+project_name: ap-connect
+deploy_project_path: /opt/ap-connect
+postgres_user: ap_chats
+postgres_db: ap_chats
+
+app_tag: prod
+chats_domain: chats.ap-platform.online

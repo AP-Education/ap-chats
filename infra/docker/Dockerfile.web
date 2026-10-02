@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1
+FROM node:24-alpine AS base
+RUN corepack enable
+WORKDIR /app
+
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY web/package.json ./web/
+COPY mobile/package.json ./mobile/
+RUN pnpm install --frozen-lockfile
+
+FROM deps AS build
+# Vite inlines these into the bundle at build time, so a tenant with a
+# different OIDC client or image bucket needs its own image build, not just
+# a different runtime env.
+ARG VITE_OIDC_ISSUER
+ARG VITE_OIDC_CLIENT_ID
+ARG VITE_OIDC_AUDIENCE
+ARG VITE_IMAGES_URL
+ENV VITE_OIDC_ISSUER=${VITE_OIDC_ISSUER} \
+    VITE_OIDC_CLIENT_ID=${VITE_OIDC_CLIENT_ID} \
+    VITE_OIDC_AUDIENCE=${VITE_OIDC_AUDIENCE} \
+    VITE_IMAGES_URL=${VITE_IMAGES_URL}
+# Individual paths, not `COPY web ./web` — that would overwrite the
+# web/node_modules the deps stage already installed.
+COPY web/index.html web/vite.config.ts web/tsconfig.json web/tsconfig.app.json web/tsconfig.node.json ./web/
+COPY web/src ./web/src
+RUN pnpm --filter @ap-chats/web build
+
+FROM caddy:2-alpine AS runtime
+COPY --from=build /app/web/dist /srv/web
+COPY infra/docker/Caddyfile /etc/caddy/Caddyfile
+EXPOSE 80 443

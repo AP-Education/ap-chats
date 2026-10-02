@@ -1,0 +1,4 @@
+argument_specs:
+  main:
+    short_description: Default-deny firewall, host-level backstop for the DigitalOcean cloud firewall.
+    options: {}

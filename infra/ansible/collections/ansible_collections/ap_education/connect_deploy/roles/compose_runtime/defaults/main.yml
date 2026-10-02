@@ -1,0 +1,28 @@
+---
+project_name: ap-connect
+deploy_project_path: '/opt/{{ project_name }}'
+
+app_image_repository: ghcr.io/ap-education/ap-connect-api
+web_image_repository: ghcr.io/ap-education/ap-connect-web
+app_tag: prod
+app_image: '{{ app_image_repository }}:{{ app_tag }}'
+web_image: '{{ web_image_repository }}:{{ app_tag }}'
+
+ghcr_registry: ghcr.io
+
+postgres_user: ap_chats
+postgres_db: ap_chats
+
+api_port: 3211
+log_level: info
+
+# argument_specs documents these as optional with a "" default for type
+# checking, but role argument validation doesn't inject that default into
+# the task namespace — it only enforces it on an explicit value. The actual
+# default has to live here too for the template to see it when unset.
+apns_key_id: ''
+apns_team_id: ''
+apns_private_key: ''
+apns_voip_topic: ''
+fcm_project_id: ''
+fcm_service_account_json: ''

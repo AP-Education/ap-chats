@@ -1,0 +1,22 @@
+argument_specs:
+  main:
+    short_description: Nightly pg_dump of the in-stack Postgres container, shipped to DigitalOcean Spaces.
+    options:
+      postgres_backup_schedule:
+        type: str
+        default: '*-*-* 03:30:00'
+        description: systemd OnCalendar expression for the backup timer.
+      do_spaces_endpoint:
+        type: str
+        required: true
+      do_spaces_access_key:
+        type: str
+        required: true
+        no_log: true
+      do_spaces_secret_key:
+        type: str
+        required: true
+        no_log: true
+      do_spaces_bucket:
+        type: str
+        required: true

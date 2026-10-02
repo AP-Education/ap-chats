@@ -1,0 +1,76 @@
+---
+- name: Create project directory
+  ansible.builtin.file:
+    path: '{{ deploy_project_path }}'
+    state: directory
+    owner: '{{ ansible_user }}'
+    group: '{{ ansible_user }}'
+    mode: '0755'
+  become: true
+
+- name: Render docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: '{{ deploy_project_path }}/docker-compose.yml'
+    owner: '{{ ansible_user }}'
+    group: '{{ ansible_user }}'
+    mode: '0644'
+  become: true
+
+- name: Render app.env
+  ansible.builtin.template:
+    src: app.env.j2
+    dest: '{{ deploy_project_path }}/app.env'
+    owner: '{{ ansible_user }}'
+    group: '{{ ansible_user }}'
+    mode: '0600'
+  become: true
+  no_log: true
+
+- name: Log in to GHCR
+  community.docker.docker_login:
+    registry_url: '{{ ghcr_registry }}'
+    username: '{{ ghcr_username }}'
+    password: '{{ ghcr_token }}'
+    config_path: '/home/{{ ansible_user }}/.docker/config.json'
+    state: present
+  become: true
+  no_log: true
+
+- name: Pull images and (re)create the stack
+  community.docker.docker_compose_v2:
+    project_src: '{{ deploy_project_path }}'
+    pull: always
+    state: present
+    remove_orphans: true
+  become: true
+  become_user: '{{ ansible_user }}'
+
+- name: List locally cached ap-connect image digests
+  ansible.builtin.command:
+    argv:
+      - docker
+      - images
+      - '{{ item }}'
+      - -q
+      - --no-trunc
+  loop:
+    - '{{ app_image_repository }}'
+    - '{{ web_image_repository }}'
+  register: compose_runtime_cached_images
+  become: true
+  changed_when: false
+
+# Docker itself refuses (without --force) to remove an image still backing a
+# container, so this only ever removes images nothing is using.
+- name: Prune superseded ap-connect images
+  ansible.builtin.command:
+    argv:
+      - docker
+      - rmi
+      - '{{ item }}'
+  loop: "{{ compose_runtime_cached_images.results | map(attribute='stdout_lines') | sum(start=[]) | unique }}"
+  register: compose_runtime_image_removal
+  become: true
+  failed_when: false
+  changed_when: compose_runtime_image_removal.rc == 0

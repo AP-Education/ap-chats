@@ -1,0 +1,74 @@
+argument_specs:
+  main:
+    short_description: Render and run the ap-connect docker-compose stack (Caddy edge, API, Postgres) from GHCR images.
+    options:
+      app_tag:
+        type: str
+        default: prod
+        description: Image tag to deploy for both the api and web images.
+      ghcr_username:
+        type: str
+        required: true
+        description: GHCR username used to pull private images.
+      ghcr_token:
+        type: str
+        required: true
+        description: GHCR personal access token (read:packages).
+      chats_domain:
+        type: str
+        required: true
+        description: Public FQDN Caddy requests a TLS certificate for (e.g. chats.ap-platform.online).
+      acme_email:
+        type: str
+        required: true
+        description: Contact email for the Let's Encrypt account Caddy registers.
+      postgres_password:
+        type: str
+        required: true
+        no_log: true
+        description: Password for the in-stack Postgres container.
+      oidc_issuer:
+        type: str
+        required: true
+        description: AP Accounts OIDC issuer URL this API verifies tokens against.
+      oidc_audience:
+        type: str
+        required: true
+        description: Resource audience this API's OIDC client expects.
+      web_origin:
+        type: str
+        description: Value of WEB_ORIGIN / CORS origin. Defaults to https://<chats_domain>.
+      do_spaces_endpoint:
+        type: str
+        required: true
+      do_spaces_access_key:
+        type: str
+        required: true
+        no_log: true
+      do_spaces_secret_key:
+        type: str
+        required: true
+        no_log: true
+      do_spaces_bucket:
+        type: str
+        required: true
+      apns_key_id:
+        type: str
+        default: ''
+      apns_team_id:
+        type: str
+        default: ''
+      apns_private_key:
+        type: str
+        default: ''
+        no_log: true
+      apns_voip_topic:
+        type: str
+        default: ''
+      fcm_project_id:
+        type: str
+        default: ''
+      fcm_service_account_json:
+        type: str
+        default: ''
+        no_log: true

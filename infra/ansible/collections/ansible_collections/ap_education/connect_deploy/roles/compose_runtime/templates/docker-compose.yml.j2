@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: "{{ postgres_user }}"
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+      POSTGRES_DB: "{{ postgres_db }}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - chats
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgres_user }} -d {{ postgres_db }}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    image: "{{ app_image }}"
+    restart: always
+    env_file:
+      - ./app.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - chats
+
+  web:
+    image: "{{ web_image }}"
+    restart: always
+    environment:
+      CHATS_DOMAIN: "{{ chats_domain }}"
+      ACME_EMAIL: "{{ acme_email }}"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    networks:
+      - chats
+
+networks:
+  chats:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

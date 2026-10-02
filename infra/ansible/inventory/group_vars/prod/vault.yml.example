@@ -1,0 +1,22 @@
+# Copy to vault.yml (gitignored) and encrypt in place:
+#   ansible-vault encrypt infra/ansible/inventory/group_vars/prod/vault.yml
+#
+# Edit later with:
+#   ansible-vault edit infra/ansible/inventory/group_vars/prod/vault.yml
+
+ghcr_username: CHANGE_ME
+ghcr_token: CHANGE_ME
+
+postgres_password: CHANGE_ME
+
+acme_email: ops@ap-platform.online
+
+# Must match the Chats OIDC client registered in backend-LMS's Accounts.
+oidc_issuer: https://accounts.ap-platform.online
+oidc_audience: CHANGE_ME
+
+# Same DigitalOcean Spaces bucket backend-LMS uses, dedicated prefix.
+do_spaces_endpoint: https://fra1.digitaloceanspaces.com
+do_spaces_access_key: CHANGE_ME
+do_spaces_secret_key: CHANGE_ME
+do_spaces_bucket: CHANGE_ME

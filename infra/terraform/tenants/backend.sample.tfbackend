@@ -1,0 +1,20 @@
+# DigitalOcean Spaces (S3-compatible) remote state backend, one file per tenant.
+#
+# Copy to backend.<tenant>.tfbackend (gitignored) and fill in real values.
+# Credentials come from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env vars
+# (DO Spaces access/secret keys), never from this file.
+#
+# Usage:
+#   terraform -chdir=infra/terraform/prod init \
+#     -backend-config=../tenants/backend.<tenant>.tfbackend \
+#     -reconfigure
+
+endpoints                  = { s3 = "https://<region>.digitaloceanspaces.com" }
+bucket                     = "ap-connect-tfstate"
+key                        = "chats/<tenant>/terraform.tfstate"
+region                     = "us-east-1" # required placeholder for DO Spaces
+skip_credentials_validation = true
+skip_metadata_api_check     = true
+skip_region_validation      = true
+skip_requesting_account_id  = true
+use_path_style              = true
