@@ -69,7 +69,8 @@ export function MessageEditor({ item, onEdit, onClose, minHeight }: MessageEdito
 
   async function save(overwrite = false) {
     const markdown = editor.current?.markdown().trim();
-    if (!markdown || saving) return;
+    if (markdown === undefined || (!markdown && !item.message.attachments?.length) || saving)
+      return;
     setSaving(true);
     try {
       await onEdit(item, markdown, overwrite);
@@ -100,7 +101,7 @@ export function MessageEditor({ item, onEdit, onClose, minHeight }: MessageEdito
               type="button"
               className={styles.action}
               aria-label="Зберегти зміни"
-              disabled={saving || !hasContent}
+              disabled={saving || (!hasContent && !item.message.attachments?.length)}
               onClick={() => void save()}
             >
               <CheckIcon size={18} />

@@ -1,9 +1,12 @@
+import type { Attachment } from '@/components/uploads/attachments/types';
+
 export interface MessageModel {
   id: string;
   workspaceId: string;
   channelId: string;
   authorMemberId: string;
   contentMarkdown: string;
+  attachments: Attachment[];
   contentVersion: number;
   revision: number;
   replyToMessageId: string | null;
@@ -27,6 +30,7 @@ export interface CreateMessageRecord {
   channelId: string;
   authorMemberId: string;
   contentMarkdown: string;
+  attachments?: Attachment[];
   replyToMessageId?: string | null;
   quoteText?: string | null;
   forwardedFromMessageId?: string | null;
@@ -39,5 +43,6 @@ export interface ForwardMessageRecord {
   sourceMessageId: string;
   sourceAuthorMemberId: string;
   contentMarkdown: string;
+  attachments: Attachment[];
   clientNonce: string;
 }

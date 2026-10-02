@@ -15,6 +15,7 @@ import { useConversationHistoryNavigation } from './useConversationHistoryNaviga
 
 const useStyles = createStyles(({ css }) => ({
   shell: css`
+    position: relative;
     display: flex;
     flex: 1;
     flex-direction: column;
@@ -61,7 +62,7 @@ export function ConversationView({
     !navigation.history.isPending && !(navigation.history.isError && !navigation.history.data);
 
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-conversation-drop-target>
       <PinnedMessageBar canUnpin={canPin && canPost} onJump={navigation.onJump} />
       <ActiveCallBanner
         workspaceId={workspaceId}

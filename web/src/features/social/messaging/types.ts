@@ -1,9 +1,12 @@
+import type { Attachment } from './attachments/types';
+
 export interface Message {
   id: string;
   seq: string;
   authorMemberId: string;
   clientNonce: string | null;
   markdown: string | null;
+  attachments?: Attachment[];
   contentVersion: number;
   revision: number;
   replyToMessageId: string | null;
@@ -89,4 +92,7 @@ export interface SendMessageInput {
   clientNonce: string;
   replyToMessageId?: string;
   quoteText?: string;
+  attachmentIds?: string[];
+  attachmentDescriptions?: Record<string, string>;
+  attachments?: Attachment[];
 }

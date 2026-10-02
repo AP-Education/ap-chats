@@ -6,7 +6,7 @@ import {
   StickerIcon,
   XIcon,
 } from '@phosphor-icons/react';
-import { Popover } from 'antd';
+import { Button, Popover, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import { type PointerEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
@@ -21,9 +21,13 @@ import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { isNativeShell } from '@/shared/lib/nativeBridge';
 import { IconButton } from '@/shared/ui/IconButton';
 
+import { formatFileSize } from '../../attachments/file-presentation';
+import { useAttachments } from '../../attachments/useAttachments';
 import type { SendMessageInput } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
+import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
+import { useAttachmentDrop } from './AttachmentDropZone';
 import { ComposerAction } from './ComposerAction';
 import { type GifResult, PickerPanel, type PickerTab } from './picker';
 import { useBrowserKeyboardHeight } from './useBrowserKeyboardHeight';
@@ -205,6 +209,9 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
   const isCompact = isMobile || hasCoarsePointer;
   const toolbarActionSize = isMobile ? 36 : 38;
   const editableRef = useRef<MentionEditorHandle>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const uploads = useAttachments();
+  const { bindTarget, overlay } = useAttachmentDrop(uploads.addFiles);
   const initialDraft = useMemo(() => readDraft(draftKey), [draftKey]);
   const [contentState, setContentState] = useState(() => ({
     draftKey,
@@ -225,6 +232,9 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     onTab: persistLastTab,
   });
   const activeTab = isNativeShell() ? nativeInput.activeTab : webActiveTab;
+
+  const canSend =
+    (hasContent || uploads.ready) && uploads.drafts.every((draft) => draft.status === 'ready');
 
   useLayoutEffect(() => {
     if (intent || (composer.autoFocus && !isCompact)) editableRef.current?.focus();
@@ -258,10 +268,23 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
   }
 
   function handleSend() {
-    const markdown = editableRef.current?.markdown().trim();
-    if (!markdown) return;
+    const markdown = editableRef.current?.markdown().trim() ?? '';
+    if (!canSend) return;
+    const drafts = uploads.takeReady();
     onSend({
       markdown,
+      ...(drafts.length
+        ? {
+            attachmentIds: drafts.map((draft) => draft.attachment!.id),
+            attachmentDescriptions: Object.fromEntries(
+              drafts.map((draft) => [draft.attachment!.id, draft.description]),
+            ),
+            attachments: drafts.map((draft) => ({
+              ...draft.attachment!,
+              description: draft.description || null,
+            })),
+          }
+        : {}),
       ...(intent ? { replyToMessageId: intent.messageId } : {}),
       ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
     });
@@ -405,41 +428,88 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
 
   return (
     <div className={styles.root}>
-      <div className={styles.shell}>
+      <div className={styles.shell} ref={bindTarget}>
+        {overlay}
+        <input
+          ref={fileInput}
+          type="file"
+          multiple
+          hidden
+          onChange={(event) => {
+            uploads.addFiles(Array.from(event.target.files ?? []));
+            event.target.value = '';
+          }}
+        />
         <span className={styles.mobileOnly}>
-          <IconButton size={36} className={styles.toolbarButton} aria-label="Додати файл" disabled>
+          <IconButton
+            size={36}
+            className={styles.toolbarButton}
+            aria-label="Додати файл"
+            disabled={!uploads.policy}
+            onClick={() => fileInput.current?.click()}
+          >
             <PaperclipIcon size={22} />
           </IconButton>
         </span>
         <MessageInputSurface
           context={
-            intent && (
-              <div className={styles.reply}>
-                <ReplyExcerpt
-                  title={intent.quoteText ? 'Цитата' : `Відповідь для ${replyAuthor ?? 'учасника'}`}
-                  markdown={replyPreview ?? 'Повідомлення'}
-                  quoteText={intent.quoteText}
+            (intent || uploads.drafts.length > 0 || uploads.policyError) && (
+              <>
+                <AttachmentDrafts
+                  drafts={uploads.drafts}
+                  policy={uploads.policy}
+                  onRemove={uploads.remove}
+                  onRetry={uploads.retry}
+                  onDescribe={uploads.describe}
                 />
-                <IconButton
-                  size={28}
-                  aria-label="Скасувати відповідь"
-                  onClick={() => setIntent(null)}
-                >
-                  <XIcon size={16} />
-                </IconButton>
-              </div>
+                {uploads.policyError && (
+                  <div role="alert">
+                    Не вдалося завантажити ліміти файлів.{' '}
+                    <Button type="link" size="small" onClick={uploads.reloadPolicy}>
+                      Повторити
+                    </Button>
+                  </div>
+                )}
+                {intent && (
+                  <div className={styles.reply}>
+                    <ReplyExcerpt
+                      title={
+                        intent.quoteText ? 'Цитата' : `Відповідь для ${replyAuthor ?? 'учасника'}`
+                      }
+                      markdown={replyPreview ?? 'Повідомлення'}
+                      quoteText={intent.quoteText}
+                    />
+                    <IconButton
+                      size={28}
+                      aria-label="Скасувати відповідь"
+                      onClick={() => setIntent(null)}
+                    >
+                      <XIcon size={16} />
+                    </IconButton>
+                  </div>
+                )}
+              </>
             )
           }
           leading={
             <span className={styles.mobileHidden}>
-              <IconButton
-                size={toolbarActionSize}
-                className={styles.toolbarButton}
-                aria-label="Додати файл"
-                disabled
+              <Tooltip
+                title={
+                  uploads.policy
+                    ? `До ${uploads.policy.maxFiles} файлів, ${formatFileSize(uploads.policy.maxFileBytes)} на файл`
+                    : 'Завантаження лімітів'
+                }
               >
-                <PaperclipIcon size={22} />
-              </IconButton>
+                <IconButton
+                  size={toolbarActionSize}
+                  className={styles.toolbarButton}
+                  aria-label="Додати файл"
+                  disabled={!uploads.policy}
+                  onClick={() => fileInput.current?.click()}
+                >
+                  <PaperclipIcon size={22} />
+                </IconButton>
+              </Tooltip>
             </span>
           }
           trailing={
@@ -478,10 +548,11 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
               onChange={syncHasContent}
               onSubmit={handleSend}
               onEscape={() => (activeTab ? closePicker() : setIntent(null))}
+              onPasteFiles={uploads.addFiles}
             />
           </div>
         </MessageInputSurface>
-        <ComposerAction hasContent={hasContent} onSend={handleSend} />
+        <ComposerAction hasContent={canSend} onSend={handleSend} />
       </div>
       {isCompact && activeTab && !isNativeShell() && (
         <div className={styles.mobileSheet} style={{ height: keyboardHeight }}>

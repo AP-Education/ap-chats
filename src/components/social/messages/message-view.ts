@@ -7,6 +7,7 @@ export function messageView(message: MessageModel, seq: bigint, viewerMemberId?:
     authorMemberId: message.authorMemberId,
     clientNonce: message.authorMemberId === viewerMemberId ? message.clientNonce : null,
     markdown: message.deletedAt ? null : message.contentMarkdown,
+    attachments: message.deletedAt ? [] : message.attachments,
     contentVersion: message.contentVersion,
     revision: message.revision,
     replyToMessageId: message.replyToMessageId,

@@ -10,6 +10,7 @@ import {
 import { Transactional } from '@nestjs-cls/transactional';
 
 import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
+import { ChatUploadsService } from '@/components/uploads/attachments/chat-uploads.service';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
 
@@ -43,16 +44,27 @@ export class MessagesFacade {
     private readonly repository: MessagesRepository,
     private readonly markdown: MessageMarkdownService,
     private readonly events: EventPublisher,
+    private readonly uploads: ChatUploadsService,
   ) {}
 
   async send(member: WorkspaceMember, channelId: string, dto: SendMessageDto) {
-    const content = await this.markdown.normalize(dto.markdown);
+    const content = await this.markdown.normalize(dto.markdown, Boolean(dto.attachmentIds?.length));
     const quote = dto.quoteText?.trim() || null;
     if (quote && !dto.replyToMessageId)
       throw new BadRequestException('Quote requires a reply target');
     const digest = createHash('sha256')
       .update(
-        JSON.stringify({ markdown: content.markdown, reply: dto.replyToMessageId ?? null, quote }),
+        JSON.stringify({
+          markdown: content.markdown,
+          reply: dto.replyToMessageId ?? null,
+          quote,
+          attachments: dto.attachmentIds?.length
+            ? dto.attachmentIds.map((id) => ({
+                id,
+                description: dto.attachmentDescriptions?.[id] ?? null,
+              }))
+            : undefined,
+        }),
       )
       .digest('hex');
     const result = await this.createTransaction(member, channelId, dto, content, quote, digest);
@@ -99,11 +111,18 @@ export class MessagesFacade {
         throw new BadRequestException('Quote is not in the reply target');
     }
     await this.mentions.requireValid(member.workspaceId, channelId, content.mentionedMemberIds);
+    const attachments = await this.uploads.claim(
+      member,
+      channelId,
+      dto.attachmentIds ?? [],
+      dto.attachmentDescriptions ?? {},
+    );
     const message = await this.repository.insert({
       workspaceId: member.workspaceId,
       channelId,
       authorMemberId: member.id,
       contentMarkdown: content.markdown,
+      attachments,
       replyToMessageId: dto.replyToMessageId ?? null,
       quoteText: quote,
       requestDigest: digest,
@@ -120,7 +139,7 @@ export class MessagesFacade {
   }
 
   async edit(member: WorkspaceMember, channelId: string, messageId: string, dto: EditMessageDto) {
-    const content = await this.markdown.normalize(dto.markdown);
+    const content = await this.markdown.normalize(dto.markdown, true);
     const view = await this.editTransaction(member, channelId, messageId, dto, content);
     this.events.publish(
       MESSAGE_UPDATED_EVENT,
@@ -142,6 +161,8 @@ export class MessagesFacade {
     if (message.authorMemberId !== member.id)
       throw new ForbiddenException('Only the author can edit this message');
     if (message.deletedAt) throw new ConflictException('Message was deleted');
+    if (!content.plainText.trim() && !message.attachments.length)
+      throw new BadRequestException('Message cannot be blank');
     if (dto.revision !== undefined && dto.revision !== message.revision)
       throw new ConflictException('Message was changed');
     await this.mentions.requireValid(member.workspaceId, channelId, content.mentionedMemberIds);

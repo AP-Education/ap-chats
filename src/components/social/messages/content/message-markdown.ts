@@ -66,7 +66,7 @@ function validateTree(node: MarkdownNode, mentioned: Set<string>, plain: string[
 
 @Injectable()
 export class MessageMarkdownService {
-  async normalize(source: string): Promise<NormalizedMessageContent> {
+  async normalize(source: string, allowBlank = false): Promise<NormalizedMessageContent> {
     if (Buffer.byteLength(source, 'utf8') > 32_768)
       throw new BadRequestException('Message is too long');
     const normalizedSource = source.replace(/\r\n?/gu, '\n');
@@ -84,7 +84,8 @@ export class MessageMarkdownService {
     const plain: string[] = [];
     validateTree(tree as MarkdownNode, mentioned, plain);
     const markdown = processor.stringify(tree).trim();
-    if (!plain.join('').trim()) throw new BadRequestException('Message cannot be blank');
+    if (!allowBlank && !plain.join('').trim())
+      throw new BadRequestException('Message cannot be blank');
     if (Buffer.byteLength(markdown, 'utf8') > 32_768)
       throw new BadRequestException('Message is too long');
     return { markdown, plainText: plain.join(''), mentionedMemberIds: [...mentioned] };
