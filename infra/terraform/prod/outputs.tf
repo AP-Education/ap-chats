@@ -17,3 +17,12 @@ output "vpc_cidr" {
 output "chats_fqdn" {
   value = local.domain_fqdn
 }
+
+output "spaces_bucket_name" {
+  value = module.spaces.name
+}
+
+output "spaces_bucket_endpoint" {
+  description = "Feed into do_spaces_endpoint in the Ansible vault, as https://<this>."
+  value       = module.spaces.endpoint
+}

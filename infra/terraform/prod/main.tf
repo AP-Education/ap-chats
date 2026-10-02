@@ -11,6 +11,8 @@ locals {
 
   domain_fqdn = var.domain_name != null ? "${var.chats_subdomain}.${var.domain_name}" : null
 
+  spaces_bucket_name = coalesce(var.spaces_bucket_name, local.base_prefix)
+
   cloud_init = templatefile("${path.module}/../../cloud-init/prod.yaml", {
     runner_user         = var.runner_user
     ssh_authorized_keys = var.ssh_authorized_keys
@@ -39,6 +41,14 @@ module "web" {
 
   user_data = local.cloud_init
   tags      = local.common_tags
+}
+
+module "spaces" {
+  source = "../modules/spaces"
+
+  name          = local.spaces_bucket_name
+  region        = var.spaces_region
+  force_destroy = var.spaces_force_destroy
 }
 
 module "firewall" {

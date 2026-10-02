@@ -28,14 +28,21 @@ infra/
    `terraform/tenants/backend.prod.tfbackend` and fill in your DO Spaces
    bucket/region (gitignored — holds no secrets itself, but is
    environment-specific).
-3. **Secrets**: copy
+3. **DigitalOcean Spaces key**: create a Spaces access key dedicated to
+   ap-connect — DO dashboard → API → Spaces Keys → "Generate New Key". Don't
+   reuse backend-LMS's key: Spaces keys are account-wide (not scoped to one
+   bucket), so a project of its own keeps rotation and blast radius
+   independent. You'll use this same key pair twice: once below to let
+   Terraform create the bucket, and once in the vault (step 4) for the app
+   itself to read/write objects in it.
+4. **Secrets**: copy
    `ansible/inventory/group_vars/prod/vault.yml.example` to
    `ansible/inventory/group_vars/prod/vault.yml` and encrypt it:
    ```bash
    ansible-vault encrypt infra/ansible/inventory/group_vars/prod/vault.yml
    ```
    Edit later with `ansible-vault edit infra/ansible/inventory/group_vars/prod/vault.yml`.
-4. **Ansible collections**:
+5. **Ansible collections**:
    ```bash
    ansible-galaxy collection install -r infra/ansible/requirements.yml -p infra/ansible/collections
    ```
@@ -44,7 +51,7 @@ infra/
 
 ```bash
 export DIGITALOCEAN_TOKEN=...
-export AWS_ACCESS_KEY_ID=...      # DO Spaces key, for the state backend
+export AWS_ACCESS_KEY_ID=...      # DO Spaces key, for the *state backend* bucket
 export AWS_SECRET_ACCESS_KEY=...
 
 terraform -chdir=infra/terraform/prod init \
@@ -52,9 +59,23 @@ terraform -chdir=infra/terraform/prod init \
 
 terraform -chdir=infra/terraform/prod apply \
   -var='allowed_ssh_cidrs=["<your IP>/32"]' \
-  -var='ssh_key_ids=["<DO SSH key fingerprint or ID>"]'
+  -var='ssh_key_ids=["<DO SSH key fingerprint or ID>"]' \
+  -var='spaces_access_key_id=<the ap-connect Spaces key from step 3>' \
+  -var='spaces_secret_access_key=<its secret>'
   # add -var='vpc_id=<existing VPC id>' to join a shared VPC (optional)
 ```
+
+This also creates ap-connect's own Spaces bucket (`spaces_bucket_name`,
+defaults to `ap-connect-prod`). Read its name/endpoint back with:
+
+```bash
+terraform -chdir=infra/terraform/prod output -raw spaces_bucket_name
+terraform -chdir=infra/terraform/prod output -raw spaces_bucket_endpoint
+```
+
+— and put those, plus the same Spaces key pair from step 3, into the vault
+(`do_spaces_bucket`, `do_spaces_endpoint`, `do_spaces_access_key`,
+`do_spaces_secret_key`).
 
 ## Bootstrap the host (Ansible, one time)
 
@@ -110,6 +131,13 @@ LMS's existing ops host later if/when this needs the same treatment.
   later only means changing `DATABASE_URL`, not application code. Set a
   lifecycle rule on the Spaces bucket's `ap-connect/backups/` prefix to
   expire old backups — this doesn't prune them itself.
+- **Own Spaces bucket, own key — not shared with backend-LMS.** Terraform
+  creates it (`spaces_bucket_name`, default `ap-connect-prod`) and its
+  default ACL stays private; the app sets `ACL: public-read` per object on
+  upload (`DigitalOceanSpacesProvider.uploadObject`), so chat images end up
+  individually public while the nightly pg_dump backup — written without
+  that flag — stays private in the same bucket. No bucket-level public
+  policy or CORS config needed for that reason.
 - **Caddy, not nginx+certbot**, as the edge: automatic HTTPS (no DO Load
   Balancer to terminate TLS), and it serves the SPA's static build directly
   in addition to reverse-proxying `/api` and `/socket.io` — no third

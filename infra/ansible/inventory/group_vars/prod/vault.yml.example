@@ -15,7 +15,13 @@ acme_email: ops@ap-platform.online
 oidc_issuer: https://accounts.ap-platform.online
 oidc_audience: CHANGE_ME
 
-# Same DigitalOcean Spaces bucket backend-LMS uses, dedicated prefix.
+# ap-connect's own Spaces bucket (not shared with backend-LMS). The bucket
+# itself is created by infra/terraform/prod (see spaces_bucket_name there);
+# these are the exact same spaces_access_key_id / spaces_secret_access_key
+# values you passed to `terraform apply` — one dedicated key pair used both
+# to provision the bucket and for the app to read/write objects in it.
+# do_spaces_endpoint = "https://" + `terraform output -raw spaces_bucket_endpoint`
+# do_spaces_bucket   = `terraform output -raw spaces_bucket_name`
 do_spaces_endpoint: https://fra1.digitaloceanspaces.com
 do_spaces_access_key: CHANGE_ME
 do_spaces_secret_key: CHANGE_ME
