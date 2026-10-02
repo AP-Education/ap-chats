@@ -195,7 +195,7 @@ export function DirectMessageRow({
       </span>
       {(item.lastMessage || isMuted || visibleUnreadCount > 0) && (
         <span className={styles.trailing}>
-          {item.lastMessage && (
+          {item.lastMessage && visibleUnreadCount === 0 && (
             <time className={styles.time} dateTime={item.lastMessage.createdAt}>
               {formatRecentTime(item.lastMessage.createdAt)}
             </time>

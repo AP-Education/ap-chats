@@ -92,7 +92,7 @@ export function MessageMarkdown({
               {...props}
               target="_blank"
               rel="noopener noreferrer"
-              onTouchStart={(event) => event.stopPropagation()}
+              onPointerDown={(event) => event.stopPropagation()}
               onContextMenu={(event) => event.stopPropagation()}
             >
               {children}
@@ -118,7 +118,7 @@ export function MessageMarkdown({
               <button
                 type="button"
                 className={cx(mentionClass, styles.mentionTrigger, isMe && styles.mentionMeTrigger)}
-                onTouchStart={(event) => event.stopPropagation()}
+                onPointerDown={(event) => event.stopPropagation()}
                 onContextMenu={(event) => event.stopPropagation()}
               >
                 @{name}

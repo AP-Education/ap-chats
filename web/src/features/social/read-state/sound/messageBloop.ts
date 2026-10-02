@@ -1,3 +1,4 @@
+import { getSharedAudioContext } from '@/shared/audio/audio-context';
 import { scheduleBell } from '@/shared/audio/tone';
 
 // Same struck-bell voice as the call ringtone, one sonic identity across the app.
@@ -7,8 +8,8 @@ const NOTE_GAIN = 0.16;
 const NOTE_DECAY_SECONDS = 0.4;
 
 export function playMessageBloop(): void {
-  if (typeof AudioContext === 'undefined') return;
-  const context = new AudioContext();
+  const context = getSharedAudioContext();
+  if (!context) return;
 
   const master = context.createGain();
   master.connect(context.destination);
@@ -32,6 +33,11 @@ export function playMessageBloop(): void {
     });
   });
 
-  const closeAfterMs = (NOTES.length * NOTE_SPACING_SECONDS + NOTE_DECAY_SECONDS + 0.5) * 1000;
-  setTimeout(() => void context.close(), closeAfterMs);
+  // Disconnects this bloop's own nodes; the shared context itself stays alive for the session.
+  const disconnectAfterMs = (NOTES.length * NOTE_SPACING_SECONDS + NOTE_DECAY_SECONDS + 0.5) * 1000;
+  setTimeout(() => {
+    master.disconnect();
+    delay.disconnect();
+    feedback.disconnect();
+  }, disconnectAfterMs);
 }

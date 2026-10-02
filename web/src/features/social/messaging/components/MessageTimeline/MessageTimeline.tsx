@@ -8,10 +8,6 @@ import type {
   ActionTarget,
   ConversationAction,
 } from '@/features/social/conversation/actions';
-import { useMobileMenu } from '@/layouts/MainLayout/stores/mobile-menu-context';
-import { MOBILE_NAV_EDGE_WIDTH } from '@/layouts/MainLayout/useMobileNavSheet';
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { useTouchGesture } from '@/shared/hooks/useTouchGesture';
 
 import type { DisplayItem } from '../../hooks/useMessageOperations';
 import type { HistoryPage, MessageHistoryItem } from '../../types';
@@ -34,6 +30,7 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow-anchor: auto;
     scrollbar-width: thin;
     scrollbar-color: ${token.colorBorder} transparent;
+    touch-action: pan-y pinch-zoom;
   `,
   feed: css`
     display: flex;
@@ -151,12 +148,6 @@ export function MessageTimeline({
   targetMessageId,
 }: MessageTimelineProps) {
   const { styles } = useStyles();
-  const isMobile = useIsMobile();
-  const mobileMenu = useMobileMenu();
-  const navigationGesture = useTouchGesture({
-    shouldStart: (event) => event.touches[0].clientX > MOBILE_NAV_EDGE_WIDTH,
-    onSwipeRight: mobileMenu.open,
-  });
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   // A deleted message keeps its seq (read state, scroll anchoring, and reply
   // excerpts elsewhere all still need it), but has nothing left worth a row —
@@ -197,7 +188,6 @@ export function MessageTimeline({
         role="log"
         aria-label="Повідомлення каналу"
         aria-live="off"
-        {...(isMobile ? navigationGesture : {})}
       >
         <div className={styles.feed}>
           {hasOlder && (

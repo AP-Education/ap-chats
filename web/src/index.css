@@ -18,13 +18,23 @@
 * {
   box-sizing: border-box;
 }
+
+/* Pins html/body as a fixed, non-scrolling canvas so iOS can't rubber-band the document and steal touchmove events from custom swipe gestures (nav drawer, reply-swipe); every real scroll area manages its own overflow. */
+html,
 body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+body {
+  position: fixed;
+  inset: 0;
   margin: 0;
+  width: 100%;
   min-width: 320px;
-  min-height: 100vh;
 }
 #root {
-  min-height: 100vh;
+  height: 100%;
 }
 
 .page {

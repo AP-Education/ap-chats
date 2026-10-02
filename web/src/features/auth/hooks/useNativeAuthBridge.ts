@@ -24,6 +24,7 @@ export function useNativeAuthBridge(): NativeAuthState {
         setState({ status: 'unavailable' });
         return;
       }
+      if (message.type !== 'auth/token') return;
       setState((previous) => ({
         status: 'signed-in',
         accessToken: message.payload.accessToken,

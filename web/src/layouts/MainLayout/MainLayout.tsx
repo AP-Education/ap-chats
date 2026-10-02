@@ -30,27 +30,35 @@ export function MainLayout() {
   const isMenuOpen =
     isMobile && (menuOverride?.locationKey === locationKey ? menuOverride.open : isNavigationPage);
   const wasMenuOpen = useRef(false);
+  const panelRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const setMenuOpen = useCallback(
     (open: boolean) => setMenuOverride({ locationKey, open }),
     [locationKey],
   );
   const unreadCount = (unread?.channelTotal ?? 0) + (unread?.directTotal ?? 0);
+  const openMenu = useCallback(() => setMenuOpen(true), [setMenuOpen]);
+  const closeMenu = useCallback(() => setMenuOpen(false), [setMenuOpen]);
+  const getNavWidth = useCallback(() => containerRef.current?.clientWidth || window.innerWidth, []);
   const sheet = useMobileNavSheet({
+    enabled: isMobile,
     open: isMenuOpen,
-    onOpen: () => setMenuOpen(true),
-    onClose: () => setMenuOpen(false),
+    locationKey,
+    onOpen: openMenu,
+    onClose: closeMenu,
+    getWidth: getNavWidth,
   });
 
   useEffect(() => {
     if (isMenuOpen) {
-      sheet.panelRef.current?.focus();
+      panelRef.current?.focus({ preventScroll: true });
       wasMenuOpen.current = true;
     } else if (wasMenuOpen.current) {
-      document.querySelector<HTMLButtonElement>('[data-mobile-menu-trigger]')?.focus();
+      document
+        .querySelector<HTMLButtonElement>('[data-mobile-menu-trigger]')
+        ?.focus({ preventScroll: true });
       wasMenuOpen.current = false;
     }
-    // sheet.panelRef is a stable ref object from useMobileNavSheet, not reactive state
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMenuOpen]);
 
   const mobileMenu = useMemo(
@@ -62,40 +70,35 @@ export function MainLayout() {
     <Layout className={styles.layout}>
       <CallSurface />
       <ConnectionBanner />
-      <Layout className={styles.mainArea}>
+      <Layout
+        ref={containerRef}
+        className={styles.mainArea}
+        data-menu-open={isMenuOpen}
+        data-menu-dragging={sheet.dragging || undefined}
+        style={sheet.style}
+      >
         {!isMobile && <MainSider />}
         {isMobile && (
           <aside
             id="mobile-navigation"
-            // react-hooks/refs doesn't yet recognize a ref returned from a custom
-            // hook as safe in a `ref=` attribute (confirmed false positive, not an
-            // actual render-time `.current` read) — same below for spreading a
-            // handler object that closes over refs internally.
-            // eslint-disable-next-line react-hooks/refs
-            ref={sheet.panelRef}
+            ref={panelRef}
             className={styles.mobilePanel}
-            data-open={isMenuOpen}
             aria-label="Навігація та розмови"
             tabIndex={-1}
             inert={!isMenuOpen}
             onKeyDown={(event) => {
               if (event.key === 'Escape') setMenuOpen(false);
             }}
-            // eslint-disable-next-line react-hooks/refs
             {...sheet.closeGesture}
           >
-            <MainSiderMenu onNavigate={() => setMenuOpen(false)} />
+            <MainSiderMenu onNavigate={closeMenu} />
           </aside>
         )}
         <Layout.Content
-          // eslint-disable-next-line react-hooks/refs
-          ref={sheet.contentRef}
           className={styles.content}
-          data-menu-open={isMobile && isMenuOpen}
           style={{ padding: isMobile || isEdgeToEdge ? 0 : token.paddingXS }}
           inert={isMobile && isMenuOpen}
-          // eslint-disable-next-line react-hooks/refs
-          {...(isMobile ? sheet.openGesture : {})}
+          {...sheet.openGesture}
         >
           <PageSection
             maxWidth={isEdgeToEdge ? 'none' : 1920}

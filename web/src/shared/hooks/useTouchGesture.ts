@@ -1,72 +1,83 @@
-import { type MouseEvent, type TouchEvent, useEffect, useLayoutEffect, useRef } from 'react';
+import {
+  type MouseEvent,
+  type TouchEvent as ReactTouchEvent,
+  useLayoutEffect,
+  useRef,
+} from 'react';
 
 interface TouchGestureOptions {
+  enabled?: boolean;
+  resetKey?: string;
   onSwipeRight?: () => boolean | void;
   onSwipeLeft?: () => boolean | void;
   onSwipeProgress?: (distance: number) => void;
   onSwipeEnd?: () => void;
   onLongPress?: () => void;
-  shouldStart?: (event: TouchEvent<HTMLElement>) => boolean;
+  shouldLongPress?: (event: ReactTouchEvent<HTMLElement>) => boolean;
+  shouldStart?: (event: ReactTouchEvent<HTMLElement>) => boolean;
   swipeDistance?: number;
-  /** A fast, short swipe below `swipeDistance` still commits once it clears this
-   * velocity (px/ms) at release — the same "flick" native apps recognize instead
-   * of requiring the full travel distance from a slow drag. */
   flickVelocity?: number;
+  axisRatio?: number;
+  directionSlop?: number;
 }
 
-// Shared "settle" easing for anything that drag-follows a touch and then
-// animates the remaining distance on release (nav sheet, message reply swipe)
-// — one feel across the app instead of each gesture picking its own curve.
 export const SWIPE_SETTLE_TRANSITION = 'transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1)';
 
 const DEFAULT_SWIPE_DISTANCE = 72;
-const DEFAULT_FLICK_VELOCITY = 0.5; // px/ms
-const MIN_FLICK_DISTANCE = 24; // ignores a stray tap that happens to read as "fast"
+const DEFAULT_FLICK_VELOCITY = 0.5;
+const MIN_FLICK_DISTANCE = 24;
+const VELOCITY_WINDOW = 100;
+const MAX_GESTURE_DURATION = 10_000;
+
+const activeTouchMoves = new Set<(event: TouchEvent) => void>();
+let touchSurfaceCount = 0;
+
+function dispatchTouchMove(event: TouchEvent) {
+  for (const handler of activeTouchMoves) handler(event);
+}
+
+function retainTouchMoveListener() {
+  if (touchSurfaceCount++ === 0) {
+    // WebKit needs the blocking listener before touchstart, including the first
+    // swipe after navigation. React's delegated touch listeners are passive.
+    window.addEventListener('touchmove', dispatchTouchMove, { capture: true, passive: false });
+  }
+  return () => {
+    if (--touchSurfaceCount === 0) window.removeEventListener('touchmove', dispatchTouchMove, true);
+  };
+}
 
 interface GestureState {
+  touchId: number;
   x: number;
   y: number;
-  /** Position and time of the most recent touchmove — velocity is measured over
-   * this final stretch, not the whole gesture, since that's what actually reads
-   * as "a flick" to the person doing it. */
-  lastX: number;
-  lastT: number;
+  axis: 'pending' | 'horizontal';
+  samples: { x: number; time: number }[];
   held: boolean;
   moved: boolean;
+  claimed: boolean;
+}
+
+function findTouch(touches: TouchList, identifier: number): Touch | undefined {
+  for (let index = 0; index < touches.length; index++) {
+    if (touches[index].identifier === identifier) return touches[index];
+  }
 }
 
 export function useTouchGesture(options: TouchGestureOptions) {
   const optionsRef = useRef(options);
-  useLayoutEffect(() => {
-    optionsRef.current = options;
-  });
   const gesture = useRef<GestureState | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expiryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClick = useRef(false);
   const rafId = useRef<number | null>(null);
   const pendingDx = useRef<number | null>(null);
+  const removeListeners = useRef<(() => void) | null>(null);
 
   function clearTimer() {
-    if (timer.current) clearTimeout(timer.current);
+    if (timer.current !== null) clearTimeout(timer.current);
     timer.current = null;
-  }
-
-  function flushProgress() {
-    rafId.current = null;
-    if (pendingDx.current === null) return;
-    const dx = pendingDx.current;
-    pendingDx.current = null;
-    optionsRef.current.onSwipeProgress?.(dx);
-  }
-
-  // touchmove can fire well above the display's paint rate on some devices —
-  // batching to one callback per animation frame is what keeps the dragged
-  // element's visual updates from fighting each other mid-frame.
-  function scheduleProgress(dx: number) {
-    pendingDx.current = dx;
-    if (rafId.current !== null) return;
-    rafId.current = requestAnimationFrame(flushProgress);
   }
 
   function cancelScheduledProgress() {
@@ -75,38 +86,196 @@ export function useTouchGesture(options: TouchGestureOptions) {
     pendingDx.current = null;
   }
 
+  function endGesture() {
+    if (!gesture.current) return;
+    if (gesture.current.claimed) suppressSyntheticClick();
+    gesture.current = null;
+    clearTimer();
+    if (expiryTimer.current !== null) clearTimeout(expiryTimer.current);
+    expiryTimer.current = null;
+    cancelScheduledProgress();
+    removeListeners.current?.();
+    removeListeners.current = null;
+    optionsRef.current.onSwipeEnd?.();
+  }
+
+  useLayoutEffect(() => {
+    optionsRef.current = options;
+  });
+  useLayoutEffect(() => {
+    endGesture();
+    // Cancels an in-flight gesture when its screen or enabled state changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options.enabled, options.resetKey]);
+
+  useLayoutEffect(
+    () => {
+      const release = retainTouchMoveListener();
+      return () => {
+        endGesture();
+        if (clickTimer.current !== null) clearTimeout(clickTimer.current);
+        release();
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  function scheduleProgress(dx: number) {
+    if (!optionsRef.current.onSwipeProgress) return;
+    pendingDx.current = dx;
+    if (rafId.current !== null) return;
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = null;
+      const distance = pendingDx.current;
+      pendingDx.current = null;
+      if (gesture.current && distance !== null) optionsRef.current.onSwipeProgress?.(distance);
+    });
+  }
+
   function suppressSyntheticClick() {
     suppressClick.current = true;
-    if (clickTimer.current) clearTimeout(clickTimer.current);
+    if (clickTimer.current !== null) clearTimeout(clickTimer.current);
     clickTimer.current = setTimeout(() => {
       suppressClick.current = false;
     }, 700);
   }
 
-  useEffect(
-    () => () => {
+  function onTouchMove(event: TouchEvent) {
+    const current = gesture.current;
+    if (!current) return;
+    const touch = findTouch(event.touches, current.touchId);
+    if (!touch || event.touches.length !== 1 || !event.cancelable) {
+      endGesture();
+      return;
+    }
+    const dx = touch.clientX - current.x;
+    const dy = touch.clientY - current.y;
+    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+      current.moved = true;
       clearTimer();
-      cancelScheduledProgress();
-      if (clickTimer.current) clearTimeout(clickTimer.current);
-    },
-    [],
-  );
+    }
+    if (current.axis === 'pending') {
+      const slop = optionsRef.current.directionSlop ?? 12;
+      const ratio = optionsRef.current.axisRatio ?? 1.25;
+      if (Math.abs(dy) >= slop && Math.abs(dy) > Math.abs(dx) * ratio) {
+        endGesture();
+        return;
+      }
+      if (Math.abs(dx) >= slop && Math.abs(dx) > Math.abs(dy) * ratio) {
+        current.axis = 'horizontal';
+        current.moved = true;
+        clearTimer();
+      }
+    }
+    sampleVelocity(current, touch.clientX, event.timeStamp);
+    if (!current.held && current.axis === 'horizontal') {
+      const handle = dx > 0 ? optionsRef.current.onSwipeRight : optionsRef.current.onSwipeLeft;
+      if (handle) current.claimed = true;
+      // WebKit may start vertical scrolling even after a horizontal pan-y swipe.
+      // A non-passive touchmove keeps a claimed swipe out of native scrolling.
+      if (current.claimed) event.preventDefault();
+      scheduleProgress(dx);
+    }
+  }
 
-  function onTouchStart(event: TouchEvent<HTMLElement>) {
-    gesture.current = null;
-    clearTimer();
-    cancelScheduledProgress();
-    if (event.touches.length !== 1 || optionsRef.current.shouldStart?.(event) === false) return;
+  function sampleVelocity(current: GestureState, x: number, time: number): number {
+    current.samples = current.samples.filter((sample) => time - sample.time <= VELOCITY_WINDOW);
+    current.samples.push({ x, time });
+    const first = current.samples[0];
+    return (x - first.x) / Math.max(time - first.time, 1);
+  }
+
+  function onTouchEnd(event: TouchEvent) {
+    const current = gesture.current;
+    if (!current) return;
+    const touch = findTouch(event.changedTouches, current.touchId);
+    if (!touch) return;
+    let committed = current.held;
+    try {
+      if (!current.held) {
+        const dx = touch.clientX - current.x;
+        const dy = touch.clientY - current.y;
+        const velocity = sampleVelocity(current, touch.clientX, event.timeStamp);
+        const byDistance =
+          Math.abs(dx) >= (optionsRef.current.swipeDistance ?? DEFAULT_SWIPE_DISTANCE);
+        const byFlick =
+          Math.abs(dx) >= MIN_FLICK_DISTANCE &&
+          Math.sign(velocity) === Math.sign(dx) &&
+          Math.abs(velocity) >= (optionsRef.current.flickVelocity ?? DEFAULT_FLICK_VELOCITY);
+        const horizontal =
+          current.axis === 'horizontal' ||
+          Math.abs(dx) > Math.abs(dy) * (optionsRef.current.axisRatio ?? 1.25);
+        if (horizontal && (byDistance || byFlick)) {
+          const handle = dx > 0 ? optionsRef.current.onSwipeRight : optionsRef.current.onSwipeLeft;
+          committed = !!handle && handle() !== false;
+        }
+      }
+    } finally {
+      endGesture();
+    }
+    if (committed || current.claimed) {
+      suppressSyntheticClick();
+      if (event.cancelable) event.preventDefault();
+    }
+  }
+
+  function onTouchCancel(event: TouchEvent) {
+    const current = gesture.current;
+    if (current && findTouch(event.changedTouches, current.touchId)) endGesture();
+  }
+
+  function onAdditionalTouch(event: TouchEvent) {
+    if (event.touches.length !== 1) endGesture();
+  }
+
+  function onVisibilityChange() {
+    if (document.hidden) endGesture();
+  }
+
+  function onTouchStart(event: ReactTouchEvent<HTMLElement>) {
+    endGesture();
+    suppressClick.current = false;
+    if (clickTimer.current !== null) clearTimeout(clickTimer.current);
+    clickTimer.current = null;
+    if (
+      event.touches.length !== 1 ||
+      optionsRef.current.enabled === false ||
+      optionsRef.current.shouldStart?.(event) === false
+    )
+      return;
     const touch = event.touches[0];
     gesture.current = {
+      touchId: touch.identifier,
       x: touch.clientX,
       y: touch.clientY,
-      lastX: touch.clientX,
-      lastT: event.timeStamp,
+      axis: 'pending',
+      samples: [{ x: touch.clientX, time: event.timeStamp }],
       held: false,
       moved: false,
+      claimed: false,
     };
-    if (optionsRef.current.onLongPress) {
+
+    activeTouchMoves.add(onTouchMove);
+    window.addEventListener('touchend', onTouchEnd, { capture: true, passive: false });
+    window.addEventListener('touchcancel', onTouchCancel, true);
+    window.addEventListener('touchstart', onAdditionalTouch, true);
+    window.addEventListener('blur', endGesture);
+    window.addEventListener('pagehide', endGesture);
+    window.addEventListener('resize', endGesture);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    removeListeners.current = () => {
+      activeTouchMoves.delete(onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd, true);
+      window.removeEventListener('touchcancel', onTouchCancel, true);
+      window.removeEventListener('touchstart', onAdditionalTouch, true);
+      window.removeEventListener('blur', endGesture);
+      window.removeEventListener('pagehide', endGesture);
+      window.removeEventListener('resize', endGesture);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+    expiryTimer.current = setTimeout(endGesture, MAX_GESTURE_DURATION);
+    if (optionsRef.current.onLongPress && optionsRef.current.shouldLongPress?.(event) !== false) {
       timer.current = setTimeout(() => {
         const current = gesture.current;
         if (!current || current.moved) return;
@@ -117,88 +286,13 @@ export function useTouchGesture(options: TouchGestureOptions) {
     }
   }
 
-  function onTouchMove(event: TouchEvent<HTMLElement>) {
-    const current = gesture.current;
-    if (!current || event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    if (Math.abs(touch.clientX - current.x) > 10 || Math.abs(touch.clientY - current.y) > 10) {
-      current.moved = true;
-      clearTimer();
-    }
-    const dx = touch.clientX - current.x;
-    const dy = touch.clientY - current.y;
-    current.lastX = touch.clientX;
-    current.lastT = event.timeStamp;
-    if (!current.held && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.25) {
-      scheduleProgress(dx);
-    }
-  }
-
-  function onTouchEnd(event: TouchEvent<HTMLElement>) {
-    clearTimer();
-    cancelScheduledProgress();
-    const current = gesture.current;
-    gesture.current = null;
-    if (!current || !event.changedTouches.length) {
-      optionsRef.current.onSwipeEnd?.();
-      return;
-    }
-    if (current.held) {
-      optionsRef.current.onSwipeEnd?.();
-      event.preventDefault();
-      return;
-    }
-
-    const touch = event.changedTouches[0];
-    const dx = touch.clientX - current.x;
-    const dy = touch.clientY - current.y;
-    let committed = false;
-
-    if (Math.abs(dx) >= Math.abs(dy) * 1.25) {
-      const distanceThreshold = optionsRef.current.swipeDistance ?? DEFAULT_SWIPE_DISTANCE;
-      const flickVelocityThreshold = optionsRef.current.flickVelocity ?? DEFAULT_FLICK_VELOCITY;
-      const elapsed = Math.max(event.timeStamp - current.lastT, 1);
-      const velocity = Math.abs(touch.clientX - current.lastX) / elapsed;
-      const committedByDistance = Math.abs(dx) >= distanceThreshold;
-      const committedByFlick =
-        Math.abs(dx) >= MIN_FLICK_DISTANCE && velocity >= flickVelocityThreshold;
-
-      if (committedByDistance || committedByFlick) {
-        const handled =
-          dx > 0 ? optionsRef.current.onSwipeRight?.() : optionsRef.current.onSwipeLeft?.();
-        committed =
-          handled !== false &&
-          (dx > 0 ? !!optionsRef.current.onSwipeRight : !!optionsRef.current.onSwipeLeft);
-      }
-    }
-
-    // Fires after the commit decision (not before) so a caller can tell, inside
-    // onSwipeEnd, whether this gesture just committed — see useMobileNavSheet for
-    // why that matters (committing already drove the element to its resting
-    // position; onSwipeEnd must not then animate it back to where it started).
-    optionsRef.current.onSwipeEnd?.();
-
-    if (committed) {
-      suppressSyntheticClick();
-      event.preventDefault();
-      event.stopPropagation();
-    }
-  }
-
-  function onTouchCancel() {
-    clearTimer();
-    cancelScheduledProgress();
-    optionsRef.current.onSwipeEnd?.();
-    gesture.current = null;
-  }
-
   function onClickCapture(event: MouseEvent<HTMLElement>) {
-    if (!suppressClick.current) return;
+    if (!suppressClick.current || event.detail === 0) return;
     suppressClick.current = false;
-    if (clickTimer.current) clearTimeout(clickTimer.current);
+    if (clickTimer.current !== null) clearTimeout(clickTimer.current);
     event.preventDefault();
     event.stopPropagation();
   }
 
-  return { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel, onClickCapture };
+  return { onTouchStart, onClickCapture };
 }
