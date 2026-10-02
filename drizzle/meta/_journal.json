@@ -113,6 +113,20 @@
       "when": 1790777733108,
       "tag": "0015_overjoyed_union_jack",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790929178014,
+      "tag": "0016_military_power_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790931392110,
+      "tag": "0017_clear_bucky",
+      "breakpoints": true
     }
   ]
 }

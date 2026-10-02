@@ -171,7 +171,9 @@ export function DirectMessageRow({
       ? item.lastMessage.markdown
           .replace(/:member\[[0-9a-f-]{36}\]/gi, '@учасник')
           .replace(/\s+/gu, ' ')
-      : 'Повідомлення видалено';
+      : item.lastMessage.markdown === null
+        ? 'Повідомлення видалено'
+        : 'Вкладення';
   }
   return (
     <Link
