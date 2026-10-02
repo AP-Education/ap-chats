@@ -98,15 +98,27 @@ const useStyles = createStyles(({ token, css }) => ({
     z-index: 3;
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     padding: 0;
     border: 1px solid ${token.colorBorderSecondary};
-    border-radius: 20px;
-    background: ${token.colorBgContainer};
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(12px) saturate(180%);
     box-shadow: ${token.boxShadowSecondary};
     color: ${token.colorText};
     cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease,
+      border-color 0.15s ease;
+  `,
+  // Away-from-bottom while there's something new to catch up on reads differently from
+  // just having scrolled up on your own — the same cue the unread divider uses.
+  bottomUnread: css`
+    border-color: ${token.colorPrimary};
+    background: ${token.colorPrimary};
+    color: ${token.colorWhite};
   `,
   empty: css`
     display: grid;
@@ -159,7 +171,7 @@ export function MessageTimeline({
   loadNewer,
   targetMessageId,
 }: MessageTimelineProps) {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
   const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
@@ -284,12 +296,12 @@ export function MessageTimeline({
       {awayFromBottom && (
         <button
           type="button"
-          className={styles.bottom}
+          className={cx(styles.bottom, hasNewer && styles.bottomUnread)}
           onClick={goDown}
           aria-label={hasNewer ? 'До новіших повідомлень' : 'До низу розмови'}
           title={hasNewer ? 'До новіших повідомлень' : 'До низу розмови'}
         >
-          <ArrowDownIcon size={18} aria-hidden="true" />
+          <ArrowDownIcon size={20} aria-hidden="true" />
         </button>
       )}
     </div>
