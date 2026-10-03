@@ -25,7 +25,7 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     gap: 12px;
     min-width: 0;
-    padding: 5px 24px 5px 20px;
+    padding: 3px 24px 3px 20px;
     color: ${token.colorText};
     &:hover {
       background: ${token.colorFillQuaternary};
@@ -61,7 +61,7 @@ const useStyles = createStyles(({ token, css }) => ({
     }
     @media (max-width: ${token.screenMD}px) {
       gap: 8px;
-      padding: 8px 12px;
+      padding: 3px 12px;
     }
   `,
   selected: css`

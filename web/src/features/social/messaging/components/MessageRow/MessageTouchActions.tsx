@@ -27,12 +27,21 @@ const useStyles = createStyles(({ token, css }) => ({
     touch-action: pan-y pinch-zoom;
     transform: translate3d(calc(-1 * var(--message-swipe-offset, 0px)), 0, 0);
     transition: ${SWIPE_SETTLE_TRANSITION};
-    [data-message-text] {
+    &[data-message-readonly],
+    &[data-message-readonly] [data-message-text] {
       user-select: none;
+      -webkit-user-select: none;
       -webkit-touch-callout: none;
     }
     a,
     button {
+      -webkit-touch-callout: default;
+    }
+    input,
+    textarea,
+    [contenteditable='true'] {
+      user-select: text;
+      -webkit-user-select: text;
       -webkit-touch-callout: default;
     }
   `,
@@ -97,10 +106,17 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
         <div
           {...rowProps}
           className={`${rowProps.className ?? ''} ${styles.touchTarget}`}
+          data-message-readonly={!scope.editing || undefined}
           {...swipe.gesture}
           onContextMenu={(event) => {
+            if (
+              scope.delivery ||
+              scope.editing ||
+              (event.target as Element).closest('input, textarea, select, [contenteditable="true"]')
+            )
+              return;
             event.preventDefault();
-            if (!scope.delivery && !scope.editing) setOpen(true);
+            setOpen(true);
           }}
         >
           {children}

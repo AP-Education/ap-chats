@@ -7,6 +7,12 @@ import ts from 'typescript';
 export function createGestureFixture() {
   const window = new globalThis.EventTarget();
   const document = new globalThis.EventTarget();
+  const nativeMessages = [];
+  let selection = null;
+  window.getSelection = () => selection;
+  window.ReactNativeWebView = {
+    postMessage: (data) => nativeMessages.push(JSON.parse(data)),
+  };
   const listeners = new Map();
   const addListener = window.addEventListener.bind(window);
   const removeListener = window.removeEventListener.bind(window);
@@ -86,9 +92,18 @@ export function createGestureFixture() {
     '@/shared/hooks/useTouchGesture': { useTouchGesture },
   });
 
+  const haptics = load('../../src/shared/lib/haptics.ts', {});
   const { useMessageReplySwipe } = load(
     '../../src/features/social/messaging/components/MessageRow/useMessageReplySwipe.ts',
-    { react, '@/shared/hooks/useTouchGesture': { useTouchGesture } },
+    {
+      react,
+      '@/shared/hooks/useTouchGesture': { useTouchGesture },
+      '@/shared/lib/haptics': haptics,
+    },
+  );
+  const { useMobileMessageSelection } = load(
+    '../../src/features/social/messaging/components/MessageTimeline/useMobileMessageSelection.ts',
+    { react },
   );
 
   function mount(hook, initial) {
@@ -177,6 +192,14 @@ export function createGestureFixture() {
     mount,
     useTouchGesture,
     useMessageReplySwipe,
+    useMobileMessageSelection,
+    setSelection(value) {
+      selection = value;
+    },
+    nativeMessages,
+    setNativeBridge(bridge) {
+      window.ReactNativeWebView = bridge;
+    },
     listeners: (type) => [...(listeners.get(type)?.values() ?? [])],
     beginTouch(event, ...handlers) {
       touchSessionCancelable = [...(listeners.get('touchmove')?.values() ?? [])].some(

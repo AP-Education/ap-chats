@@ -144,6 +144,7 @@ test('right swipe opens navigation without dragging the reply or firing long pre
   assert.equal(f.isOpen(), true);
   assert.equal(f.replies(), 0);
   assert.equal(f.longPresses(), 0);
+  assert.equal(f.nativeMessages.length, 0);
 });
 
 test('long press remains available and does not turn into a reply', () => {
@@ -151,6 +152,9 @@ test('long press remains available and does not turn into a reply', () => {
   f.start();
   f.advance(500);
   assert.equal(f.longPresses(), 1);
+  assert.deepEqual(f.nativeMessages, [{ type: 'haptics/selection' }]);
+  f.advance(1_000);
+  assert.equal(f.nativeMessages.length, 1);
   f.release(90);
   assert.equal(f.replies(), 0);
 });
@@ -163,6 +167,7 @@ test('links retain their long press while still allowing a deliberate swipe', ()
   f.start(link);
   f.advance(600);
   assert.equal(f.longPresses(), 0);
+  assert.equal(f.nativeMessages.length, 0);
   f.move(90);
   f.release(90);
   assert.equal(f.replies(), 1);
@@ -262,4 +267,26 @@ test('changing messages cancels the old touch and the next reply starts from zer
   f.move(90);
   f.release(90);
   assert.equal(f.replies(), 1);
+});
+
+test('long press opens actions without a native bridge', () => {
+  const f = replyFixture();
+  f.setNativeBridge(undefined);
+  f.start();
+  f.advance(500);
+  assert.equal(f.longPresses(), 1);
+  assert.equal(f.nativeMessages.length, 0);
+});
+
+test('tap and vertical scroll do not request haptic feedback', () => {
+  const f = replyFixture();
+  f.start();
+  f.advance(100);
+  f.release(150);
+  f.start();
+  f.move(153, 90);
+  f.advance(600);
+  f.release(153, 90);
+  assert.equal(f.longPresses(), 0);
+  assert.equal(f.nativeMessages.length, 0);
 });

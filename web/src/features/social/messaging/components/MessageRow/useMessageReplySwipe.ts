@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { useTouchGesture } from '@/shared/hooks/useTouchGesture';
+import { selectionHaptic } from '@/shared/lib/haptics';
 
 const REPLY_DISTANCE = 48;
 const MAX_OFFSET = 64;
@@ -35,7 +36,10 @@ export function useMessageReplySwipe({
         'input, textarea, select, [contenteditable="true"], [role="slider"], [data-swipe-ignore]',
       ),
     shouldLongPress: (event) => !(event.target as Element).closest('a, button'),
-    onLongPress,
+    onLongPress: () => {
+      selectionHaptic();
+      onLongPress();
+    },
     onSwipeProgress: (dx) => setPullDistance(canReply && dx < 0 ? -dx : null),
     onSwipeEnd: () => setPullDistance(null),
     onSwipeLeft: canReply ? onReply : undefined,

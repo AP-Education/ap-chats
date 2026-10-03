@@ -1,12 +1,15 @@
 import { SignOutIcon, UserIcon } from '@phosphor-icons/react';
 import { Button, Spin } from 'antd';
 
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
+
 import { Avatar } from '../../../shared/ui/Avatar/Avatar';
 import { useCurrentUser } from '../stores/current-user-context';
 import styles from './AuthStatus.module.css';
 
 export function AuthStatus() {
   const user = useCurrentUser();
+  const isMobile = useIsMobile();
 
   if (user.status === 'loading') return <Spin size="small" />;
 
@@ -32,7 +35,7 @@ export function AuthStatus() {
       <Avatar
         path={profile?.picture ?? null}
         alt={profile?.name ?? 'Профіль'}
-        size={36}
+        size={isMobile ? 48 : 36}
         shape="circle"
       />
       <div className={styles.identity}>
@@ -46,7 +49,7 @@ export function AuthStatus() {
         title="Вийти"
         onClick={signOut}
       >
-        <SignOutIcon size={20} weight="regular" />
+        <SignOutIcon size={isMobile ? 24 : 20} weight="regular" />
       </button>
     </div>
   );

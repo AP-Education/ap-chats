@@ -17,6 +17,8 @@ export type WebToNativeMessage =
   | { type: 'auth/sign-out' }
   | { type: 'auth/refresh-request' }
   | { type: 'calls/connect'; payload: NativeCallConnectPayload }
+  | { type: 'haptics/selection' }
+  | { type: 'notifications/message-sound' }
   /** __DEV__ only — see debug-console.ts. Lets web/'s own console show up in the
    * RN console, since the WebView runs in a separate JS context Metro can't see. */
   | { type: 'debug/console'; level: 'log' | 'warn' | 'error'; args: string[] }

@@ -1,6 +1,7 @@
+import { selectionAsync } from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { AppState, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 import type {
@@ -12,6 +13,7 @@ import type {
 import { useAuthStore } from '../../auth/index';
 import { connectBridgedCall, useIsMiniCallBarVisible } from '../../calls';
 import { unregisterCurrentDevice } from '../../push/api/unregister-current-device';
+import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
 import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
 import { buildBridgeScript } from '../utils/inject-bridge';
@@ -30,6 +32,7 @@ export function WebViewHost() {
   // reload) so the effect below only fires once there's a page to inject into, and
   // re-fires on every reload since the injected globals don't survive one.
   const [loadCount, setLoadCount] = useState(0);
+  const [messageSoundRequest, setMessageSoundRequest] = useState(0);
 
   // Pushes the current token into web/ whenever it changes (sign-in, refresh).
   useEffect(() => {
@@ -72,6 +75,12 @@ export function WebViewHost() {
       void useAuthStore.getState().refreshNow();
     } else if (message.type === 'calls/connect') {
       void connectBridgedCall(message.payload);
+    } else if (message.type === 'haptics/selection') {
+      void selectionAsync().catch(() => undefined);
+    } else if (message.type === 'notifications/message-sound') {
+      if (AppState.currentState !== 'active') return;
+      if (__DEV__) console.log('[notifications] native sound requested');
+      setMessageSoundRequest((request) => request + 1);
     } else if (__DEV__ && message.type === 'debug/console') {
       console[message.level](`[webview]`, ...message.args);
     } else if (__DEV__ && message.type === 'debug/error') {
@@ -94,6 +103,7 @@ export function WebViewHost() {
       style={styles.container}
       edges={miniCallBarVisible ? ['bottom'] : ['top', 'bottom']}
     >
+      <MessageNotificationSound request={messageSoundRequest} />
       <WebView
         ref={webViewRef}
         source={{ uri: webUrl }}

@@ -2,6 +2,11 @@ packages:
   - web
   - mobile
 
+packageExtensions:
+  expo-audio@57.0.5:
+    dependencies:
+      expo-modules-core: ~57.0.18
+
 minimumReleaseAgeExclude:
   - '@nestjs/cli@12.0.5'
   - '@nestjs/config@12.0.1'

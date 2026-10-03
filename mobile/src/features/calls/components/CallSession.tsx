@@ -18,11 +18,10 @@ export function CallSession() {
     let subscriptions: { remove(): void }[] = [];
 
     void (async () => {
-      const [CallKit, { registerGlobals }] = await Promise.all([
-        loadCallKitModule(),
-        import('@livekit/react-native'),
-      ]);
+      const CallKit = await loadCallKitModule();
       if (!CallKit || cancelled) return;
+      const { registerGlobals } = await import('@livekit/react-native');
+      if (cancelled) return;
 
       try {
         registerGlobals();
@@ -58,7 +57,9 @@ export function CallSession() {
         CallKit.addCallEndedListener((event) => void endCallSession(event)),
         CallKit.addSetMutedActionListener((event) => void setCallMuted(event, CallKit)),
       ];
-    })();
+    })().catch((error: unknown) => {
+      if (__DEV__) console.warn('[calls] session initialization failed', error);
+    });
 
     return () => {
       cancelled = true;

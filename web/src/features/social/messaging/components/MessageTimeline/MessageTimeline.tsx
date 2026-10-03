@@ -8,11 +8,13 @@ import type {
   ActionTarget,
   ConversationAction,
 } from '@/features/social/conversation/actions';
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 import type { DisplayItem } from '../../hooks/useMessageOperations';
 import type { HistoryPage, MessageHistoryItem } from '../../types';
 import { isMessageItem } from '../../types';
 import { HistoryItemRow } from '../HistoryItemRow/HistoryItemRow';
+import { useMobileMessageSelection } from './useMobileMessageSelection';
 import { useScrollAnchoring } from './useScrollAnchoring';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -37,6 +39,10 @@ const useStyles = createStyles(({ token, css }) => ({
     flex-direction: column;
     min-height: 100%;
     padding: 16px 0 20px;
+
+    & > [data-message-group-start] {
+      margin-top: 10px;
+    }
   `,
   spacer: css`
     flex: 1;
@@ -148,6 +154,7 @@ export function MessageTimeline({
   targetMessageId,
 }: MessageTimelineProps) {
   const { styles } = useStyles();
+  const isMobile = useIsMobile();
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   // A deleted message keeps its seq (read state, scroll anchoring, and reply
   // excerpts elsewhere all still need it), but has nothing left worth a row —
@@ -173,6 +180,7 @@ export function MessageTimeline({
     loadOlder,
     loadNewer,
   });
+  useMobileMessageSelection(scrollRef, isMobile);
 
   return (
     <div className={styles.viewport}>
@@ -221,8 +229,16 @@ export function MessageTimeline({
             const key = isMessageItem(item)
               ? (nonce ?? item.message.clientNonce ?? item.id)
               : item.id;
+            const groupStart = Boolean(
+              !grouped &&
+              previous &&
+              isMessageItem(previous) &&
+              isMessageItem(item) &&
+              previousDay === day &&
+              firstUnreadSeq !== item.seq,
+            );
             return (
-              <div key={key}>
+              <div key={key} data-message-group-start={groupStart || undefined}>
                 {previousDay !== day && (
                   <div className={styles.date}>{dateFormat.format(new Date(item.createdAt))}</div>
                 )}
