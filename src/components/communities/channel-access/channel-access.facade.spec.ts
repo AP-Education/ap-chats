@@ -74,10 +74,16 @@ test('forwarding locks channels in stable order and checks destination membershi
   assert.deepEqual(locks, ['a', 'z']);
 });
 
-test('private channel participants can manage pins while public management remains restricted', () => {
+test('channel management requires owner role for public and private channels', () => {
   const facade = access([], []);
-  assert.doesNotThrow(() => facade.requireManager(actor, channel('private', 'private')));
-  assert.throws(() => facade.requireManager(actor, channel('public', 'public')), { status: 403 });
+  for (const kind of ['public', 'private'] as const) {
+    const target = channel(kind, kind);
+    assert.throws(() => facade.requireManager(actor, target), { status: 403 });
+    assert.throws(() => facade.requireManager({ ...actor, id: target.createdByMemberId }, target), {
+      status: 403,
+    });
+    assert.doesNotThrow(() => facade.requireManager({ ...actor, role: 'owner' }, target));
+  }
 });
 
 test('direct messages require both participants and have no channel manager', async () => {

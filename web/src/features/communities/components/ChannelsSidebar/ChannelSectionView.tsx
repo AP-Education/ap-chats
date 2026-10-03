@@ -129,19 +129,18 @@ interface ChannelSectionViewProps {
   section: ChannelSectionData;
 }
 
-// One category (or the synthetic "uncategorized"/"discoverable" bucket): a
-// collapsible header plus its channel rows. Collapse is this section's own
-// business, so it stays local rather than lifted to ChannelsSidebar. The
-// header's "+" is scoped to this section — creating a channel here never
-// asks which category it goes in, mirroring Discord.
 export function ChannelSectionView({ section }: ChannelSectionViewProps) {
   const { styles, cx } = useStyles();
   const { requestCreateChannel, draggingChannel, moveChannel } = useChannelsSidebarStore();
   const [collapsed, setCollapsed] = useState(false);
   const [dropActive, setDropActive] = useState(false);
-  const categoryId = section.id === UNCATEGORIZED ? null : section.id;
+  const isUncategorized = section.id === UNCATEGORIZED;
+  const isCollapsed = !isUncategorized && collapsed;
+  const categoryId = isUncategorized ? null : section.id;
   const canDrop =
     section.canCreateChannel && draggingChannel && draggingChannel.categoryId !== categoryId;
+
+  if (isUncategorized && section.channels.length === 0 && !canDrop) return null;
 
   return (
     <div
@@ -161,42 +160,44 @@ export function ChannelSectionView({ section }: ChannelSectionViewProps) {
         if (canDrop && draggingChannel) moveChannel(draggingChannel, categoryId);
       }}
     >
-      <div className={styles.header}>
-        <button
-          type="button"
-          className={styles.collapseButton}
-          aria-expanded={!collapsed}
-          aria-label={`${collapsed ? 'Розгорнути' : 'Згорнути'} категорію ${section.name}`}
-          onClick={() => setCollapsed((prev) => !prev)}
-        >
-          <CaretRightIcon
-            size={12}
-            weight="bold"
-            className={cx(styles.chevron, !collapsed && styles.chevronOpen)}
-          />
-          <span className={styles.label}>{section.name}</span>
-        </button>
-        {section.canCreateChannel && (
+      {!isUncategorized && (
+        <div className={styles.header}>
           <button
             type="button"
-            className={styles.add}
-            data-role="section-add"
-            aria-label={`Створити канал у категорії ${section.name}`}
-            onClick={() => {
-              requestCreateChannel({
-                categoryId: section.id === UNCATEGORIZED ? undefined : section.id,
-                categoryName: section.name,
-              });
-            }}
+            className={styles.collapseButton}
+            aria-expanded={!collapsed}
+            aria-label={`${collapsed ? 'Розгорнути' : 'Згорнути'} категорію ${section.name}`}
+            onClick={() => setCollapsed((prev) => !prev)}
           >
-            <PlusIcon size={20} />
+            <CaretRightIcon
+              size={12}
+              weight="bold"
+              className={cx(styles.chevron, !collapsed && styles.chevronOpen)}
+            />
+            <span className={styles.label}>{section.name}</span>
           </button>
-        )}
-      </div>
-      {!collapsed && section.channels.length === 0 && section.id === UNCATEGORIZED && (
+          {section.canCreateChannel && (
+            <button
+              type="button"
+              className={styles.add}
+              data-role="section-add"
+              aria-label={`Створити канал у категорії ${section.name}`}
+              onClick={() => {
+                requestCreateChannel({
+                  categoryId: section.id,
+                  categoryName: section.name,
+                });
+              }}
+            >
+              <PlusIcon size={20} />
+            </button>
+          )}
+        </div>
+      )}
+      {isUncategorized && section.channels.length === 0 && canDrop && (
         <div className={styles.emptyHint}>Створіть канал або перетягніть його сюди</div>
       )}
-      {!collapsed &&
+      {!isCollapsed &&
         section.channels.map((channel) => <ChannelRow key={channel.id} channel={channel} />)}
     </div>
   );

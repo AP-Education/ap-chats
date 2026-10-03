@@ -49,6 +49,8 @@ test('guard resolves active workspace member and exposes it on request', async (
   const request: Record<string, unknown> = {
     principal: { sub: member.profile.oidcUserId },
     params: { workspaceId },
+    body: { role: 'owner' },
+    workspaceMember: { ...member, role: 'owner' },
   };
   const repository = {
     findForUser: async (id: string, userId: string) => {

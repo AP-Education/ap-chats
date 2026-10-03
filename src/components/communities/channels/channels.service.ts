@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
@@ -32,6 +37,8 @@ export class ChannelsService {
   }
 
   async create(member: WorkspaceMember, dto: CreateChannelDto): Promise<ChannelView> {
+    if (member.role !== 'owner')
+      throw new ForbiddenException('Only the workspace owner can create channels');
     const name = this.normalizeName(dto.name);
     await this.requireCategory(member.workspaceId, dto.categoryId);
     const channel = await this.channels.create(member.workspaceId, member.id, {

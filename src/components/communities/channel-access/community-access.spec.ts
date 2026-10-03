@@ -63,16 +63,29 @@ test('private channel is hidden from a nonmember', async () => {
   );
 });
 
-test('private channel participant can manage it without owner role', async () => {
+test('private channel participant can read but cannot manage the channel', async () => {
   const channel = makeChannel('private');
   const access = accessFor(channel, true);
   assert.deepEqual(await access.requireVisibleChannel(workspaceId, channelId, memberId), channel);
-  await access.requireManager(channel, makeMember());
+  await assert.rejects(access.requireManager(channel, makeMember()), ForbiddenException);
+  await access.requireManager(channel, makeMember('owner'));
 });
 
-test('public channel management requires creator or workspace owner', async () => {
+test('public channel management requires workspace owner even for the creator', async () => {
   const channel = makeChannel('public');
   const access = accessFor(channel, true);
   await assert.rejects(access.requireManager(channel, makeMember()), ForbiddenException);
+  await assert.rejects(
+    access.requireManager(channel, { ...makeMember(), id: channel.createdByMemberId }),
+    ForbiddenException,
+  );
   await access.requireManager(channel, makeMember('owner'));
+});
+
+test('workspace owner cannot manage a private channel they have not joined', async () => {
+  const channel = makeChannel('private');
+  await assert.rejects(
+    accessFor(channel, false).requireManager(channel, makeMember('owner')),
+    ForbiddenException,
+  );
 });
