@@ -5,6 +5,8 @@ coverage/
 .turbo/
 *.tsbuildinfo
 .vite/
+web/test-results/
+web/playwright-report/
 .husky/_/
 .pnpm-store/
 .env

@@ -1,7 +1,14 @@
-import { GifIcon, PaperclipIcon, SmileyIcon, StickerIcon, XIcon } from '@phosphor-icons/react';
+import {
+  GifIcon,
+  KeyboardIcon,
+  PaperclipIcon,
+  SmileyIcon,
+  StickerIcon,
+  XIcon,
+} from '@phosphor-icons/react';
 import { Popover } from 'antd';
 import { createStyles } from 'antd-style';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { type PointerEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversation, useConversationScope } from '@/features/social/conversation/store';
@@ -11,6 +18,7 @@ import {
 } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
+import { isNativeShell } from '@/shared/lib/nativeBridge';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import type { SendMessageInput } from '../../types';
@@ -18,7 +26,8 @@ import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface'
 import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
 import { ComposerAction } from './ComposerAction';
 import { type GifResult, PickerPanel, type PickerTab } from './picker';
-import { useNativeKeyboardBridge } from './useNativeKeyboardBridge';
+import { useBrowserKeyboardHeight } from './useBrowserKeyboardHeight';
+import { useNativeComposerInput } from './useNativeComposerInput';
 
 const DESKTOP_PANEL_WIDTH = 360;
 const DESKTOP_PANEL_HEIGHT = 440;
@@ -47,6 +56,9 @@ const useStyles = createStyles(({ token, css }) => ({
     @media (max-width: ${token.screenMD}px) {
       gap: 4px;
       padding: 4px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+      html[data-native-shell='true'] & {
+        padding-bottom: 8px;
+      }
       border-top: 1px solid ${token.colorBorderSecondary};
       background: ${token.colorBgContainer};
     }
@@ -61,7 +73,11 @@ const useStyles = createStyles(({ token, css }) => ({
     padding: 8px 10px;
     border-top: 1px solid ${token.colorBorderSecondary};
     background: ${token.colorBgContainer};
-    transition: height 0.15s ease;
+    // Deliberately no transition: the real keyboard's own close animation already
+    // plays out at its own pace (and we have no way to read its progress frame by
+    // frame from web content); animating this height on top of that produces a visible
+    // double-motion/rebound instead of a clean swap. Snapping instantly to the
+    // remembered height reads as "the keyboard became the panel", not two animations.
   `,
   mobileHidden: css`
     display: inline-flex;
@@ -198,9 +214,17 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     contentState.draftKey === draftKey
       ? contentState.hasContent
       : Boolean(readDraft(draftKey).markdown.trim());
-  const [activeTab, setActiveTab] = useState<PickerTab | null>(null);
+  const [webActiveTab, setActiveTab] = useState<PickerTab | null>(null);
   const [lastActiveTab, setLastActiveTab] = useState<PickerTab>(readLastPickerTab);
-  const keyboardHeight = useNativeKeyboardBridge();
+  const keyboardHeight = useBrowserKeyboardHeight();
+  const nativeInput = useNativeComposerInput({
+    draftKey,
+    editorRef: editableRef,
+    onInsert: insertEmoji,
+    onGif: pickGif,
+    onTab: persistLastTab,
+  });
+  const activeTab = isNativeShell() ? nativeInput.activeTab : webActiveTab;
 
   useLayoutEffect(() => {
     if (intent || (composer.autoFocus && !isCompact)) editableRef.current?.focus();
@@ -216,6 +240,9 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
       return;
     }
     editableRef.current?.blur();
+    closePicker();
+    // The blur token represents a user gesture, never a layout-induced scroll.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blurComposerToken]);
 
   function syncHasContent({
@@ -242,15 +269,15 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     localStorage.removeItem(draftKey);
     setContentState({ draftKey, hasContent: false });
     setIntent(null);
-    closePicker();
-    editableRef.current?.focus();
+    // Sending keeps the active input surface, including an open emoji panel.
+    if (!activeTab) editableRef.current?.focus();
   }
 
   function insertEmoji(emoji: string) {
     editableRef.current?.insertText(emoji);
   }
 
-  function pickGif(gif: GifResult) {
+  function pickGif(gif: Pick<GifResult, 'title' | 'url'>) {
     onSend({ markdown: `![${gif.title || 'GIF'}](${gif.url})` });
     setIntent(null);
     closePicker();
@@ -267,14 +294,9 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     persistLastTab(tab);
   }
 
-  // On touch (phone or tablet), opening the panel dismisses the real keyboard and
-  // switches the editor to inputMode="none" so a later insertText() (tapping an emoji)
-  // can refocus it to place the caret without summoning the keyboard back over the panel.
+  // Desktop only — there's no software keyboard to fight with here, so plain click
+  // semantics (and the normal focus-shift that comes with them) are fine.
   function openPicker(tab: PickerTab) {
-    if (isCompact) {
-      editableRef.current?.blur();
-      editableRef.current?.setInputMode('none');
-    }
     setActiveTab((current) => {
       const next = current === tab ? null : tab;
       if (next) persistLastTab(next);
@@ -283,16 +305,49 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
   }
 
   function closePicker() {
+    if (isNativeShell()) {
+      nativeInput.close();
+      return;
+    }
     setActiveTab(null);
-    editableRef.current?.setInputMode('text');
+    editableRef.current?.releaseInput();
   }
 
-  // Runs on pointerdown, ahead of the browser's own focus handling, so inputMode is back
-  // to normal by the time it decides whether to show the keyboard — tapping the text area
-  // while the panel is open should swap straight back to the real keyboard, not reopen it
-  // with the panel still showing.
-  function handleEditorPointerDown() {
-    if (isCompact && activeTab) closePicker();
+  // Runs on pointerdown, ahead of the browser's own focus handling — tapping the text
+  // area while the panel is open lets the browser's normal tap-to-focus take over and
+  // swap straight back to the real keyboard, not reopen it with the panel still showing.
+  function handleEditorPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (!isCompact || !activeTab) return;
+    if (isNativeShell()) {
+      event.preventDefault();
+      nativeInput.keyboard({ x: event.clientX, y: event.clientY });
+      return;
+    }
+    closePicker();
+    // Don't rely on the browser's own tap-to-focus following this pointerdown — on a
+    // real device inside the WebView that isn't reliable enough to bring the keyboard
+    // back on its own; ask for it explicitly, same as the toggle button does. Using the
+    // tap's own coordinates (not a plain focus()) keeps the caret where the user tapped
+    // instead of resetting to offset 0.
+    editableRef.current?.focusAtPoint(event.clientX, event.clientY);
+  }
+
+  // Pointerdown preserves the editor selection; click also works with assistive input.
+  function toggleCompactPicker() {
+    if (isNativeShell()) {
+      if (activeTab) nativeInput.keyboard();
+      else nativeInput.open(lastActiveTab);
+      return;
+    }
+    if (activeTab !== null) {
+      setActiveTab(null);
+      editableRef.current?.resumeInput();
+      return;
+    }
+    const tab = lastActiveTab;
+    setActiveTab(tab);
+    persistLastTab(tab);
+    editableRef.current?.suspendInput();
   }
 
   const toolbarButtons = (
@@ -334,11 +389,16 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
       <IconButton
         size={toolbarActionSize}
         className={cx(styles.toolbarButton, activeTab !== null && styles.toolbarButtonActive)}
-        aria-label="Емодзі, GIF і стікери"
+        aria-label={activeTab !== null ? 'Клавіатура' : 'Емодзі, GIF і стікери'}
         aria-pressed={activeTab !== null}
-        onClick={() => openPicker(lastActiveTab)}
+        onPointerDown={(event) => event.preventDefault()}
+        onClick={toggleCompactPicker}
       >
-        <SmileyIcon size={22} weight={activeTab !== null ? 'duotone' : 'regular'} />
+        {activeTab !== null ? (
+          <KeyboardIcon size={22} />
+        ) : (
+          <SmileyIcon size={22} weight="regular" />
+        )}
       </IconButton>
     </div>
   );
@@ -423,7 +483,7 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
         </MessageInputSurface>
         <ComposerAction hasContent={hasContent} onSend={handleSend} />
       </div>
-      {isCompact && activeTab && (
+      {isCompact && activeTab && !isNativeShell() && (
         <div className={styles.mobileSheet} style={{ height: keyboardHeight }}>
           <PickerPanel
             activeTab={activeTab}

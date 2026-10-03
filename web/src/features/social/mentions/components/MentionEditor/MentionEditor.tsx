@@ -4,6 +4,7 @@ import {
   type CSSProperties,
   type KeyboardEvent,
   type Ref,
+  useEffect,
   useImperativeHandle,
   useRef,
   useState,
@@ -19,6 +20,12 @@ import {
   restoreEditor,
   serializeEditor,
 } from './mention-editor-dom';
+import {
+  captureEditorSelection,
+  insertAtSavedRange,
+  restoreEditorSelection,
+  setEditorInputEnabled,
+} from './mention-editor-selection';
 import { type MentionCandidate, MentionCandidateList } from './MentionCandidateList';
 
 export interface MentionEditorHandle {
@@ -26,10 +33,16 @@ export interface MentionEditorHandle {
   clear: () => void;
   focus: () => void;
   blur: () => void;
+  /** Suspended input edits a saved Range without touching the browser Selection. */
   insertText: (text: string) => void;
-  /** 'none' lets code call focus()/insertText() (e.g. inserting from the mobile picker
-   * panel) without summoning the on-screen keyboard back over the panel. */
-  setInputMode: (mode: 'text' | 'none') => void;
+  suspendInput: () => void;
+  saveSelection: () => void;
+  releaseInput: () => void;
+  resumeInput: (point?: { x: number; y: number }) => void;
+  /** Focuses while placing the caret at the given viewport point instead of wherever
+   * focus() defaults to (offset 0, when the element has no prior selection) — used when
+   * a tap must both resume the real keyboard and land the caret where the user tapped. */
+  focusAtPoint: (clientX: number, clientY: number) => void;
 }
 
 interface MentionEditorProps {
@@ -101,6 +114,7 @@ export function MentionEditor({
   // afterwards (insertText) would fall back to "append at the end" instead of wherever
   // the user had actually placed the caret.
   const lastRange = useRef<Range | null>(null);
+  const inputSuspended = useRef(false);
   const [query, setQuery] = useState<string | null>(null);
   const [active, setActive] = useState(0);
   const candidates = useQuery({
@@ -121,13 +135,21 @@ export function MentionEditor({
   // occasionally capture a stale/collapsed range and silently corrupt the caret position
   // it's supposed to remember.
   function captureSelection() {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0 || !root.current) return;
-    const range = selection.getRangeAt(0);
-    if (root.current.contains(range.commonAncestorContainer)) {
-      lastRange.current = range.cloneRange();
-    }
+    if (!root.current || inputSuspended.current) return;
+    const range = captureEditorSelection(root.current);
+    if (range) lastRange.current = range;
   }
+
+  useEffect(() => {
+    const editor = root.current;
+    const capture = () => {
+      if (!editor || inputSuspended.current || document.activeElement !== editor) return;
+      const range = captureEditorSelection(editor);
+      if (range) lastRange.current = range;
+    };
+    document.addEventListener('selectionchange', capture);
+    return () => document.removeEventListener('selectionchange', capture);
+  }, []);
 
   function currentMarkdown() {
     return serializeEditor(root.current);
@@ -135,6 +157,10 @@ export function MentionEditor({
   function sync() {
     captureSelection();
     onChange?.({ markdown: currentMarkdown(), labels: labels.current });
+    if (inputSuspended.current) {
+      setQuery(null);
+      return;
+    }
     const selection = window.getSelection();
     if (
       !selection ||
@@ -179,55 +205,63 @@ export function MentionEditor({
   }
 
   function insertText(text: string) {
-    const selection = window.getSelection();
-    // Check validity BEFORE focus() — Chrome's default behavior when a contenteditable
-    // is refocused with no live selection already inside it is to silently place the
-    // caret at position 0, which then reads as "already a valid in-root selection" to
-    // this same check if it ran after focus(), permanently hiding the real caret the
-    // user left behind (e.g. when the picker's own blur() moved selection away).
-    const wasValid = Boolean(
-      root.current && selection && root.current.contains(selection.anchorNode),
-    );
-    root.current?.focus();
-    if (!selection || !root.current) return;
-    if (!wasValid) {
-      const restored = lastRange.current;
-      const fallback = document.createRange();
-      if (restored && root.current.contains(restored.commonAncestorContainer)) {
-        fallback.setStart(restored.startContainer, restored.startOffset);
-        fallback.setEnd(restored.endContainer, restored.endOffset);
-      } else {
-        fallback.selectNodeContents(root.current);
-        fallback.collapse(false);
-      }
-      selection.removeAllRanges();
-      selection.addRange(fallback);
+    if (!root.current) return;
+    captureSelection();
+    lastRange.current = insertAtSavedRange(root.current, text, lastRange.current);
+    if (!inputSuspended.current) {
+      root.current.focus({ preventScroll: true });
+      restoreEditorSelection(root.current, lastRange.current);
     }
-    const range = selection.getRangeAt(0);
-    range.deleteContents();
-    const node = document.createTextNode(text);
-    range.insertNode(node);
-    range.setStartAfter(node);
-    range.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(range);
     sync();
+  }
+
+  function releaseInput() {
+    const editor = root.current;
+    if (!editor) return;
+    inputSuspended.current = false;
+    setEditorInputEnabled(editor, true);
+  }
+
+  function resumeInput(point?: { x: number; y: number }) {
+    const editor = root.current;
+    if (!editor) return;
+    releaseInput();
+    const atPoint = point && document.caretRangeFromPoint?.(point.x, point.y);
+    if (atPoint && editor.contains(atPoint.commonAncestorContainer))
+      lastRange.current = atPoint.cloneRange();
+    editor.focus({ preventScroll: true });
+    restoreEditorSelection(editor, lastRange.current);
   }
 
   useImperativeHandle(editorRef, () => ({
     markdown: currentMarkdown,
     clear: () => {
       root.current?.replaceChildren();
+      lastRange.current = null;
       labels.current = {};
       setQuery(null);
       onChange?.({ markdown: '', labels: {} });
     },
-    focus: () => root.current?.focus(),
-    blur: () => root.current?.blur(),
-    setInputMode: (mode) => {
-      if (root.current) root.current.inputMode = mode;
+    focus: () => {
+      if (!inputSuspended.current) root.current?.focus({ preventScroll: true });
+    },
+    blur: () => {
+      captureSelection();
+      root.current?.blur();
     },
     insertText,
+    saveSelection: captureSelection,
+    suspendInput: () => {
+      captureSelection();
+      inputSuspended.current = true;
+      if (root.current) {
+        setEditorInputEnabled(root.current, false);
+      }
+      setQuery(null);
+    },
+    releaseInput,
+    resumeInput,
+    focusAtPoint: (x, y) => resumeInput({ x, y }),
   }));
 
   return (
@@ -235,6 +269,7 @@ export function MentionEditor({
       <div
         ref={(node) => {
           root.current = node;
+          if (node) node.contentEditable = inputSuspended.current ? 'false' : 'true';
           if (node && !initialized.current) {
             restoreEditor(node, draft.current, styles.chip);
             initialized.current = true;
@@ -249,6 +284,7 @@ export function MentionEditor({
         aria-label={ariaLabel}
         data-placeholder={placeholder}
         onInput={sync}
+        onBlur={captureSelection}
         onClick={sync}
         onKeyUp={sync}
         onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {

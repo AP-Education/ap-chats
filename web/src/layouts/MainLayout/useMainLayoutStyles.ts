@@ -3,6 +3,9 @@ import { createStyles } from 'antd-style';
 export const useMainLayoutStyles = createStyles(({ token, css }) => ({
   layout: css`
     height: 100dvh;
+    html[data-native-shell='true'] & {
+      height: 100%;
+    }
     overflow: hidden;
   `,
   mainArea: css`

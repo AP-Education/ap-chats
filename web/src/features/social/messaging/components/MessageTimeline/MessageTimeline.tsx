@@ -1,7 +1,7 @@
 import { ArrowDownIcon, ArrowUpIcon, HashIcon } from '@phosphor-icons/react';
 import { Button, Empty } from 'antd';
 import { createStyles } from 'antd-style';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 
 import type {
   ActionContext,
@@ -174,6 +174,7 @@ export function MessageTimeline({
   const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
   const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
+  const gesture = useRef<{ x: number; y: number; dismissed: boolean } | null>(null);
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   // A deleted message keeps its seq (read state, scroll anchoring, and reply
   // excerpts elsewhere all still need it), but has nothing left worth a row —
@@ -206,9 +207,26 @@ export function MessageTimeline({
       <div
         ref={scrollRef}
         className={styles.scroll}
-        onScroll={() => {
-          onScroll();
-          requestComposerBlur();
+        onScroll={onScroll}
+        onPointerDown={(event) => {
+          if (event.pointerType === 'touch')
+            gesture.current = { x: event.clientX, y: event.clientY, dismissed: false };
+        }}
+        onPointerUp={() => {
+          gesture.current = null;
+        }}
+        onPointerCancel={() => {
+          gesture.current = null;
+        }}
+        onTouchMove={(event) => {
+          const touch = event.touches[0];
+          const start = gesture.current;
+          if (!touch || !start || start.dismissed) return;
+          const vertical = Math.abs(touch.clientY - start.y);
+          if (vertical > 10 && vertical > Math.abs(touch.clientX - start.x)) {
+            start.dismissed = true;
+            requestComposerBlur();
+          }
         }}
         onPointerMove={(event) => {
           if (performance.now() - lastScrollAt.current > 120)
