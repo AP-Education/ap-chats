@@ -18,7 +18,9 @@ const useStyles = createStyles(({ token, css }) => ({
   body: css`
     flex: 1;
     min-height: 0;
+    min-width: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 12px 20px 20px;
 
     @media (max-width: ${token.screenMD}px) {

@@ -30,7 +30,8 @@ const useStyles = createStyles(({ token, css }) => ({
 
     @media (max-width: ${token.screenMD}px) {
       min-height: 72px;
-      padding: 10px 12px;
+      margin-inline: 0;
+      padding: 10px 0;
     }
   `,
   identity: css`
@@ -58,17 +59,20 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   body: css`
     display: flex;
+    flex: 1;
     flex-direction: column;
     gap: 2px;
     min-width: 0;
   `,
   nameLine: css`
     display: flex;
+    min-width: 0;
     align-items: baseline;
     gap: 8px;
   `,
   name: css`
     flex: 1;
+    min-width: 0;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -104,6 +108,11 @@ const useStyles = createStyles(({ token, css }) => ({
   statusIcon: css`
     flex-shrink: 0;
     color: ${token.colorTextQuaternary};
+  `,
+  statusText: css`
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   `,
   toneLive: css`
     color: ${token.colorSuccess};
@@ -195,7 +204,7 @@ export function CallHistoryRow({ item, workspaceId }: CallHistoryRowProps) {
                 tone === 'missed' && styles.toneMissed,
               )}
             />
-            {statusText(item, outgoing)}
+            <span className={styles.statusText}>{statusText(item, outgoing)}</span>
           </span>
         </span>
       </Link>
