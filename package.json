@@ -13,7 +13,7 @@
     "build": "nest build",
     "build:web": "pnpm --filter @ap-chats/web build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "node --import tsx --test \"src/**/*.spec.ts\"",
+    "test": "pnpm test:api && pnpm test:web && pnpm test:mobile",
     "lint": "eslint src",
     "lint:web": "pnpm --filter @ap-chats/web lint",
     "lint:mobile": "pnpm --filter @ap-chats/mobile lint",
@@ -27,7 +27,10 @@
     "start": "node dist/main.js",
     "prepare": "husky",
     "lint-staged": "lint-staged",
-    "commitlint": "commitlint --edit"
+    "commitlint": "commitlint --edit",
+    "test:api": "node --import tsx --test \"src/**/*.spec.ts\"",
+    "test:web": "pnpm --filter @ap-chats/web test",
+    "test:mobile": "pnpm --filter @ap-chats/mobile test"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1139.0",

@@ -2,23 +2,56 @@ import { readFileSync } from 'node:fs';
 import { URL } from 'node:url';
 import { runInNewContext } from 'node:vm';
 
+import type { MouseEvent, TouchEvent } from 'react';
 import ts from 'typescript';
 
-export function createGestureFixture() {
-  const window = new globalThis.EventTarget();
-  const document = new globalThis.EventTarget();
-  const nativeMessages = [];
-  let selection = null;
-  window.getSelection = () => selection;
-  window.ReactNativeWebView = {
-    postMessage: (data) => nativeMessages.push(JSON.parse(data)),
+import type * as ReplySwipeModule from '../../src/features/social/messaging/components/MessageRow/useMessageReplySwipe';
+import type * as SelectionModule from '../../src/features/social/messaging/components/MessageTimeline/useMobileMessageSelection';
+import type * as MobileNavModule from '../../src/layouts/MainLayout/useMobileNavSheet';
+import type * as GestureModule from '../../src/shared/hooks/useTouchGesture';
+
+interface HookSlot {
+  current?: unknown;
+  value?: unknown;
+  deps?: readonly unknown[];
+  cleanup?: (() => void) | void;
+}
+
+export interface SelectionSnapshot {
+  isCollapsed: boolean;
+  rangeCount: number;
+  getRangeAt: (index: number) => {
+    commonAncestorContainer: { nodeType: number; closest: (selector: string) => unknown };
+    intersectsNode: (node: unknown) => boolean;
   };
-  const listeners = new Map();
+  removeAllRanges: () => void;
+}
+
+type NativeBridge = { postMessage: (data: string) => void };
+type TouchOverrides = Record<string, unknown> & {
+  cancelable?: boolean;
+  target?: { closest: (selector: string) => unknown };
+};
+
+export function createGestureFixture() {
+  const nativeMessages: unknown[] = [];
+  let selection: SelectionSnapshot | null = null;
+  const window = Object.assign(new globalThis.EventTarget(), {
+    getSelection: () => selection,
+    ReactNativeWebView: {
+      postMessage: (data: string) => nativeMessages.push(JSON.parse(data)),
+    } as NativeBridge | undefined,
+  });
+  const document = Object.assign(new globalThis.EventTarget(), { hidden: false });
+  const listeners = new Map<
+    string,
+    Map<EventListenerOrEventListenerObject | null, AddEventListenerOptions>
+  >();
   const addListener = window.addEventListener.bind(window);
   const removeListener = window.removeEventListener.bind(window);
   window.addEventListener = (type, listener, options) => {
     const active = listeners.get(type) ?? new Map();
-    active.set(listener, options);
+    active.set(listener, typeof options === 'boolean' ? { capture: options } : (options ?? {}));
     listeners.set(type, active);
     addListener(type, listener, options);
   };
@@ -26,22 +59,22 @@ export function createGestureFixture() {
     listeners.get(type)?.delete(listener);
     removeListener(type, listener, options);
   };
-  const timers = new Map();
-  const effects = [];
+  const timers = new Map<number, { at: number; fn: () => void }>();
+  const effects: (() => void)[] = [];
   let now = 0;
   let nextTimer = 0;
-  let owner;
+  let owner: { cursor: number; slots: HookSlot[] };
   let touchSessionCancelable = true;
 
-  function schedule(fn, delay = 0) {
+  function schedule(fn: () => void, delay = 0) {
     timers.set(++nextTimer, { at: now + delay, fn });
     return nextTimer;
   }
 
-  function effect(fn, deps) {
+  function effect(fn: () => void | (() => void), deps?: readonly unknown[]) {
     const index = owner.cursor++;
     const previous = owner.slots[index];
-    if (!previous || !deps || deps.some((dep, i) => !Object.is(dep, previous.deps[i]))) {
+    if (!previous || !deps || deps.some((dep, i) => !Object.is(dep, previous.deps?.[i]))) {
       const slot = { deps, cleanup: previous?.cleanup };
       owner.slots[index] = slot;
       effects.push(() => {
@@ -52,14 +85,14 @@ export function createGestureFixture() {
   }
 
   const react = {
-    useRef(value) {
-      return (owner.slots[owner.cursor++] ??= { current: value });
+    useRef<T>(value: T) {
+      return (owner.slots[owner.cursor++] ??= { current: value }) as { current: T };
     },
-    useState(value) {
+    useState<T>(value: T): [T, (next: T) => void] {
       const slot = (owner.slots[owner.cursor++] ??= { value });
       return [
-        slot.value,
-        (next) => {
+        slot.value as T,
+        (next: T) => {
           slot.value = next;
         },
       ];
@@ -68,32 +101,38 @@ export function createGestureFixture() {
     useLayoutEffect: effect,
   };
 
-  function load(path, dependencies) {
+  function load<T>(path: string, dependencies: Record<string, unknown>): T {
     const exports = {};
     const source = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
       compilerOptions: { module: ts.ModuleKind.CommonJS },
     }).outputText;
     runInNewContext(source, {
       exports,
-      require: (name) => dependencies[name],
+      require: (name: string) => dependencies[name],
       window,
       document,
       setTimeout: schedule,
-      clearTimeout: (id) => timers.delete(id),
-      requestAnimationFrame: (fn) => schedule(fn, 16),
-      cancelAnimationFrame: (id) => timers.delete(id),
+      clearTimeout: (id: number) => timers.delete(id),
+      requestAnimationFrame: (fn: () => void) => schedule(fn, 16),
+      cancelAnimationFrame: (id: number) => timers.delete(id),
     });
-    return exports;
+    return exports as T;
   }
 
-  const { useTouchGesture } = load('../../src/shared/hooks/useTouchGesture.ts', { react });
-  const { useMobileNavSheet } = load('../../src/layouts/MainLayout/useMobileNavSheet.ts', {
-    react,
-    '@/shared/hooks/useTouchGesture': { useTouchGesture },
-  });
+  const { useTouchGesture } = load<typeof GestureModule>(
+    '../../src/shared/hooks/useTouchGesture.ts',
+    { react },
+  );
+  const { useMobileNavSheet } = load<typeof MobileNavModule>(
+    '../../src/layouts/MainLayout/useMobileNavSheet.ts',
+    {
+      react,
+      '@/shared/hooks/useTouchGesture': { useTouchGesture },
+    },
+  );
 
   const haptics = load('../../src/shared/lib/haptics.ts', {});
-  const { useMessageReplySwipe } = load(
+  const { useMessageReplySwipe } = load<typeof ReplySwipeModule>(
     '../../src/features/social/messaging/components/MessageRow/useMessageReplySwipe.ts',
     {
       react,
@@ -101,16 +140,17 @@ export function createGestureFixture() {
       '@/shared/lib/haptics': haptics,
     },
   );
-  const { useMobileMessageSelection } = load(
+  const { useMobileMessageSelection } = load<typeof SelectionModule>(
     '../../src/features/social/messaging/components/MessageTimeline/useMobileMessageSelection.ts',
     { react },
   );
 
-  function mount(hook, initial) {
-    const component = { cursor: 0, slots: [] };
+  function mount<Options, Value>(hook: (options: Options) => Value, initial: Options) {
+    const component: typeof owner = { cursor: 0, slots: [] };
     let options = initial;
     const renderer = {
-      render(next = options) {
+      value: undefined as Value,
+      render(next = options): Value {
         options = next;
         owner = component;
         component.cursor = 0;
@@ -126,7 +166,7 @@ export function createGestureFixture() {
     return renderer;
   }
 
-  function touch(x = 150, y = 50, extra = {}) {
+  function touch(x = 150, y = 50, extra: TouchOverrides = {}): TouchEvent<HTMLElement> {
     const point = { identifier: 1, clientX: x, clientY: y };
     return {
       touches: [point],
@@ -135,10 +175,10 @@ export function createGestureFixture() {
       target: { closest: () => null },
       currentTarget: {},
       ...extra,
-    };
+    } as unknown as TouchEvent<HTMLElement>;
   }
 
-  function emit(type, x = 150, y = 50, extra = {}) {
+  function emit(type: string, x = 150, y = 50, extra: TouchOverrides = {}) {
     const event = new globalThis.Event(type, {
       cancelable: extra.cancelable ?? (type === 'touchmove' ? touchSessionCancelable : true),
     });
@@ -154,7 +194,7 @@ export function createGestureFixture() {
     return event;
   }
 
-  function advance(ms) {
+  function advance(ms: number) {
     const end = now + ms;
     while (true) {
       const next = [...timers]
@@ -186,6 +226,9 @@ export function createGestureFixture() {
   return {
     nav,
     touch,
+    click: (
+      event: Pick<MouseEvent<HTMLElement>, 'detail' | 'preventDefault' | 'stopPropagation'>,
+    ) => event as MouseEvent<HTMLElement>,
     emit,
     advance,
     document,
@@ -193,15 +236,18 @@ export function createGestureFixture() {
     useTouchGesture,
     useMessageReplySwipe,
     useMobileMessageSelection,
-    setSelection(value) {
+    setSelection(value: SelectionSnapshot) {
       selection = value;
     },
     nativeMessages,
-    setNativeBridge(bridge) {
+    setNativeBridge(bridge: NativeBridge | undefined) {
       window.ReactNativeWebView = bridge;
     },
-    listeners: (type) => [...(listeners.get(type)?.values() ?? [])],
-    beginTouch(event, ...handlers) {
+    listeners: (type: string) => [...(listeners.get(type)?.values() ?? [])],
+    beginTouch(
+      event: TouchEvent<HTMLElement>,
+      ...handlers: ((event: TouchEvent<HTMLElement>) => void)[]
+    ) {
       touchSessionCancelable = [...(listeners.get('touchmove')?.values() ?? [])].some(
         (options) => options?.passive === false,
       );
@@ -209,7 +255,7 @@ export function createGestureFixture() {
     },
     render: () => nav.render(options()),
     isOpen: () => open,
-    setOpen(value) {
+    setOpen(value: boolean) {
       open = value;
       return nav.render(options());
     },

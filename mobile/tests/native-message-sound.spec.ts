@@ -1,38 +1,57 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { test } from 'node:test';
-import { URL } from 'node:url';
 import { runInNewContext } from 'node:vm';
 
 import ts from 'typescript';
 
-function load(path, dependencies, globals = {}) {
+interface AudioMode {
+  playsInSilentMode: boolean;
+  interruptionMode: string;
+}
+
+type PlayerOperation = ['mode', AudioMode] | ['seek', number] | ['play'];
+interface HookSlot {
+  current?: unknown;
+  deps?: readonly unknown[];
+  cleanup?: (() => void) | void;
+}
+
+type SoundModule = { MessageNotificationSound: (props: { request: number }) => null };
+type WebSoundModule = { playMessageBloop: () => void };
+
+function load<T>(
+  path: string,
+  dependencies: Record<string, unknown>,
+  globals: Record<string, unknown> = {},
+): T {
   const exports = {};
-  const source = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
+  const source = ts.transpileModule(readFileSync(resolve(__dirname, path), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS },
   }).outputText;
   runInNewContext(source, {
     exports,
-    require: (name) => {
+    require: (name: string) => {
       assert.ok(name in dependencies, `Unexpected import: ${name}`);
       return dependencies[name];
     },
     ...globals,
   });
-  return exports;
+  return exports as T;
 }
 
 function fixture() {
   const appState = { currentState: 'active' };
-  const store = { call: null };
-  const operations = [];
-  const slots = [];
+  const store: { call: { status: 'connecting' | 'connected' } | null } = { call: null };
+  const operations: PlayerOperation[] = [];
+  const slots: HookSlot[] = [];
   let cursor = 0;
   const status = { isLoaded: true, error: null };
   let mode = async () => {};
   let seek = async () => {};
   const player = {
-    async seekTo(time) {
+    async seekTo(time: number) {
       operations.push(['seek', time]);
       await seek();
     },
@@ -40,27 +59,30 @@ function fixture() {
       operations.push(['play']);
     },
   };
-  const { MessageNotificationSound } = load(
-    '../../mobile/src/features/push/components/MessageNotificationSound.tsx',
+  const { MessageNotificationSound } = load<SoundModule>(
+    '../src/features/push/components/MessageNotificationSound.tsx',
     {
       'expo-audio': {
-        useAudioPlayer: (_source, options) => {
+        useAudioPlayer: (
+          _source: unknown,
+          options: { keepAudioSessionActive: boolean; downloadFirst: boolean },
+        ) => {
           assert.equal(options.keepAudioSessionActive, true);
           assert.equal(options.downloadFirst, true);
           return player;
         },
         useAudioPlayerStatus: () => status,
-        setAudioModeAsync: async (options) => {
+        setAudioModeAsync: async (options: AudioMode) => {
           operations.push(['mode', options]);
           await mode();
         },
       },
       react: {
-        useRef: (value) => (slots[cursor++] ??= { current: value }),
-        useEffect: (effect, deps) => {
+        useRef: (value: unknown) => (slots[cursor++] ??= { current: value }),
+        useEffect: (effect: () => void | (() => void), deps: readonly unknown[]) => {
           const index = cursor++;
           const previous = slots[index];
-          if (previous && deps.every((dep, i) => Object.is(dep, previous.deps[i]))) return;
+          if (previous && deps.every((dep, i) => Object.is(dep, previous.deps?.[i]))) return;
           previous?.cleanup?.();
           slots[index] = { deps, cleanup: effect() };
         },
@@ -76,15 +98,15 @@ function fixture() {
     store,
     operations,
     status,
-    render: (request) => {
+    render: (request: number) => {
       cursor = 0;
       return MessageNotificationSound({ request });
     },
     unmount: () => slots.forEach((slot) => slot.cleanup?.()),
-    setMode: (fn) => {
+    setMode: (fn: () => Promise<void>) => {
       mode = fn;
     },
-    setSeek: (fn) => {
+    setSeek: (fn: () => Promise<void>) => {
       seek = fn;
     },
   };
@@ -95,9 +117,9 @@ async function flush() {
 }
 
 test('message sound is routed to native instead of Web Audio in the RN shell', () => {
-  const messages = [];
-  const { playMessageBloop } = load(
-    '../src/features/social/read-state/sound/messageBloop.ts',
+  const messages: unknown[] = [];
+  const { playMessageBloop } = load<WebSoundModule>(
+    '../../web/src/features/social/read-state/sound/messageBloop.ts',
     {
       '@/shared/audio/audio-context': {
         getSharedAudioContext: () => {
@@ -107,7 +129,9 @@ test('message sound is routed to native instead of Web Audio in the RN shell', (
       '@/shared/audio/tone': {},
     },
     {
-      window: { ReactNativeWebView: { postMessage: (value) => messages.push(JSON.parse(value)) } },
+      window: {
+        ReactNativeWebView: { postMessage: (value: string) => messages.push(JSON.parse(value)) },
+      },
     },
   );
   playMessageBloop();
@@ -115,15 +139,19 @@ test('message sound is routed to native instead of Web Audio in the RN shell', (
 });
 
 test('browser keeps the same two-note message sound', () => {
-  const notes = [];
+  const notes: { frequency: number; startTime: number }[] = [];
   const node = () => ({ connect() {}, disconnect() {}, gain: {}, delayTime: {} });
   const context = { createGain: node, createDelay: node, currentTime: 3, destination: {} };
-  const { playMessageBloop } = load(
-    '../src/features/social/read-state/sound/messageBloop.ts',
+  const { playMessageBloop } = load<WebSoundModule>(
+    '../../web/src/features/social/read-state/sound/messageBloop.ts',
     {
       '@/shared/audio/audio-context': { getSharedAudioContext: () => context },
       '@/shared/audio/tone': {
-        scheduleBell: (_context, _destinations, options) => notes.push(options),
+        scheduleBell: (
+          _context: unknown,
+          _destinations: unknown,
+          options: { frequency: number; startTime: number },
+        ) => notes.push(options),
       },
     },
     { window: {}, setTimeout: () => {} },
@@ -149,8 +177,10 @@ test('native player configures mixed audio and replays the loaded message sound'
     f.operations.map((operation) => operation[0]),
     ['mode', 'seek', 'play'],
   );
-  assert.equal(f.operations[0][1].playsInSilentMode, false);
-  assert.equal(f.operations[0][1].interruptionMode, 'mixWithOthers');
+  const mode = f.operations[0];
+  assert.equal(mode[0], 'mode');
+  assert.equal(mode[1].playsInSilentMode, false);
+  assert.equal(mode[1].interruptionMode, 'mixWithOthers');
   assert.equal(f.operations[1][1], 0);
   f.render(2);
   await flush();
@@ -171,10 +201,10 @@ test('native sound does not play in background or change an active call audio se
 
 test('native sound is cancelled if a call starts while audio mode is being configured', async () => {
   const f = fixture();
-  let finish;
+  let finish!: () => void;
   f.setMode(
     () =>
-      new Promise((resolve) => {
+      new Promise<void>((resolve) => {
         finish = resolve;
       }),
   );
@@ -191,10 +221,10 @@ test('native sound is cancelled if a call starts while audio mode is being confi
 test('native sound cannot play after unmount or after the app goes to background', async () => {
   for (const cancel of ['unmount', 'background']) {
     const f = fixture();
-    let finish;
+    let finish!: () => void;
     f.setSeek(
       () =>
-        new Promise((resolve) => {
+        new Promise<void>((resolve) => {
           finish = resolve;
         }),
     );

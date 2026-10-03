@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 test('a 401 renews the token and retries the original request once', async () => {
-  const tokens = [];
+  const tokens: (string | null)[] = [];
   let refreshes = 0;
   setApiAuthSession({
     identity: 'user-one',
@@ -22,7 +22,7 @@ test('a 401 renews the token and retries the original request once', async () =>
     },
   });
   globalThis.fetch = async (_url, init) => {
-    tokens.push(init.headers.Authorization);
+    tokens.push(new Headers(init?.headers).get('Authorization'));
     return new globalThis.Response(JSON.stringify({ ok: true }), {
       status: tokens.length === 1 ? 401 : 200,
     });
@@ -45,9 +45,12 @@ test('concurrent 401 responses share one renewal', async () => {
     },
   });
   globalThis.fetch = async (_url, init) =>
-    new globalThis.Response(JSON.stringify({ token: init.headers.Authorization }), {
-      status: init.headers.Authorization === 'Bearer old' ? 401 : 200,
-    });
+    new globalThis.Response(
+      JSON.stringify({ token: new Headers(init?.headers).get('Authorization') }),
+      {
+        status: new Headers(init?.headers).get('Authorization') === 'Bearer old' ? 401 : 200,
+      },
+    );
 
   const results = await Promise.all([apiRequest('/api/one', 'old'), apiRequest('/api/two', 'old')]);
   assert.deepEqual(results, [{ token: 'Bearer new' }, { token: 'Bearer new' }]);

@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { QueryClient } from '@tanstack/react-query';
+import { type InfiniteData, QueryClient } from '@tanstack/react-query';
 
 import { catchUpHistory, mergeHistoryItem } from './history-cache.ts';
 import { messagingQueryKeys } from './queryKeys.ts';
+import type { HistoryPage, MessageHistoryItem } from './types';
 
-function item(id, seq) {
+function item(id: string, seq: string): MessageHistoryItem {
   return {
     type: 'MESSAGE',
     id,
@@ -35,7 +36,7 @@ function item(id, seq) {
   };
 }
 
-function page(items, hasNewer = false) {
+function page(items: MessageHistoryItem[], hasNewer = false): HistoryPage {
   return {
     items,
     snapshotSeq: items.at(-1)?.seq ?? '0',
@@ -60,9 +61,9 @@ test('ack and socket delivery of the same message keep one row in the current wi
   mergeHistoryItem(client, 'user', 'workspace', 'channel', item('second', '2'));
   mergeHistoryItem(client, 'user', 'workspace', 'channel', item('second', '2'));
 
-  const data = client.getQueryData(key);
+  const data = client.getQueryData<InfiniteData<HistoryPage>>(key);
   assert.deepEqual(
-    data?.pages[0]?.items.map((entry) => entry.message.id),
+    data?.pages[0]?.items.map((entry) => entry.id),
     ['first', 'second'],
   );
   assert.equal(data?.pages[0]?.snapshotSeq, '2');
@@ -77,7 +78,7 @@ test('a message outside an anchored window does not corrupt that window', () => 
 
   mergeHistoryItem(client, 'user', 'workspace', 'channel', item('newest', '9'));
 
-  assert.equal(client.getQueryData(key), original);
+  assert.equal(client.getQueryData<InfiniteData<HistoryPage>>(key), original);
 });
 
 test('a future message waits for the missing sequence instead of opening a gap', () => {
@@ -88,7 +89,7 @@ test('a future message waits for the missing sequence instead of opening a gap',
 
   mergeHistoryItem(client, 'user', 'workspace', 'channel', item('fourth', '4'));
 
-  assert.equal(client.getQueryData(key), original);
+  assert.equal(client.getQueryData<InfiniteData<HistoryPage>>(key), original);
 });
 
 test('contiguous acknowledgement does not request an after page', async () => {
@@ -105,7 +106,7 @@ test('contiguous acknowledgement does not request an after page', async () => {
 
   assert.equal(requests, 0);
   assert.deepEqual(
-    client.getQueryData(key)?.pages[0]?.items.map((entry) => entry.seq),
+    client.getQueryData<InfiniteData<HistoryPage>>(key)?.pages[0]?.items.map((entry) => entry.seq),
     ['1', '2'],
   );
 });
@@ -114,7 +115,7 @@ test('a sequence gap fetches only missing entries before the acknowledgement', a
   const client = new QueryClient();
   const key = messagingQueryKeys.history('user', 'workspace', 'channel');
   client.setQueryData(key, { pages: [page([item('first', '1')])], pageParams: [] });
-  const cursors = [];
+  const cursors: string[] = [];
 
   await catchUpHistory(client, 'user', 'workspace', 'channel', key, '4', async (cursor) => {
     cursors.push(cursor);
@@ -124,7 +125,7 @@ test('a sequence gap fetches only missing entries before the acknowledgement', a
 
   assert.deepEqual(cursors, ['1']);
   assert.deepEqual(
-    client.getQueryData(key)?.pages[0]?.items.map((entry) => entry.seq),
+    client.getQueryData<InfiniteData<HistoryPage>>(key)?.pages[0]?.items.map((entry) => entry.seq),
     ['1', '2', '3', '4'],
   );
 });

@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { createGestureFixture } from './fixtures/touch-gesture-runtime.mjs';
+import { createGestureFixture } from './fixtures/touch-gesture-runtime.ts';
 
-function replyFixture(extra = {}) {
+function replyFixture(
+  extra: Partial<
+    Parameters<ReturnType<typeof createGestureFixture>['useMessageReplySwipe']>[0]
+  > = {},
+) {
   const runtime = createGestureFixture();
   let replies = 0;
   let longPresses = 0;
@@ -31,12 +35,12 @@ function replyFixture(extra = {}) {
         row.value.gesture.onTouchStartCapture,
       );
     },
-    move(x, y = 50) {
+    move(x: number, y = 50) {
       runtime.emit('touchmove', x, y);
       runtime.advance(16);
       return row.render();
     },
-    release(x, y = 50) {
+    release(x: number, y = 50) {
       runtime.emit('touchend', x, y);
       return row.render();
     },
