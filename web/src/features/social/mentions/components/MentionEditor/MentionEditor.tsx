@@ -25,7 +25,11 @@ export interface MentionEditorHandle {
   markdown: () => string;
   clear: () => void;
   focus: () => void;
+  blur: () => void;
   insertText: (text: string) => void;
+  /** 'none' lets code call focus()/insertText() (e.g. inserting from the mobile picker
+   * panel) without summoning the on-screen keyboard back over the panel. */
+  setInputMode: (mode: 'text' | 'none') => void;
 }
 
 interface MentionEditorProps {
@@ -54,6 +58,11 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow-wrap: anywhere;
     &:empty::before {
       content: attr(data-placeholder);
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
       color: ${token.colorTextQuaternary};
       pointer-events: none;
     }
@@ -87,6 +96,11 @@ export function MentionEditor({
   const draft = useRef<MentionDraft>(initialDraft ?? { markdown: '', labels: {} });
   const labels = useRef<Record<string, string>>(initialDraft?.labels ?? {});
   const initialized = useRef(false);
+  // Tracks the caret position while it's inside this editor. Blurring (e.g. to open the
+  // mobile picker sheet) moves or clears the live Selection, so without this, inserting
+  // afterwards (insertText) would fall back to "append at the end" instead of wherever
+  // the user had actually placed the caret.
+  const lastRange = useRef<Range | null>(null);
   const [query, setQuery] = useState<string | null>(null);
   const [active, setActive] = useState(0);
   const candidates = useQuery({
@@ -100,10 +114,26 @@ export function MentionEditor({
     staleTime: 30_000,
   });
 
+  // Called only from handlers that already fired ON this editor (click/input/keyup) —
+  // deliberately not a document-wide `selectionchange` listener. That event is fired
+  // async and its timing relative to focus moving to another element (the picker's
+  // search input, a category button) isn't reliably ordered, so a global listener could
+  // occasionally capture a stale/collapsed range and silently corrupt the caret position
+  // it's supposed to remember.
+  function captureSelection() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || !root.current) return;
+    const range = selection.getRangeAt(0);
+    if (root.current.contains(range.commonAncestorContainer)) {
+      lastRange.current = range.cloneRange();
+    }
+  }
+
   function currentMarkdown() {
     return serializeEditor(root.current);
   }
   function sync() {
+    captureSelection();
     onChange?.({ markdown: currentMarkdown(), labels: labels.current });
     const selection = window.getSelection();
     if (
@@ -149,15 +179,29 @@ export function MentionEditor({
   }
 
   function insertText(text: string) {
-    root.current?.focus();
     const selection = window.getSelection();
+    // Check validity BEFORE focus() — Chrome's default behavior when a contenteditable
+    // is refocused with no live selection already inside it is to silently place the
+    // caret at position 0, which then reads as "already a valid in-root selection" to
+    // this same check if it ran after focus(), permanently hiding the real caret the
+    // user left behind (e.g. when the picker's own blur() moved selection away).
+    const wasValid = Boolean(
+      root.current && selection && root.current.contains(selection.anchorNode),
+    );
+    root.current?.focus();
     if (!selection || !root.current) return;
-    if (!root.current.contains(selection.anchorNode)) {
-      const end = document.createRange();
-      end.selectNodeContents(root.current);
-      end.collapse(false);
+    if (!wasValid) {
+      const restored = lastRange.current;
+      const fallback = document.createRange();
+      if (restored && root.current.contains(restored.commonAncestorContainer)) {
+        fallback.setStart(restored.startContainer, restored.startOffset);
+        fallback.setEnd(restored.endContainer, restored.endOffset);
+      } else {
+        fallback.selectNodeContents(root.current);
+        fallback.collapse(false);
+      }
       selection.removeAllRanges();
-      selection.addRange(end);
+      selection.addRange(fallback);
     }
     const range = selection.getRangeAt(0);
     range.deleteContents();
@@ -179,6 +223,10 @@ export function MentionEditor({
       onChange?.({ markdown: '', labels: {} });
     },
     focus: () => root.current?.focus(),
+    blur: () => root.current?.blur(),
+    setInputMode: (mode) => {
+      if (root.current) root.current.inputMode = mode;
+    },
     insertText,
   }));
 
@@ -202,6 +250,7 @@ export function MentionEditor({
         data-placeholder={placeholder}
         onInput={sync}
         onClick={sync}
+        onKeyUp={sync}
         onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
           if (event.nativeEvent.isComposing) return;
           if (query !== null && candidates.data?.length) {

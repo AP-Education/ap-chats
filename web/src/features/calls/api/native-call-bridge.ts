@@ -1,3 +1,4 @@
+import { postToNative } from '@/shared/lib/nativeBridge';
 import { resolveImageUrl } from '@/shared/lib/resolve-image-url';
 
 import type { NativeCallConnectPayload } from '../types';
@@ -11,5 +12,5 @@ export function requestNativeCallConnect(payload: NativeCallConnectPayload): voi
     type: 'calls/connect',
     payload: { ...payload, calleeAvatarPath: resolveImageUrl(payload.calleeAvatarPath) },
   };
-  window.ReactNativeWebView?.postMessage(JSON.stringify(message));
+  postToNative(message);
 }

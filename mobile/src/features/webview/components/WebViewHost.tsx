@@ -1,7 +1,7 @@
 import { selectionAsync } from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { AppState, StyleSheet } from 'react-native';
+import { AppState, Keyboard, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 import type {
@@ -58,6 +58,39 @@ export function WebViewHost() {
     }
     webViewRef.current?.injectJavaScript(buildBridgeScript(message));
   }, [auth, loadCount]);
+
+  // Relays the system keyboard's own show/hide timing into web/, so the composer's
+  // picker panel can open at that exact height and swap with the real keyboard without
+  // a layout jump — see keyboard/show's doc comment in types/index.ts. iOS fires the
+  // "will" variants ahead of the animation with a real duration; Android has no such
+  // event, only "did" (after the fact) with no reported duration.
+  useEffect(() => {
+    if (loadCount === 0) return;
+
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      const message: NativeToWebMessage = {
+        type: 'keyboard/show',
+        height: event.endCoordinates.height,
+        duration: event.duration || 250,
+      };
+      webViewRef.current?.injectJavaScript(buildBridgeScript(message));
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, (event) => {
+      const message: NativeToWebMessage = {
+        type: 'keyboard/hide',
+        duration: event?.duration || 200,
+      };
+      webViewRef.current?.injectJavaScript(buildBridgeScript(message));
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [loadCount]);
 
   function handleMessage(event: WebViewMessageEvent) {
     let message: WebToNativeMessage;
