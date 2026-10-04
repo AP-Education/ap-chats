@@ -1,4 +1,4 @@
-name: ap-chats-uploads-test
+name: ap-chats-upload-tests
 
 services:
   postgres:

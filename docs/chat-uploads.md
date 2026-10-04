@@ -24,7 +24,7 @@ Research checked on 2026-10-02:
 | Signed upload/download URL             | 15 minutes                       |
 | Outstanding uploads per member         | 20 files and 4 GB                |
 
-`CHAT_UPLOAD_MAX_FILE_BYTES`, `CHAT_UPLOAD_MAX_MESSAGE_BYTES`, and `CHAT_UPLOAD_MAX_FILES` configure the public limits. The file ceiling remains 1 GB. The authenticated policy endpoint is the UI's source of truth.
+`CHAT_UPLOAD_MAX_FILE_BYTES`, `CHAT_UPLOAD_MAX_MESSAGE_BYTES`, and `CHAT_UPLOAD_MAX_FILES` configure the public limits. The file ceiling remains 1 GB. The authenticated policy endpoint is the UI's source of truth. `CHAT_UPLOAD_MAX_PENDING_FILES`/`CHAT_UPLOAD_MAX_PENDING_BYTES` configure the outstanding-uploads reservation cap; `UploadPolicy.pendingLimitsFor(member)` is the one seam a future per-member/per-role quota plugs into.
 
 ### User flow
 
@@ -61,14 +61,14 @@ sequenceDiagram
     API->>S3: Inspect prefix; optional bounded thumbnail
     API->>DB: Short transaction: publish ready metadata
     API-->>Browser: Attachment metadata
-    Browser->>API: Send caption + attachment IDs + nonce
+    Browser->>API: Send caption + attachment refs (id, description) + nonce
     API->>DB: Claim ready files and create message atomically
 ```
 
 ### Memory and recovery
 
 - Original file bytes travel directly from browser to S3. API ingress contains only small JSON requests. Browser sends `File.slice()` blobs without `arrayBuffer()`/base64 conversion. Four slices may be active, irrespective of total file size; browser/network implementations can allocate additional internal buffers.
-- MIME is derived from a bounded 512-byte range, rather than trusting the filename or browser MIME.
+- MIME is derived from a bounded 4,100-byte range via `file-type`'s signature detection, rather than trusting the filename or browser MIME. Inline preview for video/audio is further restricted to an explicit allowlist of formats browsers reliably play (`file-type` identifies far more containers than that).
 - Image thumbnails are limited to 20 MiB source bytes, 20 million pixels and 10,000 pixels per dimension. Source bytes stream to a temporary file; thumbnail output is bounded to 960 px. One render and at most four waiters are allowed per API process. Larger/unsupported files remain download cards.
 - Storage requests, image streaming and rendering have time limits. Completion processing does not hold a channel lock or a database connection during storage/thumbnail work. A database lease coordinates completion across API replicas. An interrupted process releases its lease after 30 minutes; storage completion is recovered through `NoSuchUpload` plus an authoritative HEAD check.
 - Part sizes/order/count are verified using S3 `ListParts`; final object size is verified using HEAD. The client does not supply authoritative ETags or sizes.
@@ -131,11 +131,11 @@ Browser tests use actual chat components with mocked API/storage and cover 1440Ã
 The integration script uses only the dedicated localhost test services below, with credentials explicitly set in the script. It migrates its isolated PostgreSQL database and tests real S3 signed multipart transfer, signature tampering, private access, nonce idempotency, forwarding, thumbnails and orphan cleanup. It streams a reusable 64 KiB chunk; `--large` transfers a real 1 GB object.
 
 ```sh
-docker compose -p ap-chats-upload-tests -f infra/docker-compose.uploads-test.yml up -d --wait
+docker compose -f infra/docker-compose.uploads-test.yml up -d --wait
 pnpm test:uploads:integration
 pnpm build
-node test/uploads.integration.mjs --large
-docker compose -p ap-chats-upload-tests -f infra/docker-compose.uploads-test.yml down -v
+node --import tsx test/uploads.integration.mts --large
+docker compose -f infra/docker-compose.uploads-test.yml down -v
 ```
 
 The test only accepts dedicated local endpoints (ports 5437 and 9017) and never reads production credentials. SeaweedFS provides a local S3-compatible server; production Spaces CORS/permissions must also be checked in the deployment environment.
