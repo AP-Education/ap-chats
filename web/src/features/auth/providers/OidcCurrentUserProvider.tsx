@@ -22,34 +22,36 @@ export function OidcCurrentUserProvider({ children }: PropsWithChildren) {
   const auth = useAuth();
   const signedInUser = auth.isAuthenticated && auth.user && !auth.user.expired ? auth.user : null;
 
-  const state: CurrentUserState = auth.isLoading
-    ? { status: 'loading' }
-    : signedInUser
-      ? {
-          status: 'signed-in',
-          accessToken: signedInUser.access_token,
-          idToken: signedInUser.id_token,
-          queryIdentity: signedInUser.profile.sub,
-          profile: toProfile(signedInUser.profile),
-          signOut: () =>
-            void auth.signoutRedirect({
-              id_token_hint: signedInUser.id_token,
-              post_logout_redirect_uri: window.location.origin,
-            }),
-          refreshAccessToken: async () => {
-            const renewed = await auth.signinSilent();
-            if (!renewed?.access_token)
-              throw new Error('OIDC token renewal returned no access token');
-            return renewed.access_token;
-          },
-        }
+  const state: CurrentUserState = signedInUser
+    ? {
+        status: 'signed-in',
+        accessToken: signedInUser.access_token,
+        idToken: signedInUser.id_token,
+        queryIdentity: signedInUser.profile.sub,
+        profile: toProfile(signedInUser.profile),
+        signOut: () =>
+          void auth.signoutRedirect({
+            id_token_hint: signedInUser.id_token,
+            post_logout_redirect_uri: window.location.origin,
+          }),
+        refreshAccessToken: async () => {
+          const renewed = await auth.signinSilent();
+          if (!renewed?.access_token)
+            throw new Error('OIDC token renewal returned no access token');
+          return renewed.access_token;
+        },
+      }
+    : auth.isLoading
+      ? { status: 'loading' }
       : {
           status: 'signed-out',
           retry: Boolean(auth.error),
           // window.location, not useLocation() — this provider sits above the router.
           signIn: () =>
             void auth.signinRedirect({
-              state: { returnTo: window.location.pathname + window.location.search },
+              state: {
+                returnTo: window.location.pathname + window.location.search + window.location.hash,
+              },
             }),
         };
 
