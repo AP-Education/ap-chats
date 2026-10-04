@@ -1,16 +1,13 @@
 import { ApiError } from '@/shared/api/http';
+import { randomId } from '@/shared/lib/random-id';
 
-import { beginUpload, cancelUpload, completeUpload, signUploadPart } from './attachments-api';
 import { formatFileSize } from './file-presentation';
-import type { AttachmentDraft, AttachmentPolicy, UploadScope, UploadSession } from './types';
-import { PartUploadError, uploadPart } from './upload-part';
+import { MultipartUploader, type UploadResumeState } from './multipart-uploader';
+import type { AttachmentDraft, AttachmentPolicy, UploadScope } from './types';
 
-interface UploadJob {
+interface UploadJob extends UploadResumeState {
   file: File;
   draft: AttachmentDraft;
-  session?: UploadSession;
-  completed: Set<number>;
-  bytes: Map<number, number>;
   controller?: AbortController;
 }
 
@@ -22,9 +19,9 @@ export class UploadQueue {
   private disposed = false;
   private token: string | undefined;
 
-  private readonly scope: UploadScope;
+  private readonly uploader: MultipartUploader;
   constructor(scope: UploadScope) {
-    this.scope = scope;
+    this.uploader = new MultipartUploader(() => this.tokenOrThrow(), scope);
   }
 
   setToken(token: string | undefined): void {
@@ -65,7 +62,7 @@ export class UploadQueue {
         )
       )
         continue;
-      const key = crypto.randomUUID();
+      const key = randomId();
       const previewUrl =
         /^(image\/(jpeg|png|webp|gif))$/.test(file.type) && file.size <= 20 * 1024 * 1024
           ? URL.createObjectURL(file)
@@ -93,8 +90,7 @@ export class UploadQueue {
     this.jobs.delete(key);
     job.controller?.abort();
     if (job.draft.previewUrl) URL.revokeObjectURL(job.draft.previewUrl);
-    if (job.session && this.token)
-      void cancelUpload(this.token, this.scope, job.session.id).catch(() => undefined);
+    this.uploader.cancel(this.token, job.session);
     this.publish();
   }
 
@@ -166,73 +162,15 @@ export class UploadQueue {
     };
     update({ status: 'uploading' });
     try {
-      job.session ??= await beginUpload(this.tokenOrThrow(), this.scope, job.file);
-      if (controller.signal.aborted) {
-        void cancelUpload(this.tokenOrThrow(), this.scope, job.session.id).catch(() => undefined);
-        return;
-      }
-      const session = job.session;
-      const remaining = Array.from(
-        { length: Math.ceil(job.file.size / session.partBytes) },
-        (_, index) => index + 1,
-      ).filter((number) => !job.completed.has(number));
-      const sendPart = async () => {
-        while (remaining.length && !controller.signal.aborted) {
-          const number = remaining.shift()!;
-          const part = job.file.slice(
-            (number - 1) * session.partBytes,
-            Math.min(number * session.partBytes, job.file.size),
-          );
-          for (let attempt = 0; ; attempt++) {
-            try {
-              job.bytes.set(number, 0);
-              const { url } = await signUploadPart(
-                this.tokenOrThrow(),
-                this.scope,
-                session.id,
-                number,
-              );
-              await uploadPart(url, part, controller.signal, (bytes) => {
-                job.bytes.set(number, bytes);
-                const sent = [...job.bytes.values()].reduce((sum, value) => sum + value, 0);
-                update({ progress: Math.min(99, Math.floor((sent / job.file.size) * 100)) });
-              });
-              job.completed.add(number);
-              break;
-            } catch (error) {
-              if (
-                controller.signal.aborted ||
-                attempt >= 2 ||
-                (error instanceof ApiError && error.status < 500) ||
-                (error instanceof PartUploadError &&
-                  error.status > 0 &&
-                  error.status < 500 &&
-                  error.status !== 403)
-              )
-                throw error;
-              await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
-              if (controller.signal.aborted) throw error;
-            }
-          }
-        }
-      };
-      // Wait for both workers before freeing the queue slot, including after failure.
-      let firstFailure: unknown;
-      const worker = () =>
-        sendPart().catch((error) => {
-          firstFailure ??= error;
-          controller.abort();
-          throw error;
-        });
-      const workers = await Promise.allSettled([worker(), worker()]);
-      const failure = workers.find((result) => result.status === 'rejected');
-      if (failure?.status === 'rejected') throw firstFailure;
-      if (controller.signal.aborted) return;
-      update({ status: 'processing', progress: 100 });
-      const attachment = await completeUpload(this.tokenOrThrow(), this.scope, session.id);
-      update({ status: 'ready', attachment });
+      const result = await this.uploader.upload(job.file, job, controller.signal, {
+        onProgress: (sent) =>
+          update({ progress: Math.min(99, Math.floor((sent / job.file.size) * 100)) }),
+        onProcessing: () => update({ status: 'processing', progress: 100 }),
+      });
+      job.session = result.session;
+      update({ status: 'ready', attachment: result.attachment });
     } catch (error) {
-      if (!this.jobs.has(key)) return;
+      if (!this.jobs.has(key) || controller.signal.aborted) return;
       if (error instanceof ApiError && error.status === 404) {
         delete job.session;
         job.completed.clear();

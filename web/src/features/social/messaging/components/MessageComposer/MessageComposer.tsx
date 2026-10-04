@@ -6,24 +6,34 @@ import {
   StickerIcon,
   XIcon,
 } from '@phosphor-icons/react';
-import { Button, Popover, Tooltip } from 'antd';
+import { Button, Popover } from 'antd';
 import { createStyles } from 'antd-style';
-import { type PointerEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  type PointerEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversation, useConversationScope } from '@/features/social/conversation/store';
-import {
-  MentionEditor,
-  type MentionEditorHandle,
-} from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { isNativeShell } from '@/shared/lib/nativeBridge';
 import { IconButton } from '@/shared/ui/IconButton';
 
-import { formatFileSize } from '../../attachments/file-presentation';
 import { useAttachments } from '../../attachments/useAttachments';
-import type { SendMessageInput } from '../../types';
+import { MessageEditorSlotProvider } from '../../MessageEditorSlot';
+import type {
+  ComposerDraft,
+  ComposerEditorApi,
+  ComposerEditorSlotProps,
+  SendMessageCommand,
+} from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
 import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
@@ -177,10 +187,12 @@ const useStyles = createStyles(({ token, css }) => ({
 interface MessageComposerProps {
   replyAuthor?: string;
   replyPreview?: string;
-  onSend: (input: Omit<SendMessageInput, 'clientNonce'>) => void;
+  onSend: (input: Omit<SendMessageCommand, 'clientNonce'>) => void;
+  /** The text-input to compose with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
+  children: ReactNode;
 }
 
-function readDraft(key: string): { markdown: string; labels: Record<string, string> } {
+function readDraft(key: string): ComposerDraft {
   const stored = localStorage.getItem(key);
   if (!stored) return { markdown: '', labels: {} };
   try {
@@ -193,7 +205,12 @@ function readDraft(key: string): { markdown: string; labels: Record<string, stri
   return { markdown: '', labels: {} };
 }
 
-export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageComposerProps) {
+export function MessageComposer({
+  replyAuthor,
+  replyPreview,
+  onSend,
+  children,
+}: MessageComposerProps) {
   const { styles, cx } = useStyles();
   const { workspaceId, channelId, composer } = useConversationScope();
   const { identity } = useQueryAuth();
@@ -208,7 +225,7 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
   // on touch input itself, not viewport width.
   const isCompact = isMobile || hasCoarsePointer;
   const toolbarActionSize = isMobile ? 36 : 38;
-  const editableRef = useRef<MentionEditorHandle>(null);
+  const editableRef = useRef<ComposerEditorApi>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const uploads = useAttachments();
   const { bindTarget, overlay } = useAttachmentDrop(uploads.addFiles);
@@ -255,19 +272,16 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blurComposerToken]);
 
-  function syncHasContent({
-    markdown,
-    labels,
-  }: {
-    markdown: string;
-    labels: Record<string, string>;
-  }) {
-    if (markdown) localStorage.setItem(draftKey, JSON.stringify({ markdown, labels }));
-    else localStorage.removeItem(draftKey);
-    setContentState({ draftKey, hasContent: markdown.trim().length > 0 });
-  }
+  const syncHasContent = useCallback(
+    ({ markdown, labels }: ComposerDraft) => {
+      if (markdown) localStorage.setItem(draftKey, JSON.stringify({ markdown, labels }));
+      else localStorage.removeItem(draftKey);
+      setContentState({ draftKey, hasContent: markdown.trim().length > 0 });
+    },
+    [draftKey],
+  );
 
-  function handleSend() {
+  const handleSend = useCallback(() => {
     const markdown = editableRef.current?.markdown().trim() ?? '';
     if (!canSend) return;
     const drafts = uploads.takeReady();
@@ -275,10 +289,6 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
       markdown,
       ...(drafts.length
         ? {
-            attachmentIds: drafts.map((draft) => draft.attachment!.id),
-            attachmentDescriptions: Object.fromEntries(
-              drafts.map((draft) => [draft.attachment!.id, draft.description]),
-            ),
             attachments: drafts.map((draft) => ({
               ...draft.attachment!,
               description: draft.description || null,
@@ -294,7 +304,8 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     setIntent(null);
     // Sending keeps the active input surface, including an open emoji panel.
     if (!activeTab) editableRef.current?.focus();
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canSend, uploads, onSend, intent, draftKey, setIntent, activeTab]);
 
   function insertEmoji(emoji: string) {
     editableRef.current?.insertText(emoji);
@@ -335,6 +346,12 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     setActiveTab(null);
     editableRef.current?.releaseInput();
   }
+
+  const onEscape = useCallback(() => {
+    if (activeTab) closePicker();
+    else setIntent(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, setIntent]);
 
   // Runs on pointerdown, ahead of the browser's own focus handling — tapping the text
   // area while the panel is open lets the browser's normal tap-to-focus take over and
@@ -426,6 +443,32 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     </div>
   );
 
+  const slot = useMemo<ComposerEditorSlotProps>(
+    () => ({
+      editorRef: editableRef,
+      draftKey,
+      initialDraft,
+      className: styles.editable,
+      ariaLabel: composer.ariaLabel,
+      placeholder: composer.placeholder,
+      onChange: syncHasContent,
+      onSubmit: handleSend,
+      onEscape,
+      onPasteFiles: uploads.addFiles,
+    }),
+    [
+      draftKey,
+      initialDraft,
+      styles.editable,
+      composer.ariaLabel,
+      composer.placeholder,
+      syncHasContent,
+      handleSend,
+      onEscape,
+      uploads.addFiles,
+    ],
+  );
+
   return (
     <div className={styles.root}>
       <div className={styles.shell} ref={bindTarget}>
@@ -493,23 +536,15 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
           }
           leading={
             <span className={styles.mobileHidden}>
-              <Tooltip
-                title={
-                  uploads.policy
-                    ? `До ${uploads.policy.maxFiles} файлів, ${formatFileSize(uploads.policy.maxFileBytes)} на файл`
-                    : 'Завантаження лімітів'
-                }
+              <IconButton
+                size={toolbarActionSize}
+                className={styles.toolbarButton}
+                aria-label="Додати файл"
+                disabled={!uploads.policy}
+                onClick={() => fileInput.current?.click()}
               >
-                <IconButton
-                  size={toolbarActionSize}
-                  className={styles.toolbarButton}
-                  aria-label="Додати файл"
-                  disabled={!uploads.policy}
-                  onClick={() => fileInput.current?.click()}
-                >
-                  <PaperclipIcon size={22} />
-                </IconButton>
-              </Tooltip>
+                <PaperclipIcon size={22} />
+              </IconButton>
             </span>
           }
           trailing={
@@ -538,18 +573,7 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
           }
         >
           <div onPointerDownCapture={handleEditorPointerDown} style={{ display: 'contents' }}>
-            <MentionEditor
-              key={draftKey}
-              editorRef={editableRef}
-              initialDraft={initialDraft}
-              className={styles.editable}
-              ariaLabel={composer.ariaLabel}
-              placeholder={composer.placeholder}
-              onChange={syncHasContent}
-              onSubmit={handleSend}
-              onEscape={() => (activeTab ? closePicker() : setIntent(null))}
-              onPasteFiles={uploads.addFiles}
-            />
+            <MessageEditorSlotProvider slot={slot}>{children}</MessageEditorSlotProvider>
           </div>
         </MessageInputSurface>
         <ComposerAction hasContent={canSend} onSend={handleSend} />

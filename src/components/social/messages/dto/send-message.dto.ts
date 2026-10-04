@@ -1,15 +1,26 @@
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayUnique,
   IsArray,
   IsInt,
-  IsObject,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
+
+class AttachmentRefDto {
+  @IsUUID()
+  id!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string;
+}
 
 export class SendMessageDto {
   @IsString()
@@ -22,13 +33,10 @@ export class SendMessageDto {
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(10)
-  @ArrayUnique()
-  @IsUUID('all', { each: true })
-  attachmentIds?: string[];
-
-  @IsOptional()
-  @IsObject()
-  attachmentDescriptions?: Record<string, string>;
+  @ArrayUnique((ref: AttachmentRefDto) => ref.id)
+  @ValidateNested({ each: true })
+  @Type(() => AttachmentRefDto)
+  attachments?: AttachmentRefDto[];
 
   @IsOptional()
   @IsUUID()

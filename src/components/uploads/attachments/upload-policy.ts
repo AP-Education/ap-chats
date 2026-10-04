@@ -1,8 +1,14 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 
+import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { AppConfigService } from '@/globals/config';
 
 import { type AttachmentPolicy, MULTIPART_PART_BYTES, type StoredPart } from './types';
+
+export interface PendingUploadLimits {
+  maxFiles: number;
+  maxBytes: number;
+}
 
 export function normalizeFilename(name: string): string {
   const normalized = name.normalize('NFC').split(/[\\/]/).at(-1)?.trim() ?? '';
@@ -32,6 +38,7 @@ export function validateParts(size: number, parts: StoredPart[]): void {
 @Injectable()
 export class UploadPolicy {
   readonly limits: AttachmentPolicy;
+  private readonly pending: PendingUploadLimits;
 
   constructor(config: AppConfigService) {
     this.limits = {
@@ -39,6 +46,10 @@ export class UploadPolicy {
       maxMessageBytes: config.get('CHAT_UPLOAD_MAX_MESSAGE_BYTES'),
       maxFiles: config.get('CHAT_UPLOAD_MAX_FILES'),
       partBytes: MULTIPART_PART_BYTES,
+    };
+    this.pending = {
+      maxFiles: config.get('CHAT_UPLOAD_MAX_PENDING_FILES'),
+      maxBytes: config.get('CHAT_UPLOAD_MAX_PENDING_BYTES'),
     };
   }
 
@@ -50,5 +61,24 @@ export class UploadPolicy {
   requireSelection(ids: string[]): void {
     if (ids.length > this.limits.maxFiles || new Set(ids).size !== ids.length)
       throw new BadRequestException('Too many or duplicate attachments');
+  }
+
+  /**
+   * The global defaults today; the one seam a future per-role or per-plan
+   * quota plugs into without touching ChatUploadsService.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- part of the seam's signature, not yet read
+  pendingLimitsFor(member: WorkspaceMember): PendingUploadLimits {
+    return this.pending;
+  }
+
+  requireReservationCapacity(
+    member: WorkspaceMember,
+    reserved: { count: number; bytes: number },
+    size: number,
+  ): void {
+    const limits = this.pendingLimitsFor(member);
+    if (reserved.count >= limits.maxFiles || reserved.bytes + size > limits.maxBytes)
+      throw new ConflictException('Too many unfinished uploads');
   }
 }

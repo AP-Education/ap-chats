@@ -31,6 +31,15 @@ const schema = z
       .max(10_000_000_000)
       .default(2_000_000_000),
     CHAT_UPLOAD_MAX_FILES: z.coerce.number().int().min(1).max(10).default(10),
+    // Caps unfinished uploads per member, independent of the per-message limits above:
+    // an abuse/cost guard against reserving storage that never gets attached to a message.
+    CHAT_UPLOAD_MAX_PENDING_FILES: z.coerce.number().int().min(1).max(1000).default(20),
+    CHAT_UPLOAD_MAX_PENDING_BYTES: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(50_000_000_000)
+      .default(4_000_000_000),
     // Calls are off (CallsModule stays unregistered) until all three are set.
     LIVEKIT_URL: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
     LIVEKIT_API_KEY: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
@@ -54,6 +63,13 @@ const schema = z
         code: 'custom',
         path: ['CHAT_UPLOAD_MAX_MESSAGE_BYTES'],
         message: 'Must allow at least one maximum size file',
+      });
+    }
+    if (config.CHAT_UPLOAD_MAX_PENDING_BYTES < config.CHAT_UPLOAD_MAX_FILE_BYTES) {
+      context.addIssue({
+        code: 'custom',
+        path: ['CHAT_UPLOAD_MAX_PENDING_BYTES'],
+        message: 'Must allow at least one maximum size file to be reserved',
       });
     }
     if (config.LOG_TARGET_TYPE !== 'stdout' && !config.LOG_TARGET_DEST) {

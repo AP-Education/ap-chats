@@ -55,11 +55,15 @@ test.beforeEach(async ({ page }) => {
     }
     if (path.endsWith('/url'))
       return route.fulfill({ json: { url: 'http://127.0.0.1:5567/sample.png' } });
+    if (path.endsWith('/mention-candidates'))
+      return route.fulfill({
+        json: [{ memberId: 'member-olena', displayName: 'Олена Коваль', avatarPath: null }],
+      });
     if (path.endsWith('/messages') && request.method() === 'POST') {
       const input = request.postDataJSON();
-      const attachments = (input.attachmentIds ?? []).map((id: string) => ({
-        id,
-        ...sessions.get(id),
+      const attachments = (input.attachments ?? []).map((ref: { id: string }) => ({
+        id: ref.id,
+        ...sessions.get(ref.id),
         preview: null,
         mediaType: 'application/octet-stream',
         width: null,
@@ -125,8 +129,9 @@ test('previews files and sends an attachment without a caption', async ({ page }
   await page.getByRole('button', { name: 'Надіслати', exact: true }).click();
   await expect.poll(() => payloads.length).toBe(1);
   expect(payloads[0]?.markdown).toBe('');
-  expect(payloads[0]?.attachmentIds).toHaveLength(1);
-  expect(payloads[0]).not.toHaveProperty('attachments');
+  // Only the attachment ref (id, optional description) belongs on the wire —
+  // not the full local Attachment the composer renders previews from.
+  expect(payloads[0]?.attachments).toEqual([{ id: expect.any(String) }]);
   await expect(page.getByRole('region', { name: 'Вкладення до повідомлення' })).toHaveCount(0);
 });
 
@@ -220,4 +225,23 @@ test('clipboard files and dropping files into history attach to the composer', a
     );
   });
   await expect(page.getByRole('status').filter({ hasText: 'Готово' })).toHaveCount(2);
+});
+
+test('picking a mention candidate inserts a chip and sends the member token', async ({ page }) => {
+  const payloads: Record<string, unknown>[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname.endsWith('/messages') && request.method() === 'POST')
+      payloads.push(request.postDataJSON());
+  });
+  const textbox = page.getByRole('textbox', { name: 'Повідомлення', exact: true });
+  await textbox.click();
+  await textbox.pressSequentially('@Оле');
+  const option = page.getByRole('option', { name: 'Олена Коваль', exact: true });
+  await expect(option).toBeVisible();
+  await option.click();
+  await expect(page.getByRole('listbox', { name: 'Згадати людину' })).toHaveCount(0);
+  await expect(textbox).toContainText('@Олена Коваль');
+  await page.getByRole('button', { name: 'Надіслати', exact: true }).click();
+  await expect.poll(() => payloads.length).toBe(1);
+  expect(payloads[0]?.markdown).toContain(':member[member-olena]');
 });

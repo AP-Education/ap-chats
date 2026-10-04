@@ -10,11 +10,12 @@ import { ThemeProvider } from '@/app/providers/ThemeProvider';
 import { ConversationPane } from '@/domain/conversation/ConversationPane';
 import { CurrentUserContext } from '@/features/auth/stores/current-user-context';
 import { ConversationProvider } from '@/features/social/conversation/store';
+import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { sendMessage } from '@/features/social/messaging/api/messages-api';
 import type { Attachment } from '@/features/social/messaging/attachments/types';
 import { MessageComposer } from '@/features/social/messaging/components/MessageComposer/MessageComposer';
 import { MessageRow } from '@/features/social/messaging/components/MessageRow/MessageRow';
-import type { MessageHistoryItem, SendMessageInput } from '@/features/social/messaging/types';
+import type { MessageHistoryItem, SendMessageCommand } from '@/features/social/messaging/types';
 
 const useStyles = createStyles(({ token, css }) => ({
   layout: css`
@@ -114,7 +115,7 @@ function Fixture() {
     item('seed-1', 'Колеги, надсилаю матеріали до зустрічі.', [image, file]),
     item('seed-2', 'Дякую! Перегляну до кінця дня.', []),
   ]);
-  async function send(input: Omit<SendMessageInput, 'clientNonce'>) {
+  async function send(input: Omit<SendMessageCommand, 'clientNonce'>) {
     const message = await sendMessage('test-token', 'workspace', channelId, {
       ...input,
       clientNonce: crypto.randomUUID(),
@@ -167,7 +168,9 @@ function Fixture() {
                   />
                 ))}
               </div>
-              <MessageComposer key={channelId} onSend={(input) => void send(input)} />
+              <MessageComposer onSend={(input) => void send(input)}>
+                <MentionEditor />
+              </MessageComposer>
             </div>
           </ConversationPane>
         </ConversationProvider>

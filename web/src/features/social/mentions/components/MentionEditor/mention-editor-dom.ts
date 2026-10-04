@@ -1,9 +1,6 @@
-const mentionPattern = /:member\[([0-9a-f-]{36})\]/gi;
+import type { ComposerDraft } from '@/features/social/messaging/types';
 
-export interface MentionDraft {
-  markdown: string;
-  labels: Record<string, string>;
-}
+const mentionPattern = /:member\[([0-9a-f-]{36})\]/gi;
 
 function serialize(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
@@ -30,7 +27,7 @@ export function mentionChip(id: string, label: string, className: string) {
   return chip;
 }
 
-export function restoreEditor(root: HTMLElement, draft: MentionDraft, chipClass: string) {
+export function restoreEditor(root: HTMLElement, draft: ComposerDraft, chipClass: string) {
   root.replaceChildren();
   let start = 0;
   for (const match of draft.markdown.matchAll(mentionPattern)) {

@@ -13,9 +13,15 @@ import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { StorageProvider } from '../storage/storage.provider';
 import { AttachmentPreviewService } from './attachment-preview.service';
-import { type Attachment, READY_LIFETIME_MS, UPLOAD_LIFETIME_MS } from './types';
+import { ChatUploadsRepository } from './repository';
+import {
+  type Attachment,
+  type AttachmentRef,
+  type ChatUpload,
+  READY_LIFETIME_MS,
+  UPLOAD_LIFETIME_MS,
+} from './types';
 import { normalizeFilename, partSize, UploadPolicy, validateParts } from './upload-policy';
-import { type ChatUpload, ChatUploadsRepository } from './uploads.repository';
 
 @Injectable()
 export class ChatUploadsService {
@@ -34,8 +40,7 @@ export class ChatUploadsService {
     await this.repository.lockOwner(member.id);
     await this.access.requirePostAccess(member, channelId);
     const reserved = await this.repository.reservations(member.id);
-    if (reserved.count >= 20 || reserved.bytes + size > 4_000_000_000)
-      throw new ConflictException('Too many unfinished uploads');
+    this.policy.requireReservationCapacity(member, reserved, size);
     const id = randomUUID();
     const objectKey = `chat-attachments/${member.workspaceId}/${id}`;
     const multipartId = await this.storage.beginMultipart(objectKey);
@@ -158,29 +163,19 @@ export class ChatUploadsService {
   async claim(
     member: WorkspaceMember,
     channelId: string,
-    ids: string[],
-    descriptions: Record<string, string>,
+    refs: AttachmentRef[],
   ): Promise<Attachment[]> {
+    const ids = refs.map((ref) => ref.id);
     this.policy.requireSelection(ids);
-    if (
-      Object.entries(descriptions).some(
-        ([id, description]) =>
-          !ids.includes(id) || typeof description !== 'string' || description.length > 1000,
-      )
-    )
-      throw new BadRequestException('Invalid attachment descriptions');
     const rows = await this.repository.lockMany(ids);
     const byId = new Map(rows.map((row) => [row.id, row]));
-    const attachments = ids.map((id) => {
+    const attachments = refs.map(({ id, description }) => {
       const row = this.requireOwner(byId.get(id) ?? null, member, channelId);
       if (row.state !== 'ready' || !row.metadata)
         throw new ConflictException('Attachment is not ready');
-      const description = descriptions[id]?.trim() || null;
-      if (description && description.length > 1000)
-        throw new BadRequestException('Image description is too long');
       return {
         ...row.metadata,
-        description: row.metadata.preview === 'image' ? description : null,
+        description: row.metadata.preview === 'image' ? description?.trim() || null : null,
       };
     });
     if (

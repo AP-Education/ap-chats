@@ -4,12 +4,19 @@ import { Transactional } from '@nestjs-cls/transactional';
 import { Logger } from '@/globals/logger';
 
 import { StorageProvider } from '../storage/storage.provider';
-import { ChatUploadsRepository } from './uploads.repository';
+import { ChatUploadsRepository } from './repository';
+
+const SWEEP_INTERVAL_MS = 60_000;
+// Spreads each horizontally-scaled instance's tick across the interval instead
+// of every replica hammering the same expired() batch and its row locks at
+// once; purely a contention smoother, correctness never depends on it.
+const SWEEP_JITTER_MS = 10_000;
 
 @Injectable()
 export class UploadCleanupService implements OnModuleInit, OnModuleDestroy {
-  private timer: ReturnType<typeof setInterval> | undefined;
+  private timer: ReturnType<typeof setTimeout> | undefined;
   private running = false;
+  private stopped = false;
 
   constructor(
     private readonly repository: ChatUploadsRepository,
@@ -18,12 +25,21 @@ export class UploadCleanupService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
-    this.timer = setInterval(() => void this.sweep(), 60_000);
-    this.timer.unref();
+    this.scheduleNext();
   }
 
   onModuleDestroy(): void {
-    clearInterval(this.timer);
+    this.stopped = true;
+    clearTimeout(this.timer);
+  }
+
+  private scheduleNext(): void {
+    if (this.stopped) return;
+    this.timer = setTimeout(
+      () => void this.sweep().finally(() => this.scheduleNext()),
+      SWEEP_INTERVAL_MS + Math.random() * SWEEP_JITTER_MS,
+    );
+    this.timer.unref();
   }
 
   async sweep(): Promise<void> {

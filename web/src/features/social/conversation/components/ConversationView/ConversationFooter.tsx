@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react';
 
-import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { MessageComposer } from '@/features/social/messaging/components/MessageComposer';
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
-import type { HistoryItem, SendMessageInput } from '@/features/social/messaging/types';
+import type { HistoryItem, SendMessageCommand } from '@/features/social/messaging/types';
 import { isMessageItem } from '@/features/social/messaging/types';
 
-import { useConversation, useConversationScope } from '../../store';
+import { useConversation } from '../../store';
 
 interface ConversationFooterProps {
   canPost: boolean;
@@ -34,22 +34,21 @@ function WritableConversationFooter({
   send,
 }: Pick<ConversationFooterProps, 'items' | 'send'>) {
   const intent = useConversation((state) => state.intent);
-  const { workspaceId, channelId } = useConversationScope();
-  const { identity } = useQueryAuth();
   const replyTarget = intent
     ? items.filter(isMessageItem).find((item) => item.message.id === intent.messageId)
     : undefined;
 
-  function onSend(input: Omit<SendMessageInput, 'clientNonce'>) {
+  function onSend(input: Omit<SendMessageCommand, 'clientNonce'>) {
     send(input);
   }
 
   return (
     <MessageComposer
-      key={`${identity}:${workspaceId}:${channelId}`}
       replyAuthor={replyTarget?.author.displayName ?? undefined}
       replyPreview={replyTarget?.message.markdown ?? undefined}
       onSend={onSend}
-    />
+    >
+      <MentionEditor />
+    </MessageComposer>
   );
 }

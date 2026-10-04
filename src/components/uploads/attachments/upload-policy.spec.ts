@@ -48,16 +48,20 @@ test('filenames cannot contain paths, controls or bidirectional overrides', () =
     assert.throws(() => normalizeFilename(invalid), BadRequestException);
 });
 
-test('untrusted MIME labels do not make active content previewable', () => {
-  for (const source of [
-    '<svg onload="alert(1)"></svg>',
-    '<html>hello</html>',
-    '%PDF-1.7',
-    'not an image',
-  ])
-    assert.deepEqual(identifyMedia(Buffer.from(source)), {
+test('text and markup without a real binary signature stay unidentified and unpreviewable', async () => {
+  for (const source of ['<svg onload="alert(1)"></svg>', '<html>hello</html>', 'not an image'])
+    assert.deepEqual(await identifyMedia(Buffer.from(source)), {
       mediaType: 'application/octet-stream',
       preview: null,
     });
-  assert.equal(identifyMedia(Buffer.from([255, 216, 255, 0])).mediaType, 'image/jpeg');
+});
+
+test('a real but non-media signature is identified without becoming previewable', async () => {
+  const pdf = await identifyMedia(Buffer.from('%PDF-1.7'));
+  assert.equal(pdf.mediaType, 'application/pdf');
+  assert.equal(pdf.preview, null);
+});
+
+test('image signatures resolve to a previewable mediaType', async () => {
+  assert.equal((await identifyMedia(Buffer.from([255, 216, 255, 0]))).mediaType, 'image/jpeg');
 });

@@ -5,11 +5,20 @@ import { and, eq, inArray, isNull, lt, ne, sql } from 'drizzle-orm';
 import { chatMessages, chatUploads } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
-export type ChatUpload = typeof chatUploads.$inferSelect;
+import type { Attachment, ChatUpload, ChatUploadPatch, NewChatUpload } from '../types';
+import { ChatUploadsRepository } from './chat-uploads.repository';
+
+type ChatUploadRow = typeof chatUploads.$inferSelect;
+
+function toDomain(row: ChatUploadRow): ChatUpload {
+  return { ...row, metadata: row.metadata ?? null };
+}
 
 @Injectable()
-export class ChatUploadsRepository {
-  constructor(private readonly host: TransactionHost<DrizzleTransactionAdapter>) {}
+export class DrizzleChatUploadsRepository extends ChatUploadsRepository {
+  constructor(private readonly host: TransactionHost<DrizzleTransactionAdapter>) {
+    super();
+  }
 
   async lockOwner(memberId: string): Promise<void> {
     await this.host.tx.execute(
@@ -28,10 +37,10 @@ export class ChatUploadsRepository {
     return { count: row?.count ?? 0, bytes: Number(row?.bytes ?? 0) };
   }
 
-  async insert(data: typeof chatUploads.$inferInsert): Promise<ChatUpload> {
+  async insert(data: NewChatUpload): Promise<ChatUpload> {
     const [row] = await this.host.tx.insert(chatUploads).values(data).returning();
     if (!row) throw new Error('Upload insert failed');
-    return row;
+    return toDomain(row);
   }
 
   async lock(id: string): Promise<ChatUpload | null> {
@@ -40,26 +49,27 @@ export class ChatUploadsRepository {
       .from(chatUploads)
       .where(eq(chatUploads.id, id))
       .for('update');
-    return row ?? null;
+    return row ? toDomain(row) : null;
   }
 
   async find(id: string): Promise<ChatUpload | null> {
     const [row] = await this.host.tx.select().from(chatUploads).where(eq(chatUploads.id, id));
-    return row ?? null;
+    return row ? toDomain(row) : null;
   }
 
-  async update(id: string, data: Partial<typeof chatUploads.$inferInsert>): Promise<void> {
-    await this.host.tx.update(chatUploads).set(data).where(eq(chatUploads.id, id));
+  async update(id: string, patch: ChatUploadPatch): Promise<void> {
+    await this.host.tx.update(chatUploads).set(patch).where(eq(chatUploads.id, id));
   }
 
   async lockMany(ids: string[]): Promise<ChatUpload[]> {
     if (!ids.length) return [];
-    return this.host.tx
+    const rows = await this.host.tx
       .select()
       .from(chatUploads)
       .where(inArray(chatUploads.id, ids))
       .orderBy(chatUploads.id)
       .for('update');
+    return rows.map(toDomain);
   }
 
   async attach(ids: string[]): Promise<void> {
@@ -70,7 +80,11 @@ export class ChatUploadsRepository {
       .where(inArray(chatUploads.id, ids));
   }
 
-  async message(workspaceId: string, channelId: string, messageId: string) {
+  async message(
+    workspaceId: string,
+    channelId: string,
+    messageId: string,
+  ): Promise<{ attachments: Attachment[] } | null> {
     const [row] = await this.host.tx
       .select({ attachments: chatMessages.attachments })
       .from(chatMessages)
@@ -86,12 +100,13 @@ export class ChatUploadsRepository {
   }
 
   async expired(): Promise<ChatUpload[]> {
-    return this.host.tx
+    const rows = await this.host.tx
       .select()
       .from(chatUploads)
       .where(lt(chatUploads.expiresAt, new Date()))
       .orderBy(chatUploads.expiresAt)
       .limit(50);
+    return rows.map(toDomain);
   }
 
   async remove(id: string): Promise<void> {

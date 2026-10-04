@@ -48,7 +48,7 @@ export class MessagesFacade {
   ) {}
 
   async send(member: WorkspaceMember, channelId: string, dto: SendMessageDto) {
-    const content = await this.markdown.normalize(dto.markdown, Boolean(dto.attachmentIds?.length));
+    const content = await this.markdown.normalize(dto.markdown, Boolean(dto.attachments?.length));
     const quote = dto.quoteText?.trim() || null;
     if (quote && !dto.replyToMessageId)
       throw new BadRequestException('Quote requires a reply target');
@@ -58,12 +58,7 @@ export class MessagesFacade {
           markdown: content.markdown,
           reply: dto.replyToMessageId ?? null,
           quote,
-          attachments: dto.attachmentIds?.length
-            ? dto.attachmentIds.map((id) => ({
-                id,
-                description: dto.attachmentDescriptions?.[id] ?? null,
-              }))
-            : undefined,
+          attachments: dto.attachments?.length ? dto.attachments : undefined,
         }),
       )
       .digest('hex');
@@ -111,12 +106,7 @@ export class MessagesFacade {
         throw new BadRequestException('Quote is not in the reply target');
     }
     await this.mentions.requireValid(member.workspaceId, channelId, content.mentionedMemberIds);
-    const attachments = await this.uploads.claim(
-      member,
-      channelId,
-      dto.attachmentIds ?? [],
-      dto.attachmentDescriptions ?? {},
-    );
+    const attachments = await this.uploads.claim(member, channelId, dto.attachments ?? []);
     const message = await this.repository.insert({
       workspaceId: member.workspaceId,
       channelId,

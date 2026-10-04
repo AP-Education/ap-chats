@@ -14,7 +14,7 @@ import {
 } from '../api/messages-api';
 import { catchUpHistory, mergeHistoryItem } from '../history-cache';
 import { messagingQueryKeys } from '../queryKeys';
-import type { HistoryItem, MessageAuthor, MessageHistoryItem, SendMessageInput } from '../types';
+import type { HistoryItem, MessageAuthor, MessageHistoryItem, SendMessageCommand } from '../types';
 import { isMessageItem } from '../types';
 
 export type DeliveryStatus = 'sending' | 'failed' | 'confirmed';
@@ -30,7 +30,7 @@ export interface DisplayItem {
 // tab closed mid-request still has something to retry; it plays no part in the
 // live-session display, which the optimistic bubble already covers.
 interface PendingSend {
-  input: SendMessageInput;
+  input: SendMessageCommand;
   createdAt: string;
   status: 'sending' | 'failed';
 }
@@ -69,7 +69,7 @@ function readPendingSends(key: string): PendingSend[] {
 }
 
 function synthesize(
-  input: SendMessageInput,
+  input: SendMessageCommand,
   createdAt: string,
   author: MessageAuthor,
   replyTarget: MessageHistoryItem | undefined,
@@ -156,7 +156,7 @@ export function useMessageOperations(
     });
   }
 
-  function markSending(input: SendMessageInput, createdAt: string) {
+  function markSending(input: SendMessageCommand, createdAt: string) {
     persistPending((current) => [
       ...current.filter((entry) => entry.input.clientNonce !== input.clientNonce),
       { input, createdAt, status: 'sending' },
@@ -193,7 +193,7 @@ export function useMessageOperations(
     });
   }
 
-  async function deliver(input: SendMessageInput) {
+  async function deliver(input: SendMessageCommand) {
     if (!token) {
       markFailed(input.clientNonce);
       return;
@@ -254,7 +254,7 @@ export function useMessageOperations(
     }
   }
 
-  function dispatch(input: SendMessageInput, createdAt: string) {
+  function dispatch(input: SendMessageCommand, createdAt: string) {
     const replyTarget = messages.find((item) => item.message.id === input.replyToMessageId);
     const optimistic = synthesize(input, createdAt, author, replyTarget);
     markSending(input, createdAt);
@@ -264,7 +264,7 @@ export function useMessageOperations(
     });
   }
 
-  function send(input: Omit<SendMessageInput, 'clientNonce'>) {
+  function send(input: Omit<SendMessageCommand, 'clientNonce'>) {
     dispatch({ ...input, clientNonce: randomId() }, new Date().toISOString());
   }
 

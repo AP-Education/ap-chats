@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import { Readable } from 'node:stream';
 
 import { CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
-import { ServiceUnavailableException, ValidationPipe } from '@nestjs/common';
+import { ServiceUnavailableException, type Type, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { Pool } from 'pg';
@@ -26,17 +26,27 @@ Object.assign(process.env, {
   LIVEKIT_API_KEY: '',
   LIVEKIT_API_SECRET: '',
 });
+// Boots the compiled dist, not src, via a dynamic require: NestJS DI and
+// class-validator both read `design:paramtypes`/`design:type` decorator
+// metadata, which only tsc emits — esbuild-based tsx, used for every other
+// test in this repo, does not — so this one black-box test needs the real
+// tsc build output rather than a transpile-only run against src.
 const require = createRequire(import.meta.url);
-const { AppModule } = require('../dist/app.module.js');
-const {
-  AccountsTokenVerifier,
-} = require('../dist/components/auth/accounts-token-verifier.service.js');
-const {
-  UploadCleanupService,
-} = require('../dist/components/uploads/attachments/upload-cleanup.service.js');
-const {
-  AttachmentPreviewService,
-} = require('../dist/components/uploads/attachments/attachment-preview.service.js');
+const { AppModule } = require('../dist/app.module.js') as { AppModule: Type };
+const { AccountsTokenVerifier } =
+  require('../dist/components/auth/accounts-token-verifier.service.js') as {
+    AccountsTokenVerifier: Type<{
+      verify: (token: string) => Promise<{ sub: string; appId: string }>;
+    }>;
+  };
+const { UploadCleanupService } =
+  require('../dist/components/uploads/attachments/upload-cleanup.service.js') as {
+    UploadCleanupService: Type<{ sweep: () => Promise<void> }>;
+  };
+const { AttachmentPreviewService } =
+  require('../dist/components/uploads/attachments/attachment-preview.service.js') as {
+    AttachmentPreviewService: Type<{ inspect: (...args: unknown[]) => Promise<unknown> }>;
+  };
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const s3 = new S3Client({
   endpoint: 'http://127.0.0.1:9017',
@@ -47,21 +57,32 @@ const s3 = new S3Client({
 try {
   await s3.send(new CreateBucketCommand({ Bucket: 'uploads-test' }));
 } catch (error) {
-  if (!['BucketAlreadyOwnedByYou', 'BucketAlreadyExists'].includes(error.name)) throw error;
+  const name = error instanceof Error ? error.name : undefined;
+  if (!name || !['BucketAlreadyOwnedByYou', 'BucketAlreadyExists'].includes(name)) throw error;
 }
 const app = await NestFactory.create(AppModule, new FastifyAdapter(), { logger: false });
 app.useGlobalPipes(
   new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
 );
 app.setGlobalPrefix('api');
-app.get(AccountsTokenVerifier).verify = async (token) => ({ sub: token, appId: 'upload-test' });
+app.get(AccountsTokenVerifier).verify = async (token: string) => ({
+  sub: token,
+  appId: 'upload-test',
+});
 await app.init();
 const fastify = app.getHttpAdapter().getInstance();
 await fastify.ready();
-let workspaceId;
+let workspaceId: string | undefined;
 const actor = `upload-test-owner-${randomUUID()}`;
 const outsider = `upload-test-outsider-${randomUUID()}`;
-async function request(method, path, body, expected = 200, token = actor) {
+async function request(
+  method: string,
+  path: string,
+  body?: Record<string, unknown>,
+  expected = 200,
+  token = actor,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- black-box HTTP responses, shaped ad hoc per call site
+): Promise<any> {
   const response = await fastify.inject({
     method,
     url: `/api${path}`,
@@ -153,7 +174,7 @@ try {
   );
   await request('POST', `${source}/uploads/${session.id}/part`, { number: 1 }, 409);
   const nonce = randomUUID();
-  const payload = { markdown: '', clientNonce: nonce, attachmentIds: [attachment.id] };
+  const payload = { markdown: '', clientNonce: nonce, attachments: [{ id: attachment.id }] };
   const message = await request('POST', `${source}/messages`, payload, 201);
   assert.equal(message.attachments[0].id, attachment.id);
   assert.equal((await request('POST', `${source}/messages`, payload, 201)).id, message.id);
@@ -271,8 +292,7 @@ try {
     {
       markdown: '',
       clientNonce: randomUUID(),
-      attachmentIds: [image.id],
-      attachmentDescriptions: { [image.id]: 'Командний план' },
+      attachments: [{ id: image.id, description: 'Командний план' }],
     },
     201,
   );

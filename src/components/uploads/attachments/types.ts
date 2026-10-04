@@ -9,10 +9,54 @@ export interface Attachment {
   description: string | null;
 }
 
+export interface AttachmentRef {
+  id: string;
+  description?: string;
+}
+
 export interface StoredPart {
   number: number;
   size: number;
   etag: string;
+}
+
+export type UploadState = 'uploading' | 'ready' | 'attached' | 'cancelled';
+
+export interface ChatUpload {
+  id: string;
+  workspaceId: string;
+  channelId: string | null;
+  ownerMemberId: string | null;
+  name: string;
+  size: number;
+  objectKey: string;
+  multipartId: string;
+  state: UploadState;
+  processingToken: string | null;
+  processingUntil: Date | null;
+  metadata: Attachment | null;
+  createdAt: Date;
+  expiresAt: Date;
+}
+
+export interface NewChatUpload {
+  id: string;
+  workspaceId: string;
+  channelId: string;
+  ownerMemberId: string;
+  name: string;
+  size: number;
+  objectKey: string;
+  multipartId: string;
+  expiresAt: Date;
+}
+
+export interface ChatUploadPatch {
+  state?: UploadState;
+  metadata?: Attachment;
+  processingToken?: string | null;
+  processingUntil?: Date | null;
+  expiresAt?: Date;
 }
 
 export interface AttachmentPolicy {

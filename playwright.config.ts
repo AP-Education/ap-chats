@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './web/test/attachments',
+  testDir: './web/tests/attachments',
   testMatch: '**/*.spec.ts',
   outputDir: './test-results/attachments',
   timeout: 30_000,
@@ -19,7 +19,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm --filter @ap-chats/web exec vite --config test/attachments/vite.config.mts',
+    command: 'pnpm --filter @ap-chats/web exec vite --config tests/attachments/vite.config.mts',
     url: 'http://127.0.0.1:5567',
     reuseExistingServer: false,
   },

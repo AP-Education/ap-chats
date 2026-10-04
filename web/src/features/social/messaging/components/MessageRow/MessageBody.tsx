@@ -1,5 +1,7 @@
 import type { RefObject } from 'react';
 
+import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
+
 import type { MessageHistoryItem } from '../../types';
 import { MessageAttachments } from '../MessageAttachments/MessageAttachments';
 import { useMessageActionScope } from './MessageActionScope';
@@ -19,7 +21,9 @@ export function MessageBody({ contentRef, minHeight, onEdit, onCloseEdit }: Mess
   return (
     <>
       {editing ? (
-        <MessageEditor item={item} minHeight={minHeight} onEdit={onEdit} onClose={onCloseEdit} />
+        <MessageEditor item={item} minHeight={minHeight} onEdit={onEdit} onClose={onCloseEdit}>
+          <MentionEditor />
+        </MessageEditor>
       ) : (
         <MessageReadContent contentRef={contentRef} />
       )}
