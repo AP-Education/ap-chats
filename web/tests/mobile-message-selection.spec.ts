@@ -1,16 +1,21 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { createGestureFixture } from './fixtures/touch-gesture-runtime.mjs';
+import { createGestureFixture } from './fixtures/touch-gesture-runtime.ts';
 
 function selectionFixture({ enabled = true, editing = false } = {}) {
   const runtime = createGestureFixture();
   const row = {};
-  const root = new globalThis.EventTarget();
-  root.querySelectorAll = () => (editing ? [] : [row]);
+  const root = Object.assign(new globalThis.EventTarget(), {
+    querySelectorAll: () => (editing ? [] : [row]),
+  });
   const options = { ref: { current: root }, enabled };
   const guard = runtime.mount(
-    (next) => runtime.useMobileMessageSelection(next.ref, next.enabled),
+    (next) =>
+      runtime.useMobileMessageSelection(
+        next.ref as unknown as { current: HTMLDivElement },
+        next.enabled,
+      ),
     options,
   );
   let cleared = 0;
@@ -29,7 +34,7 @@ function selectionFixture({ enabled = true, editing = false } = {}) {
             nodeType: 1,
             closest: () => (editable ? {} : null),
           },
-          intersectsNode: (node) => touchesMessage && node === row,
+          intersectsNode: (node: unknown) => touchesMessage && node === row,
         }),
         removeAllRanges() {
           cleared++;
@@ -45,7 +50,7 @@ function selectionFixture({ enabled = true, editing = false } = {}) {
       Object.defineProperty(event, 'target', {
         value: {
           nodeType: 1,
-          closest: (selector) =>
+          closest: (selector: string) =>
             selector === '[data-message-readonly]' ? (message ? row : null) : editable ? {} : null,
         },
       });

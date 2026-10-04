@@ -6,11 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "typecheck": "tsc -b --noEmit",
-    "lint": "eslint src vite.config.ts",
+    "typecheck": "tsc -b --noEmit && tsc -p tsconfig.test.json",
+    "lint": "eslint src tests vite.config.ts",
     "preview": "vite preview",
-    "test:composer": "node --import tsx --test tests/native-composer-input.spec.ts",
-    "test:browser": "playwright test"
+    "test": "node --import tsx --test \"src/**/*.spec.ts\" \"tests/**/*.spec.ts\""
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",

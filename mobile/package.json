@@ -50,8 +50,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src",
-    "test": "node --import tsx --test \"src/**/*.spec.ts\""
+    "lint": "eslint src tests",
+    "test": "node --import tsx --test \"src/**/*.spec.ts\" \"tests/**/*.spec.ts\""
   },
   "private": true
 }

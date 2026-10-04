@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { createGestureFixture as fixture } from './fixtures/touch-gesture-runtime.mjs';
+import type { CSSProperties } from 'react';
+
+import { createGestureFixture as fixture } from './fixtures/touch-gesture-runtime.ts';
+
+function menuProgress(style: CSSProperties | undefined): number {
+  assert.ok(style);
+  return (style as CSSProperties & { '--mobile-menu-progress': number })['--mobile-menu-progress'];
+}
 
 test('drawer follows the finger on the next frame, before release', () => {
   const f = fixture();
@@ -9,7 +16,7 @@ test('drawer follows the finger on the next frame, before release', () => {
   f.emit('touchmove', 162, 53);
   f.advance(16);
   assert.equal(f.render().dragging, true);
-  assert.equal(f.nav.value.style['--mobile-menu-progress'], 12 / 400);
+  assert.equal(menuProgress(f.nav.value.style), 12 / 400);
   assert.equal(f.isOpen(), false);
   f.emit('touchend', 162, 53);
   assert.equal(f.render().dragging, false);
@@ -22,7 +29,7 @@ test('open and close swipes settle and remove fractional progress', () => {
   f.advance(150);
   f.emit('touchmove', 250);
   f.advance(16);
-  assert.equal(f.render().style['--mobile-menu-progress'], 0.25);
+  assert.equal(menuProgress(f.render().style), 0.25);
   f.emit('touchend', 250);
   assert.equal(f.isOpen(), true);
   assert.equal(f.render().style, undefined);
@@ -30,7 +37,7 @@ test('open and close swipes settle and remove fractional progress', () => {
   f.advance(150);
   f.emit('touchmove', 150);
   f.advance(16);
-  assert.equal(f.render().style['--mobile-menu-progress'], 0.75);
+  assert.equal(menuProgress(f.render().style), 0.75);
   f.emit('touchend', 150);
   assert.equal(f.isOpen(), false);
   assert.equal(f.render().style, undefined);
@@ -54,13 +61,14 @@ for (const type of ['touchcancel', 'blur', 'pagehide', 'resize']) {
 }
 
 test('route changes and external menu changes discard old progress and callbacks', () => {
-  for (const change of ['navigate', 'setOpen']) {
+  for (const change of ['navigate', 'setOpen'] as const) {
     const f = fixture();
     f.nav.value.openGesture.onTouchStartCapture(f.touch());
     f.emit('touchmove', 210);
     f.advance(16);
     assert.equal(f.render().dragging, true);
-    f[change](true);
+    if (change === 'navigate') f.navigate();
+    else f.setOpen(true);
     assert.equal(f.render().style, undefined);
     f.emit('touchend', 250);
     assert.equal(f.isOpen(), change === 'setOpen');
@@ -171,12 +179,12 @@ test('swiping over a button suppresses its click, while a tap stays usable', () 
     }),
   );
   f.emit('touchend');
-  f.nav.value.openGesture.onClickCapture(click);
+  f.nav.value.openGesture.onClickCapture(f.click(click));
   assert.equal(prevented, 0);
   f.nav.value.openGesture.onTouchStartCapture(f.touch());
   f.advance(150);
   f.emit('touchend', 250);
-  f.nav.value.openGesture.onClickCapture(click);
+  f.nav.value.openGesture.onClickCapture(f.click(click));
   assert.equal(prevented, 1);
 });
 
@@ -196,7 +204,7 @@ test('after navigation a horizontal swipe prevents native scroll throughout diag
   f.emit('pointercancel');
   assert.equal(f.emit('touchmove', 220, 150).defaultPrevented, true);
   f.advance(16);
-  assert.equal(f.render().style['--mobile-menu-progress'], 70 / 400);
+  assert.equal(menuProgress(f.render().style), 70 / 400);
   f.emit('touchend', 220, 150);
   assert.equal(f.isOpen(), true);
   assert.equal(f.render().dragging, false);
@@ -246,13 +254,15 @@ test('an aborted partial swipe over a link cannot activate it on release', () =>
   f.advance(150);
   f.emit('touchend', 162);
   assert.equal(f.isOpen(), false);
-  f.nav.value.openGesture.onClickCapture({
-    detail: 1,
-    preventDefault: () => {
-      prevented = true;
-    },
-    stopPropagation() {},
-  });
+  f.nav.value.openGesture.onClickCapture(
+    f.click({
+      detail: 1,
+      preventDefault: () => {
+        prevented = true;
+      },
+      stopPropagation() {},
+    }),
+  );
   assert.equal(prevented, true);
 });
 
@@ -296,12 +306,14 @@ test('a new intentional tap is not swallowed by the previous aborted swipe', () 
   f.nav.value.openGesture.onTouchStartCapture(f.touch());
   f.emit('touchend');
   let prevented = false;
-  f.nav.value.openGesture.onClickCapture({
-    detail: 1,
-    preventDefault: () => {
-      prevented = true;
-    },
-    stopPropagation() {},
-  });
+  f.nav.value.openGesture.onClickCapture(
+    f.click({
+      detail: 1,
+      preventDefault: () => {
+        prevented = true;
+      },
+      stopPropagation() {},
+    }),
+  );
   assert.equal(prevented, false);
 });

@@ -37,5 +37,6 @@ jobs:
           cache: true
       - run: pnpm --filter @ap-chats/web lint
       - run: pnpm --filter @ap-chats/web typecheck
+      - run: pnpm --filter @ap-chats/web test
       - run: pnpm --filter @ap-chats/web build
       - run: pnpm exec prettier --check web
