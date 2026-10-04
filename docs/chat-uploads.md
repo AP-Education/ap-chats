@@ -14,7 +14,7 @@ Research checked on 2026-10-02:
 | Policy                                 | Default                          |
 | -------------------------------------- | -------------------------------- |
 | File size                              | 1 GB = 1,000,000,000 bytes       |
-| Files per message                      | 10                               |
+| Files per message                      | 25                               |
 | Total size per message                 | 2 GB                             |
 | Part size                              | 16 MiB; 60 parts for a 1 GB file |
 | Browser concurrency                    | 2 files, 2 parts each            |

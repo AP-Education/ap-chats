@@ -30,7 +30,7 @@ const schema = z
       .min(1)
       .max(10_000_000_000)
       .default(2_000_000_000),
-    CHAT_UPLOAD_MAX_FILES: z.coerce.number().int().min(1).max(10).default(10),
+    CHAT_UPLOAD_MAX_FILES: z.coerce.number().int().min(1).max(25).default(25),
     // Caps unfinished uploads per member, independent of the per-message limits above:
     // an abuse/cost guard against reserving storage that never gets attached to a message.
     CHAT_UPLOAD_MAX_PENDING_FILES: z.coerce.number().int().min(1).max(1000).default(20),

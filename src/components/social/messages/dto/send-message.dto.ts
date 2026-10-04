@@ -32,7 +32,7 @@ export class SendMessageDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(10)
+  @ArrayMaxSize(25)
   @ArrayUnique((ref: AttachmentRefDto) => ref.id)
   @ValidateNested({ each: true })
   @Type(() => AttachmentRefDto)

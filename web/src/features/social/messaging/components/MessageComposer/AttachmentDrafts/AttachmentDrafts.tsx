@@ -12,7 +12,7 @@ import { useState } from 'react';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { fileExtension, formatFileSize } from '../../../attachments/file-presentation';
-import type { AttachmentDraft, AttachmentPolicy } from '../../../attachments/types';
+import type { AttachmentDraft } from '../../../attachments/types';
 
 const useStyles = createStyles(({ token, css }) => ({
   strip: css`
@@ -101,14 +101,6 @@ const useStyles = createStyles(({ token, css }) => ({
       color: ${token.colorErrorText};
     }
   `,
-  hint: css`
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    padding-bottom: 4px;
-    color: ${token.colorTextTertiary};
-    font-size: 12px;
-  `,
   preview: css`
     display: block;
     max-width: 100%;
@@ -123,19 +115,12 @@ const useStyles = createStyles(({ token, css }) => ({
 
 interface AttachmentDraftsProps {
   drafts: AttachmentDraft[];
-  policy?: AttachmentPolicy;
   onRemove: (key: string) => void;
   onRetry: (key: string) => void;
   onDescribe: (key: string, text: string) => void;
 }
 
-export function AttachmentDrafts({
-  drafts,
-  policy,
-  onRemove,
-  onRetry,
-  onDescribe,
-}: AttachmentDraftsProps) {
+export function AttachmentDrafts({ drafts, onRemove, onRetry, onDescribe }: AttachmentDraftsProps) {
   const { styles } = useStyles();
   if (!drafts.length) return null;
   return (
@@ -150,13 +135,6 @@ export function AttachmentDrafts({
             onDescribe={onDescribe}
           />
         ))}
-      </div>
-      <div className={styles.hint}>
-        <span>
-          {drafts.length}
-          {policy ? ` / ${policy.maxFiles}` : ''} файлів
-        </span>
-        {policy && <span>До {formatFileSize(policy.maxFileBytes)} на файл</span>}
       </div>
     </section>
   );
