@@ -24,9 +24,11 @@ import { useConversation, useConversationScope } from '@/features/social/convers
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { isNativeShell } from '@/shared/lib/nativeBridge';
+import { randomId } from '@/shared/lib/random-id';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { useAttachments } from '../../attachments/useAttachments';
+import type { PendingAttachmentCommit } from '../../hooks/useMessageOperations';
 import { MessageEditorSlotProvider } from '../../MessageEditorSlot';
 import type {
   ComposerDraft,
@@ -187,7 +189,10 @@ const useStyles = createStyles(({ token, css }) => ({
 interface MessageComposerProps {
   replyAuthor?: string;
   replyPreview?: string;
-  onSend: (input: Omit<SendMessageCommand, 'clientNonce'>) => void;
+  onSend: (
+    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
+    pending?: PendingAttachmentCommit,
+  ) => void;
   /** The text-input to compose with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
   children: ReactNode;
 }
@@ -250,8 +255,10 @@ export function MessageComposer({
   });
   const activeTab = isNativeShell() ? nativeInput.activeTab : webActiveTab;
 
-  const canSend =
-    (hasContent || uploads.ready) && uploads.drafts.every((draft) => draft.status === 'ready');
+  // Sending never waits on attachment upload completion (matches Discord/
+  // Telegram/Slack/WhatsApp) — only a failed draft doesn't count, since it's
+  // left out of the send and stays in the composer for the user to handle.
+  const canSend = hasContent || uploads.drafts.some((draft) => draft.status !== 'error');
 
   useLayoutEffect(() => {
     if (intent || (composer.autoFocus && !isCompact)) editableRef.current?.focus();
@@ -284,27 +291,30 @@ export function MessageComposer({
   const handleSend = useCallback(() => {
     const markdown = editableRef.current?.markdown().trim() ?? '';
     if (!canSend) return;
-    const drafts = uploads.takeReady();
-    onSend({
+    const input = {
       markdown,
-      ...(drafts.length
-        ? {
-            attachments: drafts.map((draft) => ({
-              ...draft.attachment!,
-              description: draft.description || null,
-            })),
-          }
-        : {}),
       ...(intent ? { replyToMessageId: intent.messageId } : {}),
       ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
-    });
+    };
+    const nonce = randomId();
+    const drafts = uploads.commit(nonce);
+    if (drafts.length) {
+      onSend(input, {
+        nonce,
+        drafts,
+        watchCommitted: uploads.watchCommitted,
+        uncommit: uploads.uncommit,
+        releaseCommitted: uploads.releaseCommitted,
+      });
+    } else {
+      onSend(input);
+    }
     editableRef.current?.clear();
     localStorage.removeItem(draftKey);
     setContentState({ draftKey, hasContent: false });
     setIntent(null);
     // Sending keeps the active input surface, including an open emoji panel.
     if (!activeTab) editableRef.current?.focus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canSend, uploads, onSend, intent, draftKey, setIntent, activeTab]);
 
   function insertEmoji(emoji: string) {
@@ -500,7 +510,6 @@ export function MessageComposer({
               <>
                 <AttachmentDrafts
                   drafts={uploads.drafts}
-                  policy={uploads.policy}
                   onRemove={uploads.remove}
                   onRetry={uploads.retry}
                   onDescribe={uploads.describe}

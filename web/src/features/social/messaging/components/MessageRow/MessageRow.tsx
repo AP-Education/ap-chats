@@ -13,6 +13,8 @@ import { useConversation } from '@/features/social/conversation/store';
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
+import type { AttachmentDraft } from '../../attachments/types';
+import type { DeliveryStatus } from '../../hooks/useMessageOperations';
 import type { MessageHistoryItem } from '../../types';
 import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
 import { MessageActions } from './MessageActions';
@@ -253,7 +255,8 @@ interface MessageRowProps {
   onAction: (action: ConversationAction, target: ActionTarget) => void;
   onJump: (messageId: string) => void;
   onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
-  delivery?: 'sending' | 'failed' | 'confirmed';
+  delivery?: DeliveryStatus;
+  pendingAttachments?: AttachmentDraft[];
   onRetry?: () => void;
 }
 
@@ -266,6 +269,7 @@ export const MessageRow = memo(function MessageRow({
   onJump,
   onEdit,
   delivery,
+  pendingAttachments,
   onRetry,
 }: MessageRowProps) {
   const { styles, cx } = useStyles();
@@ -300,6 +304,7 @@ export const MessageRow = memo(function MessageRow({
         onAction,
         editing,
         delivery,
+        pendingAttachments,
       }}
     >
       <MessageActions
@@ -315,7 +320,7 @@ export const MessageRow = memo(function MessageRow({
             styles.row,
             isSelected && styles.selected,
             highlighted && styles.highlighted,
-            delivery === 'sending' && styles.sending,
+            (delivery === 'sending' || delivery === 'uploading') && styles.sending,
             delivery === 'failed' && styles.failed,
             delivery === 'confirmed' && styles.confirmed,
           ),

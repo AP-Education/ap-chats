@@ -6,6 +6,7 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation/store';
 
 import { getUploadPolicy } from './attachments-api';
+import type { AttachmentDraft } from './types';
 import { UploadQueue } from './upload-queue';
 
 export function useAttachments() {
@@ -42,16 +43,46 @@ export function useAttachments() {
     for (const error of queue.add(files, policy.data)) void message.error(error);
   }
 
+  /**
+   * Commits the current drafts to a send under `clientNonce` — sending never
+   * waits on upload completion, so this just detaches them from the composer
+   * (the returned snapshot is whatever state they're already in) while they
+   * keep uploading in the background.
+   */
+  function commit(clientNonce: string): AttachmentDraft[] {
+    return queue.commit(clientNonce);
+  }
+
+  /**
+   * Live-watches a commit's drafts until the caller stops listening (returns
+   * the unsubscribe). The first check is deferred to a microtask rather than
+   * run inline: a caller naturally writes `const unsubscribe = watchCommitted(
+   * ...)`, and if the drafts are already ready (nothing left to wait for),
+   * the callback calling `unsubscribe()` synchronously, before that
+   * assignment has even completed, would hit it mid-initialization.
+   */
+  function watchCommitted(
+    clientNonce: string,
+    onUpdate: (drafts: AttachmentDraft[]) => void,
+  ): () => void {
+    const check = () => onUpdate(queue.getCommitted(clientNonce));
+    const unsubscribe = queue.subscribe(check);
+    queueMicrotask(check);
+    return unsubscribe;
+  }
+
   return {
     drafts,
     policy: policy.data,
     policyError: policy.isError,
     reloadPolicy: () => void policy.refetch(),
-    ready: drafts.length > 0 && drafts.every((item) => item.status === 'ready'),
     addFiles,
     remove: (key: string) => queue.remove(key),
     retry: (key: string) => queue.retry(key),
     describe: (key: string, text: string) => queue.describe(key, text),
-    takeReady: () => queue.takeReady(),
+    commit,
+    watchCommitted,
+    uncommit: (clientNonce: string) => queue.uncommit(clientNonce),
+    releaseCommitted: (clientNonce: string) => queue.releaseCommitted(clientNonce),
   };
 }

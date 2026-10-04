@@ -12,17 +12,41 @@ import {
   historyPage,
   sendMessage,
 } from '../api/messages-api';
+import type { AttachmentDraft } from '../attachments/types';
 import { catchUpHistory, mergeHistoryItem } from '../history-cache';
 import { messagingQueryKeys } from '../queryKeys';
 import type { HistoryItem, MessageAuthor, MessageHistoryItem, SendMessageCommand } from '../types';
 import { isMessageItem } from '../types';
 
-export type DeliveryStatus = 'sending' | 'failed' | 'confirmed';
+// 'uploading': attachments are still in flight — sending never waits on them
+// (matches Discord/Telegram/Slack/WhatsApp), so a message can sit here before
+// it's even been POSTed at all, not just awaiting server confirmation.
+export type DeliveryStatus = 'uploading' | 'sending' | 'failed' | 'confirmed';
 
 export interface DisplayItem {
   item: HistoryItem;
   delivery: DeliveryStatus | undefined;
   nonce: string | null;
+  /** Only set while `delivery === 'uploading'`: live attachment progress to render instead of `item.message.attachments`. */
+  pendingAttachments?: AttachmentDraft[];
+}
+
+interface UploadingSend {
+  markdown: string;
+  replyToMessageId?: string;
+  quoteText?: string;
+  createdAt: string;
+  drafts: AttachmentDraft[];
+}
+
+// What a composer hands send() when it has attachments committed (from
+// useAttachments' commit()) but not necessarily uploaded yet.
+export interface PendingAttachmentCommit {
+  nonce: string;
+  drafts: AttachmentDraft[];
+  watchCommitted: (nonce: string, onUpdate: (drafts: AttachmentDraft[]) => void) => () => void;
+  uncommit: (nonce: string) => void;
+  releaseCommitted: (nonce: string) => void;
 }
 
 // Reload-survival only: a send whose outcome the current session doesn't yet
@@ -129,6 +153,9 @@ export function useMessageOperations(
   const key = outboxKey(identity, workspaceId, channelId);
   const [pendingSends, setPendingSends] = useState(() => readPendingSends(key));
   const [confirmedFlash, setConfirmedFlash] = useState<ReadonlySet<string>>(() => new Set());
+  const [uploadingSends, setUploadingSends] = useState<ReadonlyMap<string, UploadingSend>>(
+    () => new Map(),
+  );
 
   const messages = useMemo(() => items.filter(isMessageItem), [items]);
   const confirmedNonces = useMemo(
@@ -264,8 +291,77 @@ export function useMessageOperations(
     });
   }
 
-  function send(input: Omit<SendMessageCommand, 'clientNonce'>) {
-    dispatch({ ...input, clientNonce: randomId() }, new Date().toISOString());
+  /**
+   * Sending never waits on attachment upload completion (matches Discord/
+   * Telegram/Slack/WhatsApp): with no `pending` commit, this is a normal
+   * immediate send; with one, the message shows in the timeline right away
+   * as 'uploading' — tracking `pending.drafts` live via `watchCommitted` —
+   * and only becomes a real send once every attachment reaches 'ready'. A
+   * failed upload hands the drafts back to the composer (`uncommit`) instead
+   * of entering the normal failed-to-send outbox, since nothing was ever
+   * dispatched to retry.
+   */
+  function send(
+    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
+    pending?: PendingAttachmentCommit,
+  ) {
+    if (!pending) {
+      dispatch({ ...input, clientNonce: randomId() }, new Date().toISOString());
+      return;
+    }
+    const { nonce, drafts, watchCommitted, uncommit, releaseCommitted } = pending;
+    const createdAt = new Date().toISOString();
+    setUploadingSends((current) => {
+      const next = new Map(current);
+      next.set(nonce, {
+        markdown: input.markdown,
+        replyToMessageId: input.replyToMessageId,
+        quoteText: input.quoteText,
+        createdAt,
+        drafts,
+      });
+      return next;
+    });
+    const unsubscribe = watchCommitted(nonce, (nextDrafts) => {
+      if (nextDrafts.some((draft) => draft.status === 'error')) {
+        unsubscribe();
+        uncommit(nonce);
+        setUploadingSends((current) => {
+          const next = new Map(current);
+          next.delete(nonce);
+          return next;
+        });
+        return;
+      }
+      setUploadingSends((current) => {
+        if (!current.has(nonce)) return current;
+        const next = new Map(current);
+        next.set(nonce, { ...next.get(nonce)!, drafts: nextDrafts });
+        return next;
+      });
+      if (nextDrafts.every((draft) => draft.status === 'ready')) {
+        unsubscribe();
+        releaseCommitted(nonce);
+        setUploadingSends((current) => {
+          const next = new Map(current);
+          next.delete(nonce);
+          return next;
+        });
+        dispatch(
+          {
+            markdown: input.markdown,
+            clientNonce: nonce,
+            replyToMessageId: input.replyToMessageId,
+            quoteText: input.quoteText,
+            attachments: nextDrafts.map((draft) => ({
+              ...draft.attachment!,
+              description: draft.description || null,
+            })),
+          },
+          createdAt,
+        );
+      }
+    });
   }
 
   function retry(nonce: string) {
@@ -311,8 +407,35 @@ export function useMessageOperations(
           delivery: 'failed',
         };
       });
-    return [...sending, ...failed];
-  }, [optimisticItems, confirmedNonces, confirmedFlash, pendingSends, messages, author]);
+    const uploading: DisplayItem[] = [...uploadingSends.entries()].map(([nonce, entry]) => {
+      const replyTarget = messages.find((item) => item.message.id === entry.replyToMessageId);
+      return {
+        item: synthesize(
+          {
+            markdown: entry.markdown,
+            clientNonce: nonce,
+            replyToMessageId: entry.replyToMessageId,
+            quoteText: entry.quoteText,
+          },
+          entry.createdAt,
+          author,
+          replyTarget,
+        ),
+        nonce: null,
+        delivery: 'uploading',
+        pendingAttachments: entry.drafts,
+      };
+    });
+    return [...sending, ...uploading, ...failed];
+  }, [
+    optimisticItems,
+    confirmedNonces,
+    confirmedFlash,
+    pendingSends,
+    uploadingSends,
+    messages,
+    author,
+  ]);
 
   return { displayItems, send, retry, edit, remove };
 }

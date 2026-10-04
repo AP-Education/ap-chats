@@ -4,6 +4,7 @@ import { MentionEditor } from '@/features/social/mentions/components/MentionEdit
 
 import type { MessageHistoryItem } from '../../types';
 import { MessageAttachments } from '../MessageAttachments/MessageAttachments';
+import { PendingAttachments } from '../MessageAttachments/PendingAttachments';
 import { useMessageActionScope } from './MessageActionScope';
 import { MessageEditor } from './MessageEditor';
 import { MessageReadContent } from './MessageReadContent';
@@ -16,7 +17,7 @@ interface MessageBodyProps {
 }
 
 export function MessageBody({ contentRef, minHeight, onEdit, onCloseEdit }: MessageBodyProps) {
-  const { editing, item, delivery } = useMessageActionScope();
+  const { editing, item, delivery, pendingAttachments } = useMessageActionScope();
 
   return (
     <>
@@ -27,11 +28,15 @@ export function MessageBody({ contentRef, minHeight, onEdit, onCloseEdit }: Mess
       ) : (
         <MessageReadContent contentRef={contentRef} />
       )}
-      <MessageAttachments
-        attachments={item.message.attachments ?? []}
-        messageId={item.message.id}
-        available={!delivery || delivery === 'confirmed'}
-      />
+      {pendingAttachments ? (
+        <PendingAttachments drafts={pendingAttachments} />
+      ) : (
+        <MessageAttachments
+          attachments={item.message.attachments ?? []}
+          messageId={item.message.id}
+          available={!delivery || delivery === 'confirmed'}
+        />
+      )}
     </>
   );
 }

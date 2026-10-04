@@ -12,9 +12,10 @@ import { CurrentUserContext } from '@/features/auth/stores/current-user-context'
 import { ConversationProvider } from '@/features/social/conversation/store';
 import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { sendMessage } from '@/features/social/messaging/api/messages-api';
-import type { Attachment } from '@/features/social/messaging/attachments/types';
+import type { Attachment, AttachmentDraft } from '@/features/social/messaging/attachments/types';
 import { MessageComposer } from '@/features/social/messaging/components/MessageComposer/MessageComposer';
 import { MessageRow } from '@/features/social/messaging/components/MessageRow/MessageRow';
+import type { PendingAttachmentCommit } from '@/features/social/messaging/hooks/useMessageOperations';
 import type { MessageHistoryItem, SendMessageCommand } from '@/features/social/messaging/types';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -108,6 +109,11 @@ function item(
   };
 }
 
+interface UploadingEntry {
+  item: MessageHistoryItem;
+  drafts: AttachmentDraft[];
+}
+
 function Fixture() {
   const { styles } = useStyles();
   const [channelId, setChannelId] = useState('channel');
@@ -115,15 +121,75 @@ function Fixture() {
     item('seed-1', 'Колеги, надсилаю матеріали до зустрічі.', [image, file]),
     item('seed-2', 'Дякую! Перегляну до кінця дня.', []),
   ]);
-  async function send(input: Omit<SendMessageCommand, 'clientNonce'>) {
+  const [uploading, setUploading] = useState<ReadonlyMap<string, UploadingEntry>>(() => new Map());
+
+  async function finalize(
+    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
+    attachments: Attachment[],
+  ) {
     const message = await sendMessage('test-token', 'workspace', channelId, {
       ...input,
       clientNonce: crypto.randomUUID(),
+      ...(attachments.length ? { attachments } : {}),
     });
     setMessages((current) => [
       ...current,
       { ...item(message.id, message.markdown ?? '', message.attachments ?? []), message },
     ]);
+  }
+
+  // Mirrors useMessageOperations.send(): sending never waits on attachment
+  // upload completion, so the message renders right away as 'uploading' —
+  // tracking the commit's drafts live — and only becomes a real send once
+  // every attachment reaches 'ready'.
+  function send(
+    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
+    pending?: PendingAttachmentCommit,
+  ) {
+    if (!pending) {
+      void finalize(input, []);
+      return;
+    }
+    const { nonce, drafts, watchCommitted, uncommit, releaseCommitted } = pending;
+    setUploading((current) => {
+      const next = new Map(current);
+      next.set(nonce, { item: item(nonce, input.markdown, []), drafts });
+      return next;
+    });
+    const unsubscribe = watchCommitted(nonce, (nextDrafts) => {
+      if (nextDrafts.some((draft) => draft.status === 'error')) {
+        unsubscribe();
+        uncommit(nonce);
+        setUploading((current) => {
+          const next = new Map(current);
+          next.delete(nonce);
+          return next;
+        });
+        return;
+      }
+      setUploading((current) => {
+        if (!current.has(nonce)) return current;
+        const next = new Map(current);
+        next.set(nonce, { ...next.get(nonce)!, drafts: nextDrafts });
+        return next;
+      });
+      if (nextDrafts.every((draft) => draft.status === 'ready')) {
+        unsubscribe();
+        releaseCommitted(nonce);
+        setUploading((current) => {
+          const next = new Map(current);
+          next.delete(nonce);
+          return next;
+        });
+        void finalize(
+          input,
+          nextDrafts.map((draft) => ({
+            ...draft.attachment!,
+            description: draft.description || null,
+          })),
+        );
+      }
+    });
   }
   return (
     <div className={styles.layout}>
@@ -167,8 +233,27 @@ function Fixture() {
                     onEdit={async () => undefined}
                   />
                 ))}
+                {[...uploading.entries()].map(([nonce, entry]) => (
+                  <MessageRow
+                    key={nonce}
+                    item={entry.item}
+                    delivery="uploading"
+                    pendingAttachments={entry.drafts}
+                    grouped={false}
+                    actionContext={{
+                      memberId: 'member',
+                      canManage: true,
+                      canPin: true,
+                      canPost: true,
+                    }}
+                    actions={[]}
+                    onAction={() => undefined}
+                    onJump={() => undefined}
+                    onEdit={async () => undefined}
+                  />
+                ))}
               </div>
-              <MessageComposer onSend={(input) => void send(input)}>
+              <MessageComposer onSend={send}>
                 <MentionEditor />
               </MessageComposer>
             </div>

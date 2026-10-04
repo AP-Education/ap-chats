@@ -9,6 +9,8 @@ interface UploadJob extends UploadResumeState {
   file: File;
   draft: AttachmentDraft;
   controller?: AbortController;
+  /** Set once a send commits this job: it keeps uploading, but drops out of the composer's own snapshot. */
+  committedTo?: string;
 }
 
 export class UploadQueue {
@@ -40,10 +42,13 @@ export class UploadQueue {
 
   add(files: File[], policy: AttachmentPolicy): string[] {
     const errors: string[] = [];
+    // Committed jobs belong to a message already on its way out, not this
+    // one in progress — they shouldn't count against its own limits.
+    let visibleCount = this.snapshot.length;
     let total = this.snapshot.reduce((sum, item) => sum + item.size, 0);
     for (const file of files) {
       let error: string | undefined;
-      if (this.jobs.size >= policy.maxFiles) error = `До ${policy.maxFiles} файлів у повідомленні`;
+      if (visibleCount >= policy.maxFiles) error = `До ${policy.maxFiles} файлів у повідомленні`;
       else if (!file.size) error = `${file.name}: файл порожній`;
       else if (file.size > policy.maxFileBytes)
         error = `${file.name}: ліміт ${formatFileSize(policy.maxFileBytes)} на файл`;
@@ -77,6 +82,7 @@ export class UploadQueue {
         ...(previewUrl ? { previewUrl } : {}),
       };
       this.jobs.set(key, { file, draft, completed: new Set(), bytes: new Map() });
+      visibleCount += 1;
       total += file.size;
     }
     this.publish();
@@ -114,23 +120,57 @@ export class UploadQueue {
     this.publish();
   }
 
-  takeReady(): AttachmentDraft[] {
-    if (!this.snapshot.length || this.snapshot.some((item) => item.status !== 'ready')) return [];
-    const ready = this.snapshot;
-    for (const job of this.jobs.values())
-      if (job.draft.previewUrl) URL.revokeObjectURL(job.draft.previewUrl);
-    this.jobs.clear();
+  /**
+   * Commits every non-failed draft to a send: sending never waits on upload
+   * completion (matches Discord/Telegram/Slack/WhatsApp), so this hands back
+   * whatever state they're currently in — queued, uploading or already ready
+   * — while they keep running in pump()/run(). A failed draft is left
+   * uncommitted so it stays visible (and retryable) in the composer.
+   */
+  commit(clientNonce: string): AttachmentDraft[] {
+    const committed: AttachmentDraft[] = [];
+    for (const job of this.jobs.values()) {
+      if (job.draft.status === 'error') continue;
+      job.committedTo = clientNonce;
+      committed.push(job.draft);
+    }
     this.publish();
-    return ready;
+    return committed;
   }
 
+  getCommitted(clientNonce: string): AttachmentDraft[] {
+    return [...this.jobs.values()]
+      .filter((job) => job.committedTo === clientNonce)
+      .map((job) => job.draft);
+  }
+
+  /** The commit finished (sent) or failed upload: either way, stop tracking those jobs here. */
+  releaseCommitted(clientNonce: string): void {
+    for (const [key, job] of this.jobs) {
+      if (job.committedTo !== clientNonce) continue;
+      if (job.draft.previewUrl) URL.revokeObjectURL(job.draft.previewUrl);
+      this.jobs.delete(key);
+    }
+    this.publish();
+  }
+
+  /** An upload under this commit failed: hand every job in it back to the composer to retry or remove. */
+  uncommit(clientNonce: string): void {
+    for (const job of this.jobs.values())
+      if (job.committedTo === clientNonce) job.committedTo = undefined;
+    this.publish();
+  }
+
+  /** Leaves committed jobs running — an in-flight send outlives the composer that started it (switching channels, say). */
   dispose(): void {
     this.disposed = true;
-    for (const key of this.jobs.keys()) this.remove(key);
+    for (const [key, job] of this.jobs) if (!job.committedTo) this.remove(key);
   }
 
   private publish(): void {
-    this.snapshot = [...this.jobs.values()].map((job) => job.draft);
+    this.snapshot = [...this.jobs.values()]
+      .filter((job) => !job.committedTo)
+      .map((job) => job.draft);
     for (const listener of this.listeners) listener();
   }
 
@@ -140,8 +180,10 @@ export class UploadQueue {
   }
 
   private pump(): void {
-    if (this.disposed) return;
     for (const [key, job] of this.jobs) {
+      // Once disposed, only committed (already-sent) jobs may still start —
+      // everything else is being torn down by dispose() in the same tick.
+      if (this.disposed && !job.committedTo) continue;
       if (this.active.size >= 2) return;
       if (job.draft.status !== 'queued' || this.active.has(key)) continue;
       this.active.add(key);

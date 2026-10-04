@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
         json: {
           maxFileBytes: 1_000_000_000,
           maxMessageBytes: 2_000_000_000,
-          maxFiles: 10,
+          maxFiles: 25,
           partBytes: 16 * 1024 * 1024,
         },
       });
@@ -244,4 +244,48 @@ test('picking a mention candidate inserts a chip and sends the member token', as
   await page.getByRole('button', { name: 'Надіслати', exact: true }).click();
   await expect.poll(() => payloads.length).toBe(1);
   expect(payloads[0]?.markdown).toContain(':member[member-olena]');
+});
+
+test('sending never waits on attachment upload: the message appears immediately and finalizes once ready', async ({
+  page,
+}) => {
+  let releaseUpload: () => void;
+  const held = new Promise<void>((resolve) => {
+    releaseUpload = resolve;
+  });
+  await page.route('**/storage/**', async (route) => {
+    await held;
+    await route.fulfill({ status: 200, body: '' });
+  });
+  const payloads: Record<string, unknown>[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname.endsWith('/messages') && request.method() === 'POST')
+      payloads.push(request.postDataJSON());
+  });
+
+  await page.locator('input[type=file]').setInputFiles({
+    name: 'Відео зустрічі.zip',
+    mimeType: 'application/zip',
+    buffer: Buffer.alloc(1024),
+  });
+  await page
+    .getByRole('textbox', { name: 'Повідомлення', exact: true })
+    .fill('Ось файл із зустрічі');
+  await expect(page.getByRole('status').filter({ hasText: 'Завантаження' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Надіслати', exact: true })).toBeEnabled();
+
+  await page.getByRole('button', { name: 'Надіслати', exact: true }).click();
+
+  // The composer clears and the message is already in the history — none of
+  // this waited on the upload, which is still being held back.
+  await expect(page.getByRole('textbox', { name: 'Повідомлення', exact: true })).toHaveText('');
+  await expect(page.getByRole('region', { name: 'Вкладення до повідомлення' })).toHaveCount(0);
+  expect(payloads).toHaveLength(0);
+  await expect(page.getByText('Ось файл із зустрічі')).toBeVisible();
+  await expect(page.getByText('Відео зустрічі.zip')).toBeVisible();
+
+  releaseUpload!();
+  await expect.poll(() => payloads.length).toBe(1);
+  expect(payloads[0]?.markdown).toBe('Ось файл із зустрічі');
+  expect(payloads[0]?.attachments).toEqual([{ id: expect.any(String) }]);
 });

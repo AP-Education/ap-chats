@@ -6,6 +6,7 @@ import type {
   ConversationAction,
 } from '@/features/social/conversation/actions';
 
+import type { AttachmentDraft } from '../../attachments/types';
 import type { DeliveryStatus } from '../../hooks/useMessageOperations';
 import type { HistoryItem, MessageHistoryItem } from '../../types';
 
@@ -19,6 +20,7 @@ export interface HistoryItemRenderContext {
   onJump: (messageId: string) => void;
   onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
   delivery: DeliveryStatus | undefined;
+  pendingAttachments: AttachmentDraft[] | undefined;
   onRetry: (() => void) | undefined;
 }
 

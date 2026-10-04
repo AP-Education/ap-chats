@@ -254,7 +254,7 @@ export function MessageTimeline({
             </div>
           )}
           {!displayItems.length && <div className={styles.spacer} />}
-          {visibleItems.map(({ item, delivery, nonce }, index) => {
+          {visibleItems.map(({ item, delivery, nonce, pendingAttachments }, index) => {
             const previous = visibleItems[index - 1]?.item;
             const day = new Date(item.createdAt).toDateString();
             const previousDay = previous ? new Date(previous.createdAt).toDateString() : null;
@@ -294,6 +294,7 @@ export function MessageTimeline({
                   onJump={onJump}
                   onEdit={onEdit}
                   delivery={delivery}
+                  pendingAttachments={pendingAttachments}
                   onRetry={nonce ? () => onRetry(nonce) : undefined}
                 />
               </div>
