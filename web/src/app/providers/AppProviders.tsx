@@ -4,6 +4,7 @@ import type { PropsWithChildren } from 'react';
 import { UserProfileSync } from '../../features/auth/components/UserProfileSync/UserProfileSync';
 import { ApiAuthSession } from '../../features/auth/providers/ApiAuthSession';
 import { CurrentUserProvider } from '../../features/auth/providers/CurrentUserProvider';
+import { ChannelListRealtime } from '../../features/communities/realtime/ChannelListRealtime';
 import { RealtimeProvider } from '../../features/realtime/providers/RealtimeProvider';
 import { ActiveWorkspaceProvider } from '../../features/workspaces/providers/ActiveWorkspaceProvider';
 import { ThemeProvider } from './ThemeProvider';
@@ -21,6 +22,7 @@ export function AppProviders({ children }: PropsWithChildren) {
         <ApiAuthSession />
         <UserProfileSync />
         <RealtimeProvider>
+          <ChannelListRealtime />
           <ActiveWorkspaceProvider>
             <ThemeProvider>{children}</ThemeProvider>
           </ActiveWorkspaceProvider>
