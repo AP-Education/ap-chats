@@ -14,3 +14,6 @@ coverage/
 .DS_Store
 mobile/android/
 mobile/ios/
+brag
+brag-output
+brag-output-*
