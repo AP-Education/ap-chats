@@ -1,4 +1,5 @@
 // Bridge protocol: web-side mirror of mobile/src/features/webview/types/index.ts.
+// Transport itself (window.ApAppNative/ReactNativeWebView) lives in shared/lib/nativeBridge.ts.
 export interface NativeAuthTokenPayload {
   accessToken: string;
   expiresAt: number;
@@ -13,18 +14,6 @@ export type WebToNativeMessage =
   | { type: 'auth/refresh-request' }
   | { type: 'haptics/selection' }
   | { type: 'notifications/message-sound' };
-
-interface NativeBridge {
-  onMessage?: (message: NativeToWebMessage) => void;
-  queue?: NativeToWebMessage[];
-}
-
-declare global {
-  interface Window {
-    ApAppNative?: NativeBridge;
-    ReactNativeWebView?: { postMessage: (data: string) => void };
-  }
-}
 
 export interface CurrentUserProfile {
   name?: string;

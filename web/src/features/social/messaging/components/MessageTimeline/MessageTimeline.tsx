@@ -1,13 +1,14 @@
 import { ArrowDownIcon, ArrowUpIcon, HashIcon } from '@phosphor-icons/react';
 import { Button, Empty } from 'antd';
 import { createStyles } from 'antd-style';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 
 import type {
   ActionContext,
   ActionTarget,
   ConversationAction,
 } from '@/features/social/conversation/actions';
+import { useConversation } from '@/features/social/conversation/store';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 import type { DisplayItem } from '../../hooks/useMessageOperations';
@@ -37,6 +38,11 @@ const useStyles = createStyles(({ token, css }) => ({
   feed: css`
     display: flex;
     flex-direction: column;
+    // A short history should hug the bottom of the viewport like any chat app, not
+    // leave empty space under the last message — the scroll-to-bottom effect in
+    // useScrollAnchoring only sets scrollTop, which does nothing once content already
+    // fits, so the layout itself has to push it down instead.
+    justify-content: flex-end;
     min-height: 100%;
     padding: 16px 0 20px;
 
@@ -92,15 +98,27 @@ const useStyles = createStyles(({ token, css }) => ({
     z-index: 3;
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     padding: 0;
     border: 1px solid ${token.colorBorderSecondary};
-    border-radius: 20px;
-    background: ${token.colorBgContainer};
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(12px) saturate(180%);
     box-shadow: ${token.boxShadowSecondary};
     color: ${token.colorText};
     cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease,
+      border-color 0.15s ease;
+  `,
+  // Away-from-bottom while there's something new to catch up on reads differently from
+  // just having scrolled up on your own — the same cue the unread divider uses.
+  bottomUnread: css`
+    border-color: ${token.colorPrimary};
+    background: ${token.colorPrimary};
+    color: ${token.colorWhite};
   `,
   empty: css`
     display: grid;
@@ -153,8 +171,10 @@ export function MessageTimeline({
   loadNewer,
   targetMessageId,
 }: MessageTimelineProps) {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
+  const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
+  const gesture = useRef<{ x: number; y: number; dismissed: boolean } | null>(null);
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   // A deleted message keeps its seq (read state, scroll anchoring, and reply
   // excerpts elsewhere all still need it), but has nothing left worth a row —
@@ -188,6 +208,26 @@ export function MessageTimeline({
         ref={scrollRef}
         className={styles.scroll}
         onScroll={onScroll}
+        onPointerDown={(event) => {
+          if (event.pointerType === 'touch')
+            gesture.current = { x: event.clientX, y: event.clientY, dismissed: false };
+        }}
+        onPointerUp={() => {
+          gesture.current = null;
+        }}
+        onPointerCancel={() => {
+          gesture.current = null;
+        }}
+        onTouchMove={(event) => {
+          const touch = event.touches[0];
+          const start = gesture.current;
+          if (!touch || !start || start.dismissed) return;
+          const vertical = Math.abs(touch.clientY - start.y);
+          if (vertical > 10 && vertical > Math.abs(touch.clientX - start.x)) {
+            start.dismissed = true;
+            requestComposerBlur();
+          }
+        }}
         onPointerMove={(event) => {
           if (performance.now() - lastScrollAt.current > 120)
             delete event.currentTarget.dataset.hoverSuppressed;
@@ -274,12 +314,12 @@ export function MessageTimeline({
       {awayFromBottom && (
         <button
           type="button"
-          className={styles.bottom}
+          className={cx(styles.bottom, hasNewer && styles.bottomUnread)}
           onClick={goDown}
           aria-label={hasNewer ? 'До новіших повідомлень' : 'До низу розмови'}
           title={hasNewer ? 'До новіших повідомлень' : 'До низу розмови'}
         >
-          <ArrowDownIcon size={18} aria-hidden="true" />
+          <ArrowDownIcon size={20} aria-hidden="true" />
         </button>
       )}
     </div>

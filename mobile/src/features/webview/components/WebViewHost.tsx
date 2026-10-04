@@ -1,8 +1,8 @@
 import { selectionAsync } from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef, useState } from 'react';
-import { AppState, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, StyleSheet, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 import type {
   WebViewErrorEvent,
@@ -12,6 +12,13 @@ import type {
 
 import { useAuthStore } from '../../auth/index';
 import { connectBridgedCall, useIsMiniCallBarVisible } from '../../calls';
+import {
+  type ComposerInputState,
+  EmojiKeyboardPanel,
+  type GifResult,
+  isComposerInputRequest,
+  useComposerInput,
+} from '../../composer';
 import { unregisterCurrentDevice } from '../../push/api/unregister-current-device';
 import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
@@ -33,6 +40,12 @@ export function WebViewHost() {
   // re-fires on every reload since the injected globals don't survive one.
   const [loadCount, setLoadCount] = useState(0);
   const [messageSoundRequest, setMessageSoundRequest] = useState(0);
+  const insets = useSafeAreaInsets();
+  const [containerHeight, setContainerHeight] = useState(0);
+  const sendInputState = useCallback((state: ComposerInputState) => {
+    webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'composer/state', ...state }));
+  }, []);
+  const input = useComposerInput(sendInputState);
 
   // Pushes the current token into web/ whenever it changes (sign-in, refresh).
   useEffect(() => {
@@ -66,7 +79,9 @@ export function WebViewHost() {
     } catch {
       return;
     }
-    if (message.type === 'auth/sign-out') {
+    if (isComposerInputRequest(message)) {
+      input.request(message);
+    } else if (message.type === 'auth/sign-out') {
       // Capture the current access token before signOut hides the WebView. Push
       // cleanup must not block logout when the device API is unreachable.
       void Promise.allSettled([unregisterCurrentDevice(), useAuthStore.getState().signOut()]);
@@ -88,6 +103,26 @@ export function WebViewHost() {
     }
   }
 
+  function handlePickEmoji(text: string) {
+    const { sessionId, requestId, mode } = input.state;
+    if (!sessionId || (mode !== 'picker' && mode !== 'search')) return;
+    const message: NativeToWebMessage = { type: 'composer/insert', sessionId, requestId, text };
+    webViewRef.current?.injectJavaScript(buildBridgeScript(message));
+  }
+
+  function handlePickGif(gif: GifResult) {
+    const { sessionId, requestId, mode } = input.state;
+    if (!sessionId || (mode !== 'picker' && mode !== 'search')) return;
+    const message: NativeToWebMessage = {
+      type: 'composer/gif',
+      sessionId,
+      requestId,
+      url: gif.url,
+      title: gif.title,
+    };
+    webViewRef.current?.injectJavaScript(buildBridgeScript(message));
+  }
+
   if (!webUrl) {
     return <SetupScreen />;
   }
@@ -101,35 +136,59 @@ export function WebViewHost() {
     // it here too would double it, leaving a gap between the bar and this view.
     <SafeAreaView
       style={styles.container}
-      edges={miniCallBarVisible ? ['bottom'] : ['top', 'bottom']}
+      edges={miniCallBarVisible ? [] : ['top']}
+      onLayout={(event) => setContainerHeight(event.nativeEvent.layout.height)}
     >
       <MessageNotificationSound request={messageSoundRequest} />
-      <WebView
-        ref={webViewRef}
-        source={{ uri: webUrl }}
-        style={styles.webview}
-        applicationNameForUserAgent={APP_SHELL_USER_AGENT}
-        onMessage={handleMessage}
-        onLoadEnd={() => {
-          setLoadCount((count) => count + 1);
-          // WKWebView doesn't reliably become first responder on its own —
-          // without this, the very first tap anywhere after a (re)load gets
-          // consumed establishing focus instead of reaching its target,
-          // which reads as "the button needs two taps" (confirmed: only
-          // ever happens inside this WebView, never on desktop).
-          webViewRef.current?.requestFocus();
-        }}
-        injectedJavaScriptBeforeContentLoaded={__DEV__ ? DEBUG_CONSOLE_SCRIPT : undefined}
-        onError={(event: WebViewErrorEvent) =>
-          console.error('[webview] onError', event.nativeEvent)
-        }
-        onHttpError={(event: WebViewHttpErrorEvent) =>
-          console.error('[webview] onHttpError', event.nativeEvent)
-        }
-        onContentProcessDidTerminate={(event: WebViewTerminatedEvent) =>
-          console.error('[webview] render process terminated', event.nativeEvent)
-        }
-        renderError={() => <ConnectionErrorScreen onRetry={() => webViewRef.current?.reload()} />}
+      <View style={styles.webviewWrapper}>
+        <WebView
+          ref={webViewRef}
+          source={{ uri: webUrl }}
+          style={styles.webview}
+          hideKeyboardAccessoryView
+          keyboardDisplayRequiresUserAction={false}
+          automaticallyAdjustContentInsets={false}
+          contentInsetAdjustmentBehavior="never"
+          scrollEnabled={false}
+          bounces={false}
+          onLoadStart={input.close}
+          applicationNameForUserAgent={APP_SHELL_USER_AGENT}
+          onMessage={handleMessage}
+          onLoadEnd={() => {
+            setLoadCount((count) => count + 1);
+            // WKWebView doesn't reliably become first responder on its own —
+            // without this, the very first tap anywhere after a (re)load gets
+            // consumed establishing focus instead of reaching its target,
+            // which reads as "the button needs two taps" (confirmed: only
+            // ever happens inside this WebView, never on desktop).
+            webViewRef.current?.requestFocus();
+          }}
+          injectedJavaScriptBeforeContentLoaded={__DEV__ ? DEBUG_CONSOLE_SCRIPT : undefined}
+          onError={(event: WebViewErrorEvent) =>
+            console.error('[webview] onError', event.nativeEvent)
+          }
+          onHttpError={(event: WebViewHttpErrorEvent) =>
+            console.error('[webview] onHttpError', event.nativeEvent)
+          }
+          onContentProcessDidTerminate={(event: WebViewTerminatedEvent) =>
+            console.error('[webview] render process terminated', event.nativeEvent)
+          }
+          renderError={() => <ConnectionErrorScreen onRetry={() => webViewRef.current?.reload()} />}
+        />
+      </View>
+      <EmojiKeyboardPanel
+        mode={input.mode}
+        keyboardHeight={input.keyboardHeight}
+        panelHeight={input.panelHeight}
+        heldHeight={input.heldHeight}
+        bottomInset={insets.bottom}
+        containerHeight={containerHeight}
+        visible={input.state.mode === 'picker' || input.state.mode === 'search'}
+        activeTab={input.state.tab}
+        onTabChange={input.selectTab}
+        onSearchFocus={input.search}
+        onPickEmoji={handlePickEmoji}
+        onPickGif={handlePickGif}
       />
       <StatusBar style="dark" />
     </SafeAreaView>
@@ -138,5 +197,6 @@ export function WebViewHost() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+  webviewWrapper: { flex: 1 },
   webview: { flex: 1 },
 });

@@ -49,6 +49,16 @@ export function useScrollAnchoring({
   const lastFlashedTarget = useRef<string | null>(null);
   const [awayFromBottom, setAwayFromBottom] = useState(false);
 
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(() => {
+      if (atBottom.current) container.scrollTop = container.scrollHeight;
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
   useLayoutEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
