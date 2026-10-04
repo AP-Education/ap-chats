@@ -7,6 +7,7 @@ import { MentionsModule } from './mentions/mentions.module';
 import { MessagesModule } from './messages/messages.module';
 import { PinsModule } from './pins/pins.module';
 import { ReadStateModule } from './read-state/read-state.module';
+import { TypingModule } from './typing/typing.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ReadStateModule } from './read-state/read-state.module';
     ReadStateModule,
     ForwardingModule,
     HistoryModule,
+    TypingModule,
   ],
 })
 export class SocialModule {}

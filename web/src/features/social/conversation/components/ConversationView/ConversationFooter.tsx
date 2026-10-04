@@ -4,6 +4,7 @@ import { MessageComposer } from '@/features/social/messaging/components/MessageC
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import type { HistoryItem, SendMessageInput } from '@/features/social/messaging/types';
 import { isMessageItem } from '@/features/social/messaging/types';
+import { TypingIndicator } from '@/features/social/typing/components/TypingIndicator';
 
 import { useConversation } from '../../store';
 
@@ -42,10 +43,13 @@ function WritableConversationFooter({
   }
 
   return (
-    <MessageComposer
-      replyAuthor={replyTarget?.author.displayName ?? undefined}
-      replyPreview={replyTarget?.message.markdown ?? undefined}
-      onSend={onSend}
-    />
+    <>
+      <TypingIndicator />
+      <MessageComposer
+        replyAuthor={replyTarget?.author.displayName ?? undefined}
+        replyPreview={replyTarget?.message.markdown ?? undefined}
+        onSend={onSend}
+      />
+    </>
   );
 }
