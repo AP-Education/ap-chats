@@ -4,8 +4,10 @@ import { AuthModule } from '@/components/auth';
 import { WorkspacesModule } from '@/components/workspaces';
 
 import { ChannelAccessModule } from '../channel-access/channel-access.module';
+import { ChannelAudienceModule } from '../channel-audience/channel-audience.module';
 import { ChannelCategoriesModule } from '../channel-categories/channel-categories.module';
 import { ChannelsController } from './channels.controller';
+import { ChannelsGateway } from './channels.gateway';
 import { ChannelsService } from './channels.service';
 import { ChannelsRepositoryModule } from './channels-repository.module';
 
@@ -14,10 +16,11 @@ import { ChannelsRepositoryModule } from './channels-repository.module';
     AuthModule,
     WorkspacesModule,
     ChannelAccessModule,
+    ChannelAudienceModule,
     ChannelCategoriesModule,
     ChannelsRepositoryModule,
   ],
   controllers: [ChannelsController],
-  providers: [ChannelsService],
+  providers: [ChannelsService, ChannelsGateway],
 })
 export class ChannelsModule {}

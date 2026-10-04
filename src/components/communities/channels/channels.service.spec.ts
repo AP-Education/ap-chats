@@ -4,11 +4,13 @@ import { test } from 'node:test';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
+import type { EventPublisher } from '@/globals/publisher/event-publisher';
 
 import { CommunityAccessService } from '../channel-access/community-access.service';
 import type { ChannelCategoriesRepository } from '../channel-categories/repository';
 import type { ChannelMembershipsRepository } from '../memberships/repository';
 import { ChannelsService } from './channels.service';
+import { CHANNEL_CREATED_EVENT, ChannelCreatedEvent } from './events/channel-created.event';
 import type { ChannelsRepository } from './repository';
 import type { Channel } from './types';
 
@@ -48,7 +50,9 @@ function makeService(
   const access = new CommunityAccessService(repository, {
     isMember: async () => true,
   } as unknown as ChannelMembershipsRepository);
-  return new ChannelsService(repository, {} as ChannelCategoriesRepository, access);
+  return new ChannelsService(repository, {} as ChannelCategoriesRepository, access, {
+    publish: () => {},
+  } as EventPublisher);
 }
 
 test('workspace owner can delete a public channel', async () => {
@@ -144,6 +148,7 @@ for (const kind of ['public', 'private'] as const) {
       repository,
       {} as ChannelCategoriesRepository,
       {} as CommunityAccessService,
+      { publish: () => assert.fail('Forbidden creation must not announce a channel') },
     );
 
     await assert.rejects(service.create(member, { name: 'New channel', kind }), ForbiddenException);
@@ -152,6 +157,7 @@ for (const kind of ['public', 'private'] as const) {
 
   test(`workspace owner can create a ${kind} channel`, async () => {
     let writes = 0;
+    const published: { key: string; event: unknown }[] = [];
     const repository = {
       create: async () => {
         writes++;
@@ -162,6 +168,12 @@ for (const kind of ['public', 'private'] as const) {
       repository,
       {} as ChannelCategoriesRepository,
       {} as CommunityAccessService,
+      {
+        publish: (key, event) => {
+          assert.equal(writes, 1);
+          published.push({ key, event });
+        },
+      },
     );
 
     const created = await service.create(
@@ -171,5 +183,34 @@ for (const kind of ['public', 'private'] as const) {
     assert.equal(writes, 1);
     assert.equal(created.kind, kind);
     assert.equal(created.isMember, true);
+    assert.deepEqual(published, [
+      {
+        key: CHANNEL_CREATED_EVENT,
+        event: new ChannelCreatedEvent(channel.workspaceId, channel.id, kind),
+      },
+    ]);
   });
 }
+
+test('failed channel creation does not publish an inventory change', async () => {
+  const service = new ChannelsService(
+    {
+      create: async () => {
+        throw new Error('Database write failed');
+      },
+    } as unknown as ChannelsRepository,
+    {} as ChannelCategoriesRepository,
+    {} as CommunityAccessService,
+    { publish: () => assert.fail('Failed creation must not be announced') },
+  );
+  await assert.rejects(
+    service.create(
+      { ...member, role: 'owner' },
+      {
+        name: 'New',
+        kind: 'public',
+      },
+    ),
+    /Database write failed/,
+  );
+});

@@ -4,6 +4,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { App } from './app/App';
+import { BootstrapHandoff } from './app/BootstrapHandoff';
 import { isNativeShell } from './shared/lib/nativeBridge';
 import { ErrorBoundary } from './shared/ui/ErrorBoundary/ErrorBoundary';
 
@@ -13,6 +14,7 @@ if (isNativeShell()) document.documentElement.dataset.nativeShell = 'true';
 
 createRoot(root).render(
   <StrictMode>
+    <BootstrapHandoff />
     <ErrorBoundary label="app">
       <App />
     </ErrorBoundary>

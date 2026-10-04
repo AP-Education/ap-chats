@@ -82,9 +82,9 @@ export function WebViewHost() {
     if (isComposerInputRequest(message)) {
       input.request(message);
     } else if (message.type === 'auth/sign-out') {
-      // Unregister first — the access token is still valid at this point; once
-      // signOut() clears it, there's nothing left to authorize the DELETE with.
-      void unregisterCurrentDevice().finally(() => void useAuthStore.getState().signOut());
+      // Capture the current access token before signOut hides the WebView. Push
+      // cleanup must not block logout when the device API is unreachable.
+      void Promise.allSettled([unregisterCurrentDevice(), useAuthStore.getState().signOut()]);
     } else if (message.type === 'auth/refresh-request') {
       // Updates the store; the effect above picks up the new token and re-injects it.
       void useAuthStore.getState().refreshNow();

@@ -4,18 +4,6 @@ import { AuthProvider } from 'react-oidc-context';
 
 import { getOidcConfig } from '../api/oidc-config';
 
-function safeReturnTo(state: unknown): string {
-  const value =
-    state && typeof state === 'object' && 'returnTo' in state ? state.returnTo : undefined;
-  return typeof value === 'string' &&
-    value.startsWith('/') &&
-    !value.startsWith('//') &&
-    !value.includes('\\') &&
-    !value.startsWith('/auth/callback')
-    ? value
-    : '/';
-}
-
 // Only rendered from CurrentUserProvider, which already guarantees OIDC is configured.
 export function OidcProvider({ children }: PropsWithChildren) {
   const { issuer, clientId, audience } = getOidcConfig();
@@ -31,7 +19,9 @@ export function OidcProvider({ children }: PropsWithChildren) {
       loadUserInfo={false}
       automaticSilentRenew
       userStore={new WebStorageStateStore({ store: window.sessionStorage })}
-      onSigninCallback={(user) => window.location.replace(safeReturnTo(user?.state))}
+      onSigninCallback={() =>
+        window.history.replaceState(window.history.state, '', window.location.pathname)
+      }
     >
       {children}
     </AuthProvider>

@@ -1,52 +1,45 @@
-import { Button, Result, Spin } from 'antd';
 import type { PropsWithChildren } from 'react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+
+import { AppLoading } from '@/shared/ui/AppLoading/AppLoading';
 
 import { useCurrentUser } from '../stores/current-user-context';
+import { AuthFailureScreen } from './AuthFailureScreen';
 
 // The gate for everything except /auth/callback (see app/router.tsx) — no route past
 // this point renders anything until there's a signed-in user.
 export function RequireAuth({ children }: PropsWithChildren) {
   const user = useCurrentUser();
+  const signInStarted = useRef(false);
 
   // Everything past this gate requires a session anyway, so skip the extra click and
   // go straight to SSO — except after a failed attempt, where auto-retrying would just
   // bounce the browser in a loop instead of showing what went wrong.
   useEffect(() => {
-    if (user.status === 'signed-out' && !user.retry) {
+    if (user.status === 'signed-out' && !user.retry && !signInStarted.current) {
+      signInStarted.current = true;
       user.signIn();
     }
   }, [user]);
 
   if (user.status === 'loading') {
-    return <Result icon={<Spin size="large" />} title="Завантаження" />;
+    return <AppLoading />;
   }
 
   if (user.status === 'unavailable') {
     return (
-      <Result
-        status="warning"
+      <AuthFailureScreen
         title="Вхід не налаштований"
-        subTitle="Зверніться до адміністратора, щоб отримати доступ."
+        description="Зверніться до адміністратора, щоб отримати доступ."
       />
     );
   }
 
   if (user.status === 'signed-out') {
     if (user.retry) {
-      return (
-        <Result
-          status="error"
-          title="Не вдалося увійти"
-          extra={
-            <Button type="primary" onClick={user.signIn}>
-              Спробувати ще раз
-            </Button>
-          }
-        />
-      );
+      return <AuthFailureScreen onRetry={user.signIn} />;
     }
-    return <Result icon={<Spin size="large" />} title="Перенаправляємо на вхід" />;
+    return <AppLoading />;
   }
 
   return <>{children}</>;
