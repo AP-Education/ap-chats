@@ -22,9 +22,6 @@ const useStyles = createStyles(({ token, css }) => ({
     width: min(420px, 100%);
     overflow: hidden;
     border-radius: ${token.borderRadiusLG}px;
-    &[data-single] {
-      grid-template-columns: minmax(0, 1fr);
-    }
   `,
   tile: css`
     position: relative;
@@ -49,6 +46,35 @@ const useStyles = createStyles(({ token, css }) => ({
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+  `,
+  // A lone image keeps its own proportions (bounded, never cropped) —
+  // the fixed cover-cropped tile only makes sense once images must tile
+  // together, same split Discord/Telegram draw between one image and a grid.
+  single: css`
+    position: relative;
+    display: grid;
+    place-items: center;
+    max-width: min(420px, 100%);
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: ${token.borderRadiusLG}px;
+    background: ${token.colorFillSecondary};
+    color: ${token.colorTextSecondary};
+    cursor: zoom-in;
+    &:focus-visible {
+      outline: 2px solid ${token.colorPrimary};
+      outline-offset: -3px;
+    }
+    &:disabled {
+      cursor: default;
+    }
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
   `,
   alt: css`
@@ -81,8 +107,17 @@ export function MessageAttachments({
   if (!attachments.length) return null;
   return (
     <div className={styles.stack}>
-      {images.length > 0 && (
-        <div className={styles.mosaic} data-single={images.length === 1 || undefined}>
+      {images.length === 1 && (
+        <ImageAttachment
+          attachment={images[0]!}
+          messageId={messageId}
+          available={available}
+          natural
+          onOpen={() => setSelected(0)}
+        />
+      )}
+      {images.length > 1 && (
+        <div className={styles.mosaic}>
           {images.map((image, index) => (
             <ImageAttachment
               key={image.id}
@@ -118,15 +153,33 @@ export function MessageAttachments({
   );
 }
 
+const SINGLE_MAX_WIDTH = 420;
+const SINGLE_MAX_HEIGHT = 320;
+
+function naturalBoxSize(attachment: Attachment): { width: number; height: number } | undefined {
+  if (!attachment.width || !attachment.height) return undefined;
+  const scale = Math.min(
+    SINGLE_MAX_WIDTH / attachment.width,
+    SINGLE_MAX_HEIGHT / attachment.height,
+    1,
+  );
+  return {
+    width: Math.round(attachment.width * scale),
+    height: Math.round(attachment.height * scale),
+  };
+}
+
 function ImageAttachment({
   attachment,
   messageId,
   available,
+  natural,
   onOpen,
 }: {
   attachment: Attachment;
   messageId: string;
   available: boolean;
+  natural?: boolean;
   onOpen: () => void;
 }) {
   const { styles } = useStyles();
@@ -134,11 +187,13 @@ function ImageAttachment({
   const access = useAttachmentUrl(messageId, attachment.id, 'thumbnail', available && visible);
   const [failed, setFailed] = useState(false);
   const broken = failed || access.isError;
+  const box = natural ? naturalBoxSize(attachment) : undefined;
   return (
     <button
       ref={observeElement}
       type="button"
-      className={styles.tile}
+      className={box ? styles.single : styles.tile}
+      style={box}
       disabled={!available}
       aria-label={`${broken ? 'Повторити перегляд' : 'Переглянути'} ${attachment.name}`}
       title={attachment.description || attachment.name}
