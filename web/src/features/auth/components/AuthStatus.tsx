@@ -7,7 +7,7 @@ import { Avatar } from '../../../shared/ui/Avatar/Avatar';
 import { useCurrentUser } from '../stores/current-user-context';
 import styles from './AuthStatus.module.css';
 
-export function AuthStatus() {
+export function AuthStatus({ beforeSignOut }: { beforeSignOut?: () => Promise<void> }) {
   const user = useCurrentUser();
   const isMobile = useIsMobile();
 
@@ -47,7 +47,15 @@ export function AuthStatus() {
         type="button"
         aria-label="Вийти"
         title="Вийти"
-        onClick={signOut}
+        onClick={() =>
+          void (async () => {
+            try {
+              await beforeSignOut?.();
+            } finally {
+              signOut();
+            }
+          })()
+        }
       >
         <SignOutIcon size={isMobile ? 24 : 20} weight="regular" />
       </button>
