@@ -1,8 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { flashMessage } from '../../flashMessage';
-import type { DisplayItem } from '../../hooks/useMessageOperations';
-import type { HistoryItem, HistoryPage } from '../../types';
+import type { DisplayItem, HistoryItem, HistoryPage } from '../../types';
 
 interface UseScrollAnchoringInput {
   pages: HistoryPage[];

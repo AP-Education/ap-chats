@@ -30,7 +30,7 @@ export const messagingActions: ConversationAction[] = [
     id: 'copy',
     icon: <CopyIcon size={18} />,
     label: () => 'Копіювати текст',
-    available: (target) => target.items.some((item) => textAvailable(item.message.markdown)),
+    available: (target) => target.items.some((item) => Boolean(item.message.markdown?.trim())),
     execute: (target, commands) =>
       commands.copy(target.items, target.kind === 'text' ? target.selectedText : undefined),
   },

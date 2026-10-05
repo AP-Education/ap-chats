@@ -14,6 +14,7 @@
     "build:web": "pnpm --filter @ap-chats/web build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "pnpm test:api && pnpm test:web && pnpm test:mobile",
+    "test:uploads:web": "tsc --noEmit -p web/tests/attachments/tsconfig.json && playwright test",
     "lint": "eslint src",
     "lint:web": "pnpm --filter @ap-chats/web lint",
     "lint:mobile": "pnpm --filter @ap-chats/mobile lint",
@@ -30,10 +31,12 @@
     "commitlint": "commitlint --edit",
     "test:api": "node --import tsx --test \"src/**/*.spec.ts\"",
     "test:web": "pnpm --filter @ap-chats/web test",
-    "test:mobile": "pnpm --filter @ap-chats/mobile test"
+    "test:mobile": "pnpm --filter @ap-chats/mobile test",
+    "test:uploads:integration": "pnpm build && node --import tsx test/uploads.integration.mts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1139.0",
+    "@aws-sdk/s3-request-presigner": "^3.1144.0",
     "@fastify/multipart": "^10.1.2",
     "@nestjs-cls/transactional": "^4.0.1",
     "@nestjs-cls/transactional-adapter-drizzle-orm": "^2.0.1",
@@ -48,6 +51,7 @@
     "class-validator": "^0.15.1",
     "drizzle-orm": "^0.45.3",
     "fastify": "5.11.2",
+    "file-type": "22.1.1",
     "jose": "6.2.12",
     "livekit-server-sdk": "^2.19.1",
     "nestjs-cls": "^7.0.1",
@@ -68,6 +72,7 @@
     "@commitlint/config-conventional": "21.2.3",
     "@eslint/js": "10.0.1",
     "@nestjs/cli": "12.0.5",
+    "@playwright/test": "^1.63.0",
     "@types/node": "24.13.6",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.11",

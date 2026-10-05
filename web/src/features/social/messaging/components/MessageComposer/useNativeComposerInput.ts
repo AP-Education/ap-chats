@@ -8,15 +8,15 @@ import {
   useState,
 } from 'react';
 
-import type { MentionEditorHandle } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { isNativeShell, onNativeMessage, postToNative } from '@/shared/lib/nativeBridge';
 
+import type { ComposerEditorApi } from '../../types';
 import { createComposerSessionId, type NativeInputMode, readComposerMessage } from './native-input';
 import type { GifResult, PickerTab } from './picker';
 
 interface NativeComposerInputProps {
   draftKey: string;
-  editorRef: RefObject<MentionEditorHandle | null>;
+  editorRef: RefObject<ComposerEditorApi | null>;
   onInsert: (text: string) => void;
   onGif: (gif: Pick<GifResult, 'url' | 'title'>) => void;
   onTab: (tab: PickerTab) => void;

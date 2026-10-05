@@ -1,4 +1,26 @@
-import { IsArray, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  ArrayMaxSize,
+  ArrayUnique,
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+
+class AttachmentRefDto {
+  @IsUUID()
+  id!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string;
+}
 
 export class SendMessageDto {
   @IsString()
@@ -7,6 +29,14 @@ export class SendMessageDto {
 
   @IsUUID()
   clientNonce!: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(25)
+  @ArrayUnique((ref: AttachmentRefDto) => ref.id)
+  @ValidateNested({ each: true })
+  @Type(() => AttachmentRefDto)
+  attachments?: AttachmentRefDto[];
 
   @IsOptional()
   @IsUUID()

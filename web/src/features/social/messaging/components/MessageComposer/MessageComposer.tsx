@@ -6,27 +6,43 @@ import {
   StickerIcon,
   XIcon,
 } from '@phosphor-icons/react';
-import { Popover } from 'antd';
+import { Button, Popover } from 'antd';
 import { createStyles } from 'antd-style';
-import { type PointerEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  type PointerEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversation, useConversationScope } from '@/features/social/conversation/store';
-import {
-  MentionEditor,
-  type MentionEditorHandle,
-} from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { isNativeShell } from '@/shared/lib/nativeBridge';
+import { randomId } from '@/shared/lib/random-id';
 import { IconButton } from '@/shared/ui/IconButton';
 
-import type { SendMessageInput } from '../../types';
+import { useAttachments } from '../../attachments/useAttachments';
+import { MessageEditorSlotProvider } from '../../MessageEditorSlot';
+import type {
+  ComposerEditorApi,
+  ComposerEditorSlotProps,
+  PendingAttachmentCommit,
+  SendMessageCommand,
+} from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
+import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
+import { useAttachmentDrop } from './AttachmentDropZone';
 import { ComposerAction } from './ComposerAction';
 import { type GifResult, PickerPanel, type PickerTab } from './picker';
 import { useBrowserKeyboardHeight } from './useBrowserKeyboardHeight';
+import { useComposerDraft } from './useComposerDraft';
 import { useNativeComposerInput } from './useNativeComposerInput';
 
 const DESKTOP_PANEL_WIDTH = 360;
@@ -173,23 +189,20 @@ const useStyles = createStyles(({ token, css }) => ({
 interface MessageComposerProps {
   replyAuthor?: string;
   replyPreview?: string;
-  onSend: (input: Omit<SendMessageInput, 'clientNonce'>) => void;
+  onSend: (
+    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
+    pending?: PendingAttachmentCommit,
+  ) => void;
+  /** The text-input to compose with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
+  children: ReactNode;
 }
 
-function readDraft(key: string): { markdown: string; labels: Record<string, string> } {
-  const stored = localStorage.getItem(key);
-  if (!stored) return { markdown: '', labels: {} };
-  try {
-    const value = JSON.parse(stored) as { markdown?: string; labels?: Record<string, string> };
-    if (typeof value.markdown === 'string')
-      return { markdown: value.markdown, labels: value.labels ?? {} };
-  } catch {
-    return { markdown: stored, labels: {} };
-  }
-  return { markdown: '', labels: {} };
-}
-
-export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageComposerProps) {
+export function MessageComposer({
+  replyAuthor,
+  replyPreview,
+  onSend,
+  children,
+}: MessageComposerProps) {
   const { styles, cx } = useStyles();
   const { workspaceId, channelId, composer } = useConversationScope();
   const { identity } = useQueryAuth();
@@ -204,16 +217,16 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
   // on touch input itself, not viewport width.
   const isCompact = isMobile || hasCoarsePointer;
   const toolbarActionSize = isMobile ? 36 : 38;
-  const editableRef = useRef<MentionEditorHandle>(null);
-  const initialDraft = useMemo(() => readDraft(draftKey), [draftKey]);
-  const [contentState, setContentState] = useState(() => ({
-    draftKey,
-    hasContent: Boolean(initialDraft.markdown.trim()),
-  }));
-  const hasContent =
-    contentState.draftKey === draftKey
-      ? contentState.hasContent
-      : Boolean(readDraft(draftKey).markdown.trim());
+  const editableRef = useRef<ComposerEditorApi>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const uploads = useAttachments();
+  const { bindTarget, overlay } = useAttachmentDrop(uploads.addFiles);
+  const {
+    initialDraft,
+    hasContent,
+    sync: syncHasContent,
+    clear: clearDraft,
+  } = useComposerDraft(draftKey);
   const [webActiveTab, setActiveTab] = useState<PickerTab | null>(null);
   const [lastActiveTab, setLastActiveTab] = useState<PickerTab>(readLastPickerTab);
   const keyboardHeight = useBrowserKeyboardHeight();
@@ -225,6 +238,11 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     onTab: persistLastTab,
   });
   const activeTab = isNativeShell() ? nativeInput.activeTab : webActiveTab;
+
+  // Sending never waits on attachment upload completion (matches Discord/
+  // Telegram/Slack/WhatsApp) — only a failed draft doesn't count, since it's
+  // left out of the send and stays in the composer for the user to handle.
+  const canSend = hasContent || uploads.drafts.some((draft) => draft.status !== 'error');
 
   useLayoutEffect(() => {
     if (intent || (composer.autoFocus && !isCompact)) editableRef.current?.focus();
@@ -245,33 +263,33 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blurComposerToken]);
 
-  function syncHasContent({
-    markdown,
-    labels,
-  }: {
-    markdown: string;
-    labels: Record<string, string>;
-  }) {
-    if (markdown) localStorage.setItem(draftKey, JSON.stringify({ markdown, labels }));
-    else localStorage.removeItem(draftKey);
-    setContentState({ draftKey, hasContent: markdown.trim().length > 0 });
-  }
-
-  function handleSend() {
-    const markdown = editableRef.current?.markdown().trim();
-    if (!markdown) return;
-    onSend({
+  const handleSend = useCallback(() => {
+    const markdown = editableRef.current?.markdown().trim() ?? '';
+    if (!canSend) return;
+    const input = {
       markdown,
       ...(intent ? { replyToMessageId: intent.messageId } : {}),
       ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
-    });
+    };
+    const nonce = randomId();
+    const drafts = uploads.commit(nonce);
+    if (drafts.length) {
+      onSend(input, {
+        nonce,
+        drafts,
+        watchCommitted: uploads.watchCommitted,
+        uncommit: uploads.uncommit,
+        releaseCommitted: uploads.releaseCommitted,
+      });
+    } else {
+      onSend(input);
+    }
     editableRef.current?.clear();
-    localStorage.removeItem(draftKey);
-    setContentState({ draftKey, hasContent: false });
+    clearDraft();
     setIntent(null);
     // Sending keeps the active input surface, including an open emoji panel.
     if (!activeTab) editableRef.current?.focus();
-  }
+  }, [canSend, uploads, onSend, intent, clearDraft, setIntent, activeTab]);
 
   function insertEmoji(emoji: string) {
     editableRef.current?.insertText(emoji);
@@ -312,6 +330,12 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     setActiveTab(null);
     editableRef.current?.releaseInput();
   }
+
+  const onEscape = useCallback(() => {
+    if (activeTab) closePicker();
+    else setIntent(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, setIntent]);
 
   // Runs on pointerdown, ahead of the browser's own focus handling — tapping the text
   // area while the panel is open lets the browser's normal tap-to-focus take over and
@@ -403,31 +427,94 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
     </div>
   );
 
+  const slot = useMemo<ComposerEditorSlotProps>(
+    () => ({
+      editorRef: editableRef,
+      draftKey,
+      initialDraft,
+      className: styles.editable,
+      ariaLabel: composer.ariaLabel,
+      placeholder: composer.placeholder,
+      onChange: syncHasContent,
+      onSubmit: handleSend,
+      onEscape,
+      onPasteFiles: uploads.addFiles,
+    }),
+    [
+      draftKey,
+      initialDraft,
+      styles.editable,
+      composer.ariaLabel,
+      composer.placeholder,
+      syncHasContent,
+      handleSend,
+      onEscape,
+      uploads.addFiles,
+    ],
+  );
+
   return (
     <div className={styles.root}>
-      <div className={styles.shell}>
+      <div className={styles.shell} ref={bindTarget}>
+        {overlay}
+        <input
+          ref={fileInput}
+          type="file"
+          multiple
+          hidden
+          onChange={(event) => {
+            uploads.addFiles(Array.from(event.target.files ?? []));
+            event.target.value = '';
+          }}
+        />
         <span className={styles.mobileOnly}>
-          <IconButton size={36} className={styles.toolbarButton} aria-label="Додати файл" disabled>
+          <IconButton
+            size={36}
+            className={styles.toolbarButton}
+            aria-label="Додати файл"
+            disabled={!uploads.policy}
+            onClick={() => fileInput.current?.click()}
+          >
             <PaperclipIcon size={22} />
           </IconButton>
         </span>
         <MessageInputSurface
           context={
-            intent && (
-              <div className={styles.reply}>
-                <ReplyExcerpt
-                  title={intent.quoteText ? 'Цитата' : `Відповідь для ${replyAuthor ?? 'учасника'}`}
-                  markdown={replyPreview ?? 'Повідомлення'}
-                  quoteText={intent.quoteText}
+            (intent || uploads.drafts.length > 0 || uploads.policyError) && (
+              <>
+                <AttachmentDrafts
+                  drafts={uploads.drafts}
+                  onRemove={uploads.remove}
+                  onRetry={uploads.retry}
+                  onDescribe={uploads.describe}
                 />
-                <IconButton
-                  size={28}
-                  aria-label="Скасувати відповідь"
-                  onClick={() => setIntent(null)}
-                >
-                  <XIcon size={16} />
-                </IconButton>
-              </div>
+                {uploads.policyError && (
+                  <div role="alert">
+                    Не вдалося завантажити ліміти файлів.{' '}
+                    <Button type="link" size="small" onClick={uploads.reloadPolicy}>
+                      Повторити
+                    </Button>
+                  </div>
+                )}
+                {intent && (
+                  <div className={styles.reply}>
+                    <ReplyExcerpt
+                      title={
+                        intent.quoteText ? 'Цитата' : `Відповідь для ${replyAuthor ?? 'учасника'}`
+                      }
+                      markdown={replyPreview ?? 'Повідомлення'}
+                      quoteText={intent.quoteText}
+                    />
+                    <IconButton
+                      size={28}
+                      aria-label="Скасувати відповідь"
+                      onClick={() => setIntent(null)}
+                    >
+                      <XIcon size={16} />
+                    </IconButton>
+                  </div>
+                )}
+              </>
             )
           }
           leading={
@@ -436,7 +523,8 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
                 size={toolbarActionSize}
                 className={styles.toolbarButton}
                 aria-label="Додати файл"
-                disabled
+                disabled={!uploads.policy}
+                onClick={() => fileInput.current?.click()}
               >
                 <PaperclipIcon size={22} />
               </IconButton>
@@ -468,20 +556,10 @@ export function MessageComposer({ replyAuthor, replyPreview, onSend }: MessageCo
           }
         >
           <div onPointerDownCapture={handleEditorPointerDown} style={{ display: 'contents' }}>
-            <MentionEditor
-              key={draftKey}
-              editorRef={editableRef}
-              initialDraft={initialDraft}
-              className={styles.editable}
-              ariaLabel={composer.ariaLabel}
-              placeholder={composer.placeholder}
-              onChange={syncHasContent}
-              onSubmit={handleSend}
-              onEscape={() => (activeTab ? closePicker() : setIntent(null))}
-            />
+            <MessageEditorSlotProvider slot={slot}>{children}</MessageEditorSlotProvider>
           </div>
         </MessageInputSurface>
-        <ComposerAction hasContent={hasContent} onSend={handleSend} />
+        <ComposerAction hasContent={canSend} onSend={handleSend} />
       </div>
       {isCompact && activeTab && !isNativeShell() && (
         <div className={styles.mobileSheet} style={{ height: keyboardHeight }}>

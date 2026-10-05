@@ -11,5 +11,6 @@ export function MessagePreview({
   mentions?: MentionLabel[];
 }) {
   if (markdown === null) return <>Повідомлення видалено</>;
+  if (!markdown.trim()) return <>Вкладення</>;
   return <MessageMarkdown markdown={markdown} mentions={mentions} inline />;
 }

@@ -14,6 +14,7 @@ export const messageEntryStrategy: HistoryItemStrategy = {
         onJump={context.onJump}
         onEdit={context.onEdit}
         delivery={context.delivery}
+        pendingAttachments={context.pendingAttachments}
         onRetry={context.onRetry}
       />
     );

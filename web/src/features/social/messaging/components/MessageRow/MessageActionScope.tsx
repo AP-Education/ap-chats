@@ -7,7 +7,8 @@ import type {
 } from '@/features/social/conversation/actions';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
-import type { MessageHistoryItem } from '../../types';
+import type { AttachmentDraft } from '../../attachments/types';
+import type { DeliveryStatus, MessageHistoryItem } from '../../types';
 
 interface MessageActionInput {
   item: MessageHistoryItem;
@@ -16,7 +17,8 @@ interface MessageActionInput {
   actions: ConversationAction[];
   onAction: (action: ConversationAction, target: ActionTarget) => void;
   editing: boolean;
-  delivery?: 'sending' | 'failed' | 'confirmed';
+  delivery?: DeliveryStatus;
+  pendingAttachments?: AttachmentDraft[];
 }
 
 interface MessageActionScope extends MessageActionInput {
