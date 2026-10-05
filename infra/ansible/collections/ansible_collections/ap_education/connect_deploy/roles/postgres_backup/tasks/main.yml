@@ -1,4 +1,8 @@
 ---
+# Requires docker_engine to have already run in this play — the rendered
+# backup script shells out to `docker compose exec`. See compose_runtime's
+# tasks/main.yml for why this is explicit playbook ordering, not a
+# meta/main.yml dependency.
 - name: Ensure awscli is installed
   ansible.builtin.apt:
     name: awscli

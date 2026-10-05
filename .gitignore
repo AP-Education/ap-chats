@@ -33,3 +33,4 @@ infra/docker/web-build.env
 # requirements.yml` — keep only our own vendored ap_education collection.
 infra/ansible/collections/ansible_collections/*
 !infra/ansible/collections/ansible_collections/ap_education/
+infra/ansible/**/__pycache__/

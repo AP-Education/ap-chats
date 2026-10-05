@@ -9,15 +9,6 @@
     update_cache: true
   become: true
 
-- name: Ensure /etc/apt/keyrings exists
-  ansible.builtin.file:
-    path: /etc/apt/keyrings
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
-  become: true
-
 - name: Create application directory
   ansible.builtin.file:
     path: '/opt/{{ project_name }}'

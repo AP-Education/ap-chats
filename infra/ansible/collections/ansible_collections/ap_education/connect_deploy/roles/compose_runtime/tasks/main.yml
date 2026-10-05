@@ -1,4 +1,11 @@
 ---
+# Requires docker_engine to have already run in this play (needs the
+# docker CLI + compose plugin). Deliberately not a meta/main.yml
+# `dependencies:` entry: tested that against this ansible-core version with
+# two roles each depending on docker_engine in the same play, and it ran
+# docker_engine twice instead of deduping — surprising, not "clear
+# dependencies". Playbooks list docker_engine explicitly instead; keep it
+# that way.
 - name: Create project directory
   ansible.builtin.file:
     path: '{{ deploy_project_path }}'
@@ -61,16 +68,15 @@
   become: true
   changed_when: false
 
-# Docker itself refuses (without --force) to remove an image still backing a
-# container, so this only ever removes images nothing is using.
+# docker_image state=absent mirrors `docker rmi`: Docker itself refuses
+# (409 Conflict, "must force") to remove an image still backing a
+# container, so this only ever removes images nothing is using anymore —
+# verified by actually running this against a live Docker daemon with a
+# real in-use image before relying on it.
 - name: Prune superseded ap-connect images
-  ansible.builtin.command:
-    argv:
-      - docker
-      - rmi
-      - '{{ item }}'
+  community.docker.docker_image:
+    name: '{{ item }}'
+    state: absent
   loop: "{{ compose_runtime_cached_images.results | map(attribute='stdout_lines') | sum(start=[]) | unique }}"
-  register: compose_runtime_image_removal
   become: true
   failed_when: false
-  changed_when: compose_runtime_image_removal.rc == 0
