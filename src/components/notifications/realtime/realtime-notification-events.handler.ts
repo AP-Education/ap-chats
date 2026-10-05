@@ -27,12 +27,12 @@ import {
 } from '@/components/social/read-state/events/read-state-advanced.event';
 import { RealtimePublisher } from '@/globals/realtime';
 
-import { NotificationDeliveryService } from './notification-delivery.service';
+import { RealtimeNotificationDeliveryService } from './realtime-notification-delivery.service';
 
 @Injectable()
-export class NotificationEventsHandler {
+export class RealtimeNotificationEventsHandler {
   constructor(
-    private readonly delivery: NotificationDeliveryService,
+    private readonly delivery: RealtimeNotificationDeliveryService,
     private readonly realtime: RealtimePublisher,
   ) {}
 
@@ -50,12 +50,12 @@ export class NotificationEventsHandler {
     return this.delivery.deliver({
       workspaceId: event.workspaceId,
       channelId: event.channelId,
+      actorMemberId: event.actorMemberId,
       eventId: `message.created:${event.messageId}`,
       kind: 'message.created',
       operation: 'append',
-      actorMemberId: event.actorMemberId,
-      entries: [{ seq: event.seq, authorMemberId: event.actorMemberId }],
       messageIds: [event.messageId],
+      entries: [{ seq: event.seq, authorMemberId: event.actorMemberId }],
     });
   }
 
@@ -64,12 +64,12 @@ export class NotificationEventsHandler {
     return this.delivery.deliver({
       workspaceId: event.workspaceId,
       channelId: event.channelId,
+      actorMemberId: event.actorMemberId,
       eventId: `message.forwarded:${event.messageIds[0]}`,
       kind: 'message.forwarded',
       operation: 'append',
-      actorMemberId: event.actorMemberId,
-      entries: event.entrySeqs.map((seq) => ({ seq, authorMemberId: event.actorMemberId })),
       messageIds: event.messageIds,
+      entries: event.entrySeqs.map((seq) => ({ seq, authorMemberId: event.actorMemberId })),
     });
   }
 

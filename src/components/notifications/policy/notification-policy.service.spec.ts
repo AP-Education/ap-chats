@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import type { StoredNotificationSettings } from '../preferences/types';
 import { NotificationPolicyService } from './notification-policy.service';
-import type { NotificationDecision, StoredNotificationSettings } from './types';
+import type { NotificationDecision } from './types';
 
 const policy = new NotificationPolicyService();
 const settings: StoredNotificationSettings = {

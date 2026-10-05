@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
 
-import { ChannelAudienceFacade } from '@/components/communities/channel-audience/channel-audience.facade';
-import { ChannelsRepository } from '@/components/communities/channels/repository/channels.repository';
-import { MentionsFacade } from '@/components/social/mentions/mentions.facade';
+import { ChannelAudienceFacade } from '@/components/communities/channel-audience';
+import { ChannelsRepository } from '@/components/communities/channels';
+import { MentionsFacade } from '@/components/social/mentions';
 import { Logger } from '@/globals/logger';
 import { RealtimePublisher } from '@/globals/realtime';
 
-import { NotificationPolicyService } from './notification-policy.service';
-import { NotificationSettingsService } from './notification-settings.service';
+import { NotificationPolicyService } from '../policy';
+import { NotificationSettingsService } from '../preferences';
 import type { NotificationSourceEvent, UnreadMutation } from './types';
 
 @Injectable()
-export class NotificationDeliveryService {
+export class RealtimeNotificationDeliveryService {
   constructor(
     private readonly audience: ChannelAudienceFacade,
     private readonly channels: ChannelsRepository,

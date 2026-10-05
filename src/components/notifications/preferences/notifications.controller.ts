@@ -5,7 +5,7 @@ import { CurrentWorkspaceMember } from '@/components/workspaces/members/decorato
 import { WorkspaceMemberGuard } from '@/components/workspaces/members/guards';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { ChangeNotificationSettingsDto } from './dto/change-notification-settings.dto';
+import { ChangeNotificationSettingsDto } from './dto';
 import { NotificationSettingsService } from './notification-settings.service';
 import type { ChannelNotificationSettings } from './types';
 
