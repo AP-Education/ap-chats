@@ -15,14 +15,22 @@ acme_email: ops@ap-platform.online
 oidc_issuer: https://accounts.ap-platform.online
 oidc_audience: CHANGE_ME
 
-# ap-connect's own Spaces bucket (not shared with backend-LMS). The bucket
-# itself is created by infra/terraform/prod (see spaces_bucket_name there);
-# these are the exact same spaces_access_key_id / spaces_secret_access_key
-# values you passed to `terraform apply` — one dedicated key pair used both
-# to provision the bucket and for the app to read/write objects in it.
-# do_spaces_endpoint = "https://" + `terraform output -raw spaces_bucket_endpoint`
-# do_spaces_bucket   = `terraform output -raw spaces_bucket_name`
+# ap-connect's own two Spaces buckets (not shared with backend-LMS, and not
+# shared with each other — attachments are public-read per object, backups
+# never are, so they live in physically separate buckets rather than two
+# prefixes in one). Both are created by infra/terraform/prod. These two keys
+# are the exact same spaces_access_key_id / spaces_secret_access_key values
+# you passed to `terraform apply` — one key pair, account-wide, used to
+# provision both buckets and for the app/backup script to read and write
+# objects in them.
+#
+# do_spaces_endpoint = `terraform output -raw spaces_region_endpoint`
+#   (the bare region endpoint, NOT a bucket-qualified domain — the backup
+#   script's `aws s3 cp --endpoint-url` breaks on one of those)
+# do_spaces_bucket   = `terraform output -raw attachments_bucket_name`
+# do_backups_bucket  = `terraform output -raw backups_bucket_name`
 do_spaces_endpoint: https://fra1.digitaloceanspaces.com
 do_spaces_access_key: CHANGE_ME
 do_spaces_secret_key: CHANGE_ME
 do_spaces_bucket: CHANGE_ME
+do_backups_bucket: CHANGE_ME

@@ -18,11 +18,22 @@ output "chats_fqdn" {
   value = local.domain_fqdn
 }
 
-output "spaces_bucket_name" {
-  value = module.spaces.name
+output "attachments_bucket_name" {
+  description = "Feed into do_spaces_bucket in the Ansible vault."
+  value       = module.attachments.name
 }
 
-output "spaces_bucket_endpoint" {
-  description = "Feed into do_spaces_endpoint in the Ansible vault, as https://<this>."
-  value       = module.spaces.endpoint
+output "backups_bucket_name" {
+  description = "Feed into do_backups_bucket in the Ansible vault."
+  value       = module.backups.name
+}
+
+output "spaces_region_endpoint" {
+  description = <<-EOT
+    Feed into do_spaces_endpoint in the Ansible vault, used for both
+    buckets. Deliberately the bare region endpoint, not either bucket's own
+    <bucket>.<region>.digitaloceanspaces.com domain — the backup script's
+    `aws s3 cp --endpoint-url` breaks if given a bucket-qualified one.
+  EOT
+  value       = local.spaces_region_endpoint
 }

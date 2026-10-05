@@ -65,17 +65,23 @@ terraform -chdir=infra/terraform/prod apply \
   # add -var='vpc_id=<existing VPC id>' to join a shared VPC (optional)
 ```
 
-This also creates ap-connect's own Spaces bucket (`spaces_bucket_name`,
-defaults to `ap-connect-prod`). Read its name/endpoint back with:
+This also creates ap-connect's own two Spaces buckets — `attachments_bucket_name`
+(defaults to `ap-connect-prod`, public-read per object, chat uploads) and
+`backups_bucket_name` (defaults to `ap-connect-prod-backups`, always
+private, nightly Postgres dumps). Two buckets, not one bucket with two
+prefixes, so "backups must never be public" is a property of the bucket
+rather than of every upload call remembering the right ACL. Read them back
+with:
 
 ```bash
-terraform -chdir=infra/terraform/prod output -raw spaces_bucket_name
-terraform -chdir=infra/terraform/prod output -raw spaces_bucket_endpoint
+terraform -chdir=infra/terraform/prod output -raw attachments_bucket_name
+terraform -chdir=infra/terraform/prod output -raw backups_bucket_name
+terraform -chdir=infra/terraform/prod output -raw spaces_region_endpoint
 ```
 
 — and put those, plus the same Spaces key pair from step 3, into the vault
-(`do_spaces_bucket`, `do_spaces_endpoint`, `do_spaces_access_key`,
-`do_spaces_secret_key`).
+(`do_spaces_bucket`, `do_backups_bucket`, `do_spaces_endpoint`,
+`do_spaces_access_key`, `do_spaces_secret_key`).
 
 ## Bootstrap the host (Ansible, one time)
 
@@ -131,14 +137,18 @@ LMS's existing ops host later if/when this needs the same treatment.
   later only means changing `DATABASE_URL`, not application code. The backup
   script only ever uploads — Terraform's `spaces_backup_retention_days`
   (default 30) is what actually expires old backups, via a lifecycle rule on
-  the bucket's `ap-connect/backups/` prefix.
-- **Own Spaces bucket, own key — not shared with backend-LMS.** Terraform
-  creates it (`spaces_bucket_name`, default `ap-connect-prod`) and its
-  default ACL stays private; the app sets `ACL: public-read` per object on
-  upload (`DigitalOceanSpacesProvider.uploadObject`), so chat images end up
-  individually public while the nightly pg_dump backup — written without
-  that flag — stays private in the same bucket. No bucket-level public
-  policy or CORS config needed for that reason.
+  the backups bucket's `backups/` prefix.
+- **Two Spaces buckets, own key — neither shared with backend-LMS.**
+  `attachments_bucket_name` (default `ap-connect-prod`) holds chat uploads;
+  the app sets `ACL: public-read` per object on upload
+  (`DigitalOceanSpacesProvider.uploadObject`), so those end up individually
+  public. `backups_bucket_name` (default `ap-connect-prod-backups`) holds
+  nightly pg_dump dumps and stays private — its default ACL is never
+  touched. Deliberately two buckets, not one bucket with two prefixes: that
+  way "backups must never be public" is a property of the bucket, not of
+  every upload call remembering the right ACL. One Spaces key pair manages
+  (and is used by) both — Spaces keys are account-wide, not bucket-scoped —
+  but it's ap-connect's own, not reused from backend-LMS.
 - **Caddy, not nginx+certbot**, as the edge: automatic HTTPS (no DO Load
   Balancer to terminate TLS), and it serves the SPA's static build directly
   in addition to reverse-proxying `/api` and `/socket.io` — no third

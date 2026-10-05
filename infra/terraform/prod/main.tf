@@ -11,7 +11,12 @@ locals {
 
   domain_fqdn = var.domain_name != null ? "${var.chats_subdomain}.${var.domain_name}" : null
 
-  spaces_bucket_name = coalesce(var.spaces_bucket_name, local.base_prefix)
+  # Two buckets, not one with two prefixes: attachments get ACL=public-read
+  # per object from the app, backups never do — a dedicated bucket means
+  # that split doesn't depend on every code path getting its ACL right.
+  attachments_bucket_name = coalesce(var.attachments_bucket_name, local.base_prefix)
+  backups_bucket_name     = coalesce(var.backups_bucket_name, "${local.base_prefix}-backups")
+  spaces_region_endpoint  = "https://${var.spaces_region}.digitaloceanspaces.com"
 
   cloud_init = templatefile("${path.module}/../../cloud-init/prod.yaml", {
     runner_user         = var.runner_user
@@ -43,17 +48,24 @@ module "web" {
   tags      = local.common_tags
 }
 
-module "spaces" {
+module "attachments" {
   source = "../modules/spaces"
 
-  name          = local.spaces_bucket_name
+  name          = local.attachments_bucket_name
+  region        = var.spaces_region
+  force_destroy = var.spaces_force_destroy
+}
+
+module "backups" {
+  source = "../modules/spaces"
+
+  name          = local.backups_bucket_name
   region        = var.spaces_region
   force_destroy = var.spaces_force_destroy
 
   # Matches the object key postgres_backup's template writes
-  # ("{{ project_name }}/backups/...") — keep the two in sync if either
-  # changes.
-  expiration_prefix = "${local.project_slug}/backups/"
+  # ("backups/...") — keep the two in sync if either changes.
+  expiration_prefix = "backups/"
   expiration_days   = var.spaces_backup_retention_days
 }
 

@@ -85,26 +85,32 @@ variable "enable_dns" {
   default     = true
 }
 
-variable "spaces_bucket_name" {
-  description = "Name of ap-connect's own DigitalOcean Spaces bucket. Defaults to <project>-<environment>. Not shared with backend-LMS's bucket — keeps blast radius (and billing) separate."
+variable "attachments_bucket_name" {
+  description = "Name of ap-connect's own bucket for chat attachments (public-read per object, set by the app on upload). Defaults to <project>-<environment>. Not shared with backend-LMS's bucket — keeps blast radius (and billing) separate."
+  type        = string
+  default     = null
+}
+
+variable "backups_bucket_name" {
+  description = "Name of ap-connect's own bucket for nightly Postgres backups. Kept separate from attachments_bucket_name on purpose: backups must never be public, and a dedicated bucket makes that a property of the bucket, not of every upload call getting its ACL right. Defaults to <project>-<environment>-backups."
   type        = string
   default     = null
 }
 
 variable "spaces_region" {
-  description = "Region for the Spaces bucket."
+  description = "Region for both Spaces buckets."
   type        = string
   default     = "fra1"
 }
 
 variable "spaces_force_destroy" {
-  description = "Whether to allow `terraform destroy` to delete the bucket even if it still holds objects."
+  description = "Whether to allow `terraform destroy` to delete either bucket even if it still holds objects."
   type        = bool
   default     = false
 }
 
 variable "spaces_backup_retention_days" {
-  description = "Spaces lifecycle rule: auto-delete nightly Postgres backups after this many days."
+  description = "Lifecycle rule on the backups bucket: auto-delete objects after this many days."
   type        = number
   default     = 30
 }

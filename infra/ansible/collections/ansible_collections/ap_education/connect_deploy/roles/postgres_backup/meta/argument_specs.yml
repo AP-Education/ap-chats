@@ -17,6 +17,10 @@ argument_specs:
         type: str
         required: true
         no_log: true
-      do_spaces_bucket:
+      do_backups_bucket:
         type: str
         required: true
+        description: >-
+          Dedicated private bucket for backups — deliberately not
+          do_spaces_bucket (the app's attachments bucket), so backups never
+          depend on an upload call's ACL being set correctly.
