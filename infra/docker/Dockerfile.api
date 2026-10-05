@@ -14,7 +14,7 @@ COPY tsconfig.json tsconfig.base.json tsconfig.build.json nest-cli.json ./
 COPY src ./src
 COPY drizzle ./drizzle
 RUN pnpm run build \
- && pnpm prune --prod
+ && CI=true pnpm prune --prod --ignore-scripts
 
 FROM base AS runtime
 ENV NODE_ENV=production
