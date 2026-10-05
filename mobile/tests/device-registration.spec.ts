@@ -18,14 +18,18 @@ function fixture() {
   let accessToken: string | undefined = 'old-session';
   let registered = true;
   const requests: { method: string; accessToken: string }[] = [];
+  const payloads: unknown[] = [];
+  let voipToken: string | undefined;
   const persistence = { getInstallationId: async () => 'installation' };
   const push = { getExpoPushToken: async (): Promise<string | undefined> => 'push-token' };
   const api = {
-    registerDevice: async (accessToken: string) => {
+    registerDevice: async (accessToken: string, payload?: unknown) => {
+      payloads.push(payload);
       requests.push({ method: 'POST', accessToken });
       registered = true;
     },
-    unregisterDevice: async (accessToken: string) => {
+    unregisterDevice: async (accessToken: string, payload?: unknown) => {
+      payloads.push(payload);
       requests.push({ method: 'DELETE', accessToken });
       registered = false;
     },
@@ -43,8 +47,13 @@ function fixture() {
     './devices-api': api,
     './installation-id': persistence,
     './push-token': push,
+    'expo-constants': { default: { expoConfig: { extra: { apnsEnvironment: 'sandbox' } } } },
     'react-native': { Platform: { OS: 'ios' } },
-    '../../calls/utils/callkit-module': { loadCallKitModule: async () => undefined },
+    '../../calls/utils/callkit-module': {
+      loadCallKitModule: async () => ({
+        getVoIPPushToken: () => (voipToken ? { token: voipToken } : undefined),
+      }),
+    },
   };
   function load<T>(path: string): T {
     const exports = {};
@@ -54,6 +63,7 @@ function fixture() {
     ).outputText;
     runInNewContext(source, {
       exports,
+      process: { env: { EXPO_PUBLIC_APNS_ENVIRONMENT: 'sandbox' } },
       require: (name: string) => {
         assert.ok(name in dependencies, `Unexpected import: ${name}`);
         return dependencies[name];
@@ -71,6 +81,10 @@ function fixture() {
 
   return {
     api,
+    payloads,
+    setVoipToken: (token: string) => {
+      voipToken = token;
+    },
     persistence,
     push,
     requests,
@@ -192,4 +206,28 @@ test('a failed cleanup does not prevent a subsequent device registration', async
   f.setAccessToken('new-session');
   await f.register();
   assert.deepEqual(f.requests, [{ method: 'POST', accessToken: 'new-session' }]);
+});
+
+test('VoIP registers independently when ordinary notification permission is denied', async () => {
+  const f = fixture();
+  f.push.getExpoPushToken = async () => undefined;
+  f.setVoipToken('voip-token');
+  await f.register();
+  assert.equal(f.requests.length, 1);
+  assert.equal((f.payloads[0] as { voipToken: string }).voipToken, 'voip-token');
+  assert.equal((f.payloads[0] as { apnsEnvironment: string }).apnsEnvironment, 'sandbox');
+});
+
+test('transient Expo token failure still registers VoIP and remains retryable', async () => {
+  const f = fixture();
+  f.setVoipToken('voip-token');
+  f.push.getExpoPushToken = async () => {
+    throw new Error('Expo temporarily unavailable');
+  };
+  await assert.rejects(f.register(), /Expo temporarily unavailable/);
+  assert.equal((f.payloads[0] as { voipToken: string }).voipToken, 'voip-token');
+  assert.equal((f.payloads[0] as { pushToken?: string }).pushToken, undefined);
+  f.push.getExpoPushToken = async () => 'recovered-token';
+  await f.register();
+  assert.equal((f.payloads[1] as { pushToken: string }).pushToken, 'recovered-token');
 });
