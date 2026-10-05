@@ -4,6 +4,7 @@ export * from './channel-entries';
 export * from './channel-memberships';
 export * from './channels';
 export * from './chat-messages';
+export * from './chat-uploads';
 export * from './devices';
 export * from './direct-messages';
 export * from './event-outbox';

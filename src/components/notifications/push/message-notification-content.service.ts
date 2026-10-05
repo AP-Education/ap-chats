@@ -54,7 +54,7 @@ export class MessageNotificationContentService {
       channelId: alert.channelId,
       url: `/${context.kind === 'dm' ? 'direct' : 'channels'}/${alert.channelId}?pushWorkspace=${alert.workspaceId}`,
       title: Array.from(title).slice(0, 100).join(''),
-      body: Array.from(plainText.trim()).slice(0, 180).join(''),
+      body: Array.from(plainText.trim()).slice(0, 180).join('') || 'Нове вкладення',
     };
   }
 }

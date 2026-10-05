@@ -14,26 +14,17 @@ import {
 } from '../api/messages-api';
 import { catchUpHistory, mergeHistoryItem } from '../history-cache';
 import { messagingQueryKeys } from '../queryKeys';
-import type { HistoryItem, MessageAuthor, MessageHistoryItem, SendMessageInput } from '../types';
+import type {
+  DisplayItem,
+  HistoryItem,
+  MessageAuthor,
+  MessageHistoryItem,
+  PendingAttachmentCommit,
+  SendMessageCommand,
+} from '../types';
 import { isMessageItem } from '../types';
-
-export type DeliveryStatus = 'sending' | 'failed' | 'confirmed';
-
-export interface DisplayItem {
-  item: HistoryItem;
-  delivery: DeliveryStatus | undefined;
-  nonce: string | null;
-}
-
-// Reload-survival only: a send whose outcome the current session doesn't yet
-// know. 'sending' is written the moment a send starts, before any await, so a
-// tab closed mid-request still has something to retry; it plays no part in the
-// live-session display, which the optimistic bubble already covers.
-interface PendingSend {
-  input: SendMessageInput;
-  createdAt: string;
-  status: 'sending' | 'failed';
-}
+import { usePendingOutbox } from './usePendingOutbox';
+import { useUploadingSends } from './useUploadingSends';
 
 // Matches the `confirmed` keyframe duration in MessageRow.tsx: long enough for
 // the "just sent" flash to play before the row settles into a normal message.
@@ -43,33 +34,8 @@ function outboxKey(identity: string | undefined, workspaceId: string, channelId:
   return `ap-chats:outbox:${identity}:${workspaceId}:${channelId}`;
 }
 
-function readPendingSends(key: string): PendingSend[] {
-  try {
-    const stored: unknown = JSON.parse(localStorage.getItem(key) ?? '[]');
-    if (!Array.isArray(stored)) return [];
-    return (
-      stored
-        .filter((item): item is PendingSend => {
-          if (typeof item !== 'object' || item === null) return false;
-          const candidate = item as Partial<PendingSend>;
-          return (
-            typeof candidate.input?.markdown === 'string' &&
-            typeof candidate.input?.clientNonce === 'string' &&
-            typeof candidate.createdAt === 'string'
-          );
-        })
-        // Whatever was still 'sending' when the tab closed has an unknown
-        // outcome now: treat it the same as a failure, safe to retry (the
-        // server dedupes by clientNonce if it actually went through).
-        .map((item) => ({ ...item, status: 'failed' as const }))
-    );
-  } catch {
-    return [];
-  }
-}
-
 function synthesize(
-  input: SendMessageInput,
+  input: SendMessageCommand,
   createdAt: string,
   author: MessageAuthor,
   replyTarget: MessageHistoryItem | undefined,
@@ -85,6 +51,7 @@ function synthesize(
       authorMemberId: author.memberId,
       clientNonce: input.clientNonce,
       markdown: input.markdown,
+      attachments: input.attachments ?? [],
       contentVersion: 1,
       revision: 1,
       replyToMessageId: input.replyToMessageId ?? null,
@@ -114,7 +81,8 @@ function synthesize(
  * real message once the server confirms it (React drops the optimistic overlay
  * on its own once `items` includes it — no polling, no manual bookkeeping to
  * take it back out). A send that never reaches the server persists across
- * reloads so it can be retried.
+ * reloads so it can be retried (usePendingOutbox), and one with attachments
+ * still uploading shows live until they're ready (useUploadingSends).
  */
 export function useMessageOperations(
   workspaceId: string,
@@ -125,8 +93,7 @@ export function useMessageOperations(
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
   const [, startTransition] = useTransition();
-  const key = outboxKey(identity, workspaceId, channelId);
-  const [pendingSends, setPendingSends] = useState(() => readPendingSends(key));
+  const outbox = usePendingOutbox(outboxKey(identity, workspaceId, channelId));
   const [confirmedFlash, setConfirmedFlash] = useState<ReadonlySet<string>>(() => new Set());
 
   const messages = useMemo(() => items.filter(isMessageItem), [items]);
@@ -146,34 +113,6 @@ export function useMessageOperations(
         : [...state, incoming],
   );
 
-  function persistPending(updater: (current: PendingSend[]) => PendingSend[]) {
-    setPendingSends((current) => {
-      const next = updater(current);
-      if (next.length) localStorage.setItem(key, JSON.stringify(next));
-      else localStorage.removeItem(key);
-      return next;
-    });
-  }
-
-  function markSending(input: SendMessageInput, createdAt: string) {
-    persistPending((current) => [
-      ...current.filter((entry) => entry.input.clientNonce !== input.clientNonce),
-      { input, createdAt, status: 'sending' },
-    ]);
-  }
-
-  function markFailed(nonce: string) {
-    persistPending((current) =>
-      current.map((entry) =>
-        entry.input.clientNonce === nonce ? { ...entry, status: 'failed' } : entry,
-      ),
-    );
-  }
-
-  function removePending(nonce: string) {
-    persistPending((current) => current.filter((entry) => entry.input.clientNonce !== nonce));
-  }
-
   function flashConfirmed(id: string) {
     setConfirmedFlash((current) => new Set(current).add(id));
     window.setTimeout(() => {
@@ -192,22 +131,22 @@ export function useMessageOperations(
     });
   }
 
-  async function deliver(input: SendMessageInput) {
+  async function deliver(input: SendMessageCommand) {
     if (!token) {
-      markFailed(input.clientNonce);
+      outbox.markFailed(input.clientNonce);
       return;
     }
     let message;
     try {
       message = await sendMessage(token, workspaceId, channelId, input);
     } catch {
-      markFailed(input.clientNonce);
+      outbox.markFailed(input.clientNonce);
       return;
     }
 
     // Reached the server: nothing left to recover on reload, regardless of
     // whether the local cache-sync below succeeds.
-    removePending(input.clientNonce);
+    outbox.remove(input.clientNonce);
     confirmDirectMessage(queryClient, identity, workspaceId, channelId, message);
     const historyKey = messagingQueryKeys.history(identity, workspaceId, channelId);
     try {
@@ -253,22 +192,31 @@ export function useMessageOperations(
     }
   }
 
-  function dispatch(input: SendMessageInput, createdAt: string) {
+  function dispatch(input: SendMessageCommand, createdAt: string) {
     const replyTarget = messages.find((item) => item.message.id === input.replyToMessageId);
     const optimistic = synthesize(input, createdAt, author, replyTarget);
-    markSending(input, createdAt);
+    outbox.markSending(input, createdAt);
     startTransition(async () => {
       addOptimisticItem(optimistic);
       await deliver(input);
     });
   }
 
-  function send(input: Omit<SendMessageInput, 'clientNonce'>) {
-    dispatch({ ...input, clientNonce: randomId() }, new Date().toISOString());
+  const { uploadingSends, start: startUploadingSend } = useUploadingSends(dispatch);
+
+  function send(
+    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
+    pending?: PendingAttachmentCommit,
+  ) {
+    if (!pending) {
+      dispatch({ ...input, clientNonce: randomId() }, new Date().toISOString());
+      return;
+    }
+    startUploadingSend(input, pending);
   }
 
   function retry(nonce: string) {
-    const entry = pendingSends.find((item) => item.input.clientNonce === nonce);
+    const entry = outbox.pendingSends.find((item) => item.input.clientNonce === nonce);
     if (!entry) return;
     dispatch(entry.input, entry.createdAt);
   }
@@ -298,7 +246,7 @@ export function useMessageOperations(
         delivery: isPending ? 'sending' : confirmedFlash.has(item.id) ? 'confirmed' : undefined,
       };
     });
-    const failed: DisplayItem[] = pendingSends
+    const failed: DisplayItem[] = outbox.pendingSends
       .filter((entry) => entry.status === 'failed')
       .map((entry) => {
         const replyTarget = messages.find(
@@ -310,8 +258,35 @@ export function useMessageOperations(
           delivery: 'failed',
         };
       });
-    return [...sending, ...failed];
-  }, [optimisticItems, confirmedNonces, confirmedFlash, pendingSends, messages, author]);
+    const uploading: DisplayItem[] = [...uploadingSends.entries()].map(([nonce, entry]) => {
+      const replyTarget = messages.find((item) => item.message.id === entry.replyToMessageId);
+      return {
+        item: synthesize(
+          {
+            markdown: entry.markdown,
+            clientNonce: nonce,
+            replyToMessageId: entry.replyToMessageId,
+            quoteText: entry.quoteText,
+          },
+          entry.createdAt,
+          author,
+          replyTarget,
+        ),
+        nonce: null,
+        delivery: 'uploading',
+        pendingAttachments: entry.drafts,
+      };
+    });
+    return [...sending, ...uploading, ...failed];
+  }, [
+    optimisticItems,
+    confirmedNonces,
+    confirmedFlash,
+    outbox.pendingSends,
+    uploadingSends,
+    messages,
+    author,
+  ]);
 
   return { displayItems, send, retry, edit, remove };
 }

@@ -11,8 +11,7 @@ import type {
 import { useConversation } from '@/features/social/conversation/store';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
-import type { DisplayItem } from '../../hooks/useMessageOperations';
-import type { HistoryPage, MessageHistoryItem } from '../../types';
+import type { DisplayItem, HistoryPage, MessageHistoryItem } from '../../types';
 import { isMessageItem } from '../../types';
 import { HistoryItemRow } from '../HistoryItemRow/HistoryItemRow';
 import { useMobileMessageSelection } from './useMobileMessageSelection';
@@ -254,7 +253,7 @@ export function MessageTimeline({
             </div>
           )}
           {!displayItems.length && <div className={styles.spacer} />}
-          {visibleItems.map(({ item, delivery, nonce }, index) => {
+          {visibleItems.map(({ item, delivery, nonce, pendingAttachments }, index) => {
             const previous = visibleItems[index - 1]?.item;
             const day = new Date(item.createdAt).toDateString();
             const previousDay = previous ? new Date(previous.createdAt).toDateString() : null;
@@ -294,6 +293,7 @@ export function MessageTimeline({
                   onJump={onJump}
                   onEdit={onEdit}
                   delivery={delivery}
+                  pendingAttachments={pendingAttachments}
                   onRetry={nonce ? () => onRetry(nonce) : undefined}
                 />
               </div>

@@ -38,6 +38,28 @@ const schema = z
     DIGITAL_OCEAN_SPACES_ACCESS_KEY: z.string().min(1),
     DIGITAL_OCEAN_SPACES_SECRET_KEY: z.string().min(1),
     DIGITAL_OCEAN_SPACES_BUCKET: z.string().min(1),
+    CHAT_UPLOAD_MAX_FILE_BYTES: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(1_000_000_000)
+      .default(1_000_000_000),
+    CHAT_UPLOAD_MAX_MESSAGE_BYTES: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(10_000_000_000)
+      .default(2_000_000_000),
+    CHAT_UPLOAD_MAX_FILES: z.coerce.number().int().min(1).max(25).default(25),
+    // Caps unfinished uploads per member, independent of the per-message limits above:
+    // an abuse/cost guard against reserving storage that never gets attached to a message.
+    CHAT_UPLOAD_MAX_PENDING_FILES: z.coerce.number().int().min(1).max(1000).default(20),
+    CHAT_UPLOAD_MAX_PENDING_BYTES: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(50_000_000_000)
+      .default(4_000_000_000),
     // Calls are off (CallsModule stays unregistered) until all three are set.
     LIVEKIT_URL: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
     LIVEKIT_API_KEY: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
@@ -56,6 +78,20 @@ const schema = z
     ),
   })
   .superRefine((config, context) => {
+    if (config.CHAT_UPLOAD_MAX_MESSAGE_BYTES < config.CHAT_UPLOAD_MAX_FILE_BYTES) {
+      context.addIssue({
+        code: 'custom',
+        path: ['CHAT_UPLOAD_MAX_MESSAGE_BYTES'],
+        message: 'Must allow at least one maximum size file',
+      });
+    }
+    if (config.CHAT_UPLOAD_MAX_PENDING_BYTES < config.CHAT_UPLOAD_MAX_FILE_BYTES) {
+      context.addIssue({
+        code: 'custom',
+        path: ['CHAT_UPLOAD_MAX_PENDING_BYTES'],
+        message: 'Must allow at least one maximum size file to be reserved',
+      });
+    }
     const vapid = ['WEB_PUSH_PUBLIC_KEY', 'WEB_PUSH_PRIVATE_KEY', 'WEB_PUSH_SUBJECT'] as const;
     if (vapid.some((key) => config[key]) && !vapid.every((key) => config[key])) {
       context.addIssue({

@@ -1,15 +1,12 @@
 import { CheckIcon, XIcon } from '@phosphor-icons/react';
 import { message as toast } from 'antd';
 import { createStyles } from 'antd-style';
-import { useRef, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 
-import {
-  MentionEditor,
-  type MentionEditorHandle,
-} from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { ApiError } from '@/shared/api/http';
 
-import type { MessageHistoryItem } from '../../types';
+import { MessageEditorSlotProvider } from '../../MessageEditorSlot';
+import type { ComposerEditorApi, ComposerEditorSlotProps, MessageHistoryItem } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -55,32 +52,58 @@ interface MessageEditorProps {
   onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
   onClose: () => void;
   minHeight: number;
+  /** The text-input to edit with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
+  children: ReactNode;
 }
 
-export function MessageEditor({ item, onEdit, onClose, minHeight }: MessageEditorProps) {
+export function MessageEditor({ item, onEdit, onClose, minHeight, children }: MessageEditorProps) {
   const { styles } = useStyles();
-  const editor = useRef<MentionEditorHandle>(null);
+  const editor = useRef<ComposerEditorApi>(null);
   const [hasContent, setHasContent] = useState(Boolean(item.message.markdown?.trim()));
   const [saving, setSaving] = useState(false);
   const [conflict, setConflict] = useState(false);
-  const labels = Object.fromEntries(
-    item.mentions?.map(({ memberId, displayName }) => [memberId, displayName ?? 'учасник']) ?? [],
+  const labels = useMemo(
+    () =>
+      Object.fromEntries(
+        item.mentions?.map(({ memberId, displayName }) => [memberId, displayName ?? 'учасник']) ??
+          [],
+      ),
+    [item.mentions],
   );
 
-  async function save(overwrite = false) {
-    const markdown = editor.current?.markdown().trim();
-    if (!markdown || saving) return;
-    setSaving(true);
-    try {
-      await onEdit(item, markdown, overwrite);
-      onClose();
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 409) setConflict(true);
-      else toast.error('Не вдалося зберегти. Перевірте зміни й спробуйте ще раз.');
-    } finally {
-      setSaving(false);
-    }
-  }
+  const save = useCallback(
+    async (overwrite = false) => {
+      const markdown = editor.current?.markdown().trim();
+      if (markdown === undefined || (!markdown && !item.message.attachments?.length) || saving)
+        return;
+      setSaving(true);
+      try {
+        await onEdit(item, markdown, overwrite);
+        onClose();
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 409) setConflict(true);
+        else toast.error('Не вдалося зберегти. Перевірте зміни й спробуйте ще раз.');
+      } finally {
+        setSaving(false);
+      }
+    },
+    [item, saving, onEdit, onClose],
+  );
+
+  const slot = useMemo<ComposerEditorSlotProps>(
+    () => ({
+      editorRef: editor,
+      initialDraft: { markdown: item.message.markdown ?? '', labels },
+      className: styles.editor,
+      editorStyle: { minHeight: Math.max(40, minHeight) },
+      autoFocus: true,
+      ariaLabel: 'Редагувати повідомлення',
+      onChange: ({ markdown }) => setHasContent(Boolean(markdown.trim())),
+      onSubmit: () => void save(),
+      onEscape: onClose,
+    }),
+    [item, labels, styles.editor, minHeight, onClose, save],
+  );
 
   return (
     <>
@@ -100,7 +123,7 @@ export function MessageEditor({ item, onEdit, onClose, minHeight }: MessageEdito
               type="button"
               className={styles.action}
               aria-label="Зберегти зміни"
-              disabled={saving || !hasContent}
+              disabled={saving || (!hasContent && !item.message.attachments?.length)}
               onClick={() => void save()}
             >
               <CheckIcon size={18} />
@@ -108,17 +131,7 @@ export function MessageEditor({ item, onEdit, onClose, minHeight }: MessageEdito
           </div>
         }
       >
-        <MentionEditor
-          editorRef={editor}
-          initialDraft={{ markdown: item.message.markdown ?? '', labels }}
-          className={styles.editor}
-          editorStyle={{ minHeight: Math.max(40, minHeight) }}
-          autoFocus
-          ariaLabel="Редагувати повідомлення"
-          onChange={({ markdown }) => setHasContent(Boolean(markdown.trim()))}
-          onSubmit={() => void save()}
-          onEscape={onClose}
-        />
+        <MessageEditorSlotProvider slot={slot}>{children}</MessageEditorSlotProvider>
       </MessageInputSurface>
       {conflict && (
         <div className={styles.conflict} role="alert">

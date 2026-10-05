@@ -46,7 +46,7 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
   const migrations = readdirSync('drizzle')
     .filter((name) => /^\d+.*\.sql$/u.test(name))
     .sort();
-  const pushMigration = '0016_push_delivery.sql';
+  const pushMigration = '0018_push_delivery.sql';
   const pushMigrationIndex = migrations.indexOf(pushMigration);
   assert.ok(pushMigrationIndex >= 0);
   for (const migration of migrations.slice(0, pushMigrationIndex))
@@ -450,6 +450,25 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
       assert.equal((await db.select().from(schema.eventOutbox)).length, 1);
       const firstJob = [...queued.values()][0]!.data as { alert: ConversationAlert };
       assert.equal((await content.buildNotification(firstJob.alert))?.body, 'message');
+      await db
+        .update(schema.chatMessages)
+        .set({
+          contentMarkdown: '',
+          attachments: [
+            {
+              id: randomUUID(),
+              name: 'report.pdf',
+              size: 100,
+              mediaType: 'application/pdf',
+              preview: null,
+              width: null,
+              height: null,
+              description: null,
+            },
+          ],
+        })
+        .where(eq(schema.chatMessages.id, messageId));
+      assert.equal((await content.buildNotification(firstJob.alert))?.body, 'Нове вкладення');
     },
   );
 
@@ -539,6 +558,7 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
         new MessageMarkdownService(),
         events,
         transactionalOutbox,
+        { claim: async () => [] } as never,
       );
       const forwarding = new ForwardingFacade(
         access as never,

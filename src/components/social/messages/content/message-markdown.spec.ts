@@ -5,6 +5,15 @@ import { MessageMarkdownService, messagePlainText } from './message-markdown';
 
 const markdown = new MessageMarkdownService();
 
+test('allows a blank caption only when the caller explicitly permits attachment content', async () => {
+  await assert.rejects(markdown.normalize('   '));
+  assert.deepEqual(await markdown.normalize('   ', true), {
+    markdown: '',
+    plainText: '',
+    mentionedMemberIds: [],
+  });
+});
+
 test('stores canonical Markdown and derives structured mentions without persisting an AST', async () => {
   const source = 'Hello  **team**\r\n\r\n:member[123E4567-E89B-42D3-A456-426614174000]';
   const normalized = await markdown.normalize(source);

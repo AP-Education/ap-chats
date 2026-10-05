@@ -6,7 +6,7 @@ import type {
   HistoryPage,
   Message,
   MessageHistoryItem,
-  SendMessageInput,
+  SendMessageCommand,
 } from '../types';
 
 export function messagesUrl(workspaceId: string, channelId: string) {
@@ -40,9 +40,19 @@ export function sendMessage(
   token: string,
   workspaceId: string,
   channelId: string,
-  input: SendMessageInput,
+  input: SendMessageCommand,
 ): Promise<Message> {
-  return apiRequest(messagesUrl(workspaceId, channelId), token, jsonInit('POST', input));
+  const payload = {
+    markdown: input.markdown,
+    clientNonce: input.clientNonce,
+    replyToMessageId: input.replyToMessageId,
+    quoteText: input.quoteText,
+    attachments: input.attachments?.map((attachment) => ({
+      id: attachment.id,
+      description: attachment.description ?? undefined,
+    })),
+  };
+  return apiRequest(messagesUrl(workspaceId, channelId), token, jsonInit('POST', payload));
 }
 
 // One route resolves either subject id (backend: HistoryFacade.entry()). The

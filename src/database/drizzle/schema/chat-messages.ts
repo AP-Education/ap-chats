@@ -4,12 +4,15 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
   unique,
   uuid,
 } from 'drizzle-orm/pg-core';
+
+import type { Attachment } from '@/components/social/messages/attachments/types';
 
 import { channels } from './channels';
 import { workspaceMembers } from './workspace-members';
@@ -22,6 +25,7 @@ export const chatMessages = pgTable(
     channelId: uuid('channel_id').notNull(),
     authorMemberId: uuid('author_member_id').notNull(),
     contentMarkdown: text('content_markdown').notNull(),
+    attachments: jsonb('attachments').$type<Attachment[]>().notNull().default([]),
     contentVersion: integer('content_version').notNull().default(1),
     revision: integer('revision').notNull().default(1),
     replyToMessageId: uuid('reply_to_message_id'),
@@ -46,8 +50,13 @@ export const chatMessages = pgTable(
       table.clientNonce,
     ),
     index('chat_messages_reply_idx').on(table.replyToMessageId),
+    index('chat_messages_attachments_idx').using('gin', table.attachments),
     check('chat_messages_content_version_check', sql`${table.contentVersion} = 1`),
     check('chat_messages_revision_check', sql`${table.revision} >= 1`),
+    check(
+      'chat_messages_attachments_check',
+      sql`jsonb_typeof(${table.attachments}) = 'array' AND jsonb_array_length(${table.attachments}) <= 10`,
+    ),
     foreignKey({
       columns: [table.workspaceId, table.channelId],
       foreignColumns: [channels.workspaceId, channels.id],
