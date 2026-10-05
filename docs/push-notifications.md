@@ -91,6 +91,8 @@ Expo creates the Android message channel before asking for permission. Ordinary 
 
 Notification taps from an already-running or cold-started app wait for authentication and a ready WebView listener. The bridge validates the internal conversation route and intended account, selects the workspace, then acknowledges the intent. An old acknowledgement cannot erase a newer tap. CallKit cold starts hydrate `getActiveCallSession()` before answering and wait for restored/refreshed auth. Foreground and socket reconnect synchronize call state against the API. A device that stays suspended may still ring until the native timeout because the CallKit library has no supported remote-cancellation push payload.
 
+CallKit owns the native audio session; LiveKit globals disable automatic audio configuration. Incoming answers connect the room, fulfill the native answer action, then wait for audio activation before enabling the microphone. Waiting for audio before fulfilling the answer deadlocks on iOS. An answer replay joins once; hangup cancels pending media work. The WebView reuses an existing incoming session. Remote end/answer-elsewhere signals report the native ending and release local media without sending another decline or leave to the server.
+
 Use custom native development/release builds for remote push and CallKit; Expo Go is not the validation target.
 
 ## Operations and validation
@@ -106,6 +108,7 @@ Before rollout, test with signed iOS and Android builds and HTTPS browser deploy
 - Unmuted DM and channel mention arrive while the browser/app is closed; own messages, mute and non-mentions follow the existing policy.
 - Tapping opens the correct workspace/chat from foreground, background and cold start.
 - Local iOS sandbox and distribution production call pushes both reach CallKit; stale/ended calls do not produce late rings after a queued retry.
+- Accept from the lock screen with the app terminated and with it backgrounded: one native session connects with two-way audio. Hang up during connection and answer on another device: no phantom call or duplicate decline remains.
 - Android ordinary messages reach Expo and call data reaches Telecom after native regeneration. The callkit config plugin removes the competing `ExpoFirebaseMessagingService` manifest entry and delegates non-call messages to Expo.
 - Logout and account switching stop old-account delivery; rejected old tokens do not remove a newly registered token.
 - A stopped worker resumes queued delivery after restart; provider transient failures retry and permanent failures clean up the matching target.

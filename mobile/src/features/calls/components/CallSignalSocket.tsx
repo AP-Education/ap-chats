@@ -1,3 +1,4 @@
+import type { CallEndedReason } from 'expo-callkit-telecom';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { io, type Socket } from 'socket.io-client';
@@ -37,7 +38,7 @@ export function CallSignalSocket() {
       },
     });
 
-    function dismiss(payload: unknown, onlyRinging = false) {
+    function dismiss(payload: unknown, reason: CallEndedReason) {
       const callId = (payload as { callId?: unknown } | null)?.callId;
       if (typeof callId !== 'string') return;
       const sessionId = findTrackedSessionIdByServerCallId(callId);
@@ -47,9 +48,14 @@ export function CallSignalSocket() {
       // so this is that device hearing an echo of its own accept, not a
       // signal to hang up the call it just connected.
       const call = useNativeCallStore.getState().call;
-      if (onlyRinging && call?.sessionId === sessionId && call.status !== 'ringing') return;
+      if (
+        reason === 'answeredElsewhere' &&
+        call?.sessionId === sessionId &&
+        call.status !== 'ringing'
+      )
+        return;
       void loadCallKitModule().then((CallKit) =>
-        CallKit?.endCall(sessionId).catch(() => undefined),
+        CallKit?.reportCallEnded(sessionId, reason).catch(() => undefined),
       );
     }
 
@@ -72,10 +78,10 @@ export function CallSignalSocket() {
           .refreshNow()
           .then(() => socket.connect());
     });
-    socket.on('call:accepted', (payload: unknown) => dismiss(payload, true));
-    socket.on('call:declined', (payload: unknown) => dismiss(payload));
-    socket.on('call:ended', (payload: unknown) => dismiss(payload));
-    socket.on('call:missed', (payload: unknown) => dismiss(payload));
+    socket.on('call:accepted', (payload: unknown) => dismiss(payload, 'answeredElsewhere'));
+    socket.on('call:declined', (payload: unknown) => dismiss(payload, 'declinedElsewhere'));
+    socket.on('call:ended', (payload: unknown) => dismiss(payload, 'remoteEnded'));
+    socket.on('call:missed', (payload: unknown) => dismiss(payload, 'unanswered'));
 
     return () => {
       appState.remove();

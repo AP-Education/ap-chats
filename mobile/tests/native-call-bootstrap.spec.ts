@@ -78,7 +78,11 @@ test('CallKit initialization failure is caught without crashing the app', async 
   assert.equal(await loadCallKitModule(), null);
 });
 
-function sessionFixture(callkit: Promise<unknown>, livekit: object = {}) {
+function sessionFixture(
+  callkit: Promise<unknown>,
+  livekit: object = {},
+  dependencies: Record<string, unknown> = {},
+) {
   let imports = 0;
   let cleanup: (() => void) | undefined;
   const { CallSession } = load<{ CallSession: () => null }>(
@@ -103,6 +107,7 @@ function sessionFixture(callkit: Promise<unknown>, livekit: object = {}) {
         if (livekit instanceof Error) throw livekit;
         return livekit;
       },
+      ...dependencies,
     },
   );
   return { mount: CallSession, unmount: () => cleanup?.(), imports: () => imports };
@@ -130,7 +135,7 @@ test('call signals dismiss other-device rings without ending the call being answ
       '../store/native-call-store': { useNativeCallStore: { getState: () => ({ call }) } },
       '../utils/callkit-module': {
         loadCallKitModule: async () => ({
-          endCall: async (id: string) => {
+          reportCallEnded: async (id: string) => {
             ended.push(id);
           },
         }),
@@ -194,4 +199,64 @@ test('LiveKit bundle failure is caught instead of escaping as an unhandled HMR r
   f.mount();
   await flush();
   assert.equal(f.imports(), 1);
+});
+
+test('cold bootstrap registers CallKit-owned audio before replay and handles system endings locally', async () => {
+  const steps: string[] = [];
+  const listeners = new Map<string, (event: unknown) => void>();
+  let removed = 0;
+  const listen = (name: string) => (listener: (event: unknown) => void) => {
+    listeners.set(name, listener);
+    if (name === 'answered') listener({ id: 'cold-call', requestId: 'answer-request' });
+    return {
+      remove: () => {
+        removed++;
+      },
+    };
+  };
+  const CallKit = {
+    addCallSessionAddedListener: listen('added'),
+    addIncomingCallReportedListener: listen('incoming'),
+    addCallAnsweredListener: listen('answered'),
+    addCallEndedListener: listen('ended'),
+    addReportedCallEndedListener: listen('reported-ended'),
+    addCallSessionRemovedListener: listen('removed'),
+    addSetMutedActionListener: listen('muted'),
+  };
+  const f = sessionFixture(
+    Promise.resolve(CallKit),
+    {
+      registerGlobals: (options: { autoConfigureAudioSession: boolean }) => {
+        assert.equal(options.autoConfigureAudioSession, false);
+        steps.push('media-globals');
+      },
+    },
+    {
+      '../utils/answer-call': {
+        answerCall: async () => {
+          steps.push('answer-replay');
+        },
+      },
+      '../utils/hydrate-call-session': {
+        hydrateCallSession: async () => {
+          steps.push('hydrate');
+        },
+      },
+      '../utils/synchronize-call-session': { synchronizeCallSession: async () => {} },
+      '../utils/end-call': {
+        endCallSession: async (_event: unknown, options?: { notifyServer: boolean }) => {
+          steps.push(options?.notifyServer === false ? 'local-cleanup' : 'notify-server');
+        },
+      },
+    },
+  );
+  f.mount();
+  await flush();
+  assert.deepEqual(steps, ['media-globals', 'answer-replay', 'hydrate']);
+  listeners.get('reported-ended')?.({ id: 'cold-call' });
+  listeners.get('removed')?.({ id: 'cold-call' });
+  listeners.get('ended')?.({ id: 'cold-call' });
+  assert.deepEqual(steps.slice(3), ['local-cleanup', 'local-cleanup', 'notify-server']);
+  f.unmount();
+  assert.equal(removed, 7);
 });

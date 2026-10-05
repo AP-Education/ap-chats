@@ -14,6 +14,7 @@ import type { endCallSession } from '../src/features/calls/utils/end-call';
 import * as hydration from '../src/features/calls/utils/hydrate-call-session';
 import type * as media from '../src/features/calls/utils/livekit-room';
 import * as registry from '../src/features/calls/utils/session-registry';
+import type { synchronizeCallSession } from '../src/features/calls/utils/synchronize-call-session';
 
 function load<T>(name: string, dependencies: Record<string, unknown>): T {
   const exports = {};
@@ -322,4 +323,28 @@ test('audio activation between snapshot and subscription cannot leave an answer 
     new AbortController().signal,
   );
   assert.equal(f.removedAudioListeners(), 1);
+});
+
+test('foreground synchronization preserves a local answer but dismisses an answer on another device', async (t) => {
+  const f = fixture(t);
+  await hydration.hydrateCallSession(f.CallKit as never);
+  const ended: string[] = [];
+  const { synchronizeCallSession: synchronize } = load<{
+    synchronizeCallSession: typeof synchronizeCallSession;
+  }>('synchronize-call-session', {
+    '../store/native-call-store': { useNativeCallStore },
+    '../api/calls-api': { activeCall: async () => ({ id: 'server-call', status: 'active' }) },
+    './require-access-token': { requireAccessToken: async () => 'token' },
+    './session-registry': registry,
+  });
+  const CallKit = {
+    reportCallEnded: async (id: string, reason: string) => {
+      ended.push(`${id}:${reason}`);
+    },
+  };
+  await synchronize(CallKit as never);
+  assert.deepEqual(ended, []);
+  useNativeCallStore.getState().updateCall({ status: 'ringing' });
+  await synchronize(CallKit as never);
+  assert.deepEqual(ended, ['native-session:remoteEnded']);
 });

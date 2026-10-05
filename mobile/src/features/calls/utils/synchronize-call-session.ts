@@ -27,5 +27,5 @@ export async function synchronizeCallSession(
   }
   const latest = useNativeCallStore.getState().call;
   if (close && latest?.sessionId === current.sessionId && latest.status === current.status)
-    await CallKit.endCall(current.sessionId);
+    await CallKit.reportCallEnded(current.sessionId, 'remoteEnded');
 }
