@@ -25,16 +25,22 @@ infra/
    record into the existing zone.
 2. **Terraform state backend**: copy
    `terraform/tenants/backend.sample.tfbackend` to
-   `terraform/tenants/backend.prod.tfbackend` and fill in your DO Spaces
-   bucket/region (gitignored — holds no secrets itself, but is
-   environment-specific).
-3. **DigitalOcean Spaces key**: create a Spaces access key dedicated to
-   ap-connect — DO dashboard → API → Spaces Keys → "Generate New Key". Don't
-   reuse backend-LMS's key: Spaces keys are account-wide (not scoped to one
-   bucket), so a project of its own keeps rotation and blast radius
-   independent. You'll use this same key pair twice: once below to let
-   Terraform create the bucket, and once in the vault (step 4) for the app
-   itself to read/write objects in it.
+   `terraform/tenants/backend.prod.tfbackend` and set `key` to
+   `chats/prod/terraform.tfstate`. This reuses backend-LMS's own Backblaze
+   B2 bucket (`ap-lms`) — same ecosystem, same credentials, one bucket to
+   manage instead of a dedicated one per project. Nothing to create: the
+   bucket already exists, this just adds a new key prefix in it. Weaker
+   isolation than a dedicated bucket (whoever holds this credential can
+   reach LMS's state too) is the accepted tradeoff for that simplicity.
+3. **DigitalOcean Spaces key** (a _different_ credential from the state
+   backend above — this one is for the two app buckets, on DigitalOcean,
+   not Backblaze): create one dedicated to ap-connect — DO dashboard → API
+   → Spaces Keys → "Generate New Key". DO Spaces keys can be scoped to
+   specific buckets (`--grants 'bucket=ap-connect-prod;permission=...'` via
+   `doctl spaces keys create`), so this one doesn't need backend-LMS's
+   broader access. You'll use this same key pair twice: once below to let
+   Terraform create the buckets, and once in the vault (step 4) for the app
+   and backup script to read/write objects in them.
 4. **Secrets**: copy
    `ansible/inventory/group_vars/prod/vault.yml.example` to
    `ansible/inventory/group_vars/prod/vault.yml` and encrypt it:
@@ -51,7 +57,7 @@ infra/
 
 ```bash
 export DIGITALOCEAN_TOKEN=...
-export AWS_ACCESS_KEY_ID=...      # DO Spaces key, for the *state backend* bucket
+export AWS_ACCESS_KEY_ID=...      # Backblaze B2 application key ID (ap-lms bucket) — NOT the DO Spaces key from step 3
 export AWS_SECRET_ACCESS_KEY=...
 
 terraform -chdir=infra/terraform/prod init \
