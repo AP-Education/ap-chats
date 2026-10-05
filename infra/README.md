@@ -1,6 +1,6 @@
 # ap-connect deploy
 
-Single droplet, no load balancer. Postgres, the API and a Caddy edge (static
+Single droplet, no load balancer. Postgres, Valkey, the API and a Caddy edge (static
 `web/` build + reverse proxy) run together on one host via Docker Compose.
 Images are built locally and pushed to GHCR by hand — there is no CI/CD
 pipeline here on purpose; every step below is run manually from a developer
@@ -48,6 +48,8 @@ infra/
    ansible-vault encrypt infra/ansible/inventory/group_vars/prod/vault.yml
    ```
    Edit later with `ansible-vault edit infra/ansible/inventory/group_vars/prod/vault.yml`.
+   Fill the optional LiveKit and mobile VoIP push groups as described below
+   before deploying calls.
 5. **Ansible collections**:
    ```bash
    ansible-galaxy collection install -r infra/ansible/requirements.yml -p infra/ansible/collections
@@ -74,7 +76,7 @@ a different tenant, don't pass extra flags through pnpm — see "Adding
 another tenant" below for the direct `terraform -chdir=...` form instead.)
 
 This also creates ap-connect's own two Spaces buckets — `attachments_bucket_name`
-(defaults to `ap-connect-prod`, public-read per object, chat uploads) and
+(defaults to `ap-connect-prod`, private chat uploads and public avatar objects) and
 `backups_bucket_name` (defaults to `ap-connect-prod-backups`, always
 private, nightly Postgres dumps). Two buckets, not one bucket with two
 prefixes, so "backups must never be public" is a property of the bucket
@@ -116,7 +118,7 @@ compose stack and nightly Postgres backup for the first time.
 
 ```bash
 # 1. Build and push both images from the repo root
-cp infra/docker/web-build.env.example infra/docker/web-build.env  # once, then fill in
+cp web/.env.production.example web/.env.production  # once, then fill in
 docker login ghcr.io -u <your-gh-username>
 ./infra/scripts/build-and-push.sh v2026.02.01
 
@@ -125,13 +127,124 @@ docker login ghcr.io -u <your-gh-username>
 # living in .env. Direct dotenv-cli, not the pnpm script: same -- passthrough
 # issue as the terraform output example above.
 cd infra/ansible
-dotenv -e .env -- ansible-playbook playbooks/deploy.yml -e app_tag=v2026.02.01
+dotenv -e ../terraform/prod/.env -- ansible-playbook playbooks/deploy.yml -e app_tag=v2026.02.01
 ```
 
 `compose_runtime` pulls both images, recreates the stack, and prunes
 image layers nothing is using anymore. Database migrations run automatically
 on API boot (Drizzle's migrator runs in `onModuleInit`) — there is no
 separate migration step.
+
+The build script targets `linux/amd64` for the default DigitalOcean droplet,
+including builds from ARM Macs. Set `DOCKER_BUILD_PLATFORM` only when deploying
+to a host with a different architecture.
+
+## Production OIDC settings
+
+For this tenant, `OIDC_ISSUER` in the backend vault and `VITE_OIDC_ISSUER`
+in the release build environment are `https://api.ap-platform.online/accounts`.
+This is the identity server's issuer, configured by `ACCOUNTS_ISSUER` in
+backend-LMS and advertised in Accounts discovery. The Chats Caddyfile serves
+`chats.ap-platform.online`; it does not determine the Accounts issuer.
+
+`OIDC_AUDIENCE` and `VITE_OIDC_AUDIENCE` are
+`https://chats.ap-platform.online`. Register the web client in production
+Accounts with that resource and redirect URI
+`https://chats.ap-platform.online/auth/callback`, then set its client ID in
+the build environment. Localhost development values are not release settings.
+
+The public `VITE_*` values are compiled into the web image at build time.
+Backend settings come from the vault-backed runtime `app.env`. Updating
+the server environment does not change an already built frontend. The build
+script accepts exported release variables or the file selected by
+`WEB_BUILD_ENV` (defaults to `web/.env.production`, also loaded by Vite for
+local production builds).
+
+Before releasing sign-in, verify Accounts discovery at
+`https://api.ap-platform.online/accounts/.well-known/openid-configuration`:
+the issuer must match and the authorization, token and JWKS endpoints must
+use HTTPS. Proxy scheme handling belongs to the Accounts deployment.
+
+## Calls and mobile VoIP push
+
+Calls are implemented. The production stack needs an existing LiveKit Cloud
+or self-hosted server; it does not create one. In the encrypted vault, set
+`livekit_url` to that server's public `wss://` URL, plus `livekit_api_key`
+and `livekit_api_secret`. The URL is returned in join grants, so browsers
+and mobile clients must be able to reach it directly. Set all three values
+or leave all empty; with no credentials, starting a call returns 503.
+
+To wake a backgrounded mobile app for incoming calls, configure the
+platform's provider independently:
+
+- **iOS:** set `apns_key_id`, `apns_team_id`, `apns_private_key` and
+  `apns_voip_topic` together. The topic is `<iOS bundle identifier>.voip`.
+  Paste the full Apple `.p8` PEM into `apns_private_key: |-` with indented
+  lines and real line breaks. The provider passes this directly to
+  `jose.importPKCS8(..., 'ES256')`; a file path or literal `\n` text is not
+  a PEM key.
+- **Android:** set `fcm_project_id` and `fcm_service_account_json` together.
+  Paste the full service account JSON into `fcm_service_account_json: |-`
+  as an indented string block. Preserve the JSON's own `private_key`
+  escapes; the provider runs `JSON.parse` before importing that key.
+
+The env template quotes both strings for Compose, preserving PEM newlines,
+JSON escapes and literal dollar signs. See the examples in
+`ansible/inventory/group_vars/prod/vault.yml.example`. Omitted groups default
+to empty values; incomplete groups fail application config validation.
+Without APNs/FCM credentials, incoming call ringing only reaches mobile
+clients with an active socket connection.
+
+For an existing deployment, add the new fields using `ansible-vault edit`,
+then run the deploy playbook with the currently deployed `app_tag` as shown
+above. This renders `app.env` and recreates the API container with the new
+environment. Changing the example file alone does not update an existing
+encrypted vault. Native builds also need their corresponding push setup
+and registered device tokens.
+
+## Queued push delivery
+
+The `PUSH_*`, Expo and Web Push settings are prepared for
+`feat/chat-push-notifications`; they are not consumed by `origin/main` at
+`fbec3fc`. Deploying main alone does not enable queued notifications.
+After that feature is merged and its migrations are reconciled with main's
+attachment migrations, build new images and set `push_enabled: true` in
+`ansible/inventory/group_vars/prod/vars.yml`. Keep `push_worker_enabled: true`
+on this single API instance: it runs both the outbox dispatcher and delivery
+workers, including incoming call pushes in the new implementation.
+
+Valkey runs on the private Compose network with an AOF volume and
+`noeviction`, with no published host port. The API uses
+`redis://valkey:6379/0`; the local development URL
+`redis://127.0.0.1:6380/0` cannot reach this container. Queue timing,
+rate limits and worker concurrency have defaults in `compose_runtime` and
+can be overridden in group vars. Ordinary native notifications use Expo
+(`expo_access_token` is optional unless enhanced Expo security is enabled).
+Browser push needs all three `web_push_*` vault fields, one persistent VAPID
+pair and the web image's public service worker assets. The web Dockerfile
+copies the entire web source, including `public/` when it is present.
+
+## Chat attachments and web build settings
+
+The main branch's private multipart attachments require exact-origin
+Spaces CORS for `PUT`, `GET` and `HEAD`. Terraform configures that on the
+attachments bucket for `https://<chats_subdomain>.<domain_name>`, plus a
+one-day abort rule for unfinished uploads under `chat-attachments/`.
+If `domain_name` is null or the web origin differs, configure the matching
+origins before deploying clients. Apply the Terraform change before the
+application release; the Ansible deploy alone does not update bucket CORS.
+Completed chat objects stay private and are retained according to live
+message references, not a storage age-based deletion rule.
+
+`CHAT_UPLOAD_MAX_*` limits are rendered into `app.env`, including the pending
+reservation caps. Defaults match `.env.example` for the three public limits
+and the config schema for the pending limits. See `docs/chat-uploads.md`
+for the full storage permission and migration requirements.
+
+Set `VITE_TENOR_API_KEY` in `web/.env.production` to enable GIF search.
+Like the OIDC and image URL settings, it is baked into the web image and
+requires rebuilding that image when changed. The root `.dockerignore`
+excludes local dependency trees and deploy credentials from both build contexts.
 
 ## Running this from a different machine
 
@@ -190,17 +303,15 @@ LMS's existing ops host later if/when this needs the same treatment.
 ## Design choices worth knowing
 
 - **No load balancer, no managed Postgres/Valkey.** One instance, Postgres
-  as a container with a volume, nightly `pg_dump` to DO Spaces. Cheaper and
-  simpler for the current (scaffold) stage; swapping in a managed Postgres
+  and Valkey as containers with volumes, nightly `pg_dump` to DO Spaces. Swapping in a managed Postgres
   later only means changing `DATABASE_URL`, not application code. The backup
   script only ever uploads — Terraform's `spaces_backup_retention_days`
   (default 30) is what actually expires old backups, via a lifecycle rule on
   the backups bucket's `backups/` prefix.
 - **Two Spaces buckets, own key — neither shared with backend-LMS.**
-  `attachments_bucket_name` (default `ap-connect-prod`) holds chat uploads;
-  the app sets `ACL: public-read` per object on upload
-  (`DigitalOceanSpacesProvider.uploadObject`), so those end up individually
-  public. `backups_bucket_name` (default `ap-connect-prod-backups`) holds
+  `attachments_bucket_name` (default `ap-connect-prod`) holds private chat
+  uploads with signed downloads and public-read avatar objects.
+  `backups_bucket_name` (default `ap-connect-prod-backups`) holds
   nightly pg_dump dumps and stays private — its default ACL is never
   touched. Deliberately two buckets, not one bucket with two prefixes: that
   way "backups must never be public" is a property of the bucket, not of
@@ -212,11 +323,10 @@ LMS's existing ops host later if/when this needs the same treatment.
   Balancer to terminate TLS), and it serves the SPA's static build directly
   in addition to reverse-proxying `/api` and `/socket.io` — no third
   "static file server" container needed.
-- **LiveKit isn't deployed yet** — calls aren't implemented in the app yet
-  either (`LIVEKIT_*` env vars are optional in `config.schema.ts`). Add a
-  `livekit` service to the compose template (and open its ports in the
-  firewall module) when that's ready; self-hosted vs. LiveKit Cloud is a
-  separate decision at that point.
+- **LiveKit is external to this stack.** Calls use the optional vault
+  credentials described above. Self-hosting on this droplet would also
+  require a LiveKit service, public TLS endpoint and media/TURN ports in
+  both firewall layers; setting env vars alone does not provision those.
 - **Secrets via Ansible Vault**, not Doppler — this is a small, single-env
   side app; a vault-encrypted vars file avoids a third-party dependency and
   keeps deploys fully offline-capable. Revisit if this grows enough tenants
