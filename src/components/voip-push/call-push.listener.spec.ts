@@ -5,13 +5,14 @@ import {
   CallSignalEvent,
   type CallSignalPayload,
 } from '@/components/calls/events/call-signal.event';
-import { type DeviceRecord, DevicesService } from '@/components/devices';
-import { DevicesRepository } from '@/components/devices/repository';
-import { Logger } from '@/globals/logger';
+import { DevicesService } from '@/components/devices/devices.service';
+import { DevicesRepository } from '@/components/devices/repository/devices.repository';
+import type { DeviceRecord } from '@/components/devices/types';
+import { Logger } from '@/globals/logger/logger.interface';
 
 import { CallPushListener } from './call-push.listener';
-import type { CallPushProvider } from './provider';
-import { PushProviderRegistry } from './provider';
+import type { CallPushProvider } from './provider/call-push-provider.types';
+import { PushProviderRegistry } from './provider/push-provider.registry';
 
 class FakeDevicesRepository extends DevicesRepository {
   constructor(private readonly devices: Map<string, DeviceRecord[]>) {
