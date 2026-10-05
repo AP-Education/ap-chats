@@ -14,6 +14,7 @@ web/playwright-report/
 .env
 .env.*
 !.env.example
+!.env.production.example
 *.log
 .DS_Store
 mobile/android/
@@ -27,11 +28,10 @@ infra/terraform/**/*.tfplan
 infra/terraform/tenants/backend.*.tfbackend
 !infra/terraform/tenants/backend.sample.tfbackend
 
-# Infra: Ansible Vault secrets and local build env
+# Infra: Ansible Vault secrets
 infra/ansible/inventory/group_vars/*/vault.yml
 !infra/ansible/inventory/group_vars/*/vault.yml.example
 infra/ansible/.vault-pass
-infra/docker/web-build.env
 
 # Infra: collections installed by `ansible-galaxy collection install -r
 # requirements.yml` — keep only our own vendored ap_education collection.

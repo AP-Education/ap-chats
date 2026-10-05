@@ -17,14 +17,15 @@ ARG VITE_OIDC_ISSUER
 ARG VITE_OIDC_CLIENT_ID
 ARG VITE_OIDC_AUDIENCE
 ARG VITE_IMAGES_URL
+ARG VITE_TENOR_API_KEY
 ENV VITE_OIDC_ISSUER=${VITE_OIDC_ISSUER} \
     VITE_OIDC_CLIENT_ID=${VITE_OIDC_CLIENT_ID} \
     VITE_OIDC_AUDIENCE=${VITE_OIDC_AUDIENCE} \
-    VITE_IMAGES_URL=${VITE_IMAGES_URL}
-# Individual paths, not `COPY web ./web` — that would overwrite the
-# web/node_modules the deps stage already installed.
-COPY web/index.html web/vite.config.ts web/tsconfig.json web/tsconfig.app.json web/tsconfig.node.json ./web/
-COPY web/src ./web/src
+    VITE_IMAGES_URL=${VITE_IMAGES_URL} \
+    VITE_TENOR_API_KEY=${VITE_TENOR_API_KEY}
+# The root .dockerignore excludes node_modules and dist, preserving installed
+# dependencies while including public assets (including future push-sw.js).
+COPY web ./web
 RUN pnpm --filter @ap-chats/web build
 
 FROM caddy:2-alpine AS runtime
