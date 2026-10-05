@@ -9,10 +9,11 @@ import {
 } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
+import { ChannelAccessFacade } from '@/components/communities/channel-access';
 import type { ChannelAccessSnapshot } from '@/components/communities/channels/types/channel-access.types';
 import { EntriesFacade } from '@/components/social/entries/entries.facade';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
+import { EventOutbox } from '@/globals/publisher/event-outbox';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
 import { RealtimePublisher } from '@/globals/realtime';
 
@@ -54,6 +55,7 @@ export class CallsService {
     private readonly provider: CallProvider,
     private readonly realtime: RealtimePublisher,
     private readonly events: EventPublisher,
+    private readonly outbox: EventOutbox,
   ) {}
 
   async start(member: WorkspaceMember, channelId: string) {
@@ -62,7 +64,7 @@ export class CallsService {
     }
     const channel = await this.channelAccess.requirePostAccess(member, channelId);
     await this.expireStale(member, channel);
-    const { record, entry } = await this.startTransaction(member, channelId);
+    const { record, entry } = await this.startTransaction(member, channelId, channel);
     if (entry) {
       this.events.publish(
         CALL_ENTRY_CREATED_EVENT,
@@ -83,7 +85,11 @@ export class CallsService {
   }
 
   @Transactional()
-  private async startTransaction(member: WorkspaceMember, channelId: string) {
+  private async startTransaction(
+    member: WorkspaceMember,
+    channelId: string,
+    channel: ChannelAccessSnapshot,
+  ) {
     const id = randomUUID();
     const record = await this.calls.insert({
       id,
@@ -95,6 +101,25 @@ export class CallsService {
     // Lost the race for this channel's one ringing/active call: no new position, no ring.
     if (record.id !== id) return { record, entry: null };
     const entry = await this.entries.appendCall(member.workspaceId, channelId, record.id);
+    const recipients = await this.calls.ringRecipients(channelId, member.id);
+    await this.outbox.record(
+      CALL_SIGNAL_EVENT,
+      new CallSignalEvent(
+        'call:incoming',
+        {
+          workspaceId: member.workspaceId,
+          channelId,
+          channelKind: channel.kind,
+          callId: record.id,
+          roomName: record.roomName,
+          startedByMemberId: member.id,
+          startedByDisplayName: member.profile.displayName,
+          startedByAvatarPath: member.profile.avatarPath,
+        },
+        recipients,
+      ),
+      { expireInSeconds: 45, priority: 1 },
+    );
     return { record, entry };
   }
 
