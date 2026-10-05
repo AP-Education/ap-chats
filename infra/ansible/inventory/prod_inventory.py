@@ -28,7 +28,7 @@ def main() -> None:
         print(json.dumps({}))
         return
 
-    workdir = Path(__file__).resolve().parents[1] / "terraform" / "prod"
+    workdir = Path(__file__).resolve().parents[2] / "terraform" / "prod"
     tf_state = load_terraform_state()
     outputs = tf_state.load_outputs(workdir)
     inventory = tf_state.extract_inventory(outputs, group_name="prod")
