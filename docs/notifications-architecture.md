@@ -24,7 +24,7 @@ Controllers accept transport DTOs and call application services. Repositories re
 
 ## Event flow
 
-Поточний шлях: `entry committed → local domain event → audience resolution → unread mutation + recipient policy → realtime delivery`. Для push і кількох інстансів джерелом цього самого процесора має стати транзакційний outbox.
+Realtime keeps `entry committed → local domain event → audience resolution → unread mutation + recipient policy → realtime delivery`. Push records the source event in a PostgreSQL `EventOutbox` with the timeline entry, then relays the source event into BullMQ on Valkey using a stable job ID. Paged audience decisions feed a recipient/conversation window before per-device delivery. Both paths use the same notification policy. Realtime mutations describe entry changes; push work references recipient windows. See [push implementation and rollout](push-notifications.md).
 
 The live unread event carries the channel, entry sequences, action and recipient alert decision. Clients apply it to one channel of the workspace projection, with deduplication by event ID. The source event identifies the actor and structured mentions; the notification policy decides `alert` for each recipient. A mark-read event carries the authoritative cursor and channel count to every device of that member. The initial workspace snapshot remains the recovery contract.
 
@@ -32,7 +32,7 @@ The server does not recompute the full workspace summary for each message. It re
 
 ## Durability and scale
 
-The current `EventEmitter2` publication is process local. It cannot be the reliable basis for mobile push or cross-instance delivery. Before enabling push, write the domain event to a transactional outbox with the timeline entry, process it with retries and an idempotency key, and record per-device delivery attempts. The outbox worker can batch recipient lookups and coalesce noisy channel alerts. Tenant branding belongs to delivery templates, not read-state or preference policy.
+The current `EventEmitter2` publication is process local. It cannot be the reliable basis for mobile push or cross-instance delivery. Push uses a transactional outbox with the timeline entry, retries, stable task IDs and per-device delivery jobs. Recipient lookup is paged. PostgreSQL retains source events until BullMQ accepts the handoff. BullMQ on persistent Valkey then owns fanout and per-device retries and limits provider traffic across replicas. Accepted child jobs are not additional PostgreSQL outbox records. Message windows collect for 3 seconds, then suppress further alerts in that conversation for 30 seconds. A shared per-user budget covers bursts across conversations; unread state is unaffected. Tenant branding belongs to delivery templates, not read-state or preference policy.
 
 Do not materialize one unread counter write per channel member on every message by default. That makes a large channel write path proportional to its audience. Keep cursors and the bounded read-state snapshot as truth, use live increments for connected clients, and measure snapshot cost and large-channel fanout before adding a materialized projection.
 

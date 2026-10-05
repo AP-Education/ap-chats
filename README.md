@@ -70,3 +70,7 @@ ESLint сортує імпорти; pre-commit перевіряє staged фай�
 3. Додати дзвінки через LiveKit. API перевірятиме участь у виклику й видаватиме короткочасні токени; LiveKit не зберігатиме історію чату.
 4. Додати native push, звук і системний екран вхідного дзвінка. Сам WebView цього не забезпечує; перевірити роботу на реальних iOS та Android пристроях.
 5. Провести пілот з командою й погодити перехід із Discord, зокрема долю старої історії.
+
+## Push notifications
+
+Web Push, Expo and CallKit delivery, architecture, configuration and rollout checks: [docs/push-notifications.md](docs/push-notifications.md).
