@@ -34,3 +34,6 @@ infra/docker/web-build.env
 infra/ansible/collections/ansible_collections/*
 !infra/ansible/collections/ansible_collections/ap_education/
 infra/ansible/**/__pycache__/
+
+# SSH private keys someone drops at repo root for local deploy use
+keys/
