@@ -1,8 +1,13 @@
 import type { ReactNode } from 'react';
 
+import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { MessageComposer } from '@/features/social/messaging/components/MessageComposer';
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
-import type { HistoryItem, SendMessageInput } from '@/features/social/messaging/types';
+import type {
+  HistoryItem,
+  PendingAttachmentCommit,
+  SendMessageCommand,
+} from '@/features/social/messaging/types';
 import { isMessageItem } from '@/features/social/messaging/types';
 
 import { useConversation } from '../../store';
@@ -37,8 +42,11 @@ function WritableConversationFooter({
     ? items.filter(isMessageItem).find((item) => item.message.id === intent.messageId)
     : undefined;
 
-  function onSend(input: Omit<SendMessageInput, 'clientNonce'>) {
-    send(input);
+  function onSend(
+    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
+    pending?: PendingAttachmentCommit,
+  ) {
+    send(input, pending);
   }
 
   return (
@@ -46,6 +54,8 @@ function WritableConversationFooter({
       replyAuthor={replyTarget?.author.displayName ?? undefined}
       replyPreview={replyTarget?.message.markdown ?? undefined}
       onSend={onSend}
-    />
+    >
+      <MentionEditor />
+    </MessageComposer>
   );
 }

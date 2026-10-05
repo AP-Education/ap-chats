@@ -74,7 +74,10 @@ export function createRingback(context: AudioContext): Ringback {
       setTimeout(() => {
         bed.stop();
         breathe.stop();
-        void context.close();
+        // Disconnects this ringback's own nodes; the shared context itself stays alive for the session.
+        master.disconnect();
+        bedGain.disconnect();
+        breatheDepth.disconnect();
       }, 260);
     },
   };

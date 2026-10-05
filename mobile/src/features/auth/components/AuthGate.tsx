@@ -22,6 +22,28 @@ export function AuthGate({ children }: PropsWithChildren) {
     return <GateScreen icon="people" title="Заходимо" loading />;
   }
 
+  if (auth.status === 'signing-out') {
+    return <GateScreen icon="people" title="Виходимо" loading />;
+  }
+
+  if (auth.status === 'error' && auth.operation === 'sign-out') {
+    return (
+      <GateScreen
+        icon="people"
+        title="Не вдалося завершити вихід"
+        description="Спробуй ще раз, щоб завершити вихід зі спільного акаунта AP."
+        actions={[
+          { label: 'Повторити вихід', onPress: () => void useAuthStore.getState().signOut() },
+          {
+            label: 'Увійти',
+            variant: 'secondary',
+            onPress: () => void useAuthStore.getState().signIn(),
+          },
+        ]}
+      />
+    );
+  }
+
   return (
     <GateScreen
       icon="people"

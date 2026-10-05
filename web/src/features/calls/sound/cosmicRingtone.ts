@@ -113,7 +113,12 @@ export function createCosmicRingtone(context: AudioContext): Ringtone {
       setTimeout(() => {
         pad.stop();
         breathe.stop();
-        void context.close();
+        // Disconnects this ringtone's own nodes; the shared context itself stays alive for the session.
+        master.disconnect();
+        delay.disconnect();
+        feedback.disconnect();
+        padGain.disconnect();
+        breatheDepth.disconnect();
       }, 260);
     },
   };

@@ -10,12 +10,14 @@ import {
 import { Transactional } from '@nestjs-cls/transactional';
 
 import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
+import type { ChannelAccessSnapshot } from '@/components/communities/channels/types/channel-access.types';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
 
 import { EntriesFacade } from '../entries/entries.facade';
 import { MentionsFacade } from '../mentions/mentions.facade';
 import { PinsFacade } from '../pins/pins.facade';
+import { ChatUploadsService } from './attachments';
 import { MessageMarkdownService, type NormalizedMessageContent } from './content/message-markdown';
 import type {
   BatchDeleteMessagesDto,
@@ -43,16 +45,22 @@ export class MessagesFacade {
     private readonly repository: MessagesRepository,
     private readonly markdown: MessageMarkdownService,
     private readonly events: EventPublisher,
+    private readonly uploads: ChatUploadsService,
   ) {}
 
   async send(member: WorkspaceMember, channelId: string, dto: SendMessageDto) {
-    const content = await this.markdown.normalize(dto.markdown);
+    const content = await this.markdown.normalize(dto.markdown, Boolean(dto.attachments?.length));
     const quote = dto.quoteText?.trim() || null;
     if (quote && !dto.replyToMessageId)
       throw new BadRequestException('Quote requires a reply target');
     const digest = createHash('sha256')
       .update(
-        JSON.stringify({ markdown: content.markdown, reply: dto.replyToMessageId ?? null, quote }),
+        JSON.stringify({
+          markdown: content.markdown,
+          reply: dto.replyToMessageId ?? null,
+          quote,
+          attachments: dto.attachments?.length ? dto.attachments : undefined,
+        }),
       )
       .digest('hex');
     const result = await this.createTransaction(member, channelId, dto, content, quote, digest);
@@ -99,11 +107,13 @@ export class MessagesFacade {
         throw new BadRequestException('Quote is not in the reply target');
     }
     await this.mentions.requireValid(member.workspaceId, channelId, content.mentionedMemberIds);
+    const attachments = await this.uploads.claim(member, channelId, dto.attachments ?? []);
     const message = await this.repository.insert({
       workspaceId: member.workspaceId,
       channelId,
       authorMemberId: member.id,
       contentMarkdown: content.markdown,
+      attachments,
       replyToMessageId: dto.replyToMessageId ?? null,
       quoteText: quote,
       requestDigest: digest,
@@ -120,7 +130,7 @@ export class MessagesFacade {
   }
 
   async edit(member: WorkspaceMember, channelId: string, messageId: string, dto: EditMessageDto) {
-    const content = await this.markdown.normalize(dto.markdown);
+    const content = await this.markdown.normalize(dto.markdown, true);
     const view = await this.editTransaction(member, channelId, messageId, dto, content);
     this.events.publish(
       MESSAGE_UPDATED_EVENT,
@@ -142,6 +152,8 @@ export class MessagesFacade {
     if (message.authorMemberId !== member.id)
       throw new ForbiddenException('Only the author can edit this message');
     if (message.deletedAt) throw new ConflictException('Message was deleted');
+    if (!content.plainText.trim() && !message.attachments.length)
+      throw new BadRequestException('Message cannot be blank');
     if (dto.revision !== undefined && dto.revision !== message.revision)
       throw new ConflictException('Message was changed');
     await this.mentions.requireValid(member.workspaceId, channelId, content.mentionedMemberIds);
@@ -202,12 +214,8 @@ export class MessagesFacade {
     const channel = await this.access.requirePostAccess(member, channelId);
     const rows = await this.repository.findWithEntries(channelId, ids);
     if (rows.length !== ids.length) throw new NotFoundException('Message not found');
-    const manager =
-      channel.kind !== 'dm' &&
-      (channel.kind === 'private' ||
-        member.role === 'owner' ||
-        channel.createdByMemberId === member.id);
-    if (rows.some(({ message }) => message.authorMemberId !== member.id && !manager))
+    const canDeleteOthers = this.isChannelModerator(channel, member);
+    if (rows.some(({ message }) => message.authorMemberId !== member.id && !canDeleteOthers))
       throw new ForbiddenException('Cannot delete another member’s message');
     const pending = rows.filter(({ message }) => !message.deletedAt);
     await this.repository.tombstone(pending.map(({ message }) => message.id));
@@ -223,14 +231,24 @@ export class MessagesFacade {
   findMany(channelId: string, ids: string[]) {
     return this.repository.findMany(channelId, ids);
   }
-  findWithEntries(channelId: string, ids: string[]) {
-    return this.repository.findWithEntries(channelId, ids);
-  }
 
   async requireMessage(workspaceId: string, channelId: string, id: string): Promise<MessageModel> {
     const message = await this.repository.findById(workspaceId, channelId, id);
     if (!message) throw new NotFoundException('Message not found');
     return message;
+  }
+
+  // A DM has no moderator concept — both participants are equal, so only a
+  // message's own author can delete it there. Elsewhere, a private channel's
+  // creator, a workspace owner, or the channel's own creator can delete
+  // anyone's message.
+  private isChannelModerator(channel: ChannelAccessSnapshot, member: WorkspaceMember): boolean {
+    if (channel.kind === 'dm') return false;
+    return (
+      channel.kind === 'private' ||
+      member.role === 'owner' ||
+      channel.createdByMemberId === member.id
+    );
   }
 
   private quoteMatches(source: string, selection: string): boolean {

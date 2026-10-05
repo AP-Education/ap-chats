@@ -1,10 +1,11 @@
 import { createStyles } from 'antd-style';
 
-import { SWIPE_SETTLE_TRANSITION } from '@/shared/hooks/useTouchGesture';
-
 export const useMainLayoutStyles = createStyles(({ token, css }) => ({
   layout: css`
     height: 100dvh;
+    html[data-native-shell='true'] & {
+      height: 100%;
+    }
     overflow: hidden;
   `,
   mainArea: css`
@@ -14,6 +15,25 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     @media (max-width: ${token.screenMD}px) {
       position: relative;
       isolation: isolate;
+      --mobile-menu-progress: 0;
+
+      &[data-menu-open='true'] {
+        --mobile-menu-progress: 1;
+      }
+
+      &[data-menu-open='true'] > aside {
+        visibility: visible;
+        transition-delay: 0s;
+      }
+
+      &[data-menu-dragging='true'] > main,
+      &[data-menu-dragging='true'] > aside {
+        transition: none;
+      }
+
+      &[data-menu-dragging='true'] > aside {
+        visibility: visible;
+      }
     }
   `,
   content: css`
@@ -27,13 +47,9 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
       flex: 0 0 100%;
       width: 100%;
       background: ${token.colorBgContainer};
-      transform: translate3d(0, 0, 0);
-      transition: ${SWIPE_SETTLE_TRANSITION};
-      will-change: transform;
-
-      &[data-menu-open='true'] {
-        transform: translate3d(100%, 0, 0);
-      }
+      touch-action: pan-y pinch-zoom;
+      transform: translate3d(calc(var(--mobile-menu-progress) * 100%), 0, 0);
+      transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -46,13 +62,12 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     width: 100%;
     overflow: hidden;
     background: ${token.colorBgContainer};
-    touch-action: pan-y;
-    transform: translate3d(-32px, 0, 0);
-    transition: ${SWIPE_SETTLE_TRANSITION};
-
-    &[data-open='true'] {
-      transform: translate3d(0, 0, 0);
-    }
+    touch-action: pan-y pinch-zoom;
+    transform: translate3d(calc((var(--mobile-menu-progress) - 1) * 32px), 0, 0);
+    visibility: hidden;
+    transition:
+      transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      visibility 0s 220ms;
 
     @media (prefers-reduced-motion: reduce) {
       transition: none;

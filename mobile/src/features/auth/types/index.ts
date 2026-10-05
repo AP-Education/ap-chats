@@ -10,18 +10,19 @@ export type AuthState =
   | { status: 'unconfigured' }
   | { status: 'signed-out' }
   | { status: 'signing-in' }
+  | { status: 'signing-out' }
   | { status: 'signed-in'; tokens: TokenSet }
-  | { status: 'error'; message: string };
+  | { status: 'error'; message: string; operation: 'sign-in' | 'sign-out' };
 
 /**
- * Port for the OIDC login/refresh mechanics. The concrete adapter (expo-auth-session
+ * Port for the OIDC login/refresh/logout mechanics. The concrete adapter (expo-auth-session
  * today) sits behind this interface so it can be swapped or faked in tests without
  * touching AuthStore or the WebView bridge.
  */
 export interface AuthSessionProvider {
   signIn(): Promise<TokenSet>;
   refresh(tokens: TokenSet): Promise<TokenSet>;
-  signOut(): Promise<void>;
+  signOut(idToken?: string): Promise<void>;
 }
 
 /** Port for persisting tokens across app restarts. */

@@ -1,4 +1,4 @@
-import { GearSixIcon } from '@phosphor-icons/react';
+import { GearSixIcon, PlusIcon } from '@phosphor-icons/react';
 import { Button, message } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
@@ -113,12 +113,19 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
       {isOwner && (
         <div className={styles.actions}>
           <div className={styles.headerActions}>
+            <IconButton
+              size={isMobile ? 36 : 28}
+              aria-label="Створити канал"
+              onClick={() => setCreatingChannel({ categoryName: 'Без категорії' })}
+            >
+              <PlusIcon size={20} />
+            </IconButton>
             <CategoryQuickCreate
               isPending={createCategory.isPending}
               onCreate={(name) => createCategory.mutateAsync({ name })}
             />
             <IconButton
-              size={28}
+              size={isMobile ? 36 : 28}
               aria-label="Керувати категоріями"
               onClick={() => setManagingCategories(true)}
             >

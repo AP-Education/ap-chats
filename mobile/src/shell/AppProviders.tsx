@@ -1,4 +1,5 @@
 import type { PropsWithChildren } from 'react';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 /**
@@ -6,5 +7,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
  * native-only concerns (push, calls) need their own providers (e.g. a CallKit context).
  */
 export function AppProviders({ children }: PropsWithChildren) {
-  return <SafeAreaProvider>{children}</SafeAreaProvider>;
+  return (
+    <SafeAreaProvider>
+      <KeyboardProvider>{children}</KeyboardProvider>
+    </SafeAreaProvider>
+  );
 }

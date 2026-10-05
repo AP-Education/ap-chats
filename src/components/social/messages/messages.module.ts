@@ -8,6 +8,7 @@ import { WorkspacesModule } from '@/components/workspaces';
 import { EntriesModule } from '../entries/entries.module';
 import { MentionsModule } from '../mentions/mentions.module';
 import { PinsModule } from '../pins/pins.module';
+import { ChatUploadsModule } from './attachments';
 import { MessageMarkdownService } from './content/message-markdown';
 import { MessagesController } from './messages.controller';
 import { MessagesFacade } from './messages.facade';
@@ -24,6 +25,7 @@ import { MessagesRepository } from './repository/messages.repository';
     EntriesModule,
     MentionsModule,
     PinsModule,
+    ChatUploadsModule,
   ],
   controllers: [MessagesController],
   providers: [

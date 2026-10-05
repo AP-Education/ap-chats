@@ -1,11 +1,18 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
+import { EventPublisher } from '@/globals/publisher/event-publisher';
 
 import { CommunityAccessService } from '../channel-access/community-access.service';
 import { ChannelCategoriesRepository } from '../channel-categories/repository';
 import type { CreateChannelDto } from './dto/create-channel.dto';
 import type { UpdateChannelDto } from './dto/update-channel.dto';
+import { CHANNEL_CREATED_EVENT, ChannelCreatedEvent } from './events/channel-created.event';
 import { ChannelsRepository } from './repository';
 import type { ChannelView } from './types';
 
@@ -15,6 +22,7 @@ export class ChannelsService {
     private readonly channels: ChannelsRepository,
     private readonly categories: ChannelCategoriesRepository,
     private readonly access: CommunityAccessService,
+    private readonly events: EventPublisher,
   ) {}
 
   list(member: WorkspaceMember, scope: 'available' | 'joined'): Promise<ChannelView[]> {
@@ -32,6 +40,8 @@ export class ChannelsService {
   }
 
   async create(member: WorkspaceMember, dto: CreateChannelDto): Promise<ChannelView> {
+    if (member.role !== 'owner')
+      throw new ForbiddenException('Only the workspace owner can create channels');
     const name = this.normalizeName(dto.name);
     await this.requireCategory(member.workspaceId, dto.categoryId);
     const channel = await this.channels.create(member.workspaceId, member.id, {
@@ -39,6 +49,10 @@ export class ChannelsService {
       kind: dto.kind,
       categoryId: dto.categoryId ?? null,
     });
+    this.events.publish(
+      CHANNEL_CREATED_EVENT,
+      new ChannelCreatedEvent(channel.workspaceId, channel.id, dto.kind),
+    );
     return { ...channel, isMember: true };
   }
 

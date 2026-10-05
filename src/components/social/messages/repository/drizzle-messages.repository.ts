@@ -99,6 +99,7 @@ export class DrizzleMessagesRepository extends MessagesRepository {
       channelId,
       authorMemberId,
       contentMarkdown: source.contentMarkdown,
+      attachments: source.attachments,
       forwardedFromMessageId: source.sourceMessageId,
       forwardedFromMemberId: source.sourceAuthorMemberId,
       requestDigest,
@@ -129,6 +130,7 @@ export class DrizzleMessagesRepository extends MessagesRepository {
       .update(chatMessages)
       .set({
         contentMarkdown: '',
+        attachments: [],
         deletedAt: new Date(),
         revision: sql`${chatMessages.revision} + 1`,
       })

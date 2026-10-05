@@ -168,7 +168,11 @@ export function ChannelFormModal({
           {isEditing ? 'Налаштування каналу' : 'Новий канал'}
         </Typography.Title>
         <Typography.Text className={styles.breadcrumb}>
-          {isEditing ? 'Назва, категорія та доступність каналу' : `у категорії «${categoryName}»`}
+          {isEditing
+            ? 'Назва, категорія та доступність каналу'
+            : categoryId
+              ? `у категорії «${categoryName}»`
+              : 'Назва та доступність каналу'}
         </Typography.Text>
       </div>
 

@@ -68,13 +68,13 @@ export function useChannelSections(workspaceId: string): ChannelSectionsResult {
       id: category.id,
       name: category.name,
       channels: joinedByCategory.get(category.id) ?? [],
-      canCreateChannel: true,
+      canCreateChannel: isOwner,
     })),
     {
       id: UNCATEGORIZED,
       name: 'Без категорії',
       channels: joinedByCategory.get(UNCATEGORIZED) ?? [],
-      canCreateChannel: true,
+      canCreateChannel: isOwner,
     },
   ];
   if (discoverable.length) {

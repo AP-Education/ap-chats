@@ -1,3 +1,4 @@
+import { getSharedAudioContext } from '@/shared/audio/audio-context';
 import { scheduleBell } from '@/shared/audio/tone';
 
 interface MotifOptions {
@@ -5,11 +6,9 @@ interface MotifOptions {
   decay?: number;
 }
 
-/** A brief, self-contained context per chime: these fire once and are gone
- * well under a second later, so there's no lifecycle to manage. */
 function playMotif(frequencies: number[], { gain = 0.3, decay = 0.35 }: MotifOptions = {}): void {
-  if (typeof AudioContext === 'undefined') return;
-  const context = new AudioContext();
+  const context = getSharedAudioContext();
+  if (!context) return;
   const master = context.createGain();
   master.connect(context.destination);
 
@@ -24,8 +23,9 @@ function playMotif(frequencies: number[], { gain = 0.3, decay = 0.35 }: MotifOpt
     });
   });
 
-  const closeAfterMs = (frequencies.length * spacing + 0.6) * 1000;
-  setTimeout(() => void context.close(), closeAfterMs);
+  // Disconnects this chime's own nodes; the shared context itself stays alive for the session.
+  const disconnectAfterMs = (frequencies.length * spacing + 0.6) * 1000;
+  setTimeout(() => master.disconnect(), disconnectAfterMs);
 }
 
 /** A short rising two-note chime: you've joined the call. */

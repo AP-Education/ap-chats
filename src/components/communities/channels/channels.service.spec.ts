@@ -4,11 +4,13 @@ import { test } from 'node:test';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
+import type { EventPublisher } from '@/globals/publisher/event-publisher';
 
 import { CommunityAccessService } from '../channel-access/community-access.service';
 import type { ChannelCategoriesRepository } from '../channel-categories/repository';
 import type { ChannelMembershipsRepository } from '../memberships/repository';
 import { ChannelsService } from './channels.service';
+import { CHANNEL_CREATED_EVENT, ChannelCreatedEvent } from './events/channel-created.event';
 import type { ChannelsRepository } from './repository';
 import type { Channel } from './types';
 
@@ -35,24 +37,31 @@ const member: WorkspaceMember = {
   updatedAt: new Date(),
 };
 
-function makeService(remove: () => Promise<boolean>) {
+function makeService(
+  remove: () => Promise<boolean>,
+  target: Channel = channel,
+  update: () => Promise<Channel> = async () => target,
+) {
   const repository = {
-    findById: async () => channel,
+    findById: async () => target,
     remove,
+    update,
   } as unknown as ChannelsRepository;
   const access = new CommunityAccessService(repository, {
     isMember: async () => true,
   } as unknown as ChannelMembershipsRepository);
-  return new ChannelsService(repository, {} as ChannelCategoriesRepository, access);
+  return new ChannelsService(repository, {} as ChannelCategoriesRepository, access, {
+    publish: () => {},
+  } as EventPublisher);
 }
 
-test('creator can delete a public channel', async () => {
+test('workspace owner can delete a public channel', async () => {
   let removed = false;
   const service = makeService(async () => {
     removed = true;
     return true;
   });
-  await service.remove({ ...member, id: channel.createdByMemberId }, channel.id);
+  await service.remove({ ...member, role: 'owner' }, channel.id);
   assert.equal(removed, true);
 });
 
@@ -69,4 +78,139 @@ test('other member cannot delete a public channel', async () => {
 test('delete reports a channel removed by another request', async () => {
   const service = makeService(async () => false);
   await assert.rejects(service.remove({ ...member, role: 'owner' }, channel.id), NotFoundException);
+});
+
+for (const kind of ['public', 'private'] as const) {
+  test(`ordinary participant and creator cannot rename or move a ${kind} channel`, async () => {
+    const target = { ...channel, kind };
+    let writes = 0;
+    const service = makeService(
+      async () => true,
+      target,
+      async () => {
+        writes++;
+        return target;
+      },
+    );
+    for (const actor of [member, { ...member, id: target.createdByMemberId }]) {
+      await assert.rejects(
+        service.update(actor, target.id, { name: 'Renamed' }),
+        ForbiddenException,
+      );
+      await assert.rejects(
+        service.update(actor, target.id, { categoryId: null }),
+        ForbiddenException,
+      );
+    }
+    assert.equal(writes, 0);
+  });
+
+  test(`ordinary participant and creator cannot delete a ${kind} channel`, async () => {
+    const target = { ...channel, kind };
+    let writes = 0;
+    const service = makeService(async () => {
+      writes++;
+      return true;
+    }, target);
+    for (const actor of [member, { ...member, id: target.createdByMemberId }]) {
+      await assert.rejects(service.remove(actor, target.id), ForbiddenException);
+    }
+    assert.equal(writes, 0);
+  });
+
+  test(`workspace owner can rename a ${kind} channel`, async () => {
+    const target = { ...channel, kind };
+    let writes = 0;
+    const service = makeService(
+      async () => true,
+      target,
+      async () => {
+        writes++;
+        return { ...target, name: 'Renamed' };
+      },
+    );
+    const updated = await service.update({ ...member, role: 'owner' }, target.id, {
+      name: 'Renamed',
+    });
+    assert.equal(writes, 1);
+    assert.equal(updated.name, 'Renamed');
+  });
+
+  test(`ordinary member cannot create a ${kind} channel`, async () => {
+    let writes = 0;
+    const repository = {
+      create: async () => {
+        writes++;
+        return { ...channel, kind };
+      },
+    } as unknown as ChannelsRepository;
+    const service = new ChannelsService(
+      repository,
+      {} as ChannelCategoriesRepository,
+      {} as CommunityAccessService,
+      { publish: () => assert.fail('Forbidden creation must not announce a channel') },
+    );
+
+    await assert.rejects(service.create(member, { name: 'New channel', kind }), ForbiddenException);
+    assert.equal(writes, 0);
+  });
+
+  test(`workspace owner can create a ${kind} channel`, async () => {
+    let writes = 0;
+    const published: { key: string; event: unknown }[] = [];
+    const repository = {
+      create: async () => {
+        writes++;
+        return { ...channel, kind };
+      },
+    } as unknown as ChannelsRepository;
+    const service = new ChannelsService(
+      repository,
+      {} as ChannelCategoriesRepository,
+      {} as CommunityAccessService,
+      {
+        publish: (key, event) => {
+          assert.equal(writes, 1);
+          published.push({ key, event });
+        },
+      },
+    );
+
+    const created = await service.create(
+      { ...member, role: 'owner' },
+      { name: 'New channel', kind },
+    );
+    assert.equal(writes, 1);
+    assert.equal(created.kind, kind);
+    assert.equal(created.isMember, true);
+    assert.deepEqual(published, [
+      {
+        key: CHANNEL_CREATED_EVENT,
+        event: new ChannelCreatedEvent(channel.workspaceId, channel.id, kind),
+      },
+    ]);
+  });
+}
+
+test('failed channel creation does not publish an inventory change', async () => {
+  const service = new ChannelsService(
+    {
+      create: async () => {
+        throw new Error('Database write failed');
+      },
+    } as unknown as ChannelsRepository,
+    {} as ChannelCategoriesRepository,
+    {} as CommunityAccessService,
+    { publish: () => assert.fail('Failed creation must not be announced') },
+  );
+  await assert.rejects(
+    service.create(
+      { ...member, role: 'owner' },
+      {
+        name: 'New',
+        kind: 'public',
+      },
+    ),
+    /Database write failed/,
+  );
 });

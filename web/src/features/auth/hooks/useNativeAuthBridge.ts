@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import { onNativeMessage } from '@/shared/lib/nativeBridge';
+
 import type { NativeToWebMessage } from '../types';
 
 export type NativeAuthState =
@@ -12,18 +14,16 @@ export type NativeAuthState =
       profile?: { name?: string; picture?: string; sub?: string };
     };
 
-// Drains window.ApAppNative.queue on mount to cover messages native sent before this listener was registered.
 export function useNativeAuthBridge(): NativeAuthState {
   const [state, setState] = useState<NativeAuthState>({ status: 'signed-out' });
 
   useEffect(() => {
-    const bridge = (window.ApAppNative ??= {});
-
-    function handle(message: NativeToWebMessage) {
+    return onNativeMessage<NativeToWebMessage>((message) => {
       if (message.type === 'auth/unavailable') {
         setState({ status: 'unavailable' });
         return;
       }
+      if (message.type !== 'auth/token') return;
       setState((previous) => ({
         status: 'signed-in',
         accessToken: message.payload.accessToken,
@@ -36,16 +36,7 @@ export function useNativeAuthBridge(): NativeAuthState {
             ? previous.profile
             : undefined,
       }));
-    }
-
-    bridge.onMessage = handle;
-    const queued = bridge.queue ?? [];
-    bridge.queue = [];
-    queued.forEach(handle);
-
-    return () => {
-      if (bridge.onMessage === handle) bridge.onMessage = undefined;
-    };
+    });
   }, []);
 
   return state;

@@ -42,12 +42,10 @@ export class CommunityAccessService {
   async requireManager(channel: Channel, member: WorkspaceMember): Promise<void> {
     if (channel.kind === 'dm')
       throw new ForbiddenException('Direct messages have no channel manager');
+    if (member.role !== 'owner')
+      throw new ForbiddenException('Only the workspace owner can manage channels');
     if (channel.kind === 'private') {
       await this.requireChannelMember(channel, member.id);
-      return;
-    }
-    if (member.role !== 'owner' && channel.createdByMemberId !== member.id) {
-      throw new ForbiddenException('Only the channel creator or workspace owner can manage it');
     }
   }
 }

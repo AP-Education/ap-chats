@@ -17,6 +17,7 @@ const useStyles = createStyles(({ token, css }) => ({
   body: css`
     display: flex;
     flex: 1;
+    min-width: 0;
     flex-direction: column;
     gap: 6px;
   `,
@@ -24,6 +25,11 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: baseline;
     gap: 8px;
+  `,
+  name: css`
+    flex: 1;
+    min-width: 0;
+    max-width: 140px;
   `,
 }));
 
@@ -33,17 +39,22 @@ export function CallHistoryListSkeleton() {
   return (
     <div aria-label="Завантажуємо дзвінки" role="status">
       <div className={styles.group}>
-        <Skeleton.Input active size="small" style={{ width: 72, height: 12 }} />
+        <Skeleton.Input active size="small" style={{ width: 72, minWidth: 0, height: 12 }} />
       </div>
       {[0, 1, 2, 3, 4].map((row) => (
         <div key={row} className={styles.row}>
           <Skeleton.Avatar active size={40} shape="circle" />
           <span className={styles.body}>
             <span className={styles.nameLine}>
-              <Skeleton.Input active size="small" style={{ width: 140, height: 14 }} />
-              <Skeleton.Input active size="small" style={{ width: 32, height: 10 }} />
+              <Skeleton.Input
+                active
+                size="small"
+                className={styles.name}
+                style={{ width: '100%', minWidth: 0, height: 14 }}
+              />
+              <Skeleton.Input active size="small" style={{ width: 32, minWidth: 0, height: 10 }} />
             </span>
-            <Skeleton.Input active size="small" style={{ width: 100, height: 12 }} />
+            <Skeleton.Input active size="small" style={{ width: 100, minWidth: 0, height: 12 }} />
           </span>
           <Skeleton.Avatar active size={44} shape="circle" />
         </div>

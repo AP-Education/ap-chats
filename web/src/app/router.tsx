@@ -5,6 +5,7 @@ import { channelsRoutes } from '../pages/channels/route';
 import { directRoutes } from '../pages/direct/route';
 import { overviewRoute } from '../pages/overview/route';
 import { placeholderRoutes } from '../pages/placeholder/route';
+import { AppLoading } from '../shared/ui/AppLoading/AppLoading';
 import { ProtectedLayout } from './ProtectedLayout';
 
 const router = createBrowserRouter([
@@ -22,5 +23,5 @@ const router = createBrowserRouter([
 ]);
 
 export function AppRouter() {
-  return <RouterProvider router={router} />;
+  return <RouterProvider router={router} fallbackElement={<AppLoading />} />;
 }

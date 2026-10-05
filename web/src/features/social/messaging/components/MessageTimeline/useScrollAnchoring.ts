@@ -1,8 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { flashMessage } from '../../flashMessage';
-import type { DisplayItem } from '../../hooks/useMessageOperations';
-import type { HistoryItem, HistoryPage } from '../../types';
+import type { DisplayItem, HistoryItem, HistoryPage } from '../../types';
 
 interface UseScrollAnchoringInput {
   pages: HistoryPage[];
@@ -48,6 +47,16 @@ export function useScrollAnchoring({
   const lastSeq = useRef<string | undefined>(undefined);
   const lastFlashedTarget = useRef<string | null>(null);
   const [awayFromBottom, setAwayFromBottom] = useState(false);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(() => {
+      if (atBottom.current) container.scrollTop = container.scrollHeight;
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   useLayoutEffect(() => {
     const container = scrollRef.current;

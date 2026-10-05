@@ -6,8 +6,8 @@ import type {
   ConversationAction,
 } from '@/features/social/conversation/actions';
 
-import type { DeliveryStatus } from '../../hooks/useMessageOperations';
-import type { HistoryItem, MessageHistoryItem } from '../../types';
+import type { AttachmentDraft } from '../../attachments/types';
+import type { DeliveryStatus, HistoryItem, MessageHistoryItem } from '../../types';
 
 // Everything a strategy might need, regardless of which fields its own kind
 // actually uses (a call entry ignores onEdit/actions/delivery, for instance).
@@ -19,6 +19,7 @@ export interface HistoryItemRenderContext {
   onJump: (messageId: string) => void;
   onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
   delivery: DeliveryStatus | undefined;
+  pendingAttachments: AttachmentDraft[] | undefined;
   onRetry: (() => void) | undefined;
 }
 

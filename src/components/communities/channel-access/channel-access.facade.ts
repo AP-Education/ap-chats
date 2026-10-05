@@ -62,9 +62,8 @@ export class ChannelAccessFacade {
   requireManager(member: WorkspaceMember, channel: ChannelAccessSnapshot): void {
     if (channel.kind === 'dm')
       throw new ForbiddenException('Direct messages have no channel manager');
-    if (channel.kind === 'private') return;
-    if (member.role !== 'owner' && channel.createdByMemberId !== member.id)
-      throw new ForbiddenException('Only the channel creator or workspace owner can manage it');
+    if (member.role !== 'owner')
+      throw new ForbiddenException('Only the workspace owner can manage channels');
   }
 
   private async requireActiveMember(member: WorkspaceMember): Promise<void> {

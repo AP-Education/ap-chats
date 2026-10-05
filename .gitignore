@@ -1,10 +1,14 @@
 node_modules/
 dist/
 coverage/
+test-results/
+playwright-report/
 .expo/
 .turbo/
 *.tsbuildinfo
 .vite/
+web/test-results/
+web/playwright-report/
 .husky/_/
 .pnpm-store/
 .env
@@ -37,3 +41,6 @@ infra/ansible/**/__pycache__/
 
 # SSH private keys someone drops at repo root for local deploy use
 keys/
+brag
+brag-output
+brag-output-*

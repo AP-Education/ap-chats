@@ -171,7 +171,9 @@ export function DirectMessageRow({
       ? item.lastMessage.markdown
           .replace(/:member\[[0-9a-f-]{36}\]/gi, '@учасник')
           .replace(/\s+/gu, ' ')
-      : 'Повідомлення видалено';
+      : item.lastMessage.markdown === null
+        ? 'Повідомлення видалено'
+        : 'Вкладення';
   }
   return (
     <Link
@@ -195,7 +197,7 @@ export function DirectMessageRow({
       </span>
       {(item.lastMessage || isMuted || visibleUnreadCount > 0) && (
         <span className={styles.trailing}>
-          {item.lastMessage && (
+          {item.lastMessage && visibleUnreadCount === 0 && (
             <time className={styles.time} dateTime={item.lastMessage.createdAt}>
               {formatRecentTime(item.lastMessage.createdAt)}
             </time>

@@ -15,6 +15,7 @@ function getTheme(isMobile: boolean): ThemeConfig {
       controlItemBgActive: '#e6f4f3',
       controlItemBgActiveHover: '#d2ebe8',
       colorText: '#1f2f2d',
+      colorBgLayout: '#f3f9f8',
       colorBorder: '#bcd5d2',
       borderRadius: 8,
       fontSize: 16,

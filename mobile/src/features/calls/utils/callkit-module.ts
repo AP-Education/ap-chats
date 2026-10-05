@@ -1,3 +1,4 @@
+import { requireOptionalNativeModule } from 'expo';
 import type * as CallKitModule from 'expo-callkit-telecom';
 
 let modulePromise: Promise<typeof CallKitModule | null> | undefined;
@@ -13,10 +14,16 @@ let modulePromise: Promise<typeof CallKitModule | null> | undefined;
  */
 export function loadCallKitModule(): Promise<typeof CallKitModule | null> {
   if (!modulePromise) {
-    modulePromise = import('expo-callkit-telecom').catch((error: unknown) => {
-      if (__DEV__) console.warn('[calls] expo-callkit-telecom unavailable on this runtime', error);
-      return null;
-    });
+    modulePromise = Promise.resolve()
+      .then(() => {
+        if (!requireOptionalNativeModule('ExpoCallKitTelecom')) return null;
+        return import('expo-callkit-telecom');
+      })
+      .catch((error: unknown) => {
+        if (__DEV__)
+          console.warn('[calls] expo-callkit-telecom unavailable on this runtime', error);
+        return null;
+      });
   }
   return modulePromise;
 }

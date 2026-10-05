@@ -8,7 +8,14 @@ export const DEBUG_CONSOLE_SCRIPT = `
       try { window.ReactNativeWebView.postMessage(JSON.stringify(payload)); } catch (e) {}
     };
     var stringifyArg = function (arg) {
-      try { return typeof arg === 'string' ? arg : JSON.stringify(arg); }
+      if (arg instanceof Error) return arg.stack || (arg.name + ': ' + arg.message);
+      try {
+        return typeof arg === 'string' ? arg : JSON.stringify(arg, function (key, value) {
+          return value instanceof Error
+            ? { name: value.name, message: value.message, stack: value.stack }
+            : value;
+        });
+      }
       catch (e) { return String(arg); }
     };
     ['log', 'warn', 'error'].forEach(function (level) {

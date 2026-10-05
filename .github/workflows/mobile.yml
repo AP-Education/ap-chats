@@ -37,4 +37,5 @@ jobs:
           cache: true
       - run: pnpm --filter @ap-chats/mobile lint
       - run: pnpm --filter @ap-chats/mobile typecheck
+      - run: pnpm --filter @ap-chats/mobile test
       - run: pnpm exec prettier --check mobile

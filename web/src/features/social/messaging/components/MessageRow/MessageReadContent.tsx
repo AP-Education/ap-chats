@@ -5,6 +5,16 @@ import { MessageMarkdown } from '@/features/social/mentions/components/MessageMa
 
 import { useMessageActionScope } from './MessageActionScope';
 
+// One grapheme only — a pictographic run joined by ZWJ (so a family/profession
+// emoji still counts as one) or a flag's pair of regional indicators. Two
+// separate emoji side by side, or any other text, fails this.
+const SINGLE_EMOJI_PATTERN = new RegExp(
+  '^(?:\\p{Extended_Pictographic}\\uFE0F?\\p{Emoji_Modifier}?' +
+    '(?:\\u200D\\p{Extended_Pictographic}\\uFE0F?\\p{Emoji_Modifier}?)*' +
+    '|\\p{Regional_Indicator}\\p{Regional_Indicator})$',
+  'u',
+);
+
 const useStyles = createStyles(({ token, css }) => ({
   markdown: css`
     font-size: ${token.fontSize}px;
@@ -48,6 +58,13 @@ const useStyles = createStyles(({ token, css }) => ({
       color: ${token.colorLink};
     }
   `,
+  jumboEmoji: css`
+    font-size: 48px;
+    line-height: 1.2;
+    p {
+      margin: 0;
+    }
+  `,
 }));
 
 export function MessageReadContent({
@@ -55,15 +72,21 @@ export function MessageReadContent({
 }: {
   contentRef: RefObject<HTMLDivElement | null>;
 }) {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
   const { item, context } = useMessageActionScope();
 
   if (item.message.markdown === null) {
     return null;
   }
 
+  const isSingleEmoji = SINGLE_EMOJI_PATTERN.test(item.message.markdown.trim());
+
   return (
-    <div ref={contentRef} className={styles.markdown} data-message-text>
+    <div
+      ref={contentRef}
+      className={cx(styles.markdown, isSingleEmoji && styles.jumboEmoji)}
+      data-message-text
+    >
       <MessageMarkdown
         markdown={item.message.markdown}
         mentions={item.mentions}

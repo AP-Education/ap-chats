@@ -1,4 +1,6 @@
 import * as AuthSession from 'expo-auth-session';
+import { randomUUID } from 'expo-crypto';
+import * as WebBrowser from 'expo-web-browser';
 
 import type { AuthSessionProvider, TokenSet } from '../types';
 import type { OidcConfig } from './config';
@@ -55,8 +57,37 @@ export class NativeAuthSession implements AuthSessionProvider {
     });
   }
 
-  // Clears the local session only. Accounts-side logout is a follow-up (see README "Спільний вхід").
-  async signOut(): Promise<void> {}
+  async signOut(idToken?: string): Promise<void> {
+    const discovery = await AuthSession.fetchDiscoveryAsync(this.config.issuer);
+    if (!discovery.endSessionEndpoint) {
+      throw new Error('Accounts discovery is missing end_session_endpoint');
+    }
+
+    const state = randomUUID();
+    const url = new URL(discovery.endSessionEndpoint);
+    url.searchParams.set('client_id', this.config.clientId);
+    url.searchParams.set('post_logout_redirect_uri', this.config.redirectUri);
+    url.searchParams.set('state', state);
+    if (idToken) url.searchParams.set('id_token_hint', idToken);
+
+    // Use the same shared system-browser session as signIn(). An HTTP request or
+    // an ephemeral browser cannot clear the Accounts cookies used by that session.
+    const result = await WebBrowser.openAuthSessionAsync(url.toString(), this.config.redirectUri);
+    if (result.type !== 'success') throw new Error(`Sign-out ${result.type}`);
+
+    const callback = new URL(result.url);
+    const redirect = new URL(this.config.redirectUri);
+    if (
+      callback.protocol !== redirect.protocol ||
+      callback.host !== redirect.host ||
+      callback.pathname !== redirect.pathname ||
+      [...redirect.searchParams].some(([key, value]) => callback.searchParams.get(key) !== value) ||
+      callback.searchParams.get('state') !== state
+    ) {
+      throw new Error('Invalid sign-out callback');
+    }
+    if (callback.searchParams.has('error')) throw new Error('Accounts could not complete sign-out');
+  }
 }
 
 function toTokenSet(
