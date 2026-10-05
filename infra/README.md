@@ -59,6 +59,9 @@ infra/
    `infra:tf:*` scripts below load it automatically via `dotenv-cli`, so
    there's nothing to `export` by hand and no `-var=...` flags to repeat
    on every command.
+7. **Ansible env file**: copy `infra/ansible/.env.example` to
+   `infra/ansible/.env` — see "Bootstrap the host" below for what goes in
+   it. Same idea: no `--ask-vault-pass` prompt, no `-e` for secrets.
 
 ## Provision the droplet (Terraform)
 
@@ -94,9 +97,18 @@ pnpm exec dotenv -e infra/terraform/prod/.env -- terraform -chdir=infra/terrafor
 
 ## Bootstrap the host (Ansible, one time)
 
+One-time setup: copy `infra/ansible/.env.example` to `infra/ansible/.env`,
+set `ANSIBLE_VAULT_PASSWORD_FILE` to a gitignored file holding the vault
+password (`echo yourpassword > infra/ansible/.vault-pass && chmod 600
+infra/ansible/.vault-pass`), and `ANSIBLE_PRIVATE_KEY_FILE` to your SSH
+key. That removes `--ask-vault-pass` entirely — no `-e` needed for secrets,
+same idea as the terraform `.env`. A passphrase-protected key has no env
+var equivalent (ansible/ssh don't accept passphrases that way by design);
+load it once per shell session instead: `eval "$(ssh-agent)" && ssh-add
+~/.ssh/id_ed25519`.
+
 ```bash
-cd infra/ansible
-ansible-playbook playbooks/init.yml --ask-vault-pass
+pnpm run infra:ansible:init
 ```
 
 This hardens SSH, installs Docker, sets up ufw/fail2ban, and brings up the
@@ -110,9 +122,12 @@ cp infra/docker/web-build.env.example infra/docker/web-build.env  # once, then f
 docker login ghcr.io -u <your-gh-username>
 ./infra/scripts/build-and-push.sh v2026.02.01
 
-# 2. Point the host at the new tag and redeploy
+# 2. Point the host at the new tag and redeploy — app_tag isn't a secret
+# and changes every release, so it stays an explicit flag rather than
+# living in .env. Direct dotenv-cli, not the pnpm script: same -- passthrough
+# issue as the terraform output example above.
 cd infra/ansible
-ansible-playbook playbooks/deploy.yml --ask-vault-pass -e app_tag=v2026.02.01
+dotenv -e .env -- ansible-playbook playbooks/deploy.yml -e app_tag=v2026.02.01
 ```
 
 `compose_runtime` pulls both images, recreates the stack, and prunes
