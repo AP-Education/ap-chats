@@ -42,9 +42,9 @@ INSERT INTO oidc_clients (
         now()
     ),
     (
-        'ap-connect-mobile',
+        'ap-chats-mobile',
         '6e8c8a93-d26b-4f2d-8d40-8bc9f31f2b02',
-        'AP Connect mobile client',
+        'AP Chats mobile client',
         ARRAY['apchats://auth/callback'],
         ARRAY['apchats://auth/callback'],
         ARRAY['authorization_code'],
