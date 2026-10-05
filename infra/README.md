@@ -52,24 +52,24 @@ infra/
    ```bash
    ansible-galaxy collection install -r infra/ansible/requirements.yml -p infra/ansible/collections
    ```
+6. **Terraform env file**: copy `infra/terraform/prod/.env.example` to
+   `infra/terraform/prod/.env` and fill it in — the DO token, the
+   Backblaze B2 key pair (state backend), the ap-connect Spaces key pair
+   from step 3, `allowed_ssh_cidrs`, `ssh_key_ids`. Gitignored. The
+   `infra:tf:*` scripts below load it automatically via `dotenv-cli`, so
+   there's nothing to `export` by hand and no `-var=...` flags to repeat
+   on every command.
 
 ## Provision the droplet (Terraform)
 
 ```bash
-export DIGITALOCEAN_TOKEN=...
-export AWS_ACCESS_KEY_ID=...      # Backblaze B2 application key ID (ap-lms bucket) — NOT the DO Spaces key from step 3
-export AWS_SECRET_ACCESS_KEY=...
-
-terraform -chdir=infra/terraform/prod init \
-  -backend-config=../tenants/backend.prod.tfbackend
-
-terraform -chdir=infra/terraform/prod apply \
-  -var='allowed_ssh_cidrs=["<your IP>/32"]' \
-  -var='ssh_key_ids=["<DO SSH key fingerprint or ID>"]' \
-  -var='spaces_access_key_id=<the ap-connect Spaces key from step 3>' \
-  -var='spaces_secret_access_key=<its secret>'
-  # add -var='vpc_id=<existing VPC id>' to join a shared VPC (optional)
+pnpm run infra:tf:init
+pnpm run infra:tf:apply
 ```
+
+(`infra:tf:init` already points at `../tenants/backend.prod.tfbackend`. For
+a different tenant, don't pass extra flags through pnpm — see "Adding
+another tenant" below for the direct `terraform -chdir=...` form instead.)
 
 This also creates ap-connect's own two Spaces buckets — `attachments_bucket_name`
 (defaults to `ap-connect-prod`, public-read per object, chat uploads) and
@@ -80,9 +80,12 @@ rather than of every upload call remembering the right ACL. Read them back
 with:
 
 ```bash
-terraform -chdir=infra/terraform/prod output -raw attachments_bucket_name
-terraform -chdir=infra/terraform/prod output -raw backups_bucket_name
-terraform -chdir=infra/terraform/prod output -raw spaces_region_endpoint
+# Not `pnpm run infra:tf:output -- -raw <name>` — pnpm inserts its own `--`
+# before yours, and terraform's CLI parser rejects the resulting double
+# separator. Use dotenv-cli directly for anything needing extra flags:
+pnpm exec dotenv -e infra/terraform/prod/.env -- terraform -chdir=infra/terraform/prod output -raw attachments_bucket_name
+pnpm exec dotenv -e infra/terraform/prod/.env -- terraform -chdir=infra/terraform/prod output -raw backups_bucket_name
+pnpm exec dotenv -e infra/terraform/prod/.env -- terraform -chdir=infra/terraform/prod output -raw spaces_region_endpoint
 ```
 
 — and put those, plus the same Spaces key pair from step 3, into the vault
@@ -128,7 +131,7 @@ reproducible. From a fresh clone, anyone with the right credentials gets:
 1. `ansible-galaxy collection install -r infra/ansible/requirements.yml -p infra/ansible/collections` —
    collections are gitignored on purpose (only `ap_education.connect_deploy`
    itself is vendored), so this has to be re-run on every machine.
-2. The same four credentials as before: `DIGITALOCEAN_TOKEN` (the **ap-main**
+2. The same four credentials as before: `TF_VAR_do_token` (the **ap-main**
    team's, not a different DO team/project), the Backblaze B2 key pair for
    `ap-lms`, the ap-connect DigitalOcean Spaces key, and the
    `ansible-vault` password for `vault.yml`.

@@ -115,21 +115,3 @@ variable "spaces_backup_retention_days" {
   default     = 30
 }
 
-variable "spaces_access_key_id" {
-  description = <<-EOT
-    DigitalOcean Spaces access key ID, dedicated to ap-connect (create one in
-    the DO dashboard under API > Spaces Keys — don't reuse backend-LMS's
-    key). Spaces keys are account-wide, not bucket-scoped, but a project of
-    its own keeps rotation and blast radius independent. Required both to
-    let Terraform manage the bucket and, later, for the app itself to read
-    and write objects in it.
-  EOT
-  type        = string
-  sensitive   = true
-}
-
-variable "spaces_secret_access_key" {
-  description = "Secret half of spaces_access_key_id."
-  type        = string
-  sensitive   = true
-}
