@@ -9,12 +9,13 @@ import {
 } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
+import { ChannelAccessFacade } from '@/components/communities/channel-access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
+import { EventOutbox } from '@/globals/publisher/event-outbox';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
 
 import { EntriesFacade } from '../entries/entries.facade';
-import { MentionsFacade } from '../mentions/mentions.facade';
+import { MentionsFacade } from '../mentions';
 import { PinsFacade } from '../pins/pins.facade';
 import { MessageMarkdownService, type NormalizedMessageContent } from './content/message-markdown';
 import type {
@@ -43,6 +44,7 @@ export class MessagesFacade {
     private readonly repository: MessagesRepository,
     private readonly markdown: MessageMarkdownService,
     private readonly events: EventPublisher,
+    private readonly outbox: EventOutbox,
   ) {}
 
   async send(member: WorkspaceMember, channelId: string, dto: SendMessageDto) {
@@ -56,17 +58,7 @@ export class MessagesFacade {
       )
       .digest('hex');
     const result = await this.createTransaction(member, channelId, dto, content, quote, digest);
-    if (result.created)
-      this.events.publish(
-        MESSAGE_CREATED_EVENT,
-        new MessageCreatedEvent(
-          member.workspaceId,
-          channelId,
-          result.view.id,
-          result.view.seq,
-          member.id,
-        ),
-      );
+    if (result.event) this.events.publish(MESSAGE_CREATED_EVENT, result.event);
     return result.view;
   }
 
@@ -86,7 +78,7 @@ export class MessagesFacade {
         throw new ConflictException('Client nonce was used for another message');
       return {
         view: messageView(existing, await this.repository.entrySeq(existing.id), member.id),
-        created: false,
+        event: null,
       };
     }
     if (dto.replyToMessageId) {
@@ -116,7 +108,15 @@ export class MessagesFacade {
       message.id,
       content.mentionedMemberIds,
     );
-    return { view: messageView(message, entry.seq, member.id), created: true };
+    const event = new MessageCreatedEvent(
+      member.workspaceId,
+      channelId,
+      message.id,
+      entry.seq.toString(),
+      member.id,
+    );
+    await this.outbox.record(MESSAGE_CREATED_EVENT, event);
+    return { view: messageView(message, entry.seq, member.id), event };
   }
 
   async edit(member: WorkspaceMember, channelId: string, messageId: string, dto: EditMessageDto) {
