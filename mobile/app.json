@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.apeducation.native",
-      "buildNumber": "9"
+      "buildNumber": "11"
     },
     "android": {
       "package": "com.apeducation.native",
