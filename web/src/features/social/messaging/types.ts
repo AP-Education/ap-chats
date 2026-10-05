@@ -1,6 +1,6 @@
 import type { CSSProperties, Ref } from 'react';
 
-import type { Attachment } from './attachments/types';
+import type { Attachment, AttachmentDraft } from './attachments/types';
 
 export interface Message {
   id: string;
@@ -99,6 +99,29 @@ export interface SendMessageCommand {
   replyToMessageId?: string;
   quoteText?: string;
   attachments?: Attachment[];
+}
+
+// 'uploading': attachments are still in flight — sending never waits on them
+// (matches Discord/Telegram/Slack/WhatsApp), so a message can sit here before
+// it's even been POSTed at all, not just awaiting server confirmation.
+export type DeliveryStatus = 'uploading' | 'sending' | 'failed' | 'confirmed';
+
+export interface DisplayItem {
+  item: HistoryItem;
+  delivery: DeliveryStatus | undefined;
+  nonce: string | null;
+  /** Only set while `delivery === 'uploading'`: live attachment progress to render instead of `item.message.attachments`. */
+  pendingAttachments?: AttachmentDraft[];
+}
+
+// What a composer hands useMessageOperations' send() when it has attachments
+// committed (from useAttachments' commit()) but not necessarily uploaded yet.
+export interface PendingAttachmentCommit {
+  nonce: string;
+  drafts: AttachmentDraft[];
+  watchCommitted: (nonce: string, onUpdate: (drafts: AttachmentDraft[]) => void) => () => void;
+  uncommit: (nonce: string) => void;
+  releaseCommitted: (nonce: string) => void;
 }
 
 // Messaging's extension point for its text input: markdown plus a label

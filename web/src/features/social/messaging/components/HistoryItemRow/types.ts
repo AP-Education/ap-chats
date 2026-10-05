@@ -7,8 +7,7 @@ import type {
 } from '@/features/social/conversation/actions';
 
 import type { AttachmentDraft } from '../../attachments/types';
-import type { DeliveryStatus } from '../../hooks/useMessageOperations';
-import type { HistoryItem, MessageHistoryItem } from '../../types';
+import type { DeliveryStatus, HistoryItem, MessageHistoryItem } from '../../types';
 
 // Everything a strategy might need, regardless of which fields its own kind
 // actually uses (a call entry ignores onEdit/actions/delivery, for instance).

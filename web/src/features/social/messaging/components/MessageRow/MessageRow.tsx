@@ -14,8 +14,7 @@ import { MemberPopover } from '@/features/social/people/components/MemberPopover
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import type { AttachmentDraft } from '../../attachments/types';
-import type { DeliveryStatus } from '../../hooks/useMessageOperations';
-import type { MessageHistoryItem } from '../../types';
+import type { DeliveryStatus, MessageHistoryItem } from '../../types';
 import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
 import { MessageActions } from './MessageActions';
 import { MessageActionProvider } from './MessageActionScope';

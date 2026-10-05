@@ -11,8 +11,7 @@ import type {
 import { useConversation } from '@/features/social/conversation/store';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
-import type { DisplayItem } from '../../hooks/useMessageOperations';
-import type { HistoryPage, MessageHistoryItem } from '../../types';
+import type { DisplayItem, HistoryPage, MessageHistoryItem } from '../../types';
 import { isMessageItem } from '../../types';
 import { HistoryItemRow } from '../HistoryItemRow/HistoryItemRow';
 import { useMobileMessageSelection } from './useMobileMessageSelection';

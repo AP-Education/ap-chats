@@ -28,12 +28,11 @@ import { randomId } from '@/shared/lib/random-id';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { useAttachments } from '../../attachments/useAttachments';
-import type { PendingAttachmentCommit } from '../../hooks/useMessageOperations';
 import { MessageEditorSlotProvider } from '../../MessageEditorSlot';
 import type {
-  ComposerDraft,
   ComposerEditorApi,
   ComposerEditorSlotProps,
+  PendingAttachmentCommit,
   SendMessageCommand,
 } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
@@ -43,6 +42,7 @@ import { useAttachmentDrop } from './AttachmentDropZone';
 import { ComposerAction } from './ComposerAction';
 import { type GifResult, PickerPanel, type PickerTab } from './picker';
 import { useBrowserKeyboardHeight } from './useBrowserKeyboardHeight';
+import { useComposerDraft } from './useComposerDraft';
 import { useNativeComposerInput } from './useNativeComposerInput';
 
 const DESKTOP_PANEL_WIDTH = 360;
@@ -197,19 +197,6 @@ interface MessageComposerProps {
   children: ReactNode;
 }
 
-function readDraft(key: string): ComposerDraft {
-  const stored = localStorage.getItem(key);
-  if (!stored) return { markdown: '', labels: {} };
-  try {
-    const value = JSON.parse(stored) as { markdown?: string; labels?: Record<string, string> };
-    if (typeof value.markdown === 'string')
-      return { markdown: value.markdown, labels: value.labels ?? {} };
-  } catch {
-    return { markdown: stored, labels: {} };
-  }
-  return { markdown: '', labels: {} };
-}
-
 export function MessageComposer({
   replyAuthor,
   replyPreview,
@@ -234,15 +221,12 @@ export function MessageComposer({
   const fileInput = useRef<HTMLInputElement>(null);
   const uploads = useAttachments();
   const { bindTarget, overlay } = useAttachmentDrop(uploads.addFiles);
-  const initialDraft = useMemo(() => readDraft(draftKey), [draftKey]);
-  const [contentState, setContentState] = useState(() => ({
-    draftKey,
-    hasContent: Boolean(initialDraft.markdown.trim()),
-  }));
-  const hasContent =
-    contentState.draftKey === draftKey
-      ? contentState.hasContent
-      : Boolean(readDraft(draftKey).markdown.trim());
+  const {
+    initialDraft,
+    hasContent,
+    sync: syncHasContent,
+    clear: clearDraft,
+  } = useComposerDraft(draftKey);
   const [webActiveTab, setActiveTab] = useState<PickerTab | null>(null);
   const [lastActiveTab, setLastActiveTab] = useState<PickerTab>(readLastPickerTab);
   const keyboardHeight = useBrowserKeyboardHeight();
@@ -279,15 +263,6 @@ export function MessageComposer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blurComposerToken]);
 
-  const syncHasContent = useCallback(
-    ({ markdown, labels }: ComposerDraft) => {
-      if (markdown) localStorage.setItem(draftKey, JSON.stringify({ markdown, labels }));
-      else localStorage.removeItem(draftKey);
-      setContentState({ draftKey, hasContent: markdown.trim().length > 0 });
-    },
-    [draftKey],
-  );
-
   const handleSend = useCallback(() => {
     const markdown = editableRef.current?.markdown().trim() ?? '';
     if (!canSend) return;
@@ -310,12 +285,11 @@ export function MessageComposer({
       onSend(input);
     }
     editableRef.current?.clear();
-    localStorage.removeItem(draftKey);
-    setContentState({ draftKey, hasContent: false });
+    clearDraft();
     setIntent(null);
     // Sending keeps the active input surface, including an open emoji panel.
     if (!activeTab) editableRef.current?.focus();
-  }, [canSend, uploads, onSend, intent, draftKey, setIntent, activeTab]);
+  }, [canSend, uploads, onSend, intent, clearDraft, setIntent, activeTab]);
 
   function insertEmoji(emoji: string) {
     editableRef.current?.insertText(emoji);
