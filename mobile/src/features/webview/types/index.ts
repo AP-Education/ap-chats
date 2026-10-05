@@ -15,7 +15,17 @@ export type NativeToWebMessage =
   | { type: 'auth/unavailable' }
   | ({ type: 'composer/state' } & ComposerInputState)
   | { type: 'composer/insert'; sessionId: string; requestId: number; text: string }
-  | { type: 'composer/gif'; sessionId: string; requestId: number; url: string; title: string };
+  | { type: 'composer/gif'; sessionId: string; requestId: number; url: string; title: string }
+  | {
+      type: 'notifications/open';
+      payload: {
+        eventId: string;
+        userId: string;
+        workspaceId: string;
+        channelId: string;
+        url: string;
+      };
+    };
 
 export type WebToNativeMessage =
   | { type: 'auth/sign-out' }
@@ -23,6 +33,13 @@ export type WebToNativeMessage =
   | { type: 'calls/connect'; payload: NativeCallConnectPayload }
   | { type: 'haptics/selection' }
   | { type: 'notifications/message-sound' }
+  | { type: 'notifications/ready' }
+  | { type: 'notifications/not-ready' }
+  | { type: 'notifications/ack'; eventId: string }
+  | {
+      type: 'notifications/context';
+      payload: { connected: boolean; workspaceId?: string; channelId?: string };
+    }
   /** __DEV__ only — see debug-console.ts. Lets web/'s own console show up in the
    * RN console, since the WebView runs in a separate JS context Metro can't see. */
   | { type: 'debug/console'; level: 'log' | 'warn' | 'error'; args: string[] }

@@ -8,6 +8,7 @@ import {
   NativeIncomingCallScreen,
   NativeMiniCallBar,
 } from './features/calls';
+import { NotificationResponses } from './features/push/components/NotificationResponses';
 import { PushPrimingGate } from './features/push/components/PushPrimingGate';
 import { PushRegistration } from './features/push/components/PushRegistration';
 import { WebViewHost } from './features/webview';
@@ -17,6 +18,9 @@ import { ErrorBoundary } from './shell/ErrorBoundary';
 export default function App() {
   return (
     <AppProviders>
+      <ErrorBoundary label="notification-responses">
+        <NotificationResponses />
+      </ErrorBoundary>
       <ErrorBoundary label="push-registration">
         <PushRegistration />
       </ErrorBoundary>

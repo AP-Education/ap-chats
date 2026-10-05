@@ -1,4 +1,5 @@
 import { selectionAsync } from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
@@ -21,6 +22,7 @@ import {
 } from '../../composer';
 import { unregisterCurrentDevice } from '../../push/api/unregister-current-device';
 import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
+import { useNotificationStore } from '../../push/store/notification-store';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
 import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
 import { buildBridgeScript } from '../utils/inject-bridge';
@@ -33,6 +35,7 @@ const webUrl = process.env.EXPO_PUBLIC_WEB_URL;
 export function WebViewHost() {
   const webViewRef = useRef<WebView>(null);
   const auth = useAuthStore();
+  const notification = useNotificationStore();
   const miniCallBarVisible = useIsMiniCallBarVisible();
   // injectJavaScript silently drops calls made before the page has actually finished
   // loading (no JS context to run in yet) — this counts WebView loads (initial + any
@@ -72,6 +75,21 @@ export function WebViewHost() {
     webViewRef.current?.injectJavaScript(buildBridgeScript(message));
   }, [auth, loadCount]);
 
+  useEffect(() => {
+    if (
+      auth.status !== 'signed-in' ||
+      !notification.webReady ||
+      !notification.pending ||
+      loadCount === 0
+    )
+      return;
+    webViewRef.current?.injectJavaScript(
+      buildBridgeScript({ type: 'notifications/open', payload: notification.pending }),
+    );
+  }, [auth.status, notification.webReady, notification.pending, loadCount]);
+
+  useEffect(() => () => useNotificationStore.getState().setReady(false), []);
+
   function handleMessage(event: WebViewMessageEvent) {
     let message: WebToNativeMessage;
     try {
@@ -81,6 +99,17 @@ export function WebViewHost() {
     }
     if (isComposerInputRequest(message)) {
       input.request(message);
+    } else if (message.type === 'notifications/ready') {
+      useNotificationStore.getState().setReady(true);
+    } else if (message.type === 'notifications/not-ready') {
+      useNotificationStore.getState().setReady(false);
+    } else if (message.type === 'notifications/ack') {
+      if (useNotificationStore.getState().pending?.eventId === message.eventId) {
+        useNotificationStore.getState().acknowledge(message.eventId);
+        void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
+      }
+    } else if (message.type === 'notifications/context') {
+      useNotificationStore.getState().setContext(message.payload);
     } else if (message.type === 'auth/sign-out') {
       // Capture the current access token before signOut hides the WebView. Push
       // cleanup must not block logout when the device API is unreachable.
@@ -151,7 +180,10 @@ export function WebViewHost() {
           contentInsetAdjustmentBehavior="never"
           scrollEnabled={false}
           bounces={false}
-          onLoadStart={input.close}
+          onLoadStart={() => {
+            input.close();
+            useNotificationStore.getState().setReady(false);
+          }}
           applicationNameForUserAgent={APP_SHELL_USER_AGENT}
           onMessage={handleMessage}
           onLoadEnd={() => {
