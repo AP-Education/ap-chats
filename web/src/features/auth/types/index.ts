@@ -7,13 +7,31 @@ export interface NativeAuthTokenPayload {
 }
 
 export type NativeToWebMessage =
-  { type: 'auth/token'; payload: NativeAuthTokenPayload } | { type: 'auth/unavailable' };
+  | { type: 'auth/token'; payload: NativeAuthTokenPayload }
+  | { type: 'auth/unavailable' }
+  | {
+      type: 'notifications/open';
+      payload: {
+        eventId: string;
+        userId: string;
+        workspaceId: string;
+        channelId: string;
+        url: string;
+      };
+    };
 
 export type WebToNativeMessage =
   | { type: 'auth/sign-out' }
   | { type: 'auth/refresh-request' }
   | { type: 'haptics/selection' }
-  | { type: 'notifications/message-sound' };
+  | { type: 'notifications/message-sound' }
+  | { type: 'notifications/ready' }
+  | { type: 'notifications/not-ready' }
+  | { type: 'notifications/ack'; eventId: string }
+  | {
+      type: 'notifications/context';
+      payload: { connected: boolean; workspaceId?: string; channelId?: string };
+    };
 
 export interface CurrentUserProfile {
   name?: string;
