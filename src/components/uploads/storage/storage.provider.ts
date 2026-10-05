@@ -2,6 +2,9 @@ import type { Readable } from 'node:stream';
 
 import type { StoredPart } from '../attachments/types';
 
+/** The multipart session completeMultipart() was asked to finish no longer exists (already completed or aborted). */
+export class NoSuchUploadError extends Error {}
+
 export abstract class StorageProvider {
   abstract uploadObject(key: string, buffer: Buffer, contentType: string): Promise<void>;
   abstract deleteObject(key: string): Promise<void>;

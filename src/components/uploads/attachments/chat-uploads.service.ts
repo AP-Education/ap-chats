@@ -11,7 +11,7 @@ import { Transactional } from '@nestjs-cls/transactional';
 import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { StorageProvider } from '../storage/storage.provider';
+import { NoSuchUploadError, StorageProvider } from '../storage/storage.provider';
 import { AttachmentPreviewService } from './attachment-preview.service';
 import { ChatUploadsRepository } from './repository';
 import {
@@ -83,7 +83,7 @@ export class ChatUploadsService {
         await this.storage.completeMultipart(row.objectKey, row.multipartId, parts);
       } catch (error) {
         // Storage completion may succeed before a lost response or DB commit.
-        if (!(error instanceof Error && error.name === 'NoSuchUpload')) throw error;
+        if (!(error instanceof NoSuchUploadError)) throw error;
       }
       if ((await this.storage.objectSize(row.objectKey)) !== row.size)
         throw new BadRequestException('Stored file size does not match');
@@ -148,12 +148,7 @@ export class ChatUploadsService {
   @Transactional()
   async cancel(member: WorkspaceMember, channelId: string, id: string): Promise<void> {
     const row = await this.repository.lock(id);
-    if (
-      !row ||
-      row.workspaceId !== member.workspaceId ||
-      row.channelId !== channelId ||
-      row.ownerMemberId !== member.id
-    )
+    if (!row || !this.sameOwner(row, member, channelId))
       throw new NotFoundException('Upload not found');
     if (row.state === 'attached') throw new ConflictException('Upload is attached to a message');
     await this.repository.update(id, { state: 'cancelled', expiresAt: new Date() });
@@ -220,13 +215,19 @@ export class ChatUploadsService {
   ): ChatUpload {
     if (
       !row ||
-      row.workspaceId !== member.workspaceId ||
-      row.channelId !== channelId ||
-      row.ownerMemberId !== member.id ||
+      !this.sameOwner(row, member, channelId) ||
       row.state === 'cancelled' ||
       (row.state !== 'attached' && row.expiresAt.getTime() <= Date.now())
     )
       throw new NotFoundException('Upload not found or expired');
     return row;
+  }
+
+  private sameOwner(row: ChatUpload, member: WorkspaceMember, channelId: string): boolean {
+    return (
+      row.workspaceId === member.workspaceId &&
+      row.channelId === channelId &&
+      row.ownerMemberId === member.id
+    );
   }
 }

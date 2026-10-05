@@ -18,7 +18,11 @@ import { Injectable } from '@nestjs/common';
 import { AppConfigService } from '@/globals/config';
 
 import { DOWNLOAD_URL_SECONDS, type StoredPart, UPLOAD_URL_SECONDS } from '../attachments/types';
-import { StorageProvider } from './storage.provider';
+import { NoSuchUploadError, StorageProvider } from './storage.provider';
+
+function isNoSuchUpload(error: unknown): boolean {
+  return error instanceof Error && error.name === 'NoSuchUpload';
+}
 
 @Injectable()
 export class DigitalOceanSpacesProvider extends StorageProvider {
@@ -111,16 +115,21 @@ export class DigitalOceanSpacesProvider extends StorageProvider {
   }
 
   async completeMultipart(key: string, uploadId: string, parts: StoredPart[]): Promise<void> {
-    await this.client.send(
-      new CompleteMultipartUploadCommand({
-        Bucket: this.bucket,
-        Key: key,
-        UploadId: uploadId,
-        MultipartUpload: {
-          Parts: parts.map((part) => ({ PartNumber: part.number, ETag: part.etag })),
-        },
-      }),
-    );
+    try {
+      await this.client.send(
+        new CompleteMultipartUploadCommand({
+          Bucket: this.bucket,
+          Key: key,
+          UploadId: uploadId,
+          MultipartUpload: {
+            Parts: parts.map((part) => ({ PartNumber: part.number, ETag: part.etag })),
+          },
+        }),
+      );
+    } catch (error) {
+      if (isNoSuchUpload(error)) throw new NoSuchUploadError(uploadId);
+      throw error;
+    }
   }
 
   async abortMultipart(key: string, uploadId: string): Promise<void> {
@@ -129,7 +138,7 @@ export class DigitalOceanSpacesProvider extends StorageProvider {
         new AbortMultipartUploadCommand({ Bucket: this.bucket, Key: key, UploadId: uploadId }),
       );
     } catch (error) {
-      if (!(error instanceof Error && error.name === 'NoSuchUpload')) throw error;
+      if (!isNoSuchUpload(error)) throw error;
     }
   }
 

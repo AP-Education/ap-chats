@@ -39,25 +39,24 @@ export interface ChatUpload {
   expiresAt: Date;
 }
 
-export interface NewChatUpload {
-  id: string;
-  workspaceId: string;
+// Everything a new upload needs is already shaped like the row it becomes —
+// except channelId/ownerMemberId, which a live row requires but the full
+// ChatUpload only keeps nullable for later (a channel or member deletion can
+// null them out via an FK `ON DELETE SET NULL`, never an insert).
+export interface NewChatUpload extends Pick<
+  ChatUpload,
+  'id' | 'workspaceId' | 'name' | 'size' | 'objectKey' | 'multipartId' | 'expiresAt'
+> {
   channelId: string;
   ownerMemberId: string;
-  name: string;
-  size: number;
-  objectKey: string;
-  multipartId: string;
-  expiresAt: Date;
 }
 
-export interface ChatUploadPatch {
-  state?: UploadState;
+export type ChatUploadPatch = Partial<
+  Pick<ChatUpload, 'state' | 'processingToken' | 'processingUntil' | 'expiresAt'>
+> & {
+  // Never cleared back to null through a patch, unlike the row's own field.
   metadata?: Attachment;
-  processingToken?: string | null;
-  processingUntil?: Date | null;
-  expiresAt?: Date;
-}
+};
 
 export interface AttachmentPolicy {
   maxFileBytes: number;
