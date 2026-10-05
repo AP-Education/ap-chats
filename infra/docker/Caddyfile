@@ -6,8 +6,10 @@
 	encode zstd gzip
 
 	@backend path /api/* /socket.io/*
-	reverse_proxy @backend api:3211 {
-		header_up X-Real-IP {remote_host}
+	handle @backend {
+		reverse_proxy api:3211 {
+			header_up X-Real-IP {remote_host}
+		}
 	}
 
 	handle {
