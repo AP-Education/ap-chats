@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 
-import { ChannelsRepositoryModule } from '../channels/channels-repository.module';
+import { ChannelsRepositoryModule } from '../channels';
 import { ChannelMembershipsRepositoryModule } from '../memberships/channel-memberships-repository.module';
 import { ChannelAccessFacade } from './channel-access.facade';
 import { CommunityAccessService } from './community-access.service';

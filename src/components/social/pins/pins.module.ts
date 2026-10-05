@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
-import { ChannelAccessModule } from '@/components/communities/channel-access/channel-access.module';
-import { ChannelAudienceModule } from '@/components/communities/channel-audience/channel-audience.module';
+import { ChannelAccessModule } from '@/components/communities/channel-access';
+import { ChannelAudienceModule } from '@/components/communities/channel-audience';
 import { WorkspacesModule } from '@/components/workspaces';
 
 import { PinsController } from './pins.controller';

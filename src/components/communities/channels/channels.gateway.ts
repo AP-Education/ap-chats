@@ -5,7 +5,7 @@ import { WorkspaceMembersRepository } from '@/components/workspaces/members/repo
 import { Logger } from '@/globals/logger';
 import { RealtimePublisher } from '@/globals/realtime';
 
-import { ChannelAudienceFacade } from '../channel-audience/channel-audience.facade';
+import { ChannelAudienceFacade } from '../channel-audience';
 import { CHANNEL_CREATED_EVENT, ChannelCreatedEvent } from './events/channel-created.event';
 
 @WebSocketGateway({ namespace: '/chats' })
