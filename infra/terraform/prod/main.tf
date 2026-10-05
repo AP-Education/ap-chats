@@ -11,7 +11,7 @@ locals {
 
   domain_fqdn = var.domain_name != null ? "${var.chats_subdomain}.${var.domain_name}" : null
 
-  # Two buckets, not one with two prefixes: attachments get ACL=public-read
+  # Two buckets, not one with two prefixes: only avatars get public-read
   # per object from the app, backups never do — a dedicated bucket means
   # that split doesn't depend on every code path getting its ACL right.
   attachments_bucket_name = coalesce(var.attachments_bucket_name, local.base_prefix)
@@ -54,6 +54,9 @@ module "attachments" {
   name          = local.attachments_bucket_name
   region        = var.spaces_region
   force_destroy = var.spaces_force_destroy
+
+  cors_allowed_origins   = local.domain_fqdn != null ? ["https://${local.domain_fqdn}"] : []
+  abort_multipart_prefix = "chat-attachments/"
 }
 
 module "backups" {

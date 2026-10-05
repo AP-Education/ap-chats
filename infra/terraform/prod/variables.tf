@@ -86,7 +86,7 @@ variable "enable_dns" {
 }
 
 variable "attachments_bucket_name" {
-  description = "Name of ap-connect's own bucket for chat attachments (public-read per object, set by the app on upload). Defaults to <project>-<environment>. Not shared with backend-LMS's bucket — keeps blast radius (and billing) separate."
+  description = "Name of ap-connect's own bucket for private chat attachments and public avatar objects. Defaults to <project>-<environment>. Not shared with backend-LMS's bucket."
   type        = string
   default     = null
 }
@@ -114,4 +114,3 @@ variable "spaces_backup_retention_days" {
   type        = number
   default     = 30
 }
-
