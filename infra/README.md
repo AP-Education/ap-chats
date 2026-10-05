@@ -128,9 +128,10 @@ LMS's existing ops host later if/when this needs the same treatment.
 - **No load balancer, no managed Postgres/Valkey.** One instance, Postgres
   as a container with a volume, nightly `pg_dump` to DO Spaces. Cheaper and
   simpler for the current (scaffold) stage; swapping in a managed Postgres
-  later only means changing `DATABASE_URL`, not application code. Set a
-  lifecycle rule on the Spaces bucket's `ap-connect/backups/` prefix to
-  expire old backups — this doesn't prune them itself.
+  later only means changing `DATABASE_URL`, not application code. The backup
+  script only ever uploads — Terraform's `spaces_backup_retention_days`
+  (default 30) is what actually expires old backups, via a lifecycle rule on
+  the bucket's `ap-connect/backups/` prefix.
 - **Own Spaces bucket, own key — not shared with backend-LMS.** Terraform
   creates it (`spaces_bucket_name`, default `ap-connect-prod`) and its
   default ACL stays private; the app sets `ACL: public-read` per object on

@@ -13,3 +13,15 @@ variable "force_destroy" {
   type        = bool
   default     = false
 }
+
+variable "expiration_prefix" {
+  description = "Object key prefix to auto-expire (e.g. where nightly backups are written). Leave null to skip creating a lifecycle rule entirely."
+  type        = string
+  default     = null
+}
+
+variable "expiration_days" {
+  description = "Delete objects under expiration_prefix this many days after creation."
+  type        = number
+  default     = 30
+}

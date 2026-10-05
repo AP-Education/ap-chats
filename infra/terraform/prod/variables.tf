@@ -103,6 +103,12 @@ variable "spaces_force_destroy" {
   default     = false
 }
 
+variable "spaces_backup_retention_days" {
+  description = "Spaces lifecycle rule: auto-delete nightly Postgres backups after this many days."
+  type        = number
+  default     = 30
+}
+
 variable "spaces_access_key_id" {
   description = <<-EOT
     DigitalOcean Spaces access key ID, dedicated to ap-connect (create one in

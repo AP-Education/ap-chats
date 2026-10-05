@@ -49,6 +49,12 @@ module "spaces" {
   name          = local.spaces_bucket_name
   region        = var.spaces_region
   force_destroy = var.spaces_force_destroy
+
+  # Matches the object key postgres_backup's template writes
+  # ("{{ project_name }}/backups/...") — keep the two in sync if either
+  # changes.
+  expiration_prefix = "${local.project_slug}/backups/"
+  expiration_days   = var.spaces_backup_retention_days
 }
 
 module "firewall" {

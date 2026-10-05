@@ -18,6 +18,21 @@ resource "digitalocean_spaces_bucket" "this" {
   region = var.region
 
   force_destroy = var.force_destroy
+
+  # Nothing ever prunes objects on its own otherwise — the backup script
+  # only ever uploads, it never deletes anything itself.
+  dynamic "lifecycle_rule" {
+    for_each = var.expiration_prefix != null ? [1] : []
+    content {
+      id      = "expire-${var.expiration_prefix}"
+      enabled = true
+      prefix  = var.expiration_prefix
+
+      expiration {
+        days = var.expiration_days
+      }
+    }
+  }
 }
 
 output "urn" {
