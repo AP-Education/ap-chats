@@ -11,6 +11,7 @@ import { getTrackedSession, untrackSession } from '../src/features/calls/utils/s
 
 const session = {
   id: 'cold-start-session',
+  status: 'ringing',
   isMuted: false,
   incomingCallEvent: {
     serverCallId: 'server-call',
@@ -46,6 +47,23 @@ test('invalid native metadata cannot create a tracked incoming session', async (
     }),
   } as never);
   assert.equal(getTrackedSession(session.id), undefined);
+});
+
+test('an answer made before JS starts is restored as connecting rather than a new ring', async () => {
+  await hydrateCallSession({
+    getActiveCallSession: async () => ({ ...session, status: 'connecting' }),
+  } as never);
+  assert.equal(useNativeCallStore.getState().call?.status, 'connecting');
+  untrackSession(session.id);
+  useNativeCallStore.getState().clearCall();
+});
+
+test('a native session that already ended cannot restore an incoming call', async () => {
+  await hydrateCallSession({
+    getActiveCallSession: async () => ({ ...session, status: 'ended' }),
+  } as never);
+  assert.equal(getTrackedSession(session.id), undefined);
+  assert.equal(useNativeCallStore.getState().call, null);
 });
 
 test('native calls wait for restored auth and refresh an expired background token', async () => {

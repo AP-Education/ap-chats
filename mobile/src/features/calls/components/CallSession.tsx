@@ -22,11 +22,7 @@ export function CallSession() {
       const { registerGlobals } = await import('@livekit/react-native');
       if (cancelled) return;
 
-      try {
-        registerGlobals();
-      } catch (error) {
-        if (__DEV__) console.warn('[calls] registerGlobals() failed', error);
-      }
+      registerGlobals({ autoConfigureAudioSession: false });
 
       subscriptions = [
         CallKit.addCallSessionAddedListener((event) => restoreIncomingSession(event.session)),
@@ -35,6 +31,12 @@ export function CallSession() {
         }),
         CallKit.addCallAnsweredListener((event) => void answerCall(event, CallKit)),
         CallKit.addCallEndedListener((event) => void endCallSession(event)),
+        CallKit.addReportedCallEndedListener(
+          (event) => void endCallSession(event, { notifyServer: false }),
+        ),
+        CallKit.addCallSessionRemovedListener(
+          (event) => void endCallSession(event, { notifyServer: false }),
+        ),
         CallKit.addSetMutedActionListener((event) => void setCallMuted(event, CallKit)),
       ];
       await hydrateCallSession(CallKit);

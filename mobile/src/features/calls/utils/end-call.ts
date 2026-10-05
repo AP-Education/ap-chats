@@ -6,23 +6,35 @@ import { playLeaveChime } from './call-chimes';
 import { requireAccessToken } from './require-access-token';
 import { untrackSession } from './session-registry';
 
-/** The system UI ended the call, or the user hung up from our own screen —
- * either way CallKit/Telecom has already torn down its side by the time this
- * fires; this only needs to tell the backend and free the LiveKit room. */
-export async function endCallSession(event: CallEndedEvent): Promise<void> {
+/** Cancels pending connections and releases media. User hangups notify the
+ * backend; system reports of remote endings only clean up the local session. */
+export async function endCallSession(
+  event: Pick<CallEndedEvent, 'id'>,
+  { notifyServer = true }: { notifyServer?: boolean } = {},
+): Promise<void> {
+  const current = useNativeCallStore.getState().call;
+  const wasRinging = current?.sessionId === event.id && current.status === 'ringing';
   const session = untrackSession(event.id);
   useNativeCallStore.getState().clearCall(event.id);
   if (!session) return;
 
-  const { workspaceId, channelId } = session.metadata;
   try {
+    session.stopTrackingRemote?.();
     if (session.room) {
-      session.stopTrackingRemote?.();
       await session.room.disconnect();
       playLeaveChime();
+    }
+  } catch (error) {
+    if (__DEV__) console.warn('[calls] media cleanup failed', error);
+  }
+
+  if (!notifyServer) return;
+  const { workspaceId, channelId } = session.metadata;
+  try {
+    if (!wasRinging) {
       await leaveCall(await requireAccessToken(), workspaceId, channelId, session.serverCallId);
     } else {
-      // Never answered — a hangup from the system UI before connecting is a decline.
+      // A hangup before the answer action is a decline.
       await declineCall(await requireAccessToken(), workspaceId, channelId, session.serverCallId);
     }
   } catch (error) {

@@ -6,7 +6,7 @@ import type { loadCallKitModule } from './callkit-module';
 import { getTrackedSession, trackSession } from './session-registry';
 
 export function restoreIncomingSession(session: CallSession): void {
-  if (getTrackedSession(session.id)) return;
+  if (session.status === 'ended' || getTrackedSession(session.id)) return;
   const metadata = extractCallMetadata({ session });
   const incoming = session.incomingCallEvent;
   if (!metadata || !incoming) return;
@@ -18,7 +18,8 @@ export function restoreIncomingSession(session: CallSession): void {
   useNativeCallStore.getState().setCall({
     sessionId: session.id,
     caller: incoming.caller,
-    status: 'ringing',
+    status:
+      session.status === 'connecting' || session.status === 'connected' ? 'connecting' : 'ringing',
     isMuted: session.isMuted,
   });
 }
