@@ -1,4 +1,4 @@
-import type { Attachment } from '@/components/uploads/attachments/types';
+import type { Attachment } from '../attachments/types';
 
 // What a fresh post and a forward of it both carry unmodified: what's
 // actually being said, and the token the client used to dedupe/trace it.

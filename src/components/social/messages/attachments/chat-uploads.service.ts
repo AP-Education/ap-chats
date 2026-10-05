@@ -9,9 +9,9 @@ import {
 import { Transactional } from '@nestjs-cls/transactional';
 
 import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
+import { NoSuchUploadError, StorageProvider } from '@/components/uploads/storage/storage.provider';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { NoSuchUploadError, StorageProvider } from '../storage/storage.provider';
 import { AttachmentPreviewService } from './attachment-preview.service';
 import { ChatUploadsRepository } from './repository';
 import {

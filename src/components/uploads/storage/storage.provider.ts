@@ -1,6 +1,6 @@
 import type { Readable } from 'node:stream';
 
-import type { StoredPart } from '../attachments/types';
+import type { StoredPart } from '@/components/social/messages/attachments/types';
 
 /** The multipart session completeMultipart() was asked to finish no longer exists (already completed or aborted). */
 export class NoSuchUploadError extends Error {}

@@ -40,11 +40,11 @@ const { AccountsTokenVerifier } =
     }>;
   };
 const { UploadCleanupService } =
-  require('../dist/components/uploads/attachments/upload-cleanup.service.js') as {
+  require('../dist/components/social/messages/attachments/upload-cleanup.service.js') as {
     UploadCleanupService: Type<{ sweep: () => Promise<void> }>;
   };
 const { AttachmentPreviewService } =
-  require('../dist/components/uploads/attachments/attachment-preview.service.js') as {
+  require('../dist/components/social/messages/attachments/attachment-preview.service.js') as {
     AttachmentPreviewService: Type<{ inspect: (...args: unknown[]) => Promise<unknown> }>;
   };
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });

@@ -11,13 +11,13 @@ import { Transactional } from '@nestjs-cls/transactional';
 
 import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
 import type { ChannelAccessSnapshot } from '@/components/communities/channels/types/channel-access.types';
-import { ChatUploadsService } from '@/components/uploads/attachments/chat-uploads.service';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
 
 import { EntriesFacade } from '../entries/entries.facade';
 import { MentionsFacade } from '../mentions/mentions.facade';
 import { PinsFacade } from '../pins/pins.facade';
+import { ChatUploadsService } from './attachments';
 import { MessageMarkdownService, type NormalizedMessageContent } from './content/message-markdown';
 import type {
   BatchDeleteMessagesDto,

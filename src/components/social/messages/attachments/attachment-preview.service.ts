@@ -9,7 +9,8 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { fileTypeFromBuffer } from 'file-type';
 import sharp from 'sharp';
 
-import { StorageProvider } from '../storage/storage.provider';
+import { StorageProvider } from '@/components/uploads/storage/storage.provider';
+
 import type { Attachment } from './types';
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;

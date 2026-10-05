@@ -3,12 +3,12 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '@/components/auth';
 import { ChannelAccessModule } from '@/components/communities/channel-access/channel-access.module';
 import { ChannelAudienceModule } from '@/components/communities/channel-audience/channel-audience.module';
-import { ChatUploadsModule } from '@/components/uploads/attachments/chat-uploads.module';
 import { WorkspacesModule } from '@/components/workspaces';
 
 import { EntriesModule } from '../entries/entries.module';
 import { MentionsModule } from '../mentions/mentions.module';
 import { PinsModule } from '../pins/pins.module';
+import { ChatUploadsModule } from './attachments';
 import { MessageMarkdownService } from './content/message-markdown';
 import { MessagesController } from './messages.controller';
 import { MessagesFacade } from './messages.facade';

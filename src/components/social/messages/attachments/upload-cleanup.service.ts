@@ -1,9 +1,9 @@
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
+import { StorageProvider } from '@/components/uploads/storage/storage.provider';
 import { Logger } from '@/globals/logger';
 
-import { StorageProvider } from '../storage/storage.provider';
 import { ChatUploadsRepository } from './repository';
 
 const SWEEP_INTERVAL_MS = 60_000;

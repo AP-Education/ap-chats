@@ -12,7 +12,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import type { Attachment } from '@/components/uploads/attachments/types';
+import type { Attachment } from '@/components/social/messages/attachments/types';
 
 import { channels } from './channels';
 import { workspaceMembers } from './workspace-members';
