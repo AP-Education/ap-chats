@@ -52,16 +52,15 @@ infra/
    ```bash
    ansible-galaxy collection install -r infra/ansible/requirements.yml -p infra/ansible/collections
    ```
-6. **Terraform env file**: copy `infra/terraform/prod/.env.example` to
+6. **Shared env file**: copy `infra/terraform/prod/.env.example` to
    `infra/terraform/prod/.env` and fill it in — the DO token, the
    Backblaze B2 key pair (state backend), the ap-connect Spaces key pair
-   from step 3, `allowed_ssh_cidrs`, `ssh_key_ids`. Gitignored. The
-   `infra:tf:*` scripts below load it automatically via `dotenv-cli`, so
-   there's nothing to `export` by hand and no `-var=...` flags to repeat
-   on every command.
-7. **Ansible env file**: copy `infra/ansible/.env.example` to
-   `infra/ansible/.env` — see "Bootstrap the host" below for what goes in
-   it. Same idea: no `--ask-vault-pass` prompt, no `-e` for secrets.
+   from step 3, `allowed_ssh_cidrs`, `ssh_key_ids`, plus the Ansible-side
+   `ANSIBLE_VAULT_PASSWORD_FILE` / `ANSIBLE_PRIVATE_KEY_FILE` (see
+   "Bootstrap the host" below). One file, gitignored, for both toolchains —
+   the `infra:tf:*` and `infra:ansible:*` scripts below both load it via
+   `dotenv-cli`, so there's nothing to `export` by hand, no `-var=...`
+   flags to repeat, and no `--ask-vault-pass` prompt.
 
 ## Provision the droplet (Terraform)
 
@@ -97,15 +96,14 @@ pnpm exec dotenv -e infra/terraform/prod/.env -- terraform -chdir=infra/terrafor
 
 ## Bootstrap the host (Ansible, one time)
 
-One-time setup: copy `infra/ansible/.env.example` to `infra/ansible/.env`,
-set `ANSIBLE_VAULT_PASSWORD_FILE` to a gitignored file holding the vault
+One-time setup (in the same `infra/terraform/prod/.env` from step 6): set
+`ANSIBLE_VAULT_PASSWORD_FILE` to a gitignored file holding the vault
 password (`echo yourpassword > infra/ansible/.vault-pass && chmod 600
 infra/ansible/.vault-pass`), and `ANSIBLE_PRIVATE_KEY_FILE` to your SSH
-key. That removes `--ask-vault-pass` entirely — no `-e` needed for secrets,
-same idea as the terraform `.env`. A passphrase-protected key has no env
-var equivalent (ansible/ssh don't accept passphrases that way by design);
-load it once per shell session instead: `eval "$(ssh-agent)" && ssh-add
-~/.ssh/id_ed25519`.
+key. That removes `--ask-vault-pass` entirely — no `-e` needed for secrets.
+A passphrase-protected key has no env var equivalent (ansible/ssh don't
+accept passphrases that way by design); load it once per shell session
+instead: `eval "$(ssh-agent)" && ssh-add ~/.ssh/id_ed25519`.
 
 ```bash
 pnpm run infra:ansible:init
