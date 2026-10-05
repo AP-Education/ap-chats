@@ -38,6 +38,71 @@ argument_specs:
       web_origin:
         type: str
         description: Value of WEB_ORIGIN / CORS origin. Defaults to https://<chats_domain>.
+      log_transport:
+        type: str
+        default: json
+        choices: [json, pretty]
+      log_target_type:
+        type: str
+        default: stdout
+        choices: [stdout, file, both]
+      log_target_dest:
+        type: str
+        default: ''
+        description: Required for file/both logging; the path must be writable by the container's node user.
+      chat_upload_max_file_bytes:
+        type: int
+        default: 1000000000
+      chat_upload_max_message_bytes:
+        type: int
+        default: 2000000000
+      chat_upload_max_files:
+        type: int
+        default: 10
+      chat_upload_max_pending_files:
+        type: int
+        default: 20
+      chat_upload_max_pending_bytes:
+        type: int
+        default: 4000000000
+      push_enabled:
+        type: bool
+        default: false
+        description: Enable queued delivery only with an image containing feat/chat-push-notifications.
+      valkey_url:
+        type: str
+        default: redis://valkey:6379/0
+        no_log: true
+      push_coalesce_seconds:
+        type: int
+        default: 3
+      push_cooldown_seconds:
+        type: int
+        default: 30
+      push_user_alerts_per_minute:
+        type: int
+        default: 5
+      push_worker_enabled:
+        type: bool
+        default: true
+      push_worker_concurrency:
+        type: int
+        default: 8
+      expo_access_token:
+        type: str
+        default: ''
+        no_log: true
+      web_push_public_key:
+        type: str
+        default: ''
+      web_push_private_key:
+        type: str
+        default: ''
+        no_log: true
+      web_push_subject:
+        type: str
+        default: ''
+        description: 'VAPID contact, mailto: or https://. Set all three web_push fields or none.'
       do_spaces_endpoint:
         type: str
         required: true
@@ -52,6 +117,17 @@ argument_specs:
       do_spaces_bucket:
         type: str
         required: true
+      livekit_url:
+        type: str
+        default: ''
+        description: Public wss:// LiveKit endpoint reachable by browsers and mobile clients. Set all three LiveKit values or none.
+      livekit_api_key:
+        type: str
+        default: ''
+      livekit_api_secret:
+        type: str
+        default: ''
+        no_log: true
       apns_key_id:
         type: str
         default: ''
@@ -62,6 +138,7 @@ argument_specs:
         type: str
         default: ''
         no_log: true
+        description: Full Apple .p8 PEM with real newlines (YAML literal block), not a path or literal backslash-n escapes.
       apns_voip_topic:
         type: str
         default: ''
@@ -72,3 +149,4 @@ argument_specs:
         type: str
         default: ''
         no_log: true
+        description: Full Firebase service account JSON as a string (YAML literal block), not a YAML mapping or file path.

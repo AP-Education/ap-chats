@@ -16,6 +16,27 @@ services:
       timeout: 3s
       retries: 10
 
+  valkey:
+    image: valkey/valkey:8.1.9-alpine
+    restart: always
+    command:
+      - valkey-server
+      - --appendonly
+      - 'yes'
+      - --appendfsync
+      - everysec
+      - --maxmemory-policy
+      - noeviction
+    volumes:
+      - valkey_data:/data
+    networks:
+      - chats
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   api:
     image: "{{ app_image }}"
     restart: always
@@ -23,6 +44,8 @@ services:
       - ./app.env
     depends_on:
       postgres:
+        condition: service_healthy
+      valkey:
         condition: service_healthy
     networks:
       - chats
@@ -50,5 +73,6 @@ networks:
 
 volumes:
   postgres_data:
+  valkey_data:
   caddy_data:
   caddy_config:
