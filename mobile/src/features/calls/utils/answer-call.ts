@@ -4,6 +4,7 @@ import { joinCall } from '../api/calls-api';
 import { useNativeCallStore } from '../store/native-call-store';
 import { playJoinChime } from './call-chimes';
 import type { loadCallKitModule } from './callkit-module';
+import { hydrateCallSession } from './hydrate-call-session';
 import { connectRoom, waitForAudioSessionActive } from './livekit-room';
 import { requireAccessToken } from './require-access-token';
 import { getTrackedSession } from './session-registry';
@@ -16,17 +17,19 @@ export async function answerCall(
   event: CallAnsweredEvent,
   CallKit: NonNullable<Awaited<ReturnType<typeof loadCallKitModule>>>,
 ): Promise<void> {
-  const session = getTrackedSession(event.id);
-  if (!session) return;
-
-  useNativeCallStore
-    .getState()
-    .setCall({ sessionId: event.id, caller: session.caller, status: 'connecting', isMuted: false });
-
   try {
+    if (!getTrackedSession(event.id)) await hydrateCallSession(CallKit);
+    const session = getTrackedSession(event.id);
+    if (!session) throw new Error('Incoming call session is unavailable');
+    useNativeCallStore.getState().setCall({
+      sessionId: event.id,
+      caller: session.caller,
+      status: 'connecting',
+      isMuted: false,
+    });
     const { workspaceId, channelId } = session.metadata;
     const grant = await joinCall(
-      requireAccessToken(),
+      await requireAccessToken(),
       workspaceId,
       channelId,
       session.serverCallId,

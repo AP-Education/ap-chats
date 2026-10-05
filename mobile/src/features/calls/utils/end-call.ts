@@ -20,10 +20,10 @@ export async function endCallSession(event: CallEndedEvent): Promise<void> {
       session.stopTrackingRemote?.();
       await session.room.disconnect();
       playLeaveChime();
-      await leaveCall(requireAccessToken(), workspaceId, channelId, session.serverCallId);
+      await leaveCall(await requireAccessToken(), workspaceId, channelId, session.serverCallId);
     } else {
       // Never answered — a hangup from the system UI before connecting is a decline.
-      await declineCall(requireAccessToken(), workspaceId, channelId, session.serverCallId);
+      await declineCall(await requireAccessToken(), workspaceId, channelId, session.serverCallId);
     }
   } catch (error) {
     if (__DEV__) console.warn('[calls] end failed', error);

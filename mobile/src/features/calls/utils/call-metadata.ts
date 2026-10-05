@@ -16,7 +16,9 @@ function isCallSignalMetadata(value: unknown): value is CallSignalMetadata {
 /** Reads the metadata this app put on the VoIP push's incomingCall event back out,
  * validated rather than blindly cast — same boundary-distrust as callSignalSchema
  * on the web side, since it's untyped `Record<string, unknown>` on the wire. */
-export function extractCallMetadata(event: CallSessionAddedEvent): CallSignalMetadata | null {
+export function extractCallMetadata(
+  event: Pick<CallSessionAddedEvent, 'session'>,
+): CallSignalMetadata | null {
   const metadata = event.session.incomingCallEvent?.metadata;
   return isCallSignalMetadata(metadata) ? metadata : null;
 }
