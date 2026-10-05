@@ -40,7 +40,7 @@ export class ChatUploadsService {
     await this.repository.lockOwner(member.id);
     await this.access.requirePostAccess(member, channelId);
     const reserved = await this.repository.reservations(member.id);
-    this.policy.requireReservationCapacity(member, reserved, size);
+    this.policy.requireReservationCapacity(reserved, size);
     const id = randomUUID();
     const objectKey = `chat-attachments/${member.workspaceId}/${id}`;
     const multipartId = await this.storage.beginMultipart(objectKey);

@@ -311,6 +311,13 @@ export function useMessageOperations(
     }
     const { nonce, drafts, watchCommitted, uncommit, releaseCommitted } = pending;
     const createdAt = new Date().toISOString();
+    const dropUploadingSend = () =>
+      setUploadingSends((current) => {
+        if (!current.has(nonce)) return current;
+        const next = new Map(current);
+        next.delete(nonce);
+        return next;
+      });
     setUploadingSends((current) => {
       const next = new Map(current);
       next.set(nonce, {
@@ -326,11 +333,7 @@ export function useMessageOperations(
       if (nextDrafts.some((draft) => draft.status === 'error')) {
         unsubscribe();
         uncommit(nonce);
-        setUploadingSends((current) => {
-          const next = new Map(current);
-          next.delete(nonce);
-          return next;
-        });
+        dropUploadingSend();
         return;
       }
       setUploadingSends((current) => {
@@ -342,11 +345,7 @@ export function useMessageOperations(
       if (nextDrafts.every((draft) => draft.status === 'ready')) {
         unsubscribe();
         releaseCommitted(nonce);
-        setUploadingSends((current) => {
-          const next = new Map(current);
-          next.delete(nonce);
-          return next;
-        });
+        dropUploadingSend();
         dispatch(
           {
             markdown: input.markdown,

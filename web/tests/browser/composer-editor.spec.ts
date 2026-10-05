@@ -5,7 +5,7 @@ import ts from 'typescript';
 
 const editorSource = readFileSync(
   new URL(
-    '../../src/features/social/mentions/components/MentionEditor/mention-editor-selection.ts',
+    '../../src/features/social/messaging/components/ComposerEditor/composer-editor-selection.ts',
     import.meta.url,
   ),
   'utf8',

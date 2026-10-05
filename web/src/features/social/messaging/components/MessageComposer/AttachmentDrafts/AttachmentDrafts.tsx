@@ -145,7 +145,7 @@ function DraftAttachmentCard({
   onRemove,
   onRetry,
   onDescribe,
-}: Omit<AttachmentDraftsProps, 'drafts' | 'policy'> & { draft: AttachmentDraft }) {
+}: Omit<AttachmentDraftsProps, 'drafts'> & { draft: AttachmentDraft }) {
   const { styles } = useStyles();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState(draft.description);

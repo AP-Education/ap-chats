@@ -1,6 +1,5 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 
-import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { AppConfigService } from '@/globals/config';
 
 import { type AttachmentPolicy, MULTIPART_PART_BYTES, type StoredPart } from './types';
@@ -63,22 +62,8 @@ export class UploadPolicy {
       throw new BadRequestException('Too many or duplicate attachments');
   }
 
-  /**
-   * The global defaults today; the one seam a future per-role or per-plan
-   * quota plugs into without touching ChatUploadsService.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- part of the seam's signature, not yet read
-  pendingLimitsFor(member: WorkspaceMember): PendingUploadLimits {
-    return this.pending;
-  }
-
-  requireReservationCapacity(
-    member: WorkspaceMember,
-    reserved: { count: number; bytes: number },
-    size: number,
-  ): void {
-    const limits = this.pendingLimitsFor(member);
-    if (reserved.count >= limits.maxFiles || reserved.bytes + size > limits.maxBytes)
+  requireReservationCapacity(reserved: { count: number; bytes: number }, size: number): void {
+    if (reserved.count >= this.pending.maxFiles || reserved.bytes + size > this.pending.maxBytes)
       throw new ConflictException('Too many unfinished uploads');
   }
 }

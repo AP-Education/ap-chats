@@ -62,8 +62,13 @@ export function MessageEditor({ item, onEdit, onClose, minHeight, children }: Me
   const [hasContent, setHasContent] = useState(Boolean(item.message.markdown?.trim()));
   const [saving, setSaving] = useState(false);
   const [conflict, setConflict] = useState(false);
-  const labels = Object.fromEntries(
-    item.mentions?.map(({ memberId, displayName }) => [memberId, displayName ?? 'учасник']) ?? [],
+  const labels = useMemo(
+    () =>
+      Object.fromEntries(
+        item.mentions?.map(({ memberId, displayName }) => [memberId, displayName ?? 'учасник']) ??
+          [],
+      ),
+    [item.mentions],
   );
 
   const save = useCallback(

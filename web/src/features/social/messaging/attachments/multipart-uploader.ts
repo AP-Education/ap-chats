@@ -4,6 +4,18 @@ import { beginUpload, cancelUpload, completeUpload, signUploadPart } from './att
 import type { Attachment, UploadScope, UploadSession } from './types';
 import { PartUploadError, uploadPart } from './upload-part';
 
+/**
+ * A part URL's own 403 (expired presign) is worth retrying with a fresh one;
+ * a 403 from the JSON API means the request itself was rejected and won't
+ * succeed on retry. Anything below 500 besides those is a client error too.
+ */
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof ApiError) return error.status >= 500;
+  if (error instanceof PartUploadError)
+    return error.status === 0 || error.status === 403 || error.status >= 500;
+  return true;
+}
+
 export interface UploadResumeState {
   session?: UploadSession;
   completed: Set<number>;
@@ -71,16 +83,7 @@ export class MultipartUploader {
             resume.completed.add(number);
             break;
           } catch (error) {
-            if (
-              internal.signal.aborted ||
-              attempt >= 2 ||
-              (error instanceof ApiError && error.status < 500) ||
-              (error instanceof PartUploadError &&
-                error.status > 0 &&
-                error.status < 500 &&
-                error.status !== 403)
-            )
-              throw error;
+            if (internal.signal.aborted || attempt >= 2 || !isRetryableError(error)) throw error;
             await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
             if (internal.signal.aborted) throw error;
           }
