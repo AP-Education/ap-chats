@@ -148,10 +148,30 @@ backend-LMS and advertised in Accounts discovery. The Chats Caddyfile serves
 `chats.ap-platform.online`; it does not determine the Accounts issuer.
 
 `OIDC_AUDIENCE` and `VITE_OIDC_AUDIENCE` are
-`https://chats.ap-platform.online`. Register the web client in production
-Accounts with that resource and redirect URI
-`https://chats.ap-platform.online/auth/callback`, then set its client ID in
-the build environment. Localhost development values are not release settings.
+`https://chats.ap-platform.online`. Register the clients by running
+`infra/scripts/register-production-oidc-clients.sql` in the production
+**backend-LMS database**, which owns Accounts clients. The script inserts or
+replaces the LMS web and Connect web/mobile settings, including logout callbacks. It uses
+application ID `6e8c8a93-d26b-4f2d-8d40-8bc9f31f2b02`; that application must
+already exist in production. For example, with `DATABASE_URL` pointing at
+that database:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f infra/scripts/register-production-oidc-clients.sql
+```
+
+The LMS client is `lms-web`, with redirect URI
+`https://ap-platform.online/auth/callback`, logout return to
+`https://ap-platform.online` and resource `https://api.ap-platform.online`.
+The Chats web client is `ap-chats-web`, with redirect URI
+`https://chats.ap-platform.online/auth/callback` and logout return to
+`https://chats.ap-platform.online`. The native client is `ap-connect-mobile`,
+with `apchats://auth/callback` for both login and logout, matching
+`mobile/app.json`. Its release settings are
+`EXPO_PUBLIC_OIDC_ISSUER=https://api.ap-platform.online/accounts`,
+`EXPO_PUBLIC_OIDC_CLIENT_ID=ap-connect-mobile` and
+`EXPO_PUBLIC_OIDC_AUDIENCE=https://chats.ap-platform.online`.
+Localhost and Expo Go callbacks are development settings.
 
 The public `VITE_*` values are compiled into the web image at build time.
 Backend settings come from the vault-backed runtime `app.env`. Updating
