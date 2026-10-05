@@ -75,31 +75,54 @@ export class ChatUploadsService {
 
   async complete(member: WorkspaceMember, channelId: string, id: string): Promise<Attachment> {
     const row = await this.startCompletion(member, channelId, id);
-    if ((row.state === 'ready' || row.state === 'attached') && row.metadata) return row.metadata;
-    try {
-      try {
-        const parts = await this.storage.listParts(row.objectKey, row.multipartId);
-        validateParts(row.size, parts);
-        await this.storage.completeMultipart(row.objectKey, row.multipartId, parts);
-      } catch (error) {
-        // Storage completion may succeed before a lost response or DB commit.
-        if (!(error instanceof NoSuchUploadError)) throw error;
-      }
-      if ((await this.storage.objectSize(row.objectKey)) !== row.size)
-        throw new BadRequestException('Stored file size does not match');
-      const metadata: Attachment = {
-        id: row.id,
-        name: row.name,
-        size: row.size,
-        description: null,
-        ...(await this.preview.inspect(row.objectKey, row.size)),
-      };
+    if (this.isAlreadyCompleted(row)) return row.metadata;
+    return this.withLeaseReleaseOnFailure(row, async () => {
+      await this.completeStorageUpload(row);
+      await this.requireStoredSizeMatches(row);
+      const metadata = await this.buildMetadata(row);
       await this.finishCompletion(member, channelId, row, metadata);
       return metadata;
+    });
+  }
+
+  private isAlreadyCompleted(row: ChatUpload): row is ChatUpload & { metadata: Attachment } {
+    return (row.state === 'ready' || row.state === 'attached') && row.metadata !== null;
+  }
+
+  /** Runs `work`, releasing the completion lease `startCompletion` took out if it fails. */
+  private async withLeaseReleaseOnFailure<T>(row: ChatUpload, work: () => Promise<T>): Promise<T> {
+    try {
+      return await work();
     } catch (error) {
       await this.releaseCompletion(row);
       throw error;
     }
+  }
+
+  private async completeStorageUpload(row: ChatUpload): Promise<void> {
+    try {
+      const parts = await this.storage.listParts(row.objectKey, row.multipartId);
+      validateParts(row.size, parts);
+      await this.storage.completeMultipart(row.objectKey, row.multipartId, parts);
+    } catch (error) {
+      // Storage completion may succeed before a lost response or DB commit.
+      if (!(error instanceof NoSuchUploadError)) throw error;
+    }
+  }
+
+  private async requireStoredSizeMatches(row: ChatUpload): Promise<void> {
+    if ((await this.storage.objectSize(row.objectKey)) !== row.size)
+      throw new BadRequestException('Stored file size does not match');
+  }
+
+  private async buildMetadata(row: ChatUpload): Promise<Attachment> {
+    return {
+      id: row.id,
+      name: row.name,
+      size: row.size,
+      description: null,
+      ...(await this.preview.inspect(row.objectKey, row.size)),
+    };
   }
 
   @Transactional()

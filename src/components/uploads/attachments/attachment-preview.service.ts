@@ -54,6 +54,14 @@ export class AttachmentPreviewService {
     key: string,
     size: number,
   ): Promise<Pick<Attachment, 'preview' | 'mediaType' | 'width' | 'height'>> {
+    const media = await identifyMedia(await this.readPrefix(key));
+    const result = { ...media, width: null, height: null };
+    if (media.preview !== 'image') return result;
+    if (size > MAX_IMAGE_BYTES) return { ...result, preview: null };
+    return this.withRenderSlot(() => this.thumbnail(key, size, result));
+  }
+
+  private async readPrefix(key: string): Promise<Buffer> {
     const input = await this.storage.readObject(key, `bytes=0-${PREFIX_BYTES - 1}`);
     const chunks: Buffer[] = [];
     let count = 0;
@@ -67,10 +75,11 @@ export class AttachmentPreviewService {
     } finally {
       input.destroy();
     }
-    const media = await identifyMedia(Buffer.concat(chunks));
-    const result = { ...media, width: null, height: null };
-    if (media.preview !== 'image') return result;
-    if (size > MAX_IMAGE_BYTES) return { ...result, preview: null };
+    return Buffer.concat(chunks);
+  }
+
+  /** Runs `render` with at most one thumbnail job at a time, queueing up to 4 callers before shedding load. */
+  private async withRenderSlot<T>(render: () => Promise<T>): Promise<T> {
     if (this.rendering) {
       if (this.waiting.length >= 4)
         throw new ServiceUnavailableException('Preview processing is busy; retry completion');
@@ -78,7 +87,7 @@ export class AttachmentPreviewService {
     }
     this.rendering = true;
     try {
-      return await this.thumbnail(key, size, result);
+      return await render();
     } finally {
       const next = this.waiting.shift();
       if (next) next();

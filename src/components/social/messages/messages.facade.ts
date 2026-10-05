@@ -10,6 +10,7 @@ import {
 import { Transactional } from '@nestjs-cls/transactional';
 
 import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
+import type { ChannelAccessSnapshot } from '@/components/communities/channels/types/channel-access.types';
 import { ChatUploadsService } from '@/components/uploads/attachments/chat-uploads.service';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
@@ -213,12 +214,8 @@ export class MessagesFacade {
     const channel = await this.access.requirePostAccess(member, channelId);
     const rows = await this.repository.findWithEntries(channelId, ids);
     if (rows.length !== ids.length) throw new NotFoundException('Message not found');
-    const manager =
-      channel.kind !== 'dm' &&
-      (channel.kind === 'private' ||
-        member.role === 'owner' ||
-        channel.createdByMemberId === member.id);
-    if (rows.some(({ message }) => message.authorMemberId !== member.id && !manager))
+    const canDeleteOthers = this.isChannelModerator(channel, member);
+    if (rows.some(({ message }) => message.authorMemberId !== member.id && !canDeleteOthers))
       throw new ForbiddenException('Cannot delete another member’s message');
     const pending = rows.filter(({ message }) => !message.deletedAt);
     await this.repository.tombstone(pending.map(({ message }) => message.id));
@@ -234,14 +231,24 @@ export class MessagesFacade {
   findMany(channelId: string, ids: string[]) {
     return this.repository.findMany(channelId, ids);
   }
-  findWithEntries(channelId: string, ids: string[]) {
-    return this.repository.findWithEntries(channelId, ids);
-  }
 
   async requireMessage(workspaceId: string, channelId: string, id: string): Promise<MessageModel> {
     const message = await this.repository.findById(workspaceId, channelId, id);
     if (!message) throw new NotFoundException('Message not found');
     return message;
+  }
+
+  // A DM has no moderator concept — both participants are equal, so only a
+  // message's own author can delete it there. Elsewhere, a private channel's
+  // creator, a workspace owner, or the channel's own creator can delete
+  // anyone's message.
+  private isChannelModerator(channel: ChannelAccessSnapshot, member: WorkspaceMember): boolean {
+    if (channel.kind === 'dm') return false;
+    return (
+      channel.kind === 'private' ||
+      member.role === 'owner' ||
+      channel.createdByMemberId === member.id
+    );
   }
 
   private quoteMatches(source: string, selection: string): boolean {
