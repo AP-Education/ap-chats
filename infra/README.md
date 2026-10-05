@@ -165,12 +165,14 @@ The LMS client is `lms-web`, with redirect URI
 `https://ap-platform.online` and resource `https://api.ap-platform.online`.
 The Chats web client is `ap-chats-web`, with redirect URI
 `https://chats.ap-platform.online/auth/callback` and logout return to
-`https://chats.ap-platform.online`. The native client is `ap-connect-mobile`,
+`https://chats.ap-platform.online`. The native client is `ap-chats-mobile`,
 with `apchats://auth/callback` for both login and logout, matching
-`mobile/app.json`. Its release settings are
-`EXPO_PUBLIC_OIDC_ISSUER=https://api.ap-platform.online/accounts`,
-`EXPO_PUBLIC_OIDC_CLIENT_ID=ap-connect-mobile` and
-`EXPO_PUBLIC_OIDC_AUDIENCE=https://chats.ap-platform.online`.
+`mobile/app.json`. Its public release settings are committed in
+`mobile/.env.production`, including the web/API URLs, Accounts issuer,
+`EXPO_PUBLIC_OIDC_CLIENT_ID=ap-chats-mobile` and the Chats audience. The EAS
+`production` profile selects the production environment. Expo loads the file
+when bundling a release; exported variables and EAS environment values take
+precedence. Keep any local overrides in `.env.local` out of release builds.
 Localhost and Expo Go callbacks are development settings.
 
 The public `VITE_*` values are compiled into the web image at build time.
