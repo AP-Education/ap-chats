@@ -4,18 +4,6 @@
 // does on the native side. Centralized here because `window.ApAppNative.onMessage` can
 // only ever point at one function, so anything beyond a single consumer (auth) needs a
 // shared fan-out instead of each feature overwriting the others' listener.
-interface NativeBridgeChannel {
-  onMessage?: (message: unknown) => void;
-  queue?: unknown[];
-}
-
-declare global {
-  interface Window {
-    ApAppNative?: NativeBridgeChannel;
-    ReactNativeWebView?: { postMessage: (data: string) => void };
-  }
-}
-
 const listeners = new Set<(message: unknown) => void>();
 
 function dispatch(message: unknown) {
