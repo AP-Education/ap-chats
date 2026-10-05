@@ -153,8 +153,9 @@ LMS's existing ops host later if/when this needs the same treatment.
   touched. Deliberately two buckets, not one bucket with two prefixes: that
   way "backups must never be public" is a property of the bucket, not of
   every upload call remembering the right ACL. One Spaces key pair manages
-  (and is used by) both — Spaces keys are account-wide, not bucket-scoped —
-  but it's ap-connect's own, not reused from backend-LMS.
+  (and is used by) both — DO Spaces keys can be scoped to specific buckets,
+  so this one doesn't need to reach anything outside these two — but
+  either way it's ap-connect's own, not reused from backend-LMS.
 - **Caddy, not nginx+certbot**, as the edge: automatic HTTPS (no DO Load
   Balancer to terminate TLS), and it serves the SPA's static build directly
   in addition to reverse-proxying `/api` and `/socket.io` — no third
