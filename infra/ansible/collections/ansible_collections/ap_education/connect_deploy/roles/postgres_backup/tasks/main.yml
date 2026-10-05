@@ -3,11 +3,16 @@
 # backup script shells out to `docker compose exec`. See compose_runtime's
 # tasks/main.yml for why this is explicit playbook ordering, not a
 # meta/main.yml dependency.
-- name: Ensure awscli is installed
-  ansible.builtin.apt:
-    name: awscli
-    state: present
-    update_cache: true
+# Ubuntu dropped the standalone awscli apt package around 23.04/24.04 — no
+# candidate in main/universe/multiverse on this image (confirmed against
+# the actual droplet, not assumed). snap's aws-cli (publisher aws**,
+# AWS's own official snap) is the replacement; it lands at /snap/bin/aws,
+# which the backup script references by absolute path below since a
+# systemd service's PATH doesn't reliably include /snap/bin.
+- name: Ensure aws-cli snap is installed
+  community.general.snap:
+    name: aws-cli
+    classic: true
   become: true
 
 - name: Ensure bin directory exists

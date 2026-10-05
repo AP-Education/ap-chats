@@ -16,5 +16,5 @@ docker compose exec -T postgres pg_dump -U "{{ postgres_user }}" "{{ postgres_db
 
 AWS_ACCESS_KEY_ID="{{ do_spaces_access_key }}" \
 AWS_SECRET_ACCESS_KEY="{{ do_spaces_secret_key }}" \
-aws s3 cp "$dump_file" "s3://{{ do_backups_bucket }}/${object_key}" \
+/snap/bin/aws s3 cp "$dump_file" "s3://{{ do_backups_bucket }}/${object_key}" \
   --endpoint-url "{{ do_spaces_endpoint }}"

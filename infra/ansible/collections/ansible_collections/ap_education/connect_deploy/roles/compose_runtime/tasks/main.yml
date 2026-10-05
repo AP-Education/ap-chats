@@ -34,6 +34,11 @@
   become: true
   no_log: true
 
+# become: false explicitly — the play sets become: true, and just omitting
+# this line here still inherits that. docker_engine already creates
+# ~/.docker owned by {{ ansible_user }}, and "Pull images" below runs as
+# that same user (docker-group membership, not root) — becoming root here
+# writes config.json as root and the later task can't read it.
 - name: Log in to GHCR
   community.docker.docker_login:
     registry_url: '{{ ghcr_registry }}'
@@ -41,7 +46,7 @@
     password: '{{ ghcr_token }}'
     config_path: '/home/{{ ansible_user }}/.docker/config.json'
     state: present
-  become: true
+  become: false
   no_log: true
 
 - name: Pull images and (re)create the stack

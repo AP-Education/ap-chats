@@ -49,6 +49,14 @@
     append: true
   become: true
 
+# Group membership is read at login time, not re-checked mid-session — the
+# persistent SSH connection this play already opened as {{ ansible_user }}
+# still has the old group list. Without this, every later task that talks
+# to the docker socket as that user (not root) fails with "permission
+# denied" even though the user list clearly has them in the group.
+- name: Reset the connection so the new docker group membership takes effect
+  ansible.builtin.meta: reset_connection
+
 - name: Ensure docker config directory exists
   ansible.builtin.file:
     path: '/home/{{ ansible_user }}/.docker'
