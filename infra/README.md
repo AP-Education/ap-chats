@@ -117,6 +117,42 @@ image layers nothing is using anymore. Database migrations run automatically
 on API boot (Drizzle's migrator runs in `onModuleInit`) — there is no
 separate migration step.
 
+## Running this from a different machine
+
+Nothing here is tied to one developer's laptop — state (Backblaze B2),
+secrets (`vault.yml`, gitignored but re-creatable from the example +
+whoever holds the password), and the provider version
+(`terraform/prod/.terraform.lock.hcl`, committed) are all shared or
+reproducible. From a fresh clone, anyone with the right credentials gets:
+
+1. `ansible-galaxy collection install -r infra/ansible/requirements.yml -p infra/ansible/collections` —
+   collections are gitignored on purpose (only `ap_education.connect_deploy`
+   itself is vendored), so this has to be re-run on every machine.
+2. The same four credentials as before: `DIGITALOCEAN_TOKEN` (the **ap-main**
+   team's, not a different DO team/project), the Backblaze B2 key pair for
+   `ap-lms`, the ap-connect DigitalOcean Spaces key, and the
+   `ansible-vault` password for `vault.yml`.
+3. An SSH private key matching one of the `ssh_key_ids` already authorized
+   on the droplet — a different machine needs its _own_ keypair registered
+   the same way, or a copy of an already-authorized one.
+
+`terraform.lock.hcl` being committed matters here specifically: without
+it, a `terraform init` run from a different machine (or just run later)
+could resolve a different patch version of the DigitalOcean provider than
+whatever last applied this state — usually harmless, occasionally not.
+Committing it pins everyone to the exact version+checksums already tested.
+
+**One real safety gap, inherited from matching backend-LMS's setup, not
+introduced by ap-connect specifically:** the Backblaze B2 state backend has
+no working state lock. Terraform 1.11+'s native S3-style locking
+(`use_lockfile`) needs `If-None-Match` conditional writes, which
+Backblaze's S3-compatible API doesn't support — so this isn't set, and
+wouldn't reliably do anything if it were. In practice: **don't run
+`terraform apply` against `chats/prod/terraform.tfstate` from two places at
+once.** It's a process rule, not something the tooling enforces for you.
+This is also just... what backend-LMS itself already lives with, not a new
+risk this introduces.
+
 ## Adding another tenant
 
 Everything above is parameterized by tenant already:
