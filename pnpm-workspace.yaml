@@ -1,6 +1,9 @@
 packages:
+  - shell
   - web
   - mobile
+  - remotes/*
+  - packages/*
 
 packageExtensions:
   expo-audio@57.0.5:

@@ -4,7 +4,10 @@ on:
   push:
     branches: [main]
     paths:
+      - 'shell/**'
       - 'web/**'
+      - 'remotes/**'
+      - 'packages/**'
       - '*.json'
       - '*.yaml'
       - '*.mjs'
@@ -13,7 +16,10 @@ on:
       - '.github/workflows/web.yml'
   pull_request:
     paths:
+      - 'shell/**'
       - 'web/**'
+      - 'remotes/**'
+      - 'packages/**'
       - '*.json'
       - '*.yaml'
       - '*.mjs'
@@ -35,8 +41,8 @@ jobs:
         with:
           require-lockfile: true
           cache: true
-      - run: pnpm --filter @ap-chats/web lint
-      - run: pnpm --filter @ap-chats/web typecheck
-      - run: pnpm --filter @ap-chats/web test
-      - run: pnpm --filter @ap-chats/web build
-      - run: pnpm exec prettier --check web
+      - run: pnpm lint:web
+      - run: pnpm typecheck:web
+      - run: pnpm test:web
+      - run: pnpm build:web
+      - run: pnpm exec prettier --check shell web remotes packages

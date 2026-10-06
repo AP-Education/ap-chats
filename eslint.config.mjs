@@ -43,7 +43,13 @@ export default defineConfig(
     },
   },
   {
-    files: ['web/**/*.{ts,tsx}', 'mobile/**/*.{ts,tsx}'],
+    files: [
+      'web/**/*.{ts,tsx}',
+      'mobile/**/*.{ts,tsx}',
+      'shell/**/*.{ts,tsx}',
+      'remotes/**/*.{ts,tsx}',
+      'packages/**/*.{ts,tsx}',
+    ],
     plugins: { 'react-hooks': reactHooks },
     rules: reactHooks.configs.flat.recommended.rules,
     languageOptions: {
@@ -51,7 +57,12 @@ export default defineConfig(
     },
   },
   {
-    files: ['web/**/*.{ts,tsx}'],
+    files: [
+      'web/**/*.{ts,tsx}',
+      'shell/**/*.{ts,tsx}',
+      'remotes/**/*.{ts,tsx}',
+      'packages/**/*.{ts,tsx}',
+    ],
     rules: {
       'no-restricted-imports': [
         'error',
