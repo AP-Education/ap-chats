@@ -1,6 +1,5 @@
+import { Avatar } from '@ap/shell-ui';
 import { createStyles } from 'antd-style';
-
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import type { WorkspaceMemberLabel } from '../../hooks/useWorkspaceMemberLabels';
 

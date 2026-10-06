@@ -1,9 +1,7 @@
+import { Avatar, useIsMobile } from '@ap/shell-ui';
 import { BellSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { Link, useParams } from 'react-router-dom';
-
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
 

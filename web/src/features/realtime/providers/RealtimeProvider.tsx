@@ -1,6 +1,6 @@
+import { useCurrentUser } from '@ap/shell-sdk';
 import type { PropsWithChildren } from 'react';
 
-import { useCurrentUser } from '../../auth/stores/current-user-context';
 import { RealtimeContext } from '../stores/realtime-context';
 import type { ConnectionState } from '../types';
 import { ActiveConnection } from './ActiveConnection';

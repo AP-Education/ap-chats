@@ -1,20 +1,30 @@
 import path from 'node:path';
 
+import { sharedSingletons } from '@ap/federation';
+import { federation } from '@module-federation/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-// https://vite.dev/config/
+import pkg from './package.json' with { type: 'json' };
+
+const PORT = 5557;
+
+// Chats is a remote: the shell owns the document, auth, theme and router.
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    federation({
+      name: 'chats',
+      filename: 'remoteEntry.js',
+      exposes: { './module': './src/module.tsx' },
+      shared: sharedSingletons(pkg),
+      dts: false,
+    }),
+  ],
   resolve: {
     alias: { '@': path.resolve(import.meta.dirname, 'src') },
   },
-  server: {
-    host: true,
-    port: 5555,
-    proxy: {
-      '/api': 'http://localhost:3211',
-      '/socket.io': { target: 'http://localhost:3211', ws: true, changeOrigin: true },
-    },
-  },
+  server: { port: PORT, origin: `http://localhost:${PORT}`, cors: true },
+  preview: { port: PORT, cors: true },
+  build: { target: 'esnext' },
 });

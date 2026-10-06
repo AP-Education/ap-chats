@@ -1,6 +1,6 @@
+import { Avatar } from '@ap/shell-ui';
 import { createStyles, keyframes } from 'antd-style';
 
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 
 import { CallIcon, EndCallIcon } from '../callIcons';

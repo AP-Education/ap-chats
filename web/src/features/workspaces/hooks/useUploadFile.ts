@@ -1,6 +1,6 @@
+import { useCurrentUser } from '@ap/shell-sdk';
 import { useMutation, type UseMutationResult } from '@tanstack/react-query';
 
-import { useCurrentUser } from '../../auth/stores/current-user-context';
 import { uploadFile } from '../api/workspaces-api';
 import type { UploadedFile } from '../types';
 

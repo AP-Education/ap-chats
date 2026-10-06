@@ -2,7 +2,7 @@ import { Empty } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { ConversationPane } from '@/domain/conversation/ConversationPane';
-import { MobileMenuButton } from '@/layouts/MainLayout/MobileMenuButton';
+import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 
 const useStyles = createStyles(({ css }) => ({
   body: css`

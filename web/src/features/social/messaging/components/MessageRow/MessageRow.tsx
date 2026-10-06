@@ -1,3 +1,4 @@
+import { Avatar } from '@ap/shell-ui';
 import { WarningCircleIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
@@ -11,7 +12,6 @@ import type {
 } from '@/features/social/conversation/actions';
 import { useConversation } from '@/features/social/conversation/store';
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import type { AttachmentDraft } from '../../attachments/types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';

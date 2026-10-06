@@ -1,3 +1,4 @@
+import { useIsMobile } from '@ap/shell-ui';
 import { CaretDownIcon, GearSixIcon, SignOutIcon, UsersThreeIcon } from '@phosphor-icons/react';
 import { Alert, Button, Dropdown, type MenuProps, message } from 'antd';
 import { createStyles } from 'antd-style';
@@ -14,7 +15,6 @@ import { useCallAction } from '@/features/calls/hooks/useCallAction';
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { ApiError } from '@/shared/api/http';
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { IconButton } from '@/shared/ui/IconButton';
 import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 

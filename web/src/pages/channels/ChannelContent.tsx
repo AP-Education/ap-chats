@@ -1,3 +1,4 @@
+import { useIsMobile } from '@ap/shell-ui';
 import { Button, Empty, Result } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
@@ -13,8 +14,7 @@ import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
 import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
-import { MobileMenuButton } from '@/layouts/MainLayout/MobileMenuButton';
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
+import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
 
 const useStyles = createStyles(({ token, css }) => ({

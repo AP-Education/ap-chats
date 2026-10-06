@@ -1,3 +1,4 @@
+import { useIsMobile } from '@ap/shell-ui';
 import { createContext, type PropsWithChildren, type RefObject, useContext, useState } from 'react';
 
 import type {
@@ -5,7 +6,6 @@ import type {
   ActionTarget,
   ConversationAction,
 } from '@/features/social/conversation/actions';
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 import type { AttachmentDraft } from '../../attachments/types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';

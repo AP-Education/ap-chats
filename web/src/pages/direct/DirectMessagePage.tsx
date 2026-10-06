@@ -1,3 +1,4 @@
+import { Avatar, useIsMobile } from '@ap/shell-ui';
 import { Button, Empty, Result } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
@@ -15,10 +16,8 @@ import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDir
 import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
-import { MobileMenuButton } from '@/layouts/MainLayout/MobileMenuButton';
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
+import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 const useStyles = createStyles(({ css }) => ({
   title: css`

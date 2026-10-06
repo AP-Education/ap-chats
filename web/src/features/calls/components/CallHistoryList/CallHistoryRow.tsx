@@ -1,3 +1,4 @@
+import { Avatar, useIsMobile } from '@ap/shell-ui';
 import { createStyles } from 'antd-style';
 import { Link } from 'react-router-dom';
 
@@ -6,8 +7,6 @@ import { CallIcon } from '@/features/calls/callIcons';
 import { getCallStatusIcon } from '@/features/calls/callStatusIcon';
 import { formatCallDuration } from '@/features/calls/formatCallDuration';
 import { useKnownCallAction } from '@/features/calls/hooks/useKnownCallAction';
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
 import { IconButton } from '@/shared/ui/IconButton';
 import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 

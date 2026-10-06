@@ -37,6 +37,7 @@ const useStyles = createStyles(({ token, css }) => ({
   list: css`
     min-height: 0;
     overflow-y: auto;
+    padding-bottom: var(--shell-footer-space, 0px);
   `,
 }));
 

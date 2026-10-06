@@ -2,13 +2,13 @@ import { readFileSync } from 'node:fs';
 import { URL } from 'node:url';
 import { runInNewContext } from 'node:vm';
 
+import type * as GestureModule from '@ap/shell-ui';
 import type { MouseEvent, TouchEvent } from 'react';
 import ts from 'typescript';
 
+import type * as MobileNavModule from '../../../packages/shell-ui/src/layout/useMobileNavSheet';
 import type * as ReplySwipeModule from '../../src/features/social/messaging/components/MessageRow/useMessageReplySwipe';
 import type * as SelectionModule from '../../src/features/social/messaging/components/MessageTimeline/useMobileMessageSelection';
-import type * as MobileNavModule from '../../src/layouts/MainLayout/useMobileNavSheet';
-import type * as GestureModule from '../../src/shared/hooks/useTouchGesture';
 
 interface HookSlot {
   current?: unknown;
@@ -120,14 +120,14 @@ export function createGestureFixture() {
   }
 
   const { useTouchGesture } = load<typeof GestureModule>(
-    '../../src/shared/hooks/useTouchGesture.ts',
+    '../../../packages/shell-ui/src/hooks/useTouchGesture.ts',
     { react },
   );
   const { useMobileNavSheet } = load<typeof MobileNavModule>(
-    '../../src/layouts/MainLayout/useMobileNavSheet.ts',
+    '../../../packages/shell-ui/src/layout/useMobileNavSheet.ts',
     {
       react,
-      '@/shared/hooks/useTouchGesture': { useTouchGesture },
+      '../hooks/useTouchGesture': { useTouchGesture },
     },
   );
 
@@ -136,7 +136,7 @@ export function createGestureFixture() {
     '../../src/features/social/messaging/components/MessageRow/useMessageReplySwipe.ts',
     {
       react,
-      '@/shared/hooks/useTouchGesture': { useTouchGesture },
+      '@ap/shell-ui': { useTouchGesture },
       '@/shared/lib/haptics': haptics,
     },
   );

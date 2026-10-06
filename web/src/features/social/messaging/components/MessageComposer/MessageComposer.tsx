@@ -1,3 +1,5 @@
+import { isNativeShell } from '@ap/shell-sdk';
+import { useIsMobile } from '@ap/shell-ui';
 import {
   GifIcon,
   KeyboardIcon,
@@ -22,8 +24,6 @@ import {
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversation, useConversationScope } from '@/features/social/conversation/store';
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { isNativeShell } from '@/shared/lib/nativeBridge';
 import { randomId } from '@/shared/lib/random-id';
 import { IconButton } from '@/shared/ui/IconButton';
 

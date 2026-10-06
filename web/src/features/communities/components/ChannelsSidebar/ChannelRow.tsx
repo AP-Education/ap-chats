@@ -1,10 +1,10 @@
+import { useIsMobile } from '@ap/shell-ui';
 import { GearSixIcon, UserPlusIcon } from '@phosphor-icons/react';
 import { Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { IconButton } from '@/shared/ui/IconButton';
 
 import { canManageChannel } from '../../channel-permissions';

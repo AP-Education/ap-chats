@@ -1,6 +1,5 @@
+import { useCurrentUser } from '@ap/shell-sdk';
 import { useMemo } from 'react';
-
-import { useCurrentUser } from '@/features/auth/stores/current-user-context';
 
 import type { WorkspaceMember } from '../types';
 import { useWorkspaceMembers } from './useWorkspaceMembers';

@@ -1,4 +1,4 @@
-import { useCurrentUser } from '../stores/current-user-context';
+import { useCurrentUser } from '@ap/shell-sdk';
 
 export function useQueryAuth() {
   const user = useCurrentUser();

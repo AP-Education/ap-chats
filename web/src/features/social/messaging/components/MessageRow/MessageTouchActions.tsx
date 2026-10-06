@@ -1,8 +1,8 @@
+import { SWIPE_SETTLE_TRANSITION } from '@ap/shell-ui';
 import { createStyles } from 'antd-style';
 import { type CSSProperties, useState } from 'react';
 
 import { ReplyIcon } from '@/features/social/conversation/actionIcons';
-import { SWIPE_SETTLE_TRANSITION } from '@/shared/hooks/useTouchGesture';
 
 import { groupMessageActions } from './messageActionGroups';
 import type { MessageActionsProps } from './MessageActions';

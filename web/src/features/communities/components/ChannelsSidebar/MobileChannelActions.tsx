@@ -1,7 +1,6 @@
+import { useTouchGesture } from '@ap/shell-ui';
 import { createStyles } from 'antd-style';
 import { lazy, type PropsWithChildren, Suspense, useState } from 'react';
-
-import { useTouchGesture } from '@/shared/hooks/useTouchGesture';
 
 import type { Channel } from '../../channels/types';
 

@@ -1,3 +1,4 @@
+import { Avatar } from '@ap/shell-ui';
 import {
   isTrackReference,
   type TrackReferenceOrPlaceholder,
@@ -6,8 +7,6 @@ import {
 } from '@livekit/components-react';
 import { MicrophoneSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
-
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 const useStyles = createStyles(({ css }) => ({
   tile: css`

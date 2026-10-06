@@ -1,6 +1,6 @@
+import { useTouchGesture } from '@ap/shell-ui';
 import { useState } from 'react';
 
-import { useTouchGesture } from '@/shared/hooks/useTouchGesture';
 import { selectionHaptic } from '@/shared/lib/haptics';
 
 const REPLY_DISTANCE = 48;
