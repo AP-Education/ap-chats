@@ -1,0 +1,31 @@
+{
+  "name": "@ap/remote-demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src vite.config.ts",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "dependencies": {
+    "@ap/shell-sdk": "workspace:*",
+    "@ap/shell-ui": "workspace:*",
+    "@phosphor-icons/react": "^2.1.10",
+    "antd": "6.5.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-router-dom": "6.30.1"
+  },
+  "devDependencies": {
+    "@ap/federation": "workspace:*",
+    "@module-federation/vite": "^1.23.2",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}
