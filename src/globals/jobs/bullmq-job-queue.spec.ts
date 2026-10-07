@@ -57,9 +57,13 @@ test(
       get: (key: string) => (key === 'VALKEY_URL' ? `redis://127.0.0.1:${port}/0` : true),
     };
     const errors: unknown[] = [];
+    const retries: unknown[] = [];
     const logger = {
       error: (value: unknown) => {
         errors.push(value);
+      },
+      warn: (value: unknown) => {
+        retries.push(value);
       },
     };
     const first = new BullMqJobQueue(config as never, logger as never),
@@ -139,8 +143,9 @@ test(
       8,
       'unspecified attempts retain the default retry policy',
     );
-    assert.equal(errors.length, 1);
-    assert.equal((errors[0] as { err: Error }).err.message, 'transient provider failure');
+    assert.equal(errors.length, 0, 'a failure its retry recovers from is not an error');
+    assert.equal(retries.length, 1);
+    assert.equal((retries[0] as { err: Error }).err.message, 'transient provider failure');
 
     await t.test(
       'native throttle coalesces one conversation without extending its first deadline',

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Expo } from 'expo-server-sdk';
 
 import { AppConfigService } from '@/globals/config';
+import { PermanentJobError } from '@/globals/jobs/job-queue';
 
 import type { MessageNotificationPayload } from '../types';
 import {
@@ -25,7 +26,9 @@ export class ExpoServerPushProvider extends ExpoPushProvider {
     envelope: MessageNotificationPayload,
     ttl: number,
   ): Promise<ExpoPushAcceptance> {
-    if (!Expo.isExpoPushToken(token)) throw new Error('Invalid Expo push token');
+    // A malformed token never becomes valid, so it is dropped like an unregistered one.
+    if (!Expo.isExpoPushToken(token)) return { status: 'unregistered' };
+
     const [ticket] = await this.client.sendPushNotificationsAsync([
       {
         to: token,
@@ -48,15 +51,25 @@ export class ExpoServerPushProvider extends ExpoPushProvider {
     ]);
     if (!ticket) throw new Error('Expo returned no push ticket');
     if (ticket.status === 'ok') return { status: 'accepted', receiptId: ticket.id };
-    if (ticket.details?.error === 'DeviceNotRegistered') return { status: 'unregistered' };
-    throw new Error(`Expo rejected notification: ${ticket.details?.error ?? 'unknown'}`);
+
+    return { status: unregisteredOrThrow(ticket.details?.error, 'Expo rejected notification') };
   }
 
   async receipt(id: string): Promise<ExpoPushReceipt> {
     const receipt = (await this.client.getPushNotificationReceiptsAsync([id]))[id];
     if (!receipt) return 'pending';
     if (receipt.status === 'ok') return 'accepted';
-    if (receipt.details?.error === 'DeviceNotRegistered') return 'unregistered';
-    throw new Error(`Expo receipt rejected: ${receipt.details?.error ?? 'unknown'}`);
+
+    return unregisteredOrThrow(receipt.details?.error, 'Expo receipt rejected');
   }
+}
+
+// Errors a retry can't fix; anything else (rate limits, outages) is left to job retries.
+const PERMANENT_ERRORS = new Set(['MessageTooBig', 'InvalidCredentials', 'MismatchSenderId']);
+
+function unregisteredOrThrow(error: string | undefined, context: string): 'unregistered' {
+  if (error === 'DeviceNotRegistered') return 'unregistered';
+
+  const message = `${context}: ${error ?? 'unknown'}`;
+  throw PERMANENT_ERRORS.has(error ?? '') ? new PermanentJobError(message) : new Error(message);
 }

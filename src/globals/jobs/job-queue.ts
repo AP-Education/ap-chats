@@ -1,3 +1,6 @@
+/** A failure no retry can fix: the job fails at once instead of exhausting its attempts. */
+export class PermanentJobError extends Error {}
+
 export interface JobOptions {
   id?: string;
   priority?: number;
