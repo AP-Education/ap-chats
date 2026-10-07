@@ -121,8 +121,9 @@ resource "digitalocean_record" "chats" {
   domain = var.domain_name
   type   = "A"
   name   = var.chats_subdomain
-  value  = digitalocean_reserved_ip.web.ip_address
-  ttl    = 300
+  # Through the assignment, so DNS moves only once the address actually reaches the droplet.
+  value = digitalocean_reserved_ip_assignment.web.ip_address
+  ttl   = 300
 
   depends_on = [digitalocean_domain.primary]
 }

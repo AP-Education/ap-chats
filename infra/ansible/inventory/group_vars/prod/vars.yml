@@ -12,7 +12,7 @@ postgres_db: ap_chats
 app_tag: prod
 chats_domain: chats.ap-platform.online
 
-# Enable after deploying an image containing feat/chat-push-notifications.
+# Needs the web_push_* (and, for calls, apns_*) values in the vault.
 # The service's Valkey URL is redis://valkey:6379/0, never localhost:6380.
-push_enabled: false
+push_enabled: true
 push_worker_enabled: true
