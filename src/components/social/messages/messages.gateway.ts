@@ -12,8 +12,8 @@ import { Transactional } from '@nestjs-cls/transactional';
 import type { Namespace, Socket } from 'socket.io';
 
 import type { AuthenticatedUser } from '@/components/auth';
-import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
-import { ChannelAudienceFacade } from '@/components/communities/channel-audience/channel-audience.facade';
+import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAudienceFacade } from '@/components/communities/channel-audience';
 import { WorkspaceMembersRepository } from '@/components/workspaces/members/repository';
 import { Logger } from '@/globals/logger';
 import { RealtimeRooms } from '@/globals/realtime';

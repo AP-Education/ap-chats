@@ -2,6 +2,7 @@ import type { PropsWithChildren } from 'react';
 import { useAuth } from 'react-oidc-context';
 
 import { CurrentUserContext } from '../stores/current-user-context';
+import { runSignOutTasks } from '../stores/sign-out-tasks';
 import type { CurrentUserProfile, CurrentUserState } from '../types';
 
 function toProfile(profile: {
@@ -30,10 +31,12 @@ export function OidcCurrentUserProvider({ children }: PropsWithChildren) {
         queryIdentity: signedInUser.profile.sub,
         profile: toProfile(signedInUser.profile),
         signOut: () =>
-          void auth.signoutRedirect({
-            id_token_hint: signedInUser.id_token,
-            post_logout_redirect_uri: window.location.origin,
-          }),
+          void runSignOutTasks().finally(() =>
+            auth.signoutRedirect({
+              id_token_hint: signedInUser.id_token,
+              post_logout_redirect_uri: window.location.origin,
+            }),
+          ),
         refreshAccessToken: async () => {
           const renewed = await auth.signinSilent();
           if (!renewed?.access_token)

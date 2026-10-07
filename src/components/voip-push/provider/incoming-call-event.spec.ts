@@ -9,7 +9,7 @@ const PAYLOAD: CallSignalPayload = {
   workspaceId: 'ws-1',
   channelId: 'chan-1',
   channelKind: 'dm',
-  callId: 'call-1',
+  callId: '4eb7c430-c67c-463c-bd66-64e9f5c16e7d',
   roomName: 'room-1',
   startedByMemberId: 'member-1',
   startedByDisplayName: 'Alice',
@@ -19,7 +19,7 @@ const PAYLOAD: CallSignalPayload = {
 test('maps CallSignalPayload onto expo-callkit-telecom incomingCall wire shape', () => {
   const event = buildIncomingCallEvent(PAYLOAD);
 
-  assert.equal(event.serverCallId, 'call-1');
+  assert.equal(event.serverCallId, PAYLOAD.callId);
   assert.equal(event.hasVideo, false);
   assert.equal(event.caller.id, 'member-1');
   assert.equal(event.caller.displayName, 'Alice');
@@ -38,9 +38,9 @@ test('omits displayName rather than sending null — the wire type wants a strin
   assert.equal('displayName' in event.caller, false);
 });
 
-test("a fresh eventId is minted per call, for the native side's own dedup", () => {
+test('retries of the same call retain the native deduplication identifier', () => {
   const first = buildIncomingCallEvent(PAYLOAD);
   const second = buildIncomingCallEvent(PAYLOAD);
 
-  assert.notEqual(first.eventId, second.eventId);
+  assert.equal(first.eventId, second.eventId);
 });

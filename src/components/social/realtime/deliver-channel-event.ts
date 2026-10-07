@@ -1,7 +1,7 @@
 import type { Namespace } from 'socket.io';
 
 import type { AuthenticatedUser } from '@/components/auth';
-import type { ChannelAudienceFacade } from '@/components/communities/channel-audience/channel-audience.facade';
+import type { ChannelAudienceFacade } from '@/components/communities/channel-audience';
 import type { Logger } from '@/globals/logger';
 import { RealtimeRooms } from '@/globals/realtime';
 

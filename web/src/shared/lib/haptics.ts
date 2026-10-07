@@ -1,3 +1,5 @@
+import { postToNative } from './nativeBridge';
+
 export function selectionHaptic(): void {
-  window.ReactNativeWebView?.postMessage(JSON.stringify({ type: 'haptics/selection' }));
+  postToNative({ type: 'haptics/selection' });
 }

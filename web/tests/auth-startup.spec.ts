@@ -205,6 +205,7 @@ test('silent token renewal keeps a valid user signed in and switches to the rene
   }>('../src/features/auth/providers/OidcCurrentUserProvider.tsx', {
     'react-oidc-context': { useAuth: () => auth },
     '../stores/current-user-context': { CurrentUserContext: { Provider: 'provider' } },
+    '../stores/sign-out-tasks': { runSignOutTasks: async () => undefined },
   });
   const current = OidcCurrentUserProvider({}).props.value;
   assert.equal(current.status, 'signed-in');

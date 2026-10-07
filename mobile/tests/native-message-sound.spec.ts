@@ -127,15 +127,16 @@ test('message sound is routed to native instead of Web Audio in the RN shell', (
         },
       },
       '@/shared/audio/tone': {},
-    },
-    {
-      window: {
-        ReactNativeWebView: { postMessage: (value: string) => messages.push(JSON.parse(value)) },
+      '@/shared/lib/nativeBridge': {
+        isNativeShell: () => true,
+        postToNative: (message: unknown) => messages.push(message),
       },
     },
+    {},
   );
   playMessageBloop();
-  assert.deepEqual(messages, [{ type: 'notifications/message-sound' }]);
+  // A plain copy: the message object was created inside the module's VM context.
+  assert.deepEqual(JSON.parse(JSON.stringify(messages)), [{ type: 'notifications/message-sound' }]);
 });
 
 test('browser keeps the same two-note message sound', () => {
@@ -153,8 +154,9 @@ test('browser keeps the same two-note message sound', () => {
           options: { frequency: number; startTime: number },
         ) => notes.push(options),
       },
+      '@/shared/lib/nativeBridge': { isNativeShell: () => false, postToNative: () => {} },
     },
-    { window: {}, setTimeout: () => {} },
+    { setTimeout: () => {} },
   );
   playMessageBloop();
   assert.deepEqual(

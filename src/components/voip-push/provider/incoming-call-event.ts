@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import type { CallSignalPayload } from '@/components/calls/events/call-signal.event';
 
 // The exact wire shape expo-callkit-telecom's native code parses out of a VoIP
@@ -24,7 +22,7 @@ export interface IncomingCallEventWire {
 
 export function buildIncomingCallEvent(payload: CallSignalPayload): IncomingCallEventWire {
   return {
-    eventId: randomUUID(),
+    eventId: payload.callId,
     serverCallId: payload.callId,
     hasVideo: false,
     caller: {
