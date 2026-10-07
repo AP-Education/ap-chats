@@ -24,7 +24,7 @@ import {
   type CallSignalKind,
 } from './events/call-signal.event';
 import { CallProvider } from './provider';
-import { CallsRepository } from './repository';
+import { type CallHistoryFilter, CallsRepository } from './repository';
 import type { CallRecord, CallStatus } from './types';
 
 const LIVE_STATUSES = new Set<CallStatus>(['ringing', 'active']);
@@ -90,11 +90,12 @@ export class CallsService {
     return call ? this.toView(call) : null;
   }
 
-  async list(member: WorkspaceMember, before?: string) {
+  async list(member: WorkspaceMember, filter: CallHistoryFilter, before?: string) {
     const cursor = before ? decodeHistoryCursor(before) : undefined;
     const rows = await this.calls.listForMember(
       member.workspaceId,
       member.id,
+      filter,
       cursor ? { startedAt: new Date(cursor.startedAt), id: cursor.id } : undefined,
       HISTORY_PAGE_SIZE,
     );

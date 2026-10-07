@@ -14,7 +14,7 @@ import {
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 import type { CallRecord } from '../types';
-import { CallsRepository } from './calls.repository';
+import { type CallHistoryFilter, CallsRepository } from './calls.repository';
 
 const ACTIVE_STATUSES = ['ringing', 'active'] as const;
 
@@ -134,6 +134,7 @@ export class DrizzleCallsRepository extends CallsRepository {
   async listForMember(
     workspaceId: string,
     memberId: string,
+    filter: CallHistoryFilter,
     cursor: { startedAt: Date; id: string } | undefined,
     limit: number,
   ) {
@@ -170,6 +171,9 @@ export class DrizzleCallsRepository extends CallsRepository {
             eq(directMessages.firstMemberId, memberId),
             eq(directMessages.secondMemberId, memberId),
           ),
+          filter === 'missed'
+            ? and(eq(calls.status, 'missed'), ne(calls.startedByMemberId, memberId))
+            : undefined,
           cursor
             ? or(
                 lt(calls.startedAt, cursor.startedAt),
