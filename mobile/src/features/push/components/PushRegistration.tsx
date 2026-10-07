@@ -1,13 +1,26 @@
 import * as Notifications from 'expo-notifications';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
 import { useAuthStore } from '../../auth';
 import { loadCallKitModule } from '../../calls/utils/callkit-module';
 import { registerCurrentDeviceForPush } from '../api/register-current-device';
+import { unregisterCurrentDevice } from '../api/unregister-current-device';
 
 export function PushRegistration() {
   const status = useAuthStore((state) => state.status);
+  const accessToken = useAuthStore((state) =>
+    state.status === 'signed-in' ? state.tokens.accessToken : null,
+  );
+  const sessionToken = useRef<string | null>(null);
+
+  // A logout and a failed refresh both end the session; either way this phone stops getting pushes.
+  useEffect(() => {
+    const endedToken = accessToken ? null : sessionToken.current;
+    sessionToken.current = accessToken;
+
+    if (endedToken) void unregisterCurrentDevice(endedToken);
+  }, [accessToken]);
 
   useEffect(() => {
     if (status !== 'signed-in') return;

@@ -20,7 +20,6 @@ import {
   isComposerInputRequest,
   useComposerInput,
 } from '../../composer';
-import { unregisterCurrentDevice } from '../../push/api/unregister-current-device';
 import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
 import { useNotificationStore } from '../../push/store/notification-store';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
@@ -111,9 +110,8 @@ export function WebViewHost() {
     } else if (message.type === 'notifications/context') {
       useNotificationStore.getState().setContext(message.payload);
     } else if (message.type === 'auth/sign-out') {
-      // Capture the current access token before signOut hides the WebView. Push
-      // cleanup must not block logout when the device API is unreachable.
-      void Promise.allSettled([unregisterCurrentDevice(), useAuthStore.getState().signOut()]);
+      // PushRegistration unregisters the device on any way out of the session.
+      void useAuthStore.getState().signOut();
     } else if (message.type === 'auth/refresh-request') {
       // Updates the store; the effect above picks up the new token and re-injects it.
       void useAuthStore.getState().refreshNow();
