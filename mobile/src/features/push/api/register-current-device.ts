@@ -30,9 +30,7 @@ export async function registerCurrentDeviceForPush(): Promise<void> {
       pushToken: tokenResult.token,
       apnsEnvironment:
         Constants.expoConfig?.extra?.apnsEnvironment === 'production' ? 'production' : 'sandbox',
-      // undefined on a fresh install, before registerVoIPPush() resolves — PushRegistration
-      // retries this whole function once addVoIPPushTokenUpdatedListener fires, so it's filled
-      // in shortly after. JSON.stringify drops an undefined key, so this is safe to send as-is.
+      // Missing on a fresh install; PushRegistration registers again when the VoIP token arrives.
       voipToken: CallKit?.getVoIPPushToken()?.token,
     };
 

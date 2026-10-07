@@ -22,55 +22,40 @@ export function PushRegistration() {
     if (endedToken) void unregisterCurrentDevice(endedToken);
   }, [accessToken]);
 
+  // Registration calls are already serialized; a failure simply retries the next time the app opens.
   useEffect(() => {
     if (status !== 'signed-in') return;
+
     let cancelled = false;
-    let running = false;
-    let rerun = false;
-    let attempts = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
     let voipSubscription: { remove(): void } | undefined;
-    const register = async () => {
+    const register = () => {
       if (cancelled) return;
-      if (running) {
-        rerun = true;
-        return;
-      }
-      running = true;
-      clearTimeout(timer);
-      try {
-        await registerCurrentDeviceForPush();
-        attempts = 0;
-      } catch (error) {
-        if (__DEV__) console.warn('[push] registration will retry', error);
-        if (!cancelled)
-          timer = setTimeout(() => void register(), Math.min(5000 * 2 ** attempts++, 300000));
-      } finally {
-        running = false;
-        if (rerun) {
-          rerun = false;
-          void register();
-        }
-      }
+
+      void registerCurrentDeviceForPush().catch((error: unknown) => {
+        if (__DEV__) console.warn('[push] registration retries on next foreground', error);
+      });
     };
-    void register();
+
+    register();
     const appState = AppState.addEventListener('change', (state) => {
-      if (state === 'active') void register();
+      if (state === 'active') register();
     });
-    const nativeToken = Notifications.addPushTokenListener(() => void register());
+    const pushToken = Notifications.addPushTokenListener(register);
     void loadCallKitModule().then((CallKit) => {
       if (!CallKit || cancelled) return;
-      voipSubscription = CallKit.addVoIPPushTokenUpdatedListener(() => void register());
+
+      voipSubscription = CallKit.addVoIPPushTokenUpdatedListener(register);
       CallKit.registerVoIPPush();
-      void register();
+      register();
     });
+
     return () => {
       cancelled = true;
-      clearTimeout(timer);
       appState.remove();
-      nativeToken.remove();
+      pushToken.remove();
       voipSubscription?.remove();
     };
   }, [status]);
+
   return null;
 }
