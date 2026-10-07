@@ -24,7 +24,7 @@ flowchart LR
 
 The relay claims up to 100 eligible rows with `SKIP LOCKED` and a 60-second lease. It prioritizes call intents. Failed enqueue releases unsubmitted leases for the next relay tick; the 60-second lease is only crash recovery. PostgreSQL retains each source event until BullMQ accepts it. A failed handoff is retried with the same ID. After handoff, fanout and per-device jobs live in Valkey and use BullMQ retries; they are not additional PostgreSQL outbox records. Recovery of an accepted job therefore depends on Valkey persistence. Exhausted BullMQ jobs stay in the failed set for operator inspection and retry rather than receiving an unbounded automatic replay loop.
 
-Notification audience is a read-only indexed projection over existing membership, cursor, settings, entries and mentions. This intentionally batches cross-module reads without making notifications the owner of those records. Only repositories in their owning modules write them. `NotificationPolicyService` remains the authority for mute, mention defaults and own-message suppression.
+Notification audience is a read-only indexed projection over existing membership, cursor, settings, entries and mentions. This intentionally batches cross-module reads without making notifications the owner of those records. Only repositories in their owning modules write them. `NotificationPolicyService` remains the authority for mute, notification levels and own-message suppression. The default level alerts on all messages in channels and DMs; an explicit mentions level limits alerts to structured mentions.
 
 ## Component boundaries
 
@@ -105,7 +105,7 @@ The implementation tests migration deduplication, transactional enqueue rollback
 
 Before rollout, test with signed iOS and Android builds and HTTPS browser deployment:
 
-- Unmuted DM and channel mention arrive while the browser/app is closed; own messages, mute and non-mentions follow the existing policy.
+- Unmuted DM and default channel messages arrive while the browser/app is closed; own messages and muted conversations stay silent. An explicit mentions level alerts only on structured mentions.
 - Tapping opens the correct workspace/chat from foreground, background and cold start.
 - Local iOS sandbox and distribution production call pushes both reach CallKit; stale/ended calls do not produce late rings after a queued retry.
 - Accept from the lock screen with the app terminated and with it backgrounded: one native session connects with two-way audio. Hang up during connection and answer on another device: no phantom call or duplicate decline remains.

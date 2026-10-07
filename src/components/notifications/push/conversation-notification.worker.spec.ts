@@ -13,7 +13,7 @@ import {
   PUSH_FANOUT_EVENT,
 } from './types';
 
-function fixture() {
+function fixture(level: 'default' | 'mentions' = 'mentions') {
   const source = {
     workspaceId: 'workspace',
     channelId: 'channel',
@@ -25,7 +25,7 @@ function fixture() {
   const page = Array.from({ length: 100 }, (_, index) => ({
     memberId: String(index).padStart(3, '0'),
     userId: `reader-${index}`,
-    level: 'default' as const,
+    level,
     mutedUntil: null,
     notificationsMuted: index === 10,
     mentioned: [3, 7, 10].includes(index),
@@ -85,6 +85,17 @@ test('fanout preserves recipient policy and advances past silent members in a bo
     ttl: 3000,
   });
   assert.deepEqual(f.continuation, [{ source: f.source, after: '099' }]);
+});
+
+test('default channel fanout includes non-mentions but excludes the author and muted members', async () => {
+  const f = fixture('default');
+  await f.worker.scheduleConversationAlerts({ source: f.source });
+  const recipients = f.batches[0]!.map((alert) => alert.data.memberId);
+  assert.equal(recipients.length, 98);
+  assert.ok(recipients.includes('000'));
+  assert.ok(recipients.includes('007'));
+  assert.ok(!recipients.includes('003'));
+  assert.ok(!recipients.includes('010'));
 });
 
 test('failed page enqueue does not advance fanout and retry retains the same alert IDs', async () => {

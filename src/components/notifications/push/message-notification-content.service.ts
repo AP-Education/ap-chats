@@ -27,7 +27,7 @@ export class MessageNotificationContentService {
     const recipient = recipients[0];
     if (!context || !recipient || recipient.userId !== alert.userId) return null;
 
-    const level = this.policy.messageLevel(context.kind, recipient);
+    const level = this.policy.messageLevel(recipient);
     if (level === 'none') return null;
 
     const message = await this.audience.latestMessage(scope, recipient, level === 'mentions');
