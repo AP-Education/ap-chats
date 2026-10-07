@@ -4,7 +4,7 @@ export interface BrowserPushState {
   available: boolean;
   enabled: boolean;
   busy: boolean;
-  denied: boolean;
+  permission: NotificationPermission;
   error: string | null;
   subscriptionId: string | null;
   enable: () => Promise<void>;

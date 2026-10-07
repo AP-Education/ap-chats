@@ -130,8 +130,7 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       )}
       <div className={styles.sidebarProfile}>
-        <PushSettings />
-        <AuthStatus beforeSignOut={push.disable} />
+        <AuthStatus actions={<PushSettings />} beforeSignOut={push.disable} />
       </div>
     </div>
   );

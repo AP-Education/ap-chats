@@ -38,15 +38,20 @@ export function PushPresence() {
       }
     };
     const update = () => send();
+    const hide = () => send(true);
     send();
     window.addEventListener('focus', update);
     window.addEventListener('blur', update);
+    window.addEventListener('pagehide', hide);
+    window.addEventListener('pageshow', update);
     document.addEventListener('visibilitychange', update);
     const timer = window.setInterval(update, 30000);
     return () => {
       clearInterval(timer);
       window.removeEventListener('focus', update);
       window.removeEventListener('blur', update);
+      window.removeEventListener('pagehide', hide);
+      window.removeEventListener('pageshow', update);
       document.removeEventListener('visibilitychange', update);
       send(true);
     };

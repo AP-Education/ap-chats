@@ -44,15 +44,27 @@ export function useBrowserPushRegistration(
     const refreshVisiblePage = () => {
       if (document.visibilityState === 'visible') synchronize();
     };
+    const controller = new AbortController();
+
+    void navigator.permissions
+      ?.query({ name: 'notifications' })
+      .then((status) => {
+        if (!controller.signal.aborted)
+          status.addEventListener('change', synchronize, { signal: controller.signal });
+      })
+      .catch(() => undefined);
 
     synchronize();
     window.addEventListener('online', synchronize);
+    window.addEventListener('focus', synchronize);
     document.addEventListener('visibilitychange', refreshVisiblePage);
     const timer = window.setInterval(refreshVisiblePage, 300000);
 
     return () => {
+      controller.abort();
       clearInterval(timer);
       window.removeEventListener('online', synchronize);
+      window.removeEventListener('focus', synchronize);
       document.removeEventListener('visibilitychange', refreshVisiblePage);
     };
   }, [registration, supported, identity, publicKey]);
@@ -62,7 +74,7 @@ export function useBrowserPushRegistration(
     enabled: !!state.subscriptionId,
     subscriptionId: state.subscriptionId,
     busy: state.busy,
-    denied: state.permission === 'denied',
+    permission: state.permission,
     error: state.error,
     enable: async () => {
       if (supported && publicKey) await registration.enable(publicKey);

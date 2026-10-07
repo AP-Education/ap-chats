@@ -14,6 +14,7 @@ self.addEventListener('push', (event) => {
         icon: '/push-icon.png',
         badge: '/push-icon.png',
         tag: typeof data?.channelId === 'string' ? data.channelId : 'ap-connect',
+        renotify: true,
         data: { url, userId: data?.userId },
       },
     ),

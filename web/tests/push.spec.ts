@@ -30,7 +30,12 @@ test('notification intent accepts only the matching channel and workspace route'
 
 function workerFixture() {
   const listeners = new Map<string, (event: unknown) => void>();
-  const shown: { title: string; options: { data: { url: string; userId: string } } }[] = [];
+  type NotificationOptions = {
+    tag?: string;
+    renotify?: boolean;
+    data: { url: string; userId: string };
+  };
+  const shown: { title: string; options: NotificationOptions }[] = [];
   const opened: string[] = [];
   const navigated: string[] = [];
   const focused: boolean[] = [];
@@ -40,10 +45,7 @@ function workerFixture() {
     addEventListener: (name: string, handler: (event: unknown) => void) =>
       listeners.set(name, handler),
     registration: {
-      showNotification: async (
-        title: string,
-        options: { data: { url: string; userId: string } },
-      ) => {
+      showNotification: async (title: string, options: NotificationOptions) => {
         shown.push({ title, options });
       },
     },
@@ -103,6 +105,18 @@ test('each push displays a notification, including an invalid payload fallback',
   });
   assert.equal(f.shown.length, 2);
   assert.equal(f.shown[1]?.options.data.url, 'https://connect.test/');
+});
+
+test('successive messages in the same channel request a fresh OS alert', async () => {
+  const f = workerFixture();
+  for (const eventId of ['first', 'second']) {
+    await f.emit('push', { data: { json: () => ({ ...intent, eventId }) } });
+  }
+  assert.equal(f.shown.length, 2);
+  for (const notification of f.shown) {
+    assert.equal(notification.options.tag, channelId);
+    assert.equal(notification.options.renotify, true);
+  }
 });
 
 test('click reuses an existing window and carries the intended account', async () => {

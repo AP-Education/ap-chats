@@ -10,9 +10,10 @@ import type {
   BrowserPushRegistrationState,
 } from '../src/features/devices/browser-push/browser-push-registration';
 
-function fixture() {
-  let subscribed = true;
-  let permission: NotificationPermission = 'granted';
+function fixture(options: { subscribed?: boolean; permission?: NotificationPermission } = {}) {
+  let subscribed = options.subscribed ?? true;
+  let permission: NotificationPermission = options.permission ?? 'granted';
+  let permissionResponse: NotificationPermission | undefined;
   let unsubscribeSucceeds = true;
   let register: (token: string) => Promise<{ id: string }> = async () => ({ id: 'subscription' });
   const registrations: string[] = [];
@@ -74,13 +75,14 @@ function fixture() {
       },
       requestPermission: async () => {
         events.push('request permission');
+        permission = permissionResponse ?? permission;
         return permission;
       },
     },
   });
   let state: BrowserPushRegistrationState = {
     subscriptionId: null,
-    permission: 'granted',
+    permission,
     busy: false,
     error: null,
   };
@@ -101,6 +103,9 @@ function fixture() {
     permission: (value: NotificationPermission) => {
       permission = value;
     },
+    permissionResponse: (value: NotificationPermission) => {
+      permissionResponse = value;
+    },
     failUnsubscribe: () => {
       unsubscribeSucceeds = false;
     },
@@ -109,6 +114,57 @@ function fixture() {
 }
 
 const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+test('resetting browser permission to Ask refreshes state without a subscription or permission prompt', async () => {
+  const f = fixture({ subscribed: false, permission: 'denied' });
+  await f.registration.synchronize();
+  f.permission('default');
+  await f.registration.synchronize();
+
+  assert.equal(f.state().permission, 'default');
+  assert.equal(f.state().subscriptionId, null);
+  assert.deepEqual(f.registrations, []);
+  assert.deepEqual(f.events, []);
+});
+
+test('Ask requests permission on enable before creating and registering a subscription', async () => {
+  const f = fixture({ subscribed: false, permission: 'default' });
+  f.permissionResponse('granted');
+  const enable = f.registration.enable('vapid');
+  assert.deepEqual(f.events, ['request permission']);
+  await enable;
+
+  assert.deepEqual(f.events, ['request permission', 'subscribe']);
+  assert.deepEqual(f.registrations, ['token-A']);
+  assert.equal(f.state().permission, 'granted');
+  assert.equal(f.state().subscriptionId, 'subscription');
+});
+
+test('dismissing the Ask prompt keeps permission undecided and allows a later retry', async () => {
+  const f = fixture({ subscribed: false, permission: 'default' });
+  await f.registration.enable('vapid');
+
+  assert.equal(f.state().permission, 'default');
+  assert.equal(f.state().busy, false);
+  assert.equal(f.state().error, null);
+  assert.deepEqual(f.registrations, []);
+
+  f.permissionResponse('granted');
+  await f.registration.enable('vapid');
+  assert.deepEqual(f.events, ['request permission', 'request permission', 'subscribe']);
+  assert.equal(f.state().subscriptionId, 'subscription');
+});
+
+test('revoking browser permission clears the enabled state without re-registering a subscription', async () => {
+  const f = fixture();
+  await f.registration.synchronize();
+  f.permission('denied');
+  await f.registration.synchronize();
+
+  assert.equal(f.state().permission, 'denied');
+  assert.equal(f.state().subscriptionId, null);
+  assert.deepEqual(f.registrations, ['token-A']);
+});
 
 test('account switching cleans an in-flight registration with the original owner token', async () => {
   const f = fixture();

@@ -43,6 +43,13 @@ export class BrowserPushRegistration {
     const account = this.account;
     if (!account) return;
 
+    const permission = Notification.permission;
+    this.onStateChange({ permission });
+    if (permission !== 'granted') {
+      this.onStateChange({ subscriptionId: null, error: null });
+      return;
+    }
+
     try {
       await this.serialize(async () => {
         if (!this.isCurrentAccount(account)) return;
@@ -71,6 +78,11 @@ export class BrowserPushRegistration {
       // Request permission directly in the click handler, before queued asynchronous work.
       const permission = await Notification.requestPermission();
       this.onStateChange({ permission });
+      if (permission === 'denied')
+        this.onStateChange({
+          error:
+            'Браузер не дозволив сповіщення. Перевірте дозвіл для цього сайту та загальні налаштування сповіщень браузера.',
+        });
       if (permission !== 'granted') return;
 
       await this.serialize(async () => {

@@ -5,8 +5,9 @@ export function pushConfiguration(token: string) {
   return apiRequest<{ publicKey: string | null }>(`${base}/config`, token);
 }
 export function registerSubscription(token: string, subscription: PushSubscription) {
+  const { endpoint, keys } = subscription.toJSON();
   return apiRequest<{ id: string }>(base, token, {
-    ...jsonInit('POST', { ...subscription.toJSON(), installationId: browserInstallationId() }),
+    ...jsonInit('POST', { endpoint, keys, installationId: browserInstallationId() }),
     signal: AbortSignal.timeout(10000),
   });
 }
@@ -24,6 +25,7 @@ export function updatePresence(
 ) {
   return apiRequest<void>(`${base}/${id}/presence`, token, {
     ...jsonInit('PATCH', presence),
+    keepalive: true,
     signal: AbortSignal.timeout(5000),
   });
 }
