@@ -14,14 +14,13 @@ export interface MessageNotificationPayload {
   title: string;
   body: string;
 }
-/** Immutable references for one admitted conversation alert; content stays in messages. */
+/** Points at a range of messages, never their content, so a queued job holds no message text. */
 export interface ConversationAlert extends PushScope {
   id: string;
   userId: string;
   memberId: string;
   expiresAt: string;
 }
-/** A reservation for cooldown, per-user budget and retry identity, not a collection state machine. */
 export interface NotificationWindow {
   id: string;
   userId: string;

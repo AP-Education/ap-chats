@@ -20,6 +20,8 @@ export class DrizzleEventOutboxRepository extends EventOutboxRepository {
   async append(event: NewOutboxEvent): Promise<void> {
     await this.txHost.tx.insert(eventOutbox).values(event).onConflictDoNothing();
   }
+
+  // A lease, not a lock: a crashed relay's events come back once it runs out.
   async claim(limit: number) {
     const result = await this.txHost.tx.execute<
       Omit<StoredOutboxEvent, 'expiresAt'> & { expiresAt: number | string }
@@ -31,8 +33,10 @@ export class DrizzleEventOutboxRepository extends EventOutboxRepository {
         order by priority, created_at, id limit ${limit} for update skip locked)
       returning id, name, payload, priority,
         extract(epoch from expires_at) * 1000 as "expiresAt"`);
+
     return result.rows.map((row) => ({ ...row, expiresAt: new Date(Number(row.expiresAt)) }));
   }
+
   async release(ids: string[]): Promise<void> {
     if (!ids.length) return;
     await this.txHost.tx
@@ -40,6 +44,7 @@ export class DrizzleEventOutboxRepository extends EventOutboxRepository {
       .set({ leasedUntil: null })
       .where(inArray(eventOutbox.id, ids));
   }
+
   // Once the queue holds the event, the queue's own job ID is what keeps it from repeating.
   async acknowledge(id: string): Promise<void> {
     await this.txHost.tx.delete(eventOutbox).where(eq(eventOutbox.id, id));

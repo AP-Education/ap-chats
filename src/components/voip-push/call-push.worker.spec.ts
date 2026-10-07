@@ -70,7 +70,7 @@ function fixture() {
       payload,
       userId: 'reader',
       deviceId: device.id,
-      token: tokenFingerprint(device.voipToken),
+      tokenFingerprint: tokenFingerprint(device.voipToken),
     },
     stop: () => {
       ringing = false;

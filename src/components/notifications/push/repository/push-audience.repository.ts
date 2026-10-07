@@ -26,7 +26,6 @@ export interface PushMessagePreview {
   actorName: string | null;
 }
 
-/** Read-only projection for bounded notification queries; writes stay with each owning module. */
 export abstract class PushAudienceRepository {
   abstract context(scope: PushScope): Promise<PushContext | undefined>;
   abstract recipients(

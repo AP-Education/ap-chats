@@ -18,7 +18,7 @@ interface CallPushJob {
   payload: CallSignalPayload;
   userId: string;
   deviceId: string;
-  token: string;
+  tokenFingerprint: string;
 }
 const CALL_DELIVERY_EVENT = 'push.call-delivery';
 
@@ -54,7 +54,7 @@ export class CallPushWorker implements OnModuleInit {
             payload: event.payload,
             userId: target.userId,
             deviceId: target.id,
-            token: target.fingerprint,
+            tokenFingerprint: target.fingerprint,
           },
           {
             id: jobId(`call:${event.payload.callId}:${target.id}:${target.fingerprint}`),
@@ -70,7 +70,7 @@ export class CallPushWorker implements OnModuleInit {
 
   async deliver(job: CallPushJob): Promise<void> {
     const device = await this.targets.findCurrentDevice(
-      { id: job.deviceId, fingerprint: job.token },
+      { id: job.deviceId, fingerprint: job.tokenFingerprint },
       job.userId,
       'voip',
     );
