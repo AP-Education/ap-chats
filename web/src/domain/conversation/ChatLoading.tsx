@@ -1,26 +1,8 @@
+import { Page, PageAside, PageBody, PageHeader } from '@ap/ui';
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 
 const useStyles = createStyles(({ token, css }) => ({
-  shell: css`
-    display: flex;
-    height: 100%;
-    min-height: 0;
-  `,
-  main: css`
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-  `,
-  header: css`
-    display: flex;
-    align-items: center;
-    height: 60px;
-    padding: 0 20px;
-    border-bottom: 1px solid ${token.colorBorderSecondary};
-  `,
   body: css`
     display: flex;
     flex: 1;
@@ -79,15 +61,8 @@ const useStyles = createStyles(({ token, css }) => ({
       flex-shrink: 0;
     }
   `,
-  aside: css`
-    width: 270px;
-    flex-shrink: 0;
-    border-left: 1px solid ${token.colorBorderSecondary};
+  members: css`
     padding: 20px 14px;
-
-    @media (max-width: ${token.screenXL}px) {
-      display: none;
-    }
   `,
   member: css`
     height: 48px;
@@ -96,18 +71,14 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-interface ChatLoadingProps {
-  asideOpen?: boolean;
-}
-
-export function ChatLoading({ asideOpen = true }: ChatLoadingProps) {
+export function ChatLoading() {
   const { styles } = useStyles();
   return (
-    <div className={styles.shell} role="status" aria-label="Завантажуємо канал">
-      <div className={styles.main}>
-        <div className={styles.header}>
-          <Skeleton.Input active size="small" style={{ width: 180 }} />
-        </div>
+    <Page role="status" aria-label="Завантажуємо канал">
+      <PageHeader>
+        <Skeleton.Input active size="small" style={{ width: 180 }} />
+      </PageHeader>
+      <PageBody>
         <div className={styles.body}>
           <div className={styles.content}>
             <Skeleton.Avatar active size={56} shape="square" />
@@ -119,9 +90,9 @@ export function ChatLoading({ asideOpen = true }: ChatLoadingProps) {
           <div className={styles.input} />
           <div className={styles.action} />
         </div>
-      </div>
-      {asideOpen && (
-        <div className={styles.aside}>
+      </PageBody>
+      <PageAside>
+        <div className={styles.members}>
           {[0, 1, 2, 3].map((row) => (
             <div className={styles.member} key={row}>
               <Skeleton.Avatar active size={34} />
@@ -129,7 +100,7 @@ export function ChatLoading({ asideOpen = true }: ChatLoadingProps) {
             </div>
           ))}
         </div>
-      )}
-    </div>
+      </PageAside>
+    </Page>
   );
 }

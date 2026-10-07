@@ -1,14 +1,20 @@
-import { IconButton, LoadingIcon, useIsMobile } from '@ap/ui';
+import {
+  LoadingIcon,
+  PageAction,
+  PageActionDivider,
+  PageActions,
+  PageAsideTrigger,
+  PageBody,
+  PageHeader,
+  PageTitle,
+  useIsMobile,
+} from '@ap/ui';
 import { CaretDownIcon, GearSixIcon, SignOutIcon, UsersThreeIcon } from '@phosphor-icons/react';
 import { Alert, Button, Dropdown, type MenuProps, message } from 'antd';
 import { createStyles } from 'antd-style';
 import { type ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import {
-  ConversationActionDivider,
-  ConversationPane,
-} from '@/domain/conversation/ConversationPane';
 import { callActionLabel } from '@/features/calls/callActionLabel';
 import { CallIcon } from '@/features/calls/callIcons';
 import { useCallAction } from '@/features/calls/hooks/useCallAction';
@@ -46,13 +52,6 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  `,
-  headerAction: css`
-    color: ${token.colorTextSecondary};
-  `,
-  actionActive: css`
-    background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
   `,
   joinFooter: css`
     flex-shrink: 0;
@@ -104,8 +103,6 @@ const LARGE_CHANNEL_MEMBER_THRESHOLD = 5;
 interface ChannelDetailProps {
   workspaceId: string;
   channel: Channel;
-  membersVisible: boolean;
-  onToggleMembers: () => void;
   leading?: ReactNode;
 }
 
@@ -220,14 +217,7 @@ function LargeChannelCallNotice({
   );
 }
 
-export function ChannelDetail({
-  workspaceId,
-  channel,
-  membersVisible,
-  onToggleMembers,
-  leading,
-}: ChannelDetailProps) {
-  const { styles, cx } = useStyles();
+export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailProps) {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { currentMember } = useWorkspaceMemberLabels(workspaceId);
@@ -235,7 +225,6 @@ export function ChannelDetail({
   const [editing, setEditing] = useState(false);
   const [sizeNoticeVisible, setSizeNoticeVisible] = useState(false);
   const canManage = canManageChannel(channel, currentMember);
-  const actionSize = isMobile ? 40 : 36;
   const call = useCallAction(workspaceId, channel.id, channel.name);
   const callTitle = callActionLabel(call, 'Дзвінок у каналі');
   const memberCount = membersQuery.data?.length ?? 0;
@@ -276,20 +265,18 @@ export function ChannelDetail({
   }
 
   return (
-    <ConversationPane
-      title={
-        <>
-          {leading}
+    <>
+      <PageHeader>
+        {leading}
+        <PageTitle>
           <ChannelTitle
             channel={channel}
             canManage={canManage}
             onSettings={() => setEditing(true)}
             onLeave={handleLeave}
           />
-        </>
-      }
-      actions={
-        <>
+        </PageTitle>
+        <PageActions>
           {channel.isMember && (
             <ChannelNotificationsPopover
               key={`${workspaceId}:${channel.id}`}
@@ -298,54 +285,45 @@ export function ChannelDetail({
               compact={isMobile}
             />
           )}
-          <IconButton
-            size={actionSize}
-            className={cx(
-              styles.headerAction,
-              (call.inCall || call.joinable) && styles.actionActive,
-            )}
+          <PageAction
+            active={call.inCall || call.joinable}
             aria-label={callTitle}
             disabled={call.busy || call.pending || !channel.isMember}
             onClick={handleCall}
           >
             {call.pending ? <LoadingIcon size={22} /> : <CallIcon size={22} />}
-          </IconButton>
-          <ConversationActionDivider />
-          <IconButton
-            size={actionSize}
-            className={cx(styles.headerAction, membersVisible && styles.actionActive)}
-            aria-label={membersVisible ? 'Сховати учасників' : 'Показати учасників'}
-            aria-pressed={membersVisible}
-            onClick={onToggleMembers}
-          >
+          </PageAction>
+          <PageActionDivider />
+          <PageAsideTrigger aria-label="Учасники каналу">
             <UsersThreeIcon size={22} />
-          </IconButton>
-        </>
-      }
-    >
-      {sizeNoticeVisible && !call.inCall && !call.joinable && (
-        <LargeChannelCallNotice
-          memberCount={memberCount}
-          onCallAnyway={handleCallAnyway}
-          onDismiss={() => setSizeNoticeVisible(false)}
+          </PageAsideTrigger>
+        </PageActions>
+      </PageHeader>
+      <PageBody>
+        {sizeNoticeVisible && !call.inCall && !call.joinable && (
+          <LargeChannelCallNotice
+            memberCount={memberCount}
+            onCallAnyway={handleCallAnyway}
+            onDismiss={() => setSizeNoticeVisible(false)}
+          />
+        )}
+        <ConversationView
+          canPost={channel.isMember}
+          canManage={canManage}
+          currentMember={currentMember}
+          readOnlyFooter={
+            <JoinChannelFooter channel={channel} pending={join.isPending} onJoin={handleJoin} />
+          }
         />
-      )}
-      <ConversationView
-        canPost={channel.isMember}
-        canManage={canManage}
-        currentMember={currentMember}
-        readOnlyFooter={
-          <JoinChannelFooter channel={channel} pending={join.isPending} onJoin={handleJoin} />
-        }
-      />
-      {canManage && (
-        <ChannelFormModal
-          workspaceId={workspaceId}
-          channel={channel}
-          open={editing}
-          onClose={() => setEditing(false)}
-        />
-      )}
-    </ConversationPane>
+        {canManage && (
+          <ChannelFormModal
+            workspaceId={workspaceId}
+            channel={channel}
+            open={editing}
+            onClose={() => setEditing(false)}
+          />
+        )}
+      </PageBody>
+    </>
   );
 }

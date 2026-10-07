@@ -1,8 +1,8 @@
+import { PageAsideClose, PageHeader, PageTitle } from '@ap/ui';
 import { UsersThreeIcon } from '@phosphor-icons/react';
 import { message } from 'antd';
 import { createStyles } from 'antd-style';
 
-import { ChatPanelHeader } from '@/domain/conversation/ChatPanelHeader';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 
 import { canManageChannel } from '../../../channel-permissions';
@@ -34,10 +34,9 @@ const useStyles = createStyles(({ token, css }) => ({
 interface ChannelMembersPanelProps {
   workspaceId: string;
   channel: Channel;
-  onClose: () => void;
 }
 
-export function ChannelMembersPanel({ workspaceId, channel, onClose }: ChannelMembersPanelProps) {
+export function ChannelMembersPanel({ workspaceId, channel }: ChannelMembersPanelProps) {
   const { styles } = useStyles();
   const { byId, currentMember, isLoading: labelsLoading } = useWorkspaceMemberLabels(workspaceId);
   const { query, remove } = useChannelMembership(workspaceId, channel.id);
@@ -47,17 +46,14 @@ export function ChannelMembersPanel({ workspaceId, channel, onClose }: ChannelMe
 
   return (
     <div className={styles.shell}>
-      <ChatPanelHeader
-        title={
-          <>
-            <UsersThreeIcon size={20} weight="duotone" className={styles.headingIcon} />
-            Учасники
-            {!isLoading && !isError && <span className={styles.count}>{memberships.length}</span>}
-          </>
-        }
-        closeLabel="Закрити учасників"
-        onClose={onClose}
-      />
+      <PageHeader>
+        <PageTitle>
+          <UsersThreeIcon size={20} weight="duotone" className={styles.headingIcon} />
+          Учасники
+          {!isLoading && !isError && <span className={styles.count}>{memberships.length}</span>}
+        </PageTitle>
+        <PageAsideClose aria-label="Закрити учасників" />
+      </PageHeader>
       <ChannelMembersContent
         isLoading={isLoading}
         isError={isError}

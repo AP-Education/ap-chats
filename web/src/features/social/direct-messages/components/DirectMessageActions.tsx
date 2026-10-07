@@ -1,10 +1,9 @@
-import { IconButton, LoadingIcon } from '@ap/ui';
+import { LoadingIcon, PageAction, PageActionDivider, PageAsideTrigger } from '@ap/ui';
 import { BellIcon, BellSlashIcon, UserCircleIcon } from '@phosphor-icons/react';
 import { message as toast, Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
-import { ConversationActionDivider } from '@/domain/conversation/ConversationPane';
 import { callActionLabel } from '@/features/calls/callActionLabel';
 import { CallIcon } from '@/features/calls/callIcons';
 import { useCallAction } from '@/features/calls/hooks/useCallAction';
@@ -13,13 +12,6 @@ import type { DirectMessage } from '../api/direct-messages-api';
 import { useDirectMessageMute } from '../hooks/useDirectMessageMute';
 
 const useStyles = createStyles(({ token, css }) => ({
-  action: css`
-    color: ${token.colorTextSecondary};
-  `,
-  active: css`
-    background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
-  `,
   muteMenu: css`
     display: grid;
     min-width: 190px;
@@ -42,19 +34,10 @@ const useStyles = createStyles(({ token, css }) => ({
 interface DirectMessageActionsProps {
   workspaceId: string;
   conversation: DirectMessage;
-  profileVisible: boolean;
-  onToggleProfile: () => void;
-  compact: boolean;
 }
 
-export function DirectMessageActions({
-  workspaceId,
-  conversation,
-  profileVisible,
-  onToggleProfile,
-  compact,
-}: DirectMessageActionsProps) {
-  const { styles, cx } = useStyles();
+export function DirectMessageActions({ workspaceId, conversation }: DirectMessageActionsProps) {
+  const { styles } = useStyles();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const mute = useDirectMessageMute(workspaceId, conversation.id);
   const name = conversation.participant.displayName ?? 'Колега';
@@ -64,7 +47,6 @@ export function DirectMessageActions({
     name,
     conversation.participant.avatarPath,
   );
-  const size = compact ? 40 : 36;
   const isMuted = conversation.notification.isMuted;
   const callTitle = callActionLabel(call, `Подзвонити: ${name}`);
 
@@ -121,34 +103,26 @@ export function DirectMessageActions({
           </div>
         }
       >
-        <IconButton
-          size={size}
-          className={cx(styles.action, (notificationsOpen || isMuted) && styles.active)}
+        <PageAction
+          active={notificationsOpen || isMuted}
           aria-label="Сповіщення розмови"
           aria-expanded={notificationsOpen}
         >
           {isMuted ? <BellSlashIcon size={22} /> : <BellIcon size={22} />}
-        </IconButton>
+        </PageAction>
       </Popover>
-      <IconButton
-        size={size}
-        className={cx(styles.action, (call.inCall || call.joinable) && styles.active)}
+      <PageAction
+        active={call.inCall || call.joinable}
         aria-label={callTitle}
         disabled={call.busy || call.pending || !conversation.participant.active}
         onClick={call.onClick}
       >
         {call.pending ? <LoadingIcon size={22} /> : <CallIcon size={22} />}
-      </IconButton>
-      <ConversationActionDivider />
-      <IconButton
-        size={size}
-        className={cx(styles.action, profileVisible && styles.active)}
-        aria-label={profileVisible ? 'Сховати профіль' : 'Показати профіль'}
-        aria-pressed={profileVisible}
-        onClick={onToggleProfile}
-      >
+      </PageAction>
+      <PageActionDivider />
+      <PageAsideTrigger aria-label="Профіль співрозмовника">
         <UserCircleIcon size={22} />
-      </IconButton>
+      </PageAsideTrigger>
     </>
   );
 }

@@ -1,6 +1,6 @@
+import { PageAsideClose, PageHeader, PageTitle } from '@ap/ui';
 import { createStyles } from 'antd-style';
 
-import { ChatPanelHeader } from '@/domain/conversation/ChatPanelHeader';
 import type { DirectMessage } from '@/features/social/direct-messages/api/direct-messages-api';
 import { MemberIdentity } from '@/features/social/people/components/MemberIdentity';
 import type { WorkspaceMember } from '@/features/workspaces/types';
@@ -31,10 +31,9 @@ const useStyles = createStyles(({ token, css }) => ({
 interface DirectProfilePanelProps {
   participant: DirectMessage['participant'];
   member?: WorkspaceMember;
-  onClose: () => void;
 }
 
-export function DirectProfilePanel({ participant, member, onClose }: DirectProfilePanelProps) {
+export function DirectProfilePanel({ participant, member }: DirectProfilePanelProps) {
   const { styles } = useStyles();
   const name = member?.profile.displayName ?? participant.displayName ?? 'Ім’я недоступне';
   const avatarPath = member?.profile.avatarPath ?? participant.avatarPath;
@@ -46,7 +45,10 @@ export function DirectProfilePanel({ participant, member, onClose }: DirectProfi
 
   return (
     <div className={styles.shell}>
-      <ChatPanelHeader title="Профіль" closeLabel="Закрити профіль" onClose={onClose} />
+      <PageHeader>
+        <PageTitle>Профіль</PageTitle>
+        <PageAsideClose aria-label="Закрити профіль" />
+      </PageHeader>
       <section className={styles.body} aria-label={`Профіль ${name}`}>
         <MemberIdentity name={name} avatarPath={avatarPath} detail={role} headingLevel="h2" />
         {member?.createdAt && (
