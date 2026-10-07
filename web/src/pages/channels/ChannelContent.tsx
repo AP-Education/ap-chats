@@ -16,7 +16,6 @@ import { WorkspaceChannelPresence } from '@/features/social/read-state/Workspace
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
-import { paths } from '@/shared/lib/paths';
 
 const useStyles = createStyles(({ token, css }) => ({
   centered: css`
@@ -33,13 +32,7 @@ export default function ChannelContent() {
   const { id: workspaceId } = useRequiredWorkspace();
   const { channelId } = useParams<{ channelId?: string }>();
   const query = useChannel(workspaceId, channelId);
-  const unavailable = useTrackConversation(
-    'channels',
-    workspaceId,
-    channelId,
-    query,
-    paths.channels,
-  );
+  const unavailable = useTrackConversation('channels', workspaceId, channelId, query, '/channels');
   const isMobile = useIsMobile();
   const isNarrowLayout = useIsNarrowLayout();
   const [membersVisible, setMembersVisible] = useState<boolean | null>(null);

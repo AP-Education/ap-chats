@@ -7,7 +7,6 @@ import { CallIcon } from '@/features/calls/callIcons';
 import { getCallStatusIcon } from '@/features/calls/callStatusIcon';
 import { formatCallDuration } from '@/features/calls/formatCallDuration';
 import { useKnownCallAction } from '@/features/calls/hooks/useKnownCallAction';
-import { paths } from '@/shared/lib/paths';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { CallHistoryItem } from '../../api/calls-api';
@@ -176,7 +175,7 @@ export function CallHistoryRow({ item, workspaceId }: CallHistoryRowProps) {
   return (
     <div className={styles.row}>
       <Link
-        to={paths.directMessage(item.channelId)}
+        to={`/direct/${item.channelId}`}
         className={styles.identity}
         aria-label={`Відкрити розмову з ${name}`}
       >

@@ -5,8 +5,6 @@ import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { paths } from '@/shared/lib/paths';
-
 import { canManageChannel } from '../../channel-permissions';
 import { PrivateChannelIcon, PublicChannelIcon } from '../../channels/channelIcons';
 import { ChannelFormModal } from '../../channels/components/ChannelFormModal';
@@ -265,7 +263,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
       }}
       onDragEnd={() => setDraggingChannel(null)}
     >
-      <Link to={paths.channel(channel.id)} onClick={onNavigate} className={styles.link}>
+      <Link to={`/channels/${channel.id}`} onClick={onNavigate} className={styles.link}>
         {channel.kind === 'private' ? (
           <PrivateChannelIcon size={18} className={styles.icon} />
         ) : (

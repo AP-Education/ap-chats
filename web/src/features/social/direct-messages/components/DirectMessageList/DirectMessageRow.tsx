@@ -3,7 +3,6 @@ import { BellSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { Link, useParams } from 'react-router-dom';
 
-import { paths } from '@/shared/lib/paths';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
@@ -178,7 +177,7 @@ export function DirectMessageRow({
   }
   return (
     <Link
-      to={paths.directMessage(item.id)}
+      to={`/direct/${item.id}`}
       onClick={onNavigate}
       className={cx(styles.row, isActive && styles.active)}
     >

@@ -119,11 +119,11 @@ export function createGestureFixture() {
   }
 
   const { useTouchGesture } = load<typeof GestureModule>(
-    '../../../packages/ui/src/hooks/useTouchGesture.ts',
+    new URL('./hooks/useTouchGesture.ts', import.meta.resolve('@ap/ui')).href,
     { react },
   );
   const { useSwipeDrawer } = load<typeof GestureModule>(
-    '../../../packages/ui/src/hooks/useSwipeDrawer.ts',
+    new URL('./hooks/useSwipeDrawer.ts', import.meta.resolve('@ap/ui')).href,
     {
       react,
       './useTouchGesture': { useTouchGesture },

@@ -3,7 +3,6 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
-import { paths } from '@/shared/lib/paths';
 
 import { type ConversationSection, getLastConversation } from './lastConversation';
 
@@ -20,7 +19,7 @@ export function LastConversationRoute({
   const channelId = getLastConversation(identity, workspaceId, section);
 
   if (channelId && new URLSearchParams(search).get('list') !== '1') {
-    return <Navigate to={paths.conversation(section, encodeURIComponent(channelId))} replace />;
+    return <Navigate to={`/${section}/${encodeURIComponent(channelId)}`} replace />;
   }
 
   return children;

@@ -10,6 +10,7 @@ import { WorkspaceUnreadContext } from '../features/social/read-state/workspace-
 import { ActiveWorkspaceProvider } from '../features/workspaces/providers/ActiveWorkspaceProvider';
 import { WorkspaceUnreadScope } from '../layouts/chats/WorkspaceUnreadScope';
 import { persistQueries } from './query-persistence';
+import { ShellRouter } from './ShellRouter';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,18 +31,20 @@ export function ChatsProviders({ children }: PropsWithChildren) {
   useBeforeSignOut(forgetPersistedQueries);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ApiAuthSession />
-      <UserProfileSync />
-      <RealtimeProvider>
-        <ChannelListRealtime />
-        <ActiveWorkspaceProvider>
-          <WorkspaceUnreadScope>
-            <UnreadBadge />
-            {children}
-          </WorkspaceUnreadScope>
-        </ActiveWorkspaceProvider>
-      </RealtimeProvider>
-    </QueryClientProvider>
+    <ShellRouter>
+      <QueryClientProvider client={queryClient}>
+        <ApiAuthSession />
+        <UserProfileSync />
+        <RealtimeProvider>
+          <ChannelListRealtime />
+          <ActiveWorkspaceProvider>
+            <WorkspaceUnreadScope>
+              <UnreadBadge />
+              {children}
+            </WorkspaceUnreadScope>
+          </ActiveWorkspaceProvider>
+        </RealtimeProvider>
+      </QueryClientProvider>
+    </ShellRouter>
   );
 }

@@ -38,4 +38,6 @@ export default defineApp({
   Ongoing: CallSurface,
   Banner: ConnectionBanner,
   Content,
+  // On mobile the channel and direct lists are the navigation itself.
+  opensMobileMenuAt: (path) => path === '/channels' || path === '/direct',
 });

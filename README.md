@@ -8,9 +8,7 @@ AP Chats — місце для щоденного спілкування ком�
 
 ```text
 src/       NestJS API
-host/      shell, що деплоїться: sider, runtime застосунків, OIDC (порт 5556)
-web/       Chats як remote: React, Vite, Ant Design (порт 5557)
-packages/  shell-sdk (контракт), ui (дизайн-система), federation
+web/       Chats як remote shell-а AP: React, Vite, Ant Design (порт 5557)
 mobile/    Expo-оболонка для shell
 infra/     локальний Postgres
 ```
@@ -23,14 +21,13 @@ infra/     локальний Postgres
 
 ```bash
 cp .env.example .env
-cp host/.env.example host/.env
 cp web/.env.example web/.env
 cp mobile/.env.example mobile/.env
 corepack enable
 pnpm install --frozen-lockfile
 pnpm infra:up           # локальний Postgres
 pnpm dev                # API: http://localhost:3211/api/health/live
-pnpm dev:web            # host http://localhost:5556 + remote chats :5557
+pnpm dev:web            # remote chats :5557, відкривати через host з ap-app (:5556)
 pnpm --filter @ap-chats/mobile start
 ```
 
@@ -38,11 +35,11 @@ pnpm --filter @ap-chats/mobile start
 
 ## Спільний вхід
 
-У `backend-LMS` потрібно зареєструвати окремий публічний OIDC-клієнт Chats з `application_id`, authorization code + PKCE, redirect URI `http://localhost:5556/auth/callback` і дозволити web origin у CORS. У кореневому `.env` задайте `OIDC_ISSUER` (точний issuer Accounts) та `OIDC_AUDIENCE` (resource audience цього API); у `host/.env` — ті самі issuer й audience та виданий `VITE_OIDC_CLIENT_ID`. Для production використовуйте HTTPS і відповідні production URI. Секрет клієнта у вебі не потрібний і зберігати його там не можна.
+У `backend-LMS` потрібно зареєструвати окремий публічний OIDC-клієнт Chats з `application_id`, authorization code + PKCE, redirect URI `http://localhost:5556/auth/callback` і дозволити web origin у CORS. У кореневому `.env` задайте `OIDC_ISSUER` (точний issuer Accounts) та `OIDC_AUDIENCE` (resource audience цього API); у `host/.env` репозиторію ap-app — ті самі issuer й audience та виданий `VITE_OIDC_CLIENT_ID`. Для production використовуйте HTTPS і відповідні production URI. Секрет клієнта у вебі не потрібний і зберігати його там не можна.
 
 Web запитує access token для цього resource; API перевіряє підпис за JWKS Accounts, issuer, audience, час дії та identity. `GET /api/auth/me` повертає лише перевірені `sub` і `appId`, не повний профіль LMS. Без реєстрації Chats-клієнта в Accounts браузерний вхід не запрацює. Вихід завершує OIDC-сесію в Accounts; для веб-клієнта зареєструйте origin застосунку в `post_logout_redirect_uris`.
 
-Мобільний клієнт має власний, окремий публічний OIDC-клієнт (той самий issuer і audience, свій `client_id`, redirect на схему `apchats://auth/callback` з `mobile/app.json`) — зареєструйте його в Accounts так само, як веб-клієнт. Логін у мобільному застосунку відбувається системним браузером через `expo-auth-session` (PKCE), а не всередині WebView — WebView відкриває сайт лише після успішного входу, а токен передається в нього через bridge (`mobile/src/features/webview`). `web/`, відкритий у мобільній оболонці, не запускає власний SPA OIDC-флоу: WebView дописує `ApConnectMobile/1` у свій User-Agent, і `packages/shell-sdk/src/app-shell.ts` розпізнає оболонку за ним (синхронно, без узгодження з ін'єкцією скрипта) — `window.ApConnectNative` лишається лише каналом повідомлень, а не ознакою присутності нативного застосунку. Заповніть `EXPO_PUBLIC_OIDC_*` у `mobile/.env`, щоб увімкнути екран входу — без них мобільний застосунок відкриває сайт без авторизації, як і раніше.
+Мобільний клієнт має власний, окремий публічний OIDC-клієнт (той самий issuer і audience, свій `client_id`, redirect на схему `apchats://auth/callback` з `mobile/app.json`) — зареєструйте його в Accounts так само, як веб-клієнт. Логін у мобільному застосунку відбувається системним браузером через `expo-auth-session` (PKCE), а не всередині WebView — WebView відкриває сайт лише після успішного входу, а токен передається в нього через bridge (`mobile/src/features/webview`). `web/`, відкритий у мобільній оболонці, не запускає власний SPA OIDC-флоу: WebView дописує `ApConnectMobile/1` у свій User-Agent, і `app-shell.ts` з `@ap/shell-sdk` розпізнає оболонку за ним (синхронно, без узгодження з ін'єкцією скрипта) — `window.ApConnectNative` лишається лише каналом повідомлень, а не ознакою присутності нативного застосунку. Заповніть `EXPO_PUBLIC_OIDC_*` у `mobile/.env`, щоб увімкнути екран входу — без них мобільний застосунок відкриває сайт без авторизації, як і раніше.
 
 Мобільний вихід очищає локальні токени та відкриває `end_session_endpoint` Accounts у тій самій системній браузерній сесії, що й вхід. Зареєструйте фактичний URI, який генерує `AuthSession.makeRedirectUri({ path: 'auth/callback' })`, також у `post_logout_redirect_uris` нативного клієнта: для native build це `apchats://auth/callback`, для Expo Go — `exp://<host>:<port>/--/auth/callback`. Якщо браузер закрити до повернення в застосунок, локальна сесія залишиться закритою, а екран запропонує повторити вихід з Accounts.
 
@@ -76,4 +73,4 @@ ESLint сортує імпорти; pre-commit перевіряє staged фай�
 
 ## Мікрофронтенди
 
-Shell володіє документом, входом, темою, роутером і спільним sider; Chats та інші застосунки є Module Federation remote-ами. Архітектура, контракт і додавання нового застосунку: [docs/microfrontends.md](docs/microfrontends.md).
+Shell володіє документом, входом, темою, роутером і спільним sider; Chats та інші застосунки є Module Federation remote-ами. Shell (host) і пакети `@ap/shell-sdk`, `@ap/ui`, `@ap/federation` живуть в окремому репозиторії `ap-app`, там же архітектура, контракт і ADR. Поки пакети не опубліковані, `web/` підключає їх через `link:` на локальну копію `ap-app`.

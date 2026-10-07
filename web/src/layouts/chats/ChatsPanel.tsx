@@ -8,10 +8,8 @@ import {
   useIsMobile,
 } from '@ap/ui';
 import { ChatsIcon, ChatTextIcon, HouseIcon, PhoneIcon } from '@phosphor-icons/react';
-import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-
-import { paths } from '@/shared/lib/paths';
+import { type ComponentProps, useState } from 'react';
+import { useHref, useLocation, useNavigate } from 'react-router-dom';
 
 import { ChannelsSidebar } from '../../features/communities/components/ChannelsSidebar';
 import { DirectMessageList } from '../../features/social/direct-messages/components/DirectMessageList/DirectMessageList';
@@ -29,24 +27,23 @@ const navItems: {
   icon: typeof HouseIcon;
   label: string;
 }[] = [
-  { to: paths.home, section: null, icon: HouseIcon, label: 'Головна' },
-  { to: paths.channels, section: 'channels', icon: ChatsIcon, label: 'Чати' },
-  { to: paths.direct, section: 'direct', icon: ChatTextIcon, label: 'Особисті' },
-  { to: paths.calls, section: null, icon: PhoneIcon, label: 'Дзвінки' },
+  { to: '/', section: null, icon: HouseIcon, label: 'Головна' },
+  { to: '/channels', section: 'channels', icon: ChatsIcon, label: 'Чати' },
+  { to: '/direct', section: 'direct', icon: ChatTextIcon, label: 'Особисті' },
+  { to: '/calls', section: null, icon: PhoneIcon, label: 'Дзвінки' },
 ];
 
 export function ChatsPanel() {
   const { pathname, key: locationKey } = useLocation();
-  const navigate = useNavigate();
   const { workspace } = useActiveWorkspace();
   const isMobile = useIsMobile();
   const [selection, setSelection] = useState<{
     locationKey: string;
     section: ConversationSection;
   } | null>(null);
-  const routeSection = pathname.startsWith(paths.direct)
+  const routeSection = pathname.startsWith('/direct')
     ? 'direct'
-    : pathname.startsWith(paths.channels)
+    : pathname.startsWith('/channels')
       ? 'channels'
       : null;
   const hasSelection = selection?.locationKey === locationKey;
@@ -60,8 +57,7 @@ export function ChatsPanel() {
       </PanelHeader>
       <PanelNav>
         {navItems.map(({ to, section, icon, label }) => {
-          const routeActive =
-            pathname === to || (to !== paths.home && pathname.startsWith(`${to}/`));
+          const routeActive = pathname === to || (to !== '/' && pathname.startsWith(`${to}/`));
           const badge = workspace && <NavItemBadge section={section} />;
 
           if (isMobile && section) {
@@ -78,14 +74,13 @@ export function ChatsPanel() {
           }
 
           return (
-            <PanelNavItem
+            <RouteNavItem
               key={to}
+              to={to}
               icon={icon}
               label={label}
               badge={badge}
               active={isMobile ? !hasSelection && routeActive : routeActive}
-              href={to}
-              onClick={() => void navigate(to)}
             />
           );
         })}
@@ -105,7 +100,7 @@ export function ChatsPanel() {
         </>
       ) : (
         <PanelBody>
-          {pathname.startsWith(paths.direct) && workspace ? (
+          {pathname.startsWith('/direct') && workspace ? (
             <DirectMessageList workspaceId={workspace.id} />
           ) : (
             <ChannelsSidebar />
@@ -114,6 +109,18 @@ export function ChatsPanel() {
       )}
     </Panel>
   );
+}
+
+type RouteNavItemProps = Omit<ComponentProps<typeof PanelNavItem>, 'href' | 'onClick'> & {
+  to: string;
+};
+
+/** A navigation item that is a real link: the router adds the base path to `href`. */
+function RouteNavItem({ to, ...item }: RouteNavItemProps) {
+  const href = useHref(to);
+  const navigate = useNavigate();
+
+  return <PanelNavItem {...item} href={href} onClick={() => void navigate(to)} />;
 }
 
 function NavItemBadge({ section }: { section: ConversationSection | null }) {

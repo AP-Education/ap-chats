@@ -1,8 +1,6 @@
 packages:
-  - host
   - web
   - mobile
-  - packages/*
 
 packageExtensions:
   expo-audio@57.0.5:

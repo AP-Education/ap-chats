@@ -15,7 +15,6 @@ import { useCallAction } from '@/features/calls/hooks/useCallAction';
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { ApiError } from '@/shared/api/http';
-import { paths } from '@/shared/lib/paths';
 
 import { canManageChannel } from '../../../channel-permissions';
 import { useChannelMembership } from '../../../memberships/hooks/useChannelMembership';
@@ -266,7 +265,7 @@ export function ChannelDetail({
 
   function handleLeave() {
     leave.mutate(undefined, {
-      onSuccess: () => navigate(paths.channels),
+      onSuccess: () => navigate('/channels'),
       onError: (error) =>
         message.error(
           error instanceof ApiError && error.status === 409

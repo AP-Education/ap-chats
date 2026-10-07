@@ -18,7 +18,6 @@ import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspa
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
-import { paths } from '@/shared/lib/paths';
 import { Avatar } from '@/shared/ui/Avatar';
 
 const useStyles = createStyles(({ css }) => ({
@@ -55,7 +54,7 @@ export default function DirectMessagePage() {
     workspaceId,
     channelId,
     conversation,
-    paths.direct,
+    '/direct',
   );
   const { byId, currentMember } = useWorkspaceMemberLabels(workspaceId);
 

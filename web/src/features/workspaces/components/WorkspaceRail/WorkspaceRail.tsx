@@ -5,7 +5,6 @@ import { Skeleton } from 'antd';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { paths } from '@/shared/lib/paths';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import { useActiveWorkspace } from '../../hooks/useActiveWorkspace';
@@ -27,12 +26,12 @@ export function WorkspaceRail() {
     if (changed) selectWorkspace(workspaceId);
 
     if (!chatsActive) {
-      openApp('chats', changed ? paths.home : undefined);
+      openApp('chats', changed ? '/' : undefined);
       return;
     }
     if (!changed) return;
-    if (pathname.startsWith(`${paths.channels}/`)) void navigate(paths.channels);
-    if (pathname.startsWith(`${paths.direct}/`)) void navigate(paths.direct);
+    if (pathname.startsWith('/channels/')) void navigate('/channels');
+    if (pathname.startsWith('/direct/')) void navigate('/direct');
   }
 
   if (isLoading) {
