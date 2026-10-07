@@ -4,7 +4,7 @@ import { AccessToken, RoomServiceClient, TwirpError } from 'livekit-server-sdk';
 import { AppConfigService } from '@/globals/config';
 import { Logger } from '@/globals/logger';
 
-import { type CallJoinGrant, CallProvider } from './call.provider';
+import { type CallJoinGrant, CallProvider, type ProviderCall } from './call.provider';
 
 @Injectable()
 export class LiveKitCallProvider extends CallProvider {
@@ -33,12 +33,13 @@ export class LiveKitCallProvider extends CallProvider {
     return this.rooms !== undefined;
   }
 
-  async mintJoinToken(input: {
-    roomName: string;
-    identity: string;
-    name: string;
-    ttlSeconds: number;
-  }): Promise<CallJoinGrant> {
+  // LiveKit creates the room on the first join.
+  async create(): Promise<void> {}
+
+  async mintJoinToken(
+    call: ProviderCall,
+    input: { identity: string; name: string; ttlSeconds: number },
+  ): Promise<CallJoinGrant> {
     if (!this.isConfigured || !this.url || !this.apiKey || !this.apiSecret) {
       throw new Error('LiveKit is not configured');
     }
@@ -49,7 +50,7 @@ export class LiveKitCallProvider extends CallProvider {
     });
     token.addGrant({
       roomJoin: true,
-      room: input.roomName,
+      room: call.roomName,
       canPublish: true,
       canSubscribe: true,
       canPublishData: true,
@@ -72,7 +73,7 @@ export class LiveKitCallProvider extends CallProvider {
   // empty: this only exists to decide whether a call may end, and ending it on
   // a transient error would be the exact bug this replaced — one bad request
   // silently closing a call other people are still on.
-  async countParticipants(roomName: string): Promise<number> {
+  async countParticipants({ roomName }: ProviderCall): Promise<number> {
     if (!this.rooms) return 0;
     try {
       const participants = await this.rooms.listParticipants(roomName);
@@ -83,4 +84,7 @@ export class LiveKitCallProvider extends CallProvider {
       return Number.POSITIVE_INFINITY;
     }
   }
+
+  // The room closes itself once empty; nothing here outlives the call.
+  async end(): Promise<void> {}
 }

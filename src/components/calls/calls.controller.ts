@@ -1,6 +1,6 @@
 import { Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 
-import { UseAuthGuards } from '@/components/auth';
+import { AccessToken, UseAuthGuards } from '@/components/auth';
 import { CurrentWorkspaceMember } from '@/components/workspaces/members/decorators';
 import { WorkspaceMemberGuard } from '@/components/workspaces/members/guards';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
@@ -16,8 +16,9 @@ export class CallsController {
   start(
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
+    @AccessToken() accessToken: string,
   ) {
-    return this.calls.start(member, channelId);
+    return this.calls.start(member, channelId, accessToken);
   }
 
   @Get('active')
@@ -33,8 +34,9 @@ export class CallsController {
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
     @Param('callId', ParseUUIDPipe) callId: string,
+    @AccessToken() accessToken: string,
   ) {
-    return this.calls.join(member, channelId, callId);
+    return this.calls.join(member, channelId, callId, accessToken);
   }
 
   @Post(':callId/decline')
@@ -42,8 +44,9 @@ export class CallsController {
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
     @Param('callId', ParseUUIDPipe) callId: string,
+    @AccessToken() accessToken: string,
   ) {
-    return this.calls.decline(member, channelId, callId);
+    return this.calls.decline(member, channelId, callId, accessToken);
   }
 
   @Post(':callId/leave')
@@ -51,7 +54,8 @@ export class CallsController {
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
     @Param('callId', ParseUUIDPipe) callId: string,
+    @AccessToken() accessToken: string,
   ) {
-    return this.calls.leave(member, channelId, callId);
+    return this.calls.leave(member, channelId, callId, accessToken);
   }
 }

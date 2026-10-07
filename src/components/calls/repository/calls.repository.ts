@@ -8,6 +8,7 @@ export interface CallHistoryParticipant {
 }
 
 export abstract class CallsRepository {
+  /** Conflicts when the channel already holds a ringing/active call. */
   abstract insert(input: {
     id: string;
     workspaceId: string;
