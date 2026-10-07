@@ -1,26 +1,29 @@
 # syntax=docker/dockerfile:1
-FROM node:24-alpine AS base
+FROM node:24-alpine AS workspace
 RUN corepack enable
 WORKDIR /app
-
-FROM base AS deps
+# Every workspace manifest keeps the lockfile check honest; only the API's own packages get installed.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY web/package.json ./web/
 COPY mobile/package.json ./mobile/
-RUN pnpm install --frozen-lockfile
 
-FROM deps AS build
+FROM workspace AS build
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --filter @ap-chats/api --store-dir /pnpm/store
 COPY tsconfig.json tsconfig.base.json tsconfig.build.json nest-cli.json ./
 COPY src ./src
-COPY drizzle ./drizzle
-RUN pnpm run build \
- && CI=true pnpm prune --prod --ignore-scripts
+RUN pnpm run build
 
-FROM base AS runtime
+FROM workspace AS prod-deps
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prod --ignore-scripts --filter @ap-chats/api --store-dir /pnpm/store
+
+FROM node:24-alpine AS runtime
 ENV NODE_ENV=production
-COPY --from=build /app/node_modules ./node_modules
+WORKDIR /app
+COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/drizzle ./drizzle
+COPY drizzle ./drizzle
 COPY package.json ./
 USER node
 EXPOSE 3211

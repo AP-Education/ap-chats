@@ -1,15 +1,14 @@
 # syntax=docker/dockerfile:1
-FROM node:24-alpine AS base
+FROM node:24-alpine AS build
 RUN corepack enable
 WORKDIR /app
-
-FROM base AS deps
+# Every workspace manifest keeps the lockfile check honest; only the web app's packages get installed.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY web/package.json ./web/
 COPY mobile/package.json ./mobile/
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --filter @ap-chats/web --store-dir /pnpm/store
 
-FROM deps AS build
 # Vite inlines these into the bundle at build time, so a tenant with a
 # different OIDC client or image bucket needs its own image build, not just
 # a different runtime env.
