@@ -19,8 +19,8 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 0;
-    margin: 2px 4px;
-    min-height: 36px;
+    margin: 1px 4px;
+    min-height: 32px;
     border-radius: ${token.borderRadius}px;
     color: ${token.colorTextSecondary};
     font-weight: 500;
@@ -28,6 +28,11 @@ const useStyles = createStyles(({ token, css }) => ({
     &:hover {
       background: ${token.colorFillTertiary};
       color: ${token.colorText};
+    }
+
+    /* Keyboard focus only, drawn inside the row so it never reads as a click artefact. */
+    &:has(a:focus-visible) {
+      box-shadow: inset 0 0 0 2px ${token.colorPrimaryBorder};
     }
 
     @media (max-width: ${token.screenMD}px) {
@@ -68,6 +73,7 @@ const useStyles = createStyles(({ token, css }) => ({
     && {
       background: ${token.colorPrimaryBg};
       color: ${token.colorPrimaryTextActive};
+      font-weight: 600;
     }
 
     &&:hover {
@@ -84,8 +90,8 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 8px;
-    min-height: 36px;
-    padding: 2px 8px;
+    min-height: 32px;
+    padding: 0 8px;
     text-decoration: none;
 
     &::after {
@@ -107,14 +113,9 @@ const useStyles = createStyles(({ token, css }) => ({
       color: inherit;
     }
 
-    &:focus {
-      outline: none;
-    }
-
+    &:focus,
     &:focus-visible {
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: 2px;
-      border-radius: ${token.borderRadius}px;
+      outline: none;
     }
 
     @media (max-width: ${token.screenMD}px) {

@@ -41,8 +41,8 @@ const useStyles = createStyles(({ token, css }) => ({
     }
 
     &:focus-visible {
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: -2px;
+      outline: none;
+      box-shadow: inset 0 0 0 2px ${token.colorPrimaryBorder};
     }
 
     @media (max-width: ${token.screenMD}px) {

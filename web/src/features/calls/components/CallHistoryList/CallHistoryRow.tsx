@@ -50,9 +50,8 @@ const useStyles = createStyles(({ token, css }) => ({
     }
 
     &:focus-visible {
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: -2px;
-      border-radius: ${token.borderRadius}px;
+      outline: none;
+      box-shadow: inset 0 0 0 2px ${token.colorPrimaryBorder};
     }
   `,
   body: css`

@@ -13,7 +13,7 @@ const useStyles = createStyles(({ token, css }) => ({
     gap: 10px;
     width: 100%;
     min-width: 0;
-    height: 60px;
+    height: 52px;
     padding: 0 16px;
     border-radius: 0;
     border: none;
@@ -24,7 +24,6 @@ const useStyles = createStyles(({ token, css }) => ({
     transition: background 0.15s ease;
 
     @media (max-width: ${token.screenMD}px) {
-      height: 56px;
       padding-inline: 16px;
     }
 
@@ -40,7 +39,7 @@ const useStyles = createStyles(({ token, css }) => ({
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 15px;
   `,
   caret: css`
     flex-shrink: 0;
@@ -64,7 +63,7 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     width: 100%;
-    height: 60px;
+    height: 52px;
     padding: 0 16px;
   `,
 }));
