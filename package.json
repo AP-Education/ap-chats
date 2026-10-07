@@ -8,7 +8,7 @@
     "node": ">=24.15 <25"
   },
   "scripts": {
-    "dev": "nest start --watch",
+    "dev": "pnpm db:migrate && nest start --watch",
     "dev:web": "pnpm --filter @ap-chats/web dev",
     "build": "nest build",
     "build:web": "pnpm --filter @ap-chats/web build",
@@ -30,6 +30,7 @@
     "infra:ansible:init": "cd infra/ansible && dotenv -e ../terraform/prod/.env -- ansible-playbook playbooks/init.yml",
     "infra:ansible:deploy": "cd infra/ansible && dotenv -e ../terraform/prod/.env -- ansible-playbook playbooks/deploy.yml",
     "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --env-file-if-exists=.env --env-file-if-exists=.env.local --import tsx src/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "start": "node dist/main.js",
     "prepare": "husky",
