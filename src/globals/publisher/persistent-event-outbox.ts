@@ -15,7 +15,6 @@ export class PersistentEventOutbox extends EventOutbox {
     options: OutboxOptions = {},
   ): Promise<void> {
     await this.repository.append({
-      ...(options.id ? { id: options.id } : {}),
       name,
       payload,
       priority: options.priority ?? 10,

@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 
-import { jobId } from '@/globals/jobs/job-id';
 import { JobQueue, type WorkerOptions } from '@/globals/jobs/job-queue';
 
 import type { StoredOutboxEvent } from './repository/event-outbox.repository';
@@ -32,7 +31,7 @@ export class IntegrationEvents {
   async deliver(event: StoredOutboxEvent): Promise<void> {
     for (const subscriber of this.subscribers.get(event.name) ?? []) {
       await this.jobs.enqueue(subscriberQueue(event.name, subscriber), event.payload, {
-        id: jobId(`${event.id}:${subscriber}`),
+        id: `${event.id}:${subscriber}`,
         priority: event.priority,
         expiresAt: event.expiresAt.getTime(),
       });

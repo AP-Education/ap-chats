@@ -1,41 +1,13 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { once } from 'node:events';
-import { createServer } from 'node:net';
-import { test, type TestContext } from 'node:test';
+import { test } from 'node:test';
 
 import { Queue, QueueEvents } from 'bullmq';
 
+import { startValkey } from '@/testing/valkey-server';
+
 import { BullMqJobQueue } from './bullmq-job-queue';
 import { PermanentJobError } from './job-queue';
-
-// An isolated Valkey process, never the application's own instance.
-async function startValkey(t: TestContext): Promise<number> {
-  const listener = createServer().listen(0, '127.0.0.1');
-  await once(listener, 'listening');
-  const { port } = listener.address() as { port: number };
-  listener.close();
-
-  const server = spawn('valkey-server', [
-    '--port',
-    String(port),
-    '--save',
-    '',
-    '--appendonly',
-    'no',
-  ]);
-  t.after(() => server.kill('SIGTERM'));
-
-  await new Promise<void>((resolve, reject) => {
-    server.once('error', reject);
-    server.stdout.on('data', (chunk: Buffer) => {
-      if (chunk.toString().includes('Ready to accept connections')) resolve();
-    });
-  });
-
-  return port;
-}
 
 test('BullMQ adapter behaviour the push pipeline relies on', { timeout: 20000 }, async (t) => {
   const port = await startValkey(t);
@@ -60,14 +32,27 @@ test('BullMQ adapter behaviour the push pipeline relies on', { timeout: 20000 },
     await events.waitUntilReady();
 
     jobs.work(name, handle);
-    const id = randomUUID();
-    await jobs.enqueue(name, {}, { id, ...options });
+    await jobs.enqueue(name, {}, { id: `job:${randomUUID()}`, ...options });
 
-    const job = await queue.getJob(id);
+    const [job] = await queue.getJobs();
     await job!.waitUntilFinished(events, 5000).catch(() => undefined);
 
-    return queue.getJob(id);
+    return queue.getJob(job!.id!);
   }
+
+  await t.test('any key is a valid job ID, and a repeated key adds no second job', async () => {
+    const name = `queue-${randomUUID()}`;
+    const queue = new Queue(name, {
+      prefix: 'ap-connect',
+      connection: { host: '127.0.0.1', port },
+    });
+    t.after(() => queue.close());
+
+    await jobs.enqueue(name, {}, { id: 'alert:channel:1:2:member', delay: 60_000 });
+    await jobs.enqueue(name, {}, { id: 'alert:channel:1:2:member', delay: 60_000 });
+
+    assert.equal(await queue.getJobCountByTypes('delayed'), 1);
+  });
 
   await t.test('a failure its retry recovers from is a warning, not an error', async () => {
     let attempts = 0;

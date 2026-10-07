@@ -5,7 +5,7 @@ export type StoredOutboxEvent = {
   priority: number;
   expiresAt: Date;
 };
-export type NewOutboxEvent = Omit<StoredOutboxEvent, 'id'> & { id?: string };
+export type NewOutboxEvent = Omit<StoredOutboxEvent, 'id'>;
 
 export abstract class EventOutboxRepository {
   abstract append(event: NewOutboxEvent): Promise<void>;

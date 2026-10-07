@@ -2,6 +2,7 @@
 export class PermanentJobError extends Error {}
 
 export interface JobOptions {
+  /** Any stable key; a repeated key adds no second job. */
   id?: string;
   priority?: number;
   attempts?: number;

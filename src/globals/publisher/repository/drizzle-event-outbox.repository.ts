@@ -18,7 +18,7 @@ export class DrizzleEventOutboxRepository extends EventOutboxRepository {
   }
 
   async append(event: NewOutboxEvent): Promise<void> {
-    await this.txHost.tx.insert(eventOutbox).values(event).onConflictDoNothing();
+    await this.txHost.tx.insert(eventOutbox).values(event);
   }
 
   // A lease, not a lock: a crashed relay's events come back once it runs out.

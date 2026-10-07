@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { Queue, type RedisOptions, UnrecoverableError, Worker } from 'bullmq';
 
@@ -68,14 +70,17 @@ export class BullMqJobQueue extends JobQueue implements OnModuleDestroy {
 
     await this.queue(name).addBulk(
       jobs.map(({ data, options = {} }) => {
-        const { id, expiresAt, backoff, ...queueOptions } = options;
+        const { id, expiresAt, backoff, deduplication, ...queueOptions } = options;
 
         return {
           name,
           data: { payload: data, expiresAt },
           opts: {
             ...queueOptions,
-            ...(id ? { jobId: id } : {}),
+            ...(id ? { jobId: bullMqId(id) } : {}),
+            ...(deduplication
+              ? { deduplication: { ...deduplication, id: bullMqId(deduplication.id) } }
+              : {}),
             ...(backoff ? { backoff: { ...backoff, jitter: 0.5 } } : {}),
           },
         };
@@ -124,4 +129,9 @@ export class BullMqJobQueue extends JobQueue implements OnModuleDestroy {
     await Promise.all(this.workers.map((worker) => worker.close()));
     await Promise.all([...this.queues.values()].map((queue) => queue.close()));
   }
+}
+
+// BullMQ rejects custom IDs with ':' or that look like integers, so any key maps to a fixed-length hash.
+function bullMqId(key: string): string {
+  return createHash('sha256').update(key).digest('hex').slice(0, 32);
 }

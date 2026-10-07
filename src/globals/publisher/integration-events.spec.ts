@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { jobId } from '@/globals/jobs/job-id';
-
 import { IntegrationEvents } from './integration-events';
 
 function fixture() {
@@ -36,8 +34,8 @@ test('every subscriber gets its own copy on its own queue', async () => {
 
   assert.deepEqual(f.queues, ['message.created@push', 'message.created@analytics']);
   assert.deepEqual(f.enqueued, [
-    { queue: 'message.created@push', id: jobId('outbox-row:push') },
-    { queue: 'message.created@analytics', id: jobId('outbox-row:analytics') },
+    { queue: 'message.created@push', id: 'outbox-row:push' },
+    { queue: 'message.created@analytics', id: 'outbox-row:analytics' },
   ]);
 });
 

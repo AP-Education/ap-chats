@@ -7,7 +7,6 @@ import {
 } from '@/components/calls/events/call-signal.event';
 import { NativePushTargetsStrategy } from '@/components/devices';
 import { AppConfigService } from '@/globals/config';
-import { jobId } from '@/globals/jobs/job-id';
 import { JobQueue } from '@/globals/jobs/job-queue';
 import { IntegrationEvents } from '@/globals/publisher/integration-events';
 
@@ -35,7 +34,7 @@ export class CallPushWorker implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    if (!this.config.get('PUSH_ENABLED') || !this.config.get('PUSH_WORKER_ENABLED')) return;
+    if (!this.config.runsPushWorkers()) return;
     this.events.subscribe<CallSignalEvent>(CALL_SIGNAL_EVENT, 'voip-push', (event) =>
       this.fanout(event),
     );
@@ -61,7 +60,7 @@ export class CallPushWorker implements OnModuleInit {
             tokenFingerprint: target.fingerprint,
           },
           {
-            id: jobId(`call:${event.payload.callId}:${target.id}:${target.fingerprint}`),
+            id: `call:${event.payload.callId}:${target.id}:${target.fingerprint}`,
             priority: 1,
             attempts: 4,
             backoff: { type: 'exponential', delay: 2000 },
