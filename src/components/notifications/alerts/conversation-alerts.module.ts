@@ -5,6 +5,7 @@ import { DrizzleModule } from '@/database/drizzle';
 import { NotificationRequestsModule } from '../delivery/notification-requests';
 import { NotificationPolicyModule } from '../policy';
 import { ConversationAlertScheduler } from './conversation-alert.scheduler';
+import { ConversationWindows } from './conversation-windows';
 import { MessageNotificationContentService } from './message-notification-content.service';
 import { DrizzlePushAudienceRepository } from './repository/drizzle-push-audience.repository';
 import { PushAudienceRepository } from './repository/push-audience.repository';
@@ -14,6 +15,7 @@ import { PushAudienceRepository } from './repository/push-audience.repository';
   providers: [
     { provide: PushAudienceRepository, useClass: DrizzlePushAudienceRepository },
     MessageNotificationContentService,
+    ConversationWindows,
     ConversationAlertScheduler,
   ],
   exports: [MessageNotificationContentService],

@@ -6,14 +6,13 @@ import {
   HttpCode,
   Param,
   ParseUUIDPipe,
-  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
 
 import { type AuthenticatedUser, AuthGuard, CurrentUser } from '@/components/auth';
 
-import { RegisterWebPushDto, WebPushPresenceDto } from './dto';
+import { RegisterWebPushDto } from './dto';
 import { WebPushService } from './web-push.service';
 
 @Controller('devices/web')
@@ -35,15 +34,5 @@ export class WebPushController {
   @HttpCode(204)
   remove(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.push.remove(user.sub, id);
-  }
-
-  @Patch(':id/presence')
-  @HttpCode(204)
-  presence(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: WebPushPresenceDto,
-  ) {
-    return this.push.presence(user.sub, id, dto);
   }
 }

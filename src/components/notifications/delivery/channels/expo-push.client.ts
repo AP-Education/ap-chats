@@ -4,7 +4,7 @@ import { Expo } from 'expo-server-sdk';
 import { AppConfigService } from '@/globals/config';
 import { PermanentJobError } from '@/globals/jobs/job-queue';
 
-import type { MessageNotificationPayload } from '../types';
+import type { NotificationPayload } from '../types';
 
 @Injectable()
 export class ExpoPushClient {
@@ -17,7 +17,7 @@ export class ExpoPushClient {
 
   async send(
     token: string,
-    envelope: MessageNotificationPayload,
+    envelope: NotificationPayload,
     ttl: number,
   ): Promise<'accepted' | 'unregistered'> {
     // A malformed token never becomes valid, so it is dropped like an unregistered one.
@@ -34,13 +34,12 @@ export class ExpoPushClient {
         data: {
           eventId: envelope.eventId,
           userId: envelope.userId,
-          workspaceId: envelope.workspaceId,
-          channelId: envelope.channelId,
-          url: envelope.url,
+          collapseKey: envelope.collapseKey,
+          target: envelope.target,
         },
-        collapseId: envelope.channelId,
-        threadId: envelope.channelId,
-        tag: envelope.channelId,
+        collapseId: envelope.collapseKey,
+        threadId: envelope.collapseKey,
+        tag: envelope.collapseKey,
       },
     ]);
     if (!ticket) throw new Error('Expo returned no push ticket');

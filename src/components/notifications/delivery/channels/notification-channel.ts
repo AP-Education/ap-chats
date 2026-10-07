@@ -1,4 +1,4 @@
-import type { MessageNotificationPayload } from '../types';
+import type { NotificationPayload } from '../types';
 
 /** Where one person can be reached; only the version of its credential is stored in jobs. */
 export interface ChannelTarget {
@@ -25,7 +25,7 @@ export abstract class NotificationChannel {
 
   abstract send(
     target: ChannelTarget,
-    notification: MessageNotificationPayload,
+    notification: NotificationPayload,
     ttl: number,
   ): Promise<void>;
 }

@@ -3,9 +3,15 @@ import { Injectable } from '@nestjs/common';
 import { messagePlainText } from '@/components/social/messages/content';
 
 import { NotificationContent } from '../delivery/notification-content';
-import type { ConversationAlert, MessageNotificationPayload } from '../delivery/types';
+import type { NotificationPayload } from '../delivery/types';
 import { NotificationPolicyService } from '../policy';
-import { PushAudienceRepository } from './repository/push-audience.repository';
+import {
+  type AlertConversation,
+  PushAudienceRepository,
+} from './repository/push-audience.repository';
+import type { ConversationAlert } from './types';
+
+const CONVERSATION_START = '1';
 
 /** The chat side's answer to delivery: the newest unread message, as it reads right now. */
 @Injectable()
@@ -17,45 +23,56 @@ export class MessageNotificationContentService extends NotificationContent {
     super();
   }
 
-  async render(alert: ConversationAlert): Promise<MessageNotificationPayload | null> {
+  async render(alert: ConversationAlert): Promise<NotificationPayload | null> {
     const preview = await this.preview(alert);
     if (!preview) return null;
 
-    const { context, message } = preview;
-    const plainText = await messagePlainText(message.contentMarkdown);
-    const title =
-      context.kind === 'dm'
-        ? (message.actorName ?? 'Нове повідомлення')
-        : `${message.actorName ?? 'Учасник'} · ${context.name}`;
-    const section = context.kind === 'dm' ? 'direct' : 'channels';
+    const { conversation, message } = preview;
+    const text = await messagePlainText(message.contentMarkdown);
 
     return {
       eventId: alert.id,
       userId: alert.userId,
-      workspaceId: alert.workspaceId,
-      channelId: alert.channelId,
-      url: `/${section}/${alert.channelId}?pushWorkspace=${alert.workspaceId}`,
-      title: Array.from(title).slice(0, 100).join(''),
-      body: Array.from(plainText.trim()).slice(0, 180).join('') || 'Нове вкладення',
+      collapseKey: alert.channelId,
+      target: {
+        type: 'conversation',
+        workspaceId: alert.workspaceId,
+        channelId: alert.channelId,
+        kind: conversation.kind === 'dm' ? 'dm' : 'channel',
+      },
+      title: clip(titleFor(conversation, message.actorName), 100),
+      body: clip(text.trim(), 180) || 'Нове вкладення',
     };
   }
 
   private async preview(alert: ConversationAlert) {
-    const [context, recipients] = await Promise.all([
-      this.audience.context(alert),
-      this.audience.recipients(alert, undefined, alert.memberId),
-    ]);
-    const recipient = recipients[0];
-    if (!context || !recipient || recipient.userId !== alert.userId) return null;
+    const conversation = await this.audience.conversation(alert);
+    if (!conversation) return null;
+
+    // Everything still unread, so an alert shows the latest message, not the one that triggered it.
+    const unread = {
+      ...alert,
+      firstSeq: CONVERSATION_START,
+      lastSeq: conversation.lastSeq.toString(),
+    };
+    const recipient = await this.audience.memberRecipient(unread, alert.memberId);
+    if (!recipient || recipient.userId !== alert.userId) return null;
 
     const level = this.policy.messageLevel(recipient);
     if (level === 'none') return null;
 
-    // Everything still unread up to now, so a coalesced alert shows the latest message, not its first.
-    const unread = { ...alert, firstSeq: '1', lastSeq: context.lastSeq.toString() };
     const message = await this.audience.latestMessage(unread, recipient, level === 'mentions');
-    if (!message) return null;
-
-    return { context, message };
+    return message ? { conversation, message } : null;
   }
+}
+
+function titleFor(conversation: AlertConversation, actorName: string | null): string {
+  if (conversation.kind === 'dm') return actorName ?? 'Нове повідомлення';
+
+  return `${actorName ?? 'Учасник'} · ${conversation.name}`;
+}
+
+// Counted in characters, not UTF-16 units, so an emoji is never cut in half.
+function clip(text: string, max: number): string {
+  return Array.from(text).slice(0, max).join('');
 }

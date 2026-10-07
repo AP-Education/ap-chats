@@ -7,11 +7,12 @@ import { subscriptionFingerprint } from '@/components/devices/targets/credential
 import { tokenFingerprint } from '@/components/devices/targets/credential-fingerprint';
 
 import { MessageNotificationContentService } from './alerts/message-notification-content.service';
+import type { ConversationAlert } from './alerts/types';
 import { BrowserChannel } from './delivery/channels/browser.channel';
 import { NativeAppChannel } from './delivery/channels/native-app.channel';
 import { NotificationChannelRegistry } from './delivery/channels/notification-channel.registry';
-import { MessageDeliveryWorker } from './delivery/message-delivery.worker';
-import type { ConversationAlert, MessageDeliveryJob } from './delivery/types';
+import { DeliveryWorker } from './delivery/delivery.worker';
+import type { DeliveryJob } from './delivery/types';
 import { NotificationPolicyService } from './policy';
 
 type Fixture = ReturnType<typeof fixture>;
@@ -23,7 +24,6 @@ function fixture(kind: 'web' | 'expo' = 'web') {
     endpoint: 'https://fcm.googleapis.com/push/one',
     p256dh: 'key',
     auth: 'auth',
-    activeUntil: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -47,8 +47,8 @@ function fixture(kind: 'web' | 'expo' = 'web') {
     lastSeq: '3',
     expiresAt: new Date(Date.now() + 60000).toISOString(),
   };
-  const job: MessageDeliveryJob = {
-    alert: batch,
+  const job: DeliveryJob = {
+    request: batch,
     target: {
       channel: kind,
       id: kind === 'web' ? subscription.id : device.id,
@@ -64,8 +64,8 @@ function fixture(kind: 'web' | 'expo' = 'web') {
   const invalidated: unknown[] = [];
   const content = new MessageNotificationContentService(
     {
-      recipients: async () => recipients,
-      context: async () => context,
+      memberRecipient: async () => recipients[0],
+      conversation: async () => context,
       latestMessage: async () => ({ actorName: 'Author', contentMarkdown: '**current** message' }),
     } as never,
     new NotificationPolicyService(),
@@ -97,15 +97,18 @@ function fixture(kind: 'web' | 'expo' = 'web') {
       return status;
     },
   } as never);
-  const worker = new MessageDeliveryWorker(
+  const attention = { attending: false };
+  const worker = new DeliveryWorker(
     {} as never,
     new NotificationChannelRegistry([nativeChannel, browserChannel]),
     content,
+    { isAttending: async () => attention.attending } as never,
     {} as never,
   );
   return {
     worker,
     job,
+    attention,
     batch,
     device,
     subscription,
@@ -136,8 +139,8 @@ const staleAlerts = {
   'the browser credentials were rotated': (f: Fixture) => {
     f.subscription.auth = 'rotated';
   },
-  'the person is looking at the app right now': (f: Fixture) => {
-    f.subscription.activeUntil = new Date(Date.now() + 75000);
+  'the person is looking at the app on any device': (f: Fixture) => {
+    f.attention.attending = true;
   },
 };
 
@@ -178,4 +181,20 @@ test('message previews preserve Markdown storage and use the current author', as
   await f.worker.deliver(f.job);
   assert.equal((f.sent[0] as { body: string }).body, 'current message');
   assert.equal((f.sent[0] as { title: string }).title, 'Author · Channel');
+});
+
+test('a conversation alert replaces its predecessor and opens that conversation', async () => {
+  const f = fixture('expo');
+  await f.worker.deliver(f.job);
+
+  assert.deepEqual(f.sent[0], {
+    ...(f.sent[0] as object),
+    collapseKey: 'channel',
+    target: {
+      type: 'conversation',
+      workspaceId: 'workspace',
+      channelId: 'channel',
+      kind: 'channel',
+    },
+  });
 });

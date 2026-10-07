@@ -13,7 +13,6 @@ CREATE TABLE "web_push_subscriptions" (
 	"endpoint" text NOT NULL,
 	"p256dh" text NOT NULL,
 	"auth" text NOT NULL,
-	"active_until" timestamp with time zone,
 	CONSTRAINT "web_push_endpoint_key" UNIQUE("endpoint")
 );
 --> statement-breakpoint

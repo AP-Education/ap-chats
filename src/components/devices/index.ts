@@ -1,3 +1,4 @@
+export * from './browser/web-push.types';
 export * from './devices.module';
 export * from './devices.service';
 export * from './targets/browser-push-targets.strategy';

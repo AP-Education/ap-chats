@@ -20,7 +20,6 @@ import { MessageMarkdownService } from '@/components/social/messages/content';
 import { DrizzleMessagesRepository } from '@/components/social/messages/repository/drizzle-messages.repository';
 import { DrizzleCallPushRepository } from '@/components/voip-push/repository/drizzle-call-push.repository';
 import * as schema from '@/database/drizzle/schema';
-import { jobId } from '@/globals/jobs/job-id';
 import { IntegrationEvents } from '@/globals/publisher/integration-events';
 import { OutboxDispatcher } from '@/globals/publisher/outbox-dispatcher';
 import { PersistentEventOutbox } from '@/globals/publisher/persistent-event-outbox';
@@ -180,11 +179,9 @@ test('push persistence on PostgreSQL', async (t) => {
 
     await subscriptions.remove('owner-A', id);
     await subscriptions.invalidate(previous!);
-    await subscriptions.presence('owner-A', id, { focused: true });
 
     const current = await subscriptions.find(id);
     assert.equal(current?.userId, 'owner-B');
-    assert.equal(current?.activeUntil, null, 'only the owner sets presence');
   });
 
   await t.test('recipients follow mentions, level, read cursor and membership', async () => {
@@ -247,6 +244,24 @@ test('push persistence on PostgreSQL', async (t) => {
     assert.equal((await content.render(alert))?.body, 'Нове вкладення');
   });
 
+  await t.test('a message read during the window does not hide the next one', async () => {
+    const content = new MessageNotificationContentService(
+      audience,
+      new NotificationPolicyService(),
+    );
+    const chat = await seedConversation();
+    await chat.post('first');
+    await db
+      .update(schema.channelMemberships)
+      .set({ lastReadEntrySeq: 1n })
+      .where(eq(schema.channelMemberships.memberId, chat.readerId));
+    await chat.post('second');
+
+    const window = { ...chat, firstSeq: '1', lastSeq: '2' };
+    assert.equal((await audience.recipients(window)).length, 1);
+    assert.equal((await content.render(chat.alertFor('1')))?.body, 'second');
+  });
+
   await t.test(
     'a DM or call alert needs both peers active and the call still ringing',
     async () => {
@@ -281,14 +296,14 @@ test('push persistence on PostgreSQL', async (t) => {
       const isRinging = () =>
         calls.ringingForRecipient(chat.workspaceId, dmId, callId, chat.readerUserId);
 
-      assert.equal((await audience.context(dm))?.kind, 'dm');
+      assert.equal((await audience.conversation(dm))?.kind, 'dm');
       assert.ok(await isRinging());
 
       await db
         .update(schema.workspaceMembers)
         .set({ status: 'removed' })
         .where(eq(schema.workspaceMembers.id, chat.authorId));
-      assert.equal(await audience.context(dm), undefined);
+      assert.equal(await audience.conversation(dm), undefined);
       assert.equal(await isRinging(), null);
 
       await db
@@ -300,28 +315,25 @@ test('push persistence on PostgreSQL', async (t) => {
     },
   );
 
-  await t.test('an outbox event commits with its transaction, once per ID', async () => {
-    const rolledBack = jobId('rolled-back');
-    const committed = jobId('committed');
-
+  await t.test('an outbox event commits only with its transaction', async () => {
     await assert.rejects(
       txHost.withTransaction(async () => {
-        await outbox.record('test.event', { value: 1 }, { id: rolledBack });
+        await outbox.record('test.event', { value: 'rolled back' });
         throw new Error('rollback');
       }),
     );
-    await outbox.record('test.event', { value: 1 }, { id: committed });
-    await outbox.record('test.event', { value: 2 }, { id: committed });
+    await outbox.record('test.event', { value: 1 });
 
     const stored = await db.select().from(schema.eventOutbox);
     assert.deepEqual(
-      stored.map((row) => [row.id, row.payload]),
-      [[committed, { value: 1 }]],
+      stored.map((row) => row.payload),
+      [{ value: 1 }],
     );
   });
 
   await t.test('the relay keeps an event until a subscriber queue accepts it', async () => {
-    const id = jobId('committed');
+    const [row] = await db.select({ id: schema.eventOutbox.id }).from(schema.eventOutbox);
+    const id = row!.id;
     const queued = new Map<string, object>();
     let queueDown = true;
     const events = new IntegrationEvents({

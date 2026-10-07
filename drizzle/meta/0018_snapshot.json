@@ -1543,12 +1543,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "active_until": {
-          "name": "active_until",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},

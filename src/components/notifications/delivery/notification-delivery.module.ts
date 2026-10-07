@@ -1,8 +1,10 @@
 import { type DynamicModule, Module, type ModuleMetadata, type Type } from '@nestjs/common';
 
+import { AttentionModule } from '@/components/attention';
+
 import { AlertDispatcher } from './alert-dispatcher';
 import { NotificationChannelsModule } from './channels/notification-channels.module';
-import { MessageDeliveryWorker } from './message-delivery.worker';
+import { DeliveryWorker } from './delivery.worker';
 import { NotificationContent } from './notification-content';
 
 /**
@@ -17,11 +19,11 @@ export class NotificationDeliveryModule {
   }): DynamicModule {
     return {
       module: NotificationDeliveryModule,
-      imports: [NotificationChannelsModule, ...(options.imports ?? [])],
+      imports: [NotificationChannelsModule, AttentionModule, ...(options.imports ?? [])],
       providers: [
         { provide: NotificationContent, useExisting: options.content },
         AlertDispatcher,
-        MessageDeliveryWorker,
+        DeliveryWorker,
       ],
     };
   }

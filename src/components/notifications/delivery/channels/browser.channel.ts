@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { BrowserPushTargetsStrategy } from '@/components/devices';
 
-import { type MessageNotificationPayload, PUSH_WEB_DELIVERY_QUEUE } from '../types';
+import { type NotificationPayload, PUSH_WEB_DELIVERY_QUEUE } from '../types';
 import { type ChannelTarget, NotificationChannel } from './notification-channel';
 import { WebPushClient } from './web-push.client';
 
@@ -28,20 +28,12 @@ export class BrowserChannel extends NotificationChannel {
     return targets.map((target) => ({ channel: this.kind, ...target }));
   }
 
-  async send(
-    target: ChannelTarget,
-    notification: MessageNotificationPayload,
-    ttl: number,
-  ): Promise<void> {
+  async send(target: ChannelTarget, notification: NotificationPayload, ttl: number): Promise<void> {
     const subscription = await this.subscriptions.findCurrentSubscription(
       target,
       notification.userId,
     );
     if (!subscription) return;
-
-    // The person is looking at the app right now; its own realtime path already told them.
-    const isActive = subscription.activeUntil && subscription.activeUntil > new Date();
-    if (isActive) return;
 
     const status = await this.client.send(subscription, notification, ttl);
     if (status === 'unregistered')

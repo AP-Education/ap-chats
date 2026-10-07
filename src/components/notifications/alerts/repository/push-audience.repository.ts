@@ -1,14 +1,17 @@
 import type { ChannelKind } from '@/components/communities/channels';
 
-import type { ConversationRange } from '../../delivery/types';
 import type { StoredNotificationSettings } from '../../preferences/types';
+import type { ConversationRange, ConversationScope } from '../types';
 
-export interface PushContext {
+export const RECIPIENTS_PAGE_SIZE = 100;
+
+export interface AlertConversation {
   name: string | null;
   kind: ChannelKind;
   lastSeq: bigint;
 }
 
+/** A member with someone else's unread message in the range. */
 export interface PushRecipient extends StoredNotificationSettings {
   userId: string;
   lastReadEntrySeq: bigint;
@@ -20,16 +23,19 @@ export interface PushMessagePreview {
   actorName: string | null;
 }
 
+/** A read-only view across membership, cursors, settings and mentions, owned by their modules. */
 export abstract class PushAudienceRepository {
-  abstract context(scope: ConversationRange): Promise<PushContext | undefined>;
-  abstract recipients(
-    scope: ConversationRange,
-    after?: string,
-    memberId?: string,
-  ): Promise<PushRecipient[]>;
-  abstract lastCreatedAt(scope: ConversationRange): Promise<Date | undefined>;
+  /** The conversation while it can still alert; a DM whose peer left cannot. */
+  abstract conversation(scope: ConversationScope): Promise<AlertConversation | undefined>;
+  /** One page, ordered by member, after the given member. */
+  abstract recipients(range: ConversationRange, after?: string): Promise<PushRecipient[]>;
+  abstract memberRecipient(
+    range: ConversationRange,
+    memberId: string,
+  ): Promise<PushRecipient | undefined>;
+  abstract latestMessageAt(range: ConversationRange): Promise<Date | undefined>;
   abstract latestMessage(
-    scope: ConversationRange,
+    range: ConversationRange,
     recipient: PushRecipient,
     mentionsOnly: boolean,
   ): Promise<PushMessagePreview | undefined>;

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { NativePushTargetsStrategy } from '@/components/devices';
 
-import { type MessageNotificationPayload, PUSH_EXPO_DELIVERY_QUEUE } from '../types';
+import { type NotificationPayload, PUSH_EXPO_DELIVERY_QUEUE } from '../types';
 import { ExpoPushClient } from './expo-push.client';
 import { type ChannelTarget, NotificationChannel } from './notification-channel';
 
@@ -25,11 +25,7 @@ export class NativeAppChannel extends NotificationChannel {
     return targets.map((target) => ({ channel: this.kind, ...target }));
   }
 
-  async send(
-    target: ChannelTarget,
-    notification: MessageNotificationPayload,
-    ttl: number,
-  ): Promise<void> {
+  async send(target: ChannelTarget, notification: NotificationPayload, ttl: number): Promise<void> {
     const device = await this.devices.findCurrentDevice(target, notification.userId, 'push');
     if (!device?.pushToken) return;
 

@@ -9,25 +9,32 @@ import {
   type MessageCreatedEvent,
 } from '@/components/social/messages/events/message-created.event';
 import { AppConfigService } from '@/globals/config';
-import { jobId } from '@/globals/jobs/job-id';
-import { JobQueue } from '@/globals/jobs/job-queue';
 import { IntegrationEvents } from '@/globals/publisher/integration-events';
 
 import { NotificationRequests } from '../delivery/notification-requests';
-import type { ConversationAlert } from '../delivery/types';
 import { NotificationPolicyService } from '../policy';
-import { PushAudienceRepository, type PushRecipient } from './repository/push-audience.repository';
-import { type MessageFanoutJob, type MessageNotificationSource, PUSH_FANOUT_QUEUE } from './types';
+import { ConversationWindows } from './conversation-windows';
+import {
+  PushAudienceRepository,
+  type PushRecipient,
+  RECIPIENTS_PAGE_SIZE,
+} from './repository/push-audience.repository';
+import type {
+  ConversationAlert,
+  ConversationRange,
+  ConversationWindow,
+  MessageFanoutJob,
+} from './types';
 
-const FANOUT_PAGE_SIZE = 100;
+// Messages older than this are no longer worth an interruption.
 const ALERT_LIFETIME_MS = 3600_000;
 
-/** Decides who should hear about new messages, page by page, and hands them to delivery. */
+/** Decides who hears about a conversation's new messages once its window closes. */
 @Injectable()
 export class ConversationAlertScheduler implements OnModuleInit {
   constructor(
     private readonly events: IntegrationEvents,
-    private readonly jobs: JobQueue,
+    private readonly windows: ConversationWindows,
     private readonly audience: PushAudienceRepository,
     private readonly policy: NotificationPolicyService,
     private readonly requests: NotificationRequests,
@@ -35,85 +42,64 @@ export class ConversationAlertScheduler implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    if (!this.config.get('PUSH_ENABLED') || !this.config.get('PUSH_WORKER_ENABLED')) return;
+    if (!this.config.runsPushWorkers()) return;
 
     this.events.subscribe<MessageCreatedEvent>(MESSAGE_CREATED_EVENT, 'push', (event) =>
-      this.schedule({ source: newMessages(event, event.seq, event.seq) }),
+      this.windows.open(windowFrom(event, event.seq)),
     );
     this.events.subscribe<ForwardBatchCreatedEvent>(FORWARD_BATCH_CREATED_EVENT, 'push', (event) =>
-      this.schedule({ source: newMessages(event, event.firstSeq, event.lastSeq) }),
+      this.windows.open(windowFrom(event, event.firstSeq)),
     );
-    this.jobs.work<MessageFanoutJob>(PUSH_FANOUT_QUEUE, (job) => this.schedule(job));
+    this.windows.whenClosed((fanout) => this.alertRecipients(fanout));
   }
 
-  async schedule({ source, after }: MessageFanoutJob): Promise<void> {
-    const context = await this.audience.context(source);
-    const createdAt = await this.audience.lastCreatedAt(source);
-    if (!context || !createdAt) return;
+  async alertRecipients({ window, lastSeq, after }: MessageFanoutJob): Promise<void> {
+    const conversation = await this.audience.conversation(window);
+    if (!conversation) return;
 
-    const expiresAt = createdAt.getTime() + ALERT_LIFETIME_MS;
-    if (expiresAt <= Date.now()) return;
+    // Pinned on the first page, so every page of one fanout covers the same messages.
+    const range = { ...window, lastSeq: lastSeq ?? conversation.lastSeq.toString() };
+    const expiresAt = await this.alertDeadline(range);
+    if (!expiresAt) return;
 
-    const page = await this.audience.recipients(source, after);
+    const page = await this.audience.recipients(range, after);
     const alerts = page
-      .filter((recipient) => this.wantsAlert(source, recipient))
-      .map((recipient) => alertFor(source, recipient, expiresAt));
+      .filter((recipient) => this.policy.wantsMessages(recipient, recipient.mentioned))
+      .map((recipient) => alertFor(range, recipient, expiresAt));
 
-    await this.requests.requestConversationAlerts(alerts);
+    await this.requests.request(alerts);
 
-    const hasNextPage = page.length === FANOUT_PAGE_SIZE;
-    if (hasNextPage) await this.scheduleNextPage(source, page.at(-1)!.memberId, expiresAt);
+    const hasNextPage = page.length === RECIPIENTS_PAGE_SIZE;
+    if (hasNextPage) await this.windows.continueAfter(range, page.at(-1)!.memberId);
   }
 
-  private wantsAlert(source: MessageNotificationSource, recipient: PushRecipient): boolean {
-    return this.policy.shouldAlert({
-      kind: 'message.created',
-      actorMemberId: source.actorMemberId,
-      recipientMemberId: recipient.memberId,
-      settings: recipient,
-      mentioned: recipient.mentioned,
-    });
-  }
+  private async alertDeadline(range: ConversationRange): Promise<number | null> {
+    const latestMessageAt = await this.audience.latestMessageAt(range);
+    if (!latestMessageAt) return null;
 
-  private async scheduleNextPage(
-    source: MessageNotificationSource,
-    after: string,
-    expiresAt: number,
-  ): Promise<void> {
-    await this.jobs.enqueue<MessageFanoutJob>(
-      PUSH_FANOUT_QUEUE,
-      { source, after },
-      {
-        id: jobId(`fanout:${source.channelId}:${source.firstSeq}:${source.lastSeq}:${after}`),
-        expiresAt,
-      },
-    );
+    const deadline = latestMessageAt.getTime() + ALERT_LIFETIME_MS;
+    return deadline > Date.now() ? deadline : null;
   }
 }
 
-function newMessages(
-  event: Pick<MessageCreatedEvent, 'workspaceId' | 'channelId' | 'actorMemberId'>,
+function windowFrom(
+  event: Pick<MessageCreatedEvent, 'workspaceId' | 'channelId'>,
   firstSeq: string,
-  lastSeq: string,
-): MessageNotificationSource {
-  const { workspaceId, channelId, actorMemberId } = event;
-
-  return { workspaceId, channelId, actorMemberId, firstSeq, lastSeq };
+): ConversationWindow {
+  return { workspaceId: event.workspaceId, channelId: event.channelId, firstSeq };
 }
 
 function alertFor(
-  source: MessageNotificationSource,
+  range: ConversationRange,
   recipient: PushRecipient,
   expiresAt: number,
 ): ConversationAlert {
   return {
-    id: jobId(
-      `alert:${source.channelId}:${source.firstSeq}:${source.lastSeq}:${recipient.memberId}`,
-    ),
-    workspaceId: source.workspaceId,
-    channelId: source.channelId,
-    firstSeq: source.firstSeq,
-    lastSeq: source.lastSeq,
+    id: `alert:${range.channelId}:${range.firstSeq}:${range.lastSeq}:${recipient.memberId}`,
+    workspaceId: range.workspaceId,
+    channelId: range.channelId,
+    firstSeq: range.firstSeq,
+    lastSeq: range.lastSeq,
     userId: recipient.userId,
     memberId: recipient.memberId,
     expiresAt: new Date(expiresAt).toISOString(),

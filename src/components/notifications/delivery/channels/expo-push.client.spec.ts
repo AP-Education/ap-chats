@@ -8,9 +8,8 @@ import { ExpoPushClient } from './expo-push.client';
 const notification = {
   eventId: 'event',
   userId: 'user',
-  workspaceId: 'workspace',
-  channelId: 'channel',
-  url: '/channels/channel',
+  collapseKey: 'channel',
+  target: { type: 'conversation' },
   title: 'Title',
   body: 'Body',
 };

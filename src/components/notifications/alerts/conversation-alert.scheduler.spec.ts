@@ -1,23 +1,18 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { jobId } from '@/globals/jobs/job-id';
-import type { JobRequest } from '@/globals/jobs/job-queue';
+import type { JobOptions, JobRequest } from '@/globals/jobs/job-queue';
 
 import { NotificationRequests } from '../delivery/notification-requests';
-import { type ConversationAlert, PUSH_ALERT_DUE_QUEUE } from '../delivery/types';
+import { PUSH_ALERT_QUEUE } from '../delivery/types';
 import { NotificationPolicyService } from '../policy';
 import { ConversationAlertScheduler } from './conversation-alert.scheduler';
-import { type MessageFanoutJob, PUSH_FANOUT_QUEUE } from './types';
+import { ConversationWindows } from './conversation-windows';
+import type { ConversationAlert } from './types';
+
+const window = { workspaceId: 'workspace', channelId: 'channel', firstSeq: '10' };
 
 function fixture(level: 'default' | 'mentions' = 'mentions') {
-  const source = {
-    workspaceId: 'workspace',
-    channelId: 'channel',
-    actorMemberId: '003',
-    firstSeq: '10',
-    lastSeq: '10',
-  };
   const createdAt = new Date();
   const page = Array.from({ length: 100 }, (_, index) => ({
     memberId: String(index).padStart(3, '0'),
@@ -25,84 +20,100 @@ function fixture(level: 'default' | 'mentions' = 'mentions') {
     level,
     mutedUntil: null,
     notificationsMuted: index === 10,
-    mentioned: [3, 7, 10].includes(index),
+    mentioned: [7, 10].includes(index),
     lastReadEntrySeq: 0n,
   }));
   const batches: JobRequest<ConversationAlert>[][] = [];
-  const continuation: MessageFanoutJob[] = [];
+  const continued: { lastSeq: string; after: string }[] = [];
   let fail = false;
   const jobs = {
     enqueueMany: async (name: string, requests: JobRequest<ConversationAlert>[]) => {
-      assert.equal(name, PUSH_ALERT_DUE_QUEUE);
+      assert.equal(name, PUSH_ALERT_QUEUE);
       batches.push(requests);
       if (fail) throw new Error('queue unavailable');
     },
-    enqueue: async (name: string, job: MessageFanoutJob) => {
-      assert.equal(name, PUSH_FANOUT_QUEUE);
-      continuation.push(job);
-    },
   };
-  const config = { get: () => 3 };
-  const worker = new ConversationAlertScheduler(
+  let lastSeq = 12n;
+  const scheduler = new ConversationAlertScheduler(
     {} as never,
-    jobs as never,
     {
-      context: async () => ({ kind: 'private' }),
-      lastCreatedAt: async () => createdAt,
+      continueAfter: async (range: { lastSeq: string }, after: string) => {
+        continued.push({ lastSeq: range.lastSeq, after });
+      },
+    } as never,
+    {
+      conversation: async () => ({ kind: 'private', lastSeq }),
+      latestMessageAt: async () => createdAt,
       recipients: async () => page,
     } as never,
     new NotificationPolicyService(),
-    new NotificationRequests(jobs as never, config as never),
-    config as never,
+    new NotificationRequests(jobs as never),
+    {} as never,
   );
 
   return {
-    worker,
-    source,
+    scheduler,
     createdAt,
     batches,
-    continuation,
+    continued,
     fail: (value: boolean) => {
       fail = value;
+    },
+    post: () => {
+      lastSeq += 1n;
     },
   };
 }
 
-test('fanout preserves recipient policy and advances past silent members in a bounded page', async () => {
-  const f = fixture();
-  await f.worker.schedule({ source: f.source });
+test('a burst in one channel shares a single delayed window', async () => {
+  const opened: JobOptions[] = [];
+  const windows = new ConversationWindows(
+    {
+      enqueue: async (_name: string, _job: object, options: JobOptions) => opened.push(options),
+    } as never,
+    { get: () => 3 } as never,
+  );
 
-  const alerts = f.batches[0]!;
-  assert.equal(alerts.length, 1);
-  assert.equal(alerts[0]!.data.userId, 'reader-7');
-  assert.equal(alerts[0]!.options?.delay, 3000);
-  assert.equal(alerts[0]!.options?.expiresAt, f.createdAt.getTime() + 3600000);
-  assert.deepEqual(alerts[0]!.options?.deduplication, {
-    id: jobId('reader-7:channel'),
-    ttl: 3000,
-  });
-  assert.deepEqual(f.continuation, [{ source: f.source, after: '099' }]);
+  await windows.open(window);
+  await windows.open({ ...window, firstSeq: '11' });
+
+  assert.equal(opened[0]!.delay, 3000);
+  assert.deepEqual(opened[0]!.deduplication, { id: 'window:channel', ttl: 3000 });
+  assert.deepEqual(opened[1]!.deduplication, opened[0]!.deduplication);
 });
 
-test('default channel fanout includes non-mentions but excludes the author and muted members', async () => {
+test('a closed window covers every message up to the channel end and pins it for later pages', async () => {
+  const f = fixture();
+  await f.scheduler.alertRecipients({ window });
+  f.post();
+
+  const alerts = f.batches[0]!;
+  assert.deepEqual(
+    alerts.map((alert) => alert.data.userId),
+    ['reader-7'],
+  );
+  assert.equal(alerts[0]!.data.lastSeq, '12');
+  assert.equal(alerts[0]!.options?.expiresAt, f.createdAt.getTime() + 3600000);
+  assert.deepEqual(f.continued, [{ lastSeq: '12', after: '099' }]);
+});
+
+test('default level alerts everyone with unread messages except muted members', async () => {
   const f = fixture('default');
-  await f.worker.schedule({ source: f.source });
+  await f.scheduler.alertRecipients({ window });
+
   const recipients = f.batches[0]!.map((alert) => alert.data.memberId);
-  assert.equal(recipients.length, 98);
-  assert.ok(recipients.includes('000'));
-  assert.ok(recipients.includes('007'));
-  assert.ok(!recipients.includes('003'));
+  assert.equal(recipients.length, 99);
   assert.ok(!recipients.includes('010'));
 });
 
 test('failed page enqueue does not advance fanout and retry retains the same alert IDs', async () => {
   const f = fixture();
   f.fail(true);
-  await assert.rejects(f.worker.schedule({ source: f.source }), /queue unavailable/u);
-  assert.deepEqual(f.continuation, []);
+  await assert.rejects(f.scheduler.alertRecipients({ window }), /queue unavailable/u);
+  assert.deepEqual(f.continued, []);
 
   f.fail(false);
-  await f.worker.schedule({ source: f.source });
+  await f.scheduler.alertRecipients({ window });
   assert.deepEqual(f.batches[1], f.batches[0]);
-  assert.equal(f.continuation.length, 1);
+  assert.equal(f.continued.length, 1);
 });

@@ -1,13 +1,12 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 import { AppConfigService } from '@/globals/config';
-import { jobId } from '@/globals/jobs/job-id';
 import { JobQueue } from '@/globals/jobs/job-queue';
 
 import { NotificationChannelRegistry } from './channels/notification-channel.registry';
-import { type ConversationAlert, type MessageDeliveryJob, PUSH_ALERT_DUE_QUEUE } from './types';
+import { type DeliveryJob, type NotificationRequest, PUSH_ALERT_QUEUE } from './types';
 
-/** Fans a due alert out to every place the person can be reached, one job per target. */
+/** Fans a request out to every place the person can be reached, one job per target. */
 @Injectable()
 export class AlertDispatcher implements OnModuleInit {
   constructor(
@@ -17,22 +16,22 @@ export class AlertDispatcher implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    if (!this.config.get('PUSH_ENABLED') || !this.config.get('PUSH_WORKER_ENABLED')) return;
+    if (!this.config.runsPushWorkers()) return;
 
-    this.jobs.work<ConversationAlert>(PUSH_ALERT_DUE_QUEUE, (alert) => this.dispatch(alert));
+    this.jobs.work<NotificationRequest>(PUSH_ALERT_QUEUE, (request) => this.dispatch(request));
   }
 
   // Each target gets its own job, so a slow or failing transport never delays or repeats another.
-  async dispatch(alert: ConversationAlert): Promise<void> {
-    const targets = await this.channels.listTargets(alert.userId);
+  async dispatch(request: NotificationRequest): Promise<void> {
+    const targets = await this.channels.listTargets(request.userId);
 
     for (const target of targets) {
-      await this.jobs.enqueue<MessageDeliveryJob>(
+      await this.jobs.enqueue<DeliveryJob>(
         this.channels.resolve(target.channel).delivery.queue,
-        { alert, target },
+        { request, target },
         {
-          id: jobId(`${alert.id}:${target.channel}:${target.id}:${target.fingerprint}`),
-          expiresAt: Date.parse(alert.expiresAt),
+          id: `${request.id}:${target.channel}:${target.id}:${target.fingerprint}`,
+          expiresAt: Date.parse(request.expiresAt),
         },
       );
     }

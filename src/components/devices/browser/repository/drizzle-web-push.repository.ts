@@ -5,7 +5,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import { devices, webPushSubscriptions } from '@/database/drizzle/schema';
 
-import type { WebPushPresence, WebPushRegistration, WebPushSubscription } from '../web-push.types';
+import type { WebPushRegistration, WebPushSubscription } from '../web-push.types';
 import { WebPushRepository } from './web-push.repository';
 
 const selection = {
@@ -13,7 +13,6 @@ const selection = {
   endpoint: webPushSubscriptions.endpoint,
   p256dh: webPushSubscriptions.p256dh,
   auth: webPushSubscriptions.auth,
-  activeUntil: webPushSubscriptions.activeUntil,
   userId: devices.userId,
   createdAt: devices.createdAt,
   updatedAt: devices.updatedAt,
@@ -37,12 +36,6 @@ export class DrizzleWebPushRepository extends WebPushRepository {
       .where(eq(webPushSubscriptions.endpoint, dto.endpoint));
     if (previous && previous.installationId !== dto.installationId)
       await this.txHost.tx.delete(devices).where(eq(devices.id, previous.id));
-    const [owner] = await this.txHost.tx
-      .select({ userId: devices.userId })
-      .from(devices)
-      .where(eq(devices.installationId, dto.installationId))
-      .for('update');
-    const sameOwner = owner?.userId === userId;
     const [device] = await this.txHost.tx
       .insert(devices)
       .values({ userId, installationId: dto.installationId, platform: 'web' })
@@ -57,11 +50,7 @@ export class DrizzleWebPushRepository extends WebPushRepository {
       .values({ id: device.id, endpoint: dto.endpoint, ...dto.keys })
       .onConflictDoUpdate({
         target: webPushSubscriptions.id,
-        set: {
-          endpoint: dto.endpoint,
-          ...dto.keys,
-          activeUntil: sameOwner ? webPushSubscriptions.activeUntil : null,
-        },
+        set: { endpoint: dto.endpoint, ...dto.keys },
       });
     return device;
   }
@@ -70,20 +59,6 @@ export class DrizzleWebPushRepository extends WebPushRepository {
     await this.txHost.tx
       .delete(devices)
       .where(and(eq(devices.id, id), eq(devices.userId, userId), eq(devices.platform, 'web')));
-  }
-
-  async presence(userId: string, id: string, presence: WebPushPresence): Promise<void> {
-    await this.txHost.tx
-      .update(webPushSubscriptions)
-      .set({
-        activeUntil: presence.focused ? new Date(Date.now() + 75000) : null,
-      })
-      .where(
-        and(
-          eq(webPushSubscriptions.id, id),
-          sql`exists (select 1 from ${devices} where ${devices.id} = ${id} and ${devices.userId} = ${userId})`,
-        ),
-      );
   }
 
   async forUser(userId: string): Promise<WebPushSubscription[]> {

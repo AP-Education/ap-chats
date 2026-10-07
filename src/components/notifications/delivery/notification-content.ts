@@ -1,10 +1,10 @@
-import type { ConversationAlert, MessageNotificationPayload } from './types';
+import type { NotificationPayload, NotificationRequest } from './types';
 
 /**
- * The one thing delivery asks the conversation's owner, since it never reads chat data itself.
- * In-process today; across a service boundary it becomes a call back to the chat service.
+ * The one thing delivery asks the requester, since it never reads their data itself.
+ * In-process today; across a service boundary it becomes a call back to the requesting service.
  */
 export abstract class NotificationContent {
-  /** The newest unread message worth announcing, or null once nothing is (read, deleted, muted). */
-  abstract render(alert: ConversationAlert): Promise<MessageNotificationPayload | null>;
+  /** What to show right now, or null once nothing is worth announcing anymore. */
+  abstract render(request: NotificationRequest): Promise<NotificationPayload | null>;
 }

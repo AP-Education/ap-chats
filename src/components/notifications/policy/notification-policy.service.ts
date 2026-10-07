@@ -15,6 +15,11 @@ export class NotificationPolicyService {
     const { kind, actorMemberId, recipientMemberId, settings, mentioned } = decision;
     if (kind !== 'message.created' && kind !== 'message.forwarded') return false;
     if (actorMemberId === recipientMemberId) return false;
+    return this.wantsMessages(settings, mentioned);
+  }
+
+  /** For someone who already has unread messages from others; own messages are filtered upstream. */
+  wantsMessages(settings: StoredNotificationSettings, mentioned: boolean): boolean {
     const level = this.messageLevel(settings);
     return level === 'all' || (level === 'mentions' && mentioned);
   }

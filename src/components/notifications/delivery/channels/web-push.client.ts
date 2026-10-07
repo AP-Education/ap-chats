@@ -1,10 +1,12 @@
+import { createHash } from 'node:crypto';
+
 import { Injectable } from '@nestjs/common';
 import webpush from 'web-push';
 
-import type { WebPushSubscription } from '@/components/devices/browser/web-push.types';
+import type { WebPushSubscription } from '@/components/devices';
 import { AppConfigService } from '@/globals/config';
 
-import type { MessageNotificationPayload } from '../types';
+import type { NotificationPayload } from '../types';
 
 @Injectable()
 export class WebPushClient {
@@ -16,7 +18,7 @@ export class WebPushClient {
 
   async send(
     subscription: WebPushSubscription,
-    envelope: MessageNotificationPayload,
+    envelope: NotificationPayload,
     ttl: number,
   ): Promise<'accepted' | 'unregistered'> {
     try {
@@ -30,7 +32,7 @@ export class WebPushClient {
           TTL: ttl,
           timeout: 10000,
           urgency: 'normal',
-          topic: envelope.channelId.replaceAll('-', ''),
+          topic: pushTopic(envelope.collapseKey),
           vapidDetails: {
             subject: this.config.get('WEB_PUSH_SUBJECT')!,
             publicKey: this.config.get('WEB_PUSH_PUBLIC_KEY')!,
@@ -46,4 +48,9 @@ export class WebPushClient {
       throw error;
     }
   }
+}
+
+// RFC 8030 topics are at most 32 URL-safe characters, so any collapse key is hashed down to one.
+function pushTopic(collapseKey: string): string {
+  return createHash('sha256').update(collapseKey).digest('base64url').slice(0, 32);
 }
