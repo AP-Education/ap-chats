@@ -18,18 +18,15 @@ function decision(changes: Partial<NotificationDecision> = {}): NotificationDeci
     kind: 'message.created',
     actorMemberId: 'author',
     recipientMemberId: 'recipient',
-    channelKind: 'public',
     settings,
     mentioned: false,
     ...changes,
   };
 }
 
-test('default alerts on all messages in public, private and direct conversations', () => {
-  for (const channelKind of ['public', 'private', 'dm'] as const) {
-    assert.equal(policy.shouldAlert(decision({ channelKind })), true);
-    assert.equal(policy.shouldAlert(decision({ channelKind, mentioned: true })), true);
-  }
+test('default alerts on every message, whatever the conversation kind', () => {
+  assert.equal(policy.shouldAlert(decision()), true);
+  assert.equal(policy.shouldAlert(decision({ mentioned: true })), true);
 });
 
 test('mute, author and non-message changes never alert', () => {
@@ -53,15 +50,12 @@ test('mute, author and non-message changes never alert', () => {
 test('all and mentions overrides use the recipient preference', () => {
   assert.equal(policy.shouldAlert(decision({ settings: { ...settings, level: 'all' } })), true);
   assert.equal(
-    policy.shouldAlert(
-      decision({ channelKind: 'dm', settings: { ...settings, level: 'mentions' } }),
-    ),
+    policy.shouldAlert(decision({ settings: { ...settings, level: 'mentions' } })),
     false,
   );
   assert.equal(
     policy.shouldAlert(
       decision({
-        channelKind: 'dm',
         settings: { ...settings, level: 'mentions' },
         mentioned: true,
       }),

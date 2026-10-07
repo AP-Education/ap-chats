@@ -3,21 +3,20 @@ import { Injectable } from '@nestjs/common';
 import { DevicesRepository } from '../repository';
 import type { DeviceRecord } from '../types';
 import { tokenFingerprint } from './credential-fingerprint';
-import type { CallTargetReference, PushTargetReference } from './types';
+import type { CallTargetReference, DeviceTarget } from './types';
 
 @Injectable()
 export class NativePushTargetsStrategy {
   constructor(private readonly repository: DevicesRepository) {}
 
-  async listMessageTargetsForUser(userId: string): Promise<PushTargetReference[]> {
+  async listMessageTargetsForUser(userId: string): Promise<DeviceTarget[]> {
     const devices = await this.repository.listForUser(userId);
-    const targets: PushTargetReference[] = [];
+    const targets: DeviceTarget[] = [];
 
     for (const device of devices) {
       if (!device.pushToken) continue;
 
       targets.push({
-        kind: 'expo',
         id: device.id,
         fingerprint: tokenFingerprint(device.pushToken),
       });
@@ -44,7 +43,7 @@ export class NativePushTargetsStrategy {
   }
 
   async findCurrentDevice(
-    target: { id: string; fingerprint: string },
+    target: DeviceTarget,
     userId: string,
     kind: 'push' | 'voip',
   ): Promise<DeviceRecord | undefined> {

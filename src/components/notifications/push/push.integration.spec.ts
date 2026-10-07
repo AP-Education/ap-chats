@@ -9,11 +9,7 @@ import { TransactionalAdapterDrizzleOrm } from '@nestjs-cls/transactional-adapte
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 
-import {
-  BrowserPushTargetsStrategy,
-  NativePushTargetsStrategy,
-  PushTargetsService,
-} from '@/components/devices';
+import { BrowserPushTargetsStrategy, NativePushTargetsStrategy } from '@/components/devices';
 import { DrizzleWebPushRepository } from '@/components/devices/browser/repository/drizzle-web-push.repository';
 import { DrizzleDevicesRepository } from '@/components/devices/repository/drizzle-devices.repository';
 import { EntriesFacade } from '@/components/social/entries/entries.facade';
@@ -31,12 +27,15 @@ import { PersistentEventOutbox } from '@/globals/publisher/persistent-event-outb
 import { DrizzleEventOutboxRepository } from '@/globals/publisher/repository/drizzle-event-outbox.repository';
 
 import { NotificationPolicyService } from '../policy';
+import { BrowserChannel } from './channels/browser.channel';
+import { NativeAppChannel } from './channels/native-app.channel';
+import { NotificationChannelRegistry } from './channels/notification-channel.registry';
 import { ConversationNotificationWorker } from './conversation-notification.worker';
 import { MessageNotificationContentService } from './message-notification-content.service';
 import { DrizzleNotificationWindowsRepository } from './repository/drizzle-notification-windows.repository';
 import { DrizzlePushAudienceRepository } from './repository/drizzle-push-audience.repository';
 import type { ConversationAlert, MessageNotificationSource } from './types';
-import { PUSH_EXPO_DELIVERY_EVENT, PUSH_WEB_DELIVERY_EVENT } from './types';
+import { PUSH_EXPO_DELIVERY_QUEUE, PUSH_WEB_DELIVERY_QUEUE } from './types';
 
 // Embedded PostgreSQL: no application database or notification provider is contacted.
 test('push migrations, devices, burst policy and durable outbox on PostgreSQL', async (t) => {
@@ -405,10 +404,17 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
         endpoint: 'https://fcm.googleapis.com/push/reader',
         keys: { p256dh: 'key', auth: 'auth' },
       });
-      const targets = new PushTargetsService(
-        new NativePushTargetsStrategy(devices),
-        new BrowserPushTargetsStrategy(subscriptions),
-      );
+      const channels = new NotificationChannelRegistry([
+        new NativeAppChannel(
+          new NativePushTargetsStrategy(devices),
+          {} as never,
+          {} as never,
+          {} as never,
+        ),
+        new BrowserChannel(new BrowserPushTargetsStrategy(subscriptions), {
+          configured: true,
+        } as never),
+      ]);
       const settings = { PUSH_COOLDOWN_SECONDS: 30, PUSH_USER_ALERTS_PER_MINUTE: 5 };
       const appConfig = { get: (key: keyof typeof settings) => settings[key] };
       const content = new MessageNotificationContentService(
@@ -420,7 +426,7 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
       const worker = new ConversationNotificationWorker(
         {
           enqueue: async (name: string, data: object, options: { id: string }) => {
-            if (name === PUSH_WEB_DELIVERY_EVENT && fail) throw new Error('enqueue failed');
+            if (name === PUSH_WEB_DELIVERY_QUEUE && fail) throw new Error('enqueue failed');
             queued.set(options.id, { name, data });
           },
         } as never,
@@ -428,13 +434,7 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
         new NotificationPolicyService(),
         batches,
         appConfig as never,
-        targets,
-        {
-          browserEnabled: true,
-          resolve: (kind: string) => ({
-            queueName: kind === 'expo' ? PUSH_EXPO_DELIVERY_EVENT : PUSH_WEB_DELIVERY_EVENT,
-          }),
-        } as never,
+        channels,
         content,
       );
       // A later source still picks the earlier eligible unread mention in the collected burst.
@@ -450,7 +450,7 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
           .length,
         1,
       );
-      assert.ok([...queued.values()].some((job) => job.name === PUSH_EXPO_DELIVERY_EVENT));
+      assert.ok([...queued.values()].some((job) => job.name === PUSH_EXPO_DELIVERY_QUEUE));
       assert.ok(!JSON.stringify([...queued.values()]).includes('ExpoPushToken[reader]'));
       assert.equal((await db.select().from(schema.eventOutbox)).length, 1);
       const firstJob = [...queued.values()][0]!.data as { alert: ConversationAlert };

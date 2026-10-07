@@ -12,7 +12,6 @@ import { DevicesService } from './devices.service';
 import { DevicesRepository, DrizzleDevicesRepository } from './repository';
 import { BrowserPushTargetsStrategy } from './targets/browser-push-targets.strategy';
 import { NativePushTargetsStrategy } from './targets/native-push-targets.strategy';
-import { PushTargetsService } from './targets/push-targets.service';
 
 @Module({
   imports: [DrizzleModule, AuthModule],
@@ -21,16 +20,10 @@ import { PushTargetsService } from './targets/push-targets.service';
     WebPushService,
     { provide: WebPushRepository, useClass: DrizzleWebPushRepository },
     DevicesService,
-    PushTargetsService,
     NativePushTargetsStrategy,
     BrowserPushTargetsStrategy,
     { provide: DevicesRepository, useClass: DrizzleDevicesRepository },
   ],
-  exports: [
-    DevicesService,
-    PushTargetsService,
-    NativePushTargetsStrategy,
-    BrowserPushTargetsStrategy,
-  ],
+  exports: [DevicesService, NativePushTargetsStrategy, BrowserPushTargetsStrategy],
 })
 export class DevicesModule {}

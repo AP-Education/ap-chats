@@ -5,18 +5,17 @@ import { AppConfigService } from '@/globals/config';
 import { PermanentJobError } from '@/globals/jobs/job-queue';
 
 import type { MessageNotificationPayload } from '../types';
-import {
-  type ExpoPushAcceptance,
-  ExpoPushProvider,
-  type ExpoPushReceipt,
-} from './expo-push.provider';
+
+export type ExpoPushAcceptance =
+  { status: 'accepted'; receiptId: string } | { status: 'unregistered' };
+
+export type ExpoPushReceipt = 'pending' | 'accepted' | 'unregistered';
 
 @Injectable()
-export class ExpoServerPushProvider extends ExpoPushProvider {
+export class ExpoPushClient {
   private readonly client: Expo;
 
   constructor(config: AppConfigService) {
-    super();
     const accessToken = config.get('EXPO_ACCESS_TOKEN');
     this.client = new Expo(accessToken ? { accessToken } : {});
   }

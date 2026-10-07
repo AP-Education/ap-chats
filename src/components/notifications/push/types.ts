@@ -1,5 +1,4 @@
-import type { PushTargetReference } from '@/components/devices';
-
+import type { ChannelTarget } from './channels/notification-channel';
 import type { PushScope } from './repository/push-audience.repository';
 
 export interface MessageNotificationSource extends PushScope {
@@ -35,14 +34,13 @@ export interface NotificationWindow {
 
 export interface MessageDeliveryJob {
   alert: ConversationAlert;
-  target: PushTargetReference;
+  target: ChannelTarget;
 }
 
 export interface NativePushReceiptJob {
   receiptId: string;
   deviceId: string;
   tokenFingerprint: string;
-  expiresAt: string;
 }
 
 export interface MessageFanoutJob {
@@ -50,8 +48,8 @@ export interface MessageFanoutJob {
   after?: string;
 }
 
-export const PUSH_FANOUT_EVENT = 'push.message-fanout';
-export const PUSH_BATCH_READY_EVENT = 'push.batch-ready';
-export const PUSH_EXPO_DELIVERY_EVENT = 'push.expo-delivery';
-export const PUSH_WEB_DELIVERY_EVENT = 'push.web-delivery';
-export const EXPO_RECEIPT_EVENT = 'push.expo-receipt';
+export const PUSH_FANOUT_QUEUE = 'push.message-fanout';
+export const PUSH_ALERT_DUE_QUEUE = 'push.batch-ready';
+export const PUSH_EXPO_DELIVERY_QUEUE = 'push.expo-delivery';
+export const PUSH_WEB_DELIVERY_QUEUE = 'push.web-delivery';
+export const EXPO_RECEIPT_QUEUE = 'push.expo-receipt';

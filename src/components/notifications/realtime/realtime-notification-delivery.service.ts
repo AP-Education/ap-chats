@@ -50,7 +50,6 @@ export class RealtimeNotificationDeliveryService {
             kind: event.kind,
             actorMemberId: event.actorMemberId,
             recipientMemberId: recipient.memberId,
-            channelKind: channel.kind,
             settings: preference,
             mentioned: mentioned.has(recipient.memberId),
           }),

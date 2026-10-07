@@ -9,8 +9,8 @@ import { ConversationNotificationWorker } from './conversation-notification.work
 import {
   type ConversationAlert,
   type MessageFanoutJob,
-  PUSH_BATCH_READY_EVENT,
-  PUSH_FANOUT_EVENT,
+  PUSH_ALERT_DUE_QUEUE,
+  PUSH_FANOUT_QUEUE,
 } from './types';
 
 function fixture(level: 'default' | 'mentions' = 'mentions') {
@@ -37,12 +37,12 @@ function fixture(level: 'default' | 'mentions' = 'mentions') {
   const worker = new ConversationNotificationWorker(
     {
       enqueueMany: async (name: string, jobs: JobRequest<ConversationAlert>[]) => {
-        assert.equal(name, PUSH_BATCH_READY_EVENT);
+        assert.equal(name, PUSH_ALERT_DUE_QUEUE);
         batches.push(jobs);
         if (fail) throw new Error('queue unavailable');
       },
       enqueue: async (name: string, job: MessageFanoutJob) => {
-        assert.equal(name, PUSH_FANOUT_EVENT);
+        assert.equal(name, PUSH_FANOUT_QUEUE);
         continuation.push(job);
       },
     } as never,
@@ -54,7 +54,6 @@ function fixture(level: 'default' | 'mentions' = 'mentions') {
     new NotificationPolicyService(),
     {} as never,
     { get: () => 3 } as never,
-    {} as never,
     {} as never,
     {} as never,
   );
@@ -140,15 +139,14 @@ test('a throttled alert is rescheduled for when its window opens, not dropped', 
       reserve: async () => ({ status: 'deferred', until }),
     } as never,
     { get: () => 30 } as never,
-    { listMessageTargetsForUser: async () => [{ kind: 'expo', id: 'device' }] } as never,
-    { browserEnabled: false } as never,
+    { listTargets: async () => [{ channel: 'expo', id: 'device', fingerprint: 'token' }] } as never,
     { findEligibleMessage: async () => ({ urgent: false }) } as never,
   );
 
   await worker.dispatchConversationAlert(request);
 
   assert.equal(deferred.length, 1);
-  assert.equal(deferred[0]!.name, PUSH_BATCH_READY_EVENT);
+  assert.equal(deferred[0]!.name, PUSH_ALERT_DUE_QUEUE);
   assert.equal(deferred[0]!.data, request);
   assert.ok(deferred[0]!.options.delay! > 19_000 && deferred[0]!.options.delay! <= 20_000);
 });

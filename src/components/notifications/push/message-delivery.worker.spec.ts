@@ -7,9 +7,9 @@ import { subscriptionFingerprint } from '@/components/devices/targets/credential
 import { tokenFingerprint } from '@/components/devices/targets/credential-fingerprint';
 
 import { NotificationPolicyService } from '../policy';
-import { MessageDeliveryRegistry } from './delivery';
-import { BrowserMessageDelivery } from './delivery/browser-message-delivery';
-import { NativeMessageDelivery } from './delivery/native-message-delivery';
+import { BrowserChannel } from './channels/browser.channel';
+import { NativeAppChannel } from './channels/native-app.channel';
+import { NotificationChannelRegistry } from './channels/notification-channel.registry';
 import { MessageDeliveryWorker } from './message-delivery.worker';
 import { MessageNotificationContentService } from './message-notification-content.service';
 import type { ConversationAlert, MessageDeliveryJob } from './types';
@@ -50,7 +50,7 @@ function fixture(kind: 'web' | 'expo' = 'web') {
   const job: MessageDeliveryJob = {
     alert: batch,
     target: {
-      kind,
+      channel: kind,
       id: kind === 'web' ? subscription.id : device.id,
       fingerprint:
         kind === 'web' ? subscriptionFingerprint(subscription) : tokenFingerprint(device.pushToken),
@@ -91,7 +91,7 @@ function fixture(kind: 'web' | 'expo' = 'web') {
       invalidated.push(snapshot);
     },
   } as never);
-  const nativeDelivery = new NativeMessageDelivery(
+  const nativeChannel = new NativeAppChannel(
     nativeTargets,
     {
       send: async (_token: unknown, payload: unknown) => {
@@ -104,8 +104,8 @@ function fixture(kind: 'web' | 'expo' = 'web') {
     jobs as never,
     {} as never,
   );
-  const browserDelivery = new BrowserMessageDelivery(browserTargets, {
-    enabled: true,
+  const browserChannel = new BrowserChannel(browserTargets, {
+    configured: true,
     send: async (_subscription: unknown, payload: unknown) => {
       if (failure) throw failure;
       sent.push(payload);
@@ -114,14 +114,14 @@ function fixture(kind: 'web' | 'expo' = 'web') {
   } as never);
   const worker = new MessageDeliveryWorker(
     jobs as never,
-    new MessageDeliveryRegistry(nativeDelivery, browserDelivery),
+    new NotificationChannelRegistry([nativeChannel, browserChannel]),
     { latest: async () => (latest ? batch : undefined) } as never,
     {} as never,
     content,
   );
   return {
     worker,
-    nativeDelivery,
+    nativeChannel,
     job,
     batch,
     supersede: () => {
@@ -230,18 +230,16 @@ test('message previews preserve Markdown storage and use the current author', as
   assert.equal((f.sent[0] as { title: string }).title, 'Author · Channel');
 });
 
-test('pending native receipts remain retryable and expired receipt jobs stop', async () => {
+test('a pending native receipt stays retryable', async () => {
   const f = fixture('expo');
   f.status('pending');
   const receipt = {
     receiptId: 'receipt',
     deviceId: f.device.id,
     tokenFingerprint: f.job.target.fingerprint,
-    expiresAt: new Date(Date.now() + 60000).toISOString(),
   };
 
-  await assert.rejects(f.nativeDelivery.receipt(receipt), /not available yet/u);
-  await f.nativeDelivery.receipt({ ...receipt, expiresAt: new Date(0).toISOString() });
+  await assert.rejects(f.nativeChannel.checkReceipt(receipt), /not available yet/u);
   assert.deepEqual(f.invalidated, []);
 });
 
@@ -252,14 +250,13 @@ test('a delayed receipt cannot invalidate a rotated native token', async () => {
     receiptId: 'receipt',
     deviceId: f.device.id,
     tokenFingerprint: f.job.target.fingerprint,
-    expiresAt: new Date(Date.now() + 60000).toISOString(),
   };
 
   f.device.pushToken = 'rotated';
-  await f.nativeDelivery.receipt(receipt);
+  await f.nativeChannel.checkReceipt(receipt);
   assert.deepEqual(f.invalidated, []);
 
   f.device.pushToken = 'token';
-  await f.nativeDelivery.receipt(receipt);
+  await f.nativeChannel.checkReceipt(receipt);
   assert.deepEqual(f.invalidated, [['device', 'token', 'push']]);
 });

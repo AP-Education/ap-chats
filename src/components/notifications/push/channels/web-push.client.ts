@@ -5,15 +5,12 @@ import type { WebPushSubscription } from '@/components/devices/browser/web-push.
 import { AppConfigService } from '@/globals/config';
 
 import type { MessageNotificationPayload } from '../types';
-import { WebPushProvider } from './web-push.provider';
 
 @Injectable()
-export class VapidWebPushProvider extends WebPushProvider {
-  constructor(private readonly config: AppConfigService) {
-    super();
-  }
+export class WebPushClient {
+  constructor(private readonly config: AppConfigService) {}
 
-  get enabled(): boolean {
+  get configured(): boolean {
     return Boolean(this.config.get('WEB_PUSH_PUBLIC_KEY'));
   }
 

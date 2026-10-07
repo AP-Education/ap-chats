@@ -1,14 +1,9 @@
-export type PushTargetKind = 'expo' | 'web';
-
 /** A credential version, never the credential itself, is safe to persist in queue jobs. */
-export interface PushTargetReference {
-  kind: PushTargetKind;
+export interface DeviceTarget {
   id: string;
   fingerprint: string;
 }
 
-export interface CallTargetReference {
-  id: string;
+export interface CallTargetReference extends DeviceTarget {
   userId: string;
-  fingerprint: string;
 }

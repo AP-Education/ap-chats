@@ -1,28 +1,23 @@
 import { Module } from '@nestjs/common';
 
-import { DevicesModule } from '@/components/devices';
 import { DrizzleModule } from '@/database/drizzle';
 
 import { NotificationPolicyModule } from '../policy';
+import { NotificationChannelsModule } from './channels/notification-channels.module';
 import { ConversationNotificationWorker } from './conversation-notification.worker';
-import { MessageDeliveryModule } from './delivery';
 import { MessageDeliveryWorker } from './message-delivery.worker';
 import { MessageNotificationContentService } from './message-notification-content.service';
-import { NotificationAudienceModule } from './notification-audience.module';
 import { DrizzleNotificationWindowsRepository } from './repository/drizzle-notification-windows.repository';
+import { DrizzlePushAudienceRepository } from './repository/drizzle-push-audience.repository';
 import { NotificationWindowsRepository } from './repository/notification-windows.repository';
+import { PushAudienceRepository } from './repository/push-audience.repository';
 
 @Module({
-  imports: [
-    DevicesModule,
-    DrizzleModule,
-    NotificationPolicyModule,
-    NotificationAudienceModule,
-    MessageDeliveryModule,
-  ],
+  imports: [DrizzleModule, NotificationPolicyModule, NotificationChannelsModule],
   providers: [
-    MessageNotificationContentService,
+    { provide: PushAudienceRepository, useClass: DrizzlePushAudienceRepository },
     { provide: NotificationWindowsRepository, useClass: DrizzleNotificationWindowsRepository },
+    MessageNotificationContentService,
     ConversationNotificationWorker,
     MessageDeliveryWorker,
   ],
