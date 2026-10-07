@@ -7,7 +7,7 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
   return {
     ...config,
     name: config.name ?? 'AP App',
-    slug: config.slug ?? 'ap-chats',
+    slug: config.slug ?? 'ap-connect',
     extra: { ...config.extra, apnsEnvironment },
     ios: {
       ...config.ios,
