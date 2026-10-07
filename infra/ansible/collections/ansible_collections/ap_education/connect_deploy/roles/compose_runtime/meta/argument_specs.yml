@@ -10,6 +10,10 @@ argument_specs:
         type: str
         default: '/mnt/<project_name>-data'
         description: Mounted data volume (see data_volume); Postgres, Valkey and Caddy state are bind-mounted from it.
+      postgres_backup_bin:
+        type: str
+        default: '/opt/<project_name>/bin/postgres-backup.sh'
+        description: Installed by postgres_backup; when present, every deploy dumps the database before migrating.
       ghcr_username:
         type: str
         required: true

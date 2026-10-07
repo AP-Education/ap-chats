@@ -2,6 +2,7 @@
 project_name: ap-connect
 deploy_project_path: '/opt/{{ project_name }}'
 data_path: '/mnt/{{ project_name }}-data'
+postgres_backup_bin: '/opt/{{ project_name }}/bin/postgres-backup.sh'
 
 app_image_repository: ghcr.io/ap-education/ap-connect-api
 web_image_repository: ghcr.io/ap-education/ap-connect-web

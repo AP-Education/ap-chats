@@ -49,6 +49,31 @@
   become: false
   no_log: true
 
+- name: Check whether the database is already running
+  ansible.builtin.command:
+    argv: [docker, compose, ps, --status, running, --quiet, postgres]
+    chdir: '{{ deploy_project_path }}'
+  register: compose_runtime_running_postgres
+  changed_when: false
+  failed_when: false
+  become: true
+  become_user: '{{ ansible_user }}'
+
+- name: Check for the backup script
+  ansible.builtin.stat:
+    path: '{{ postgres_backup_bin }}'
+  register: compose_runtime_backup_script
+  become: true
+
+# Bringing the stack up runs the release's migrations; this dump undoes a bad one without losing a day.
+- name: Back up the database before migrating
+  ansible.builtin.command: '{{ postgres_backup_bin }}'
+  when:
+    - compose_runtime_backup_script.stat.exists
+    - compose_runtime_running_postgres.stdout | length > 0
+  become: true
+  become_user: '{{ ansible_user }}'
+
 - name: Pull images and (re)create the stack
   community.docker.docker_compose_v2:
     project_src: '{{ deploy_project_path }}'

@@ -5,6 +5,7 @@
 project_name: ap-connect
 deploy_project_path: /opt/ap-connect
 data_path: /mnt/ap-connect-data
+postgres_backup_bin: /opt/ap-connect/bin/postgres-backup.sh
 postgres_user: ap_chats
 postgres_db: ap_chats
 
