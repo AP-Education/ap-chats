@@ -1,4 +1,4 @@
-import { useCurrentUser } from '@ap/shell-sdk';
+import { useCurrentUser } from '@ap-education/shell-sdk';
 
 export function useQueryAuth() {
   const user = useCurrentUser();

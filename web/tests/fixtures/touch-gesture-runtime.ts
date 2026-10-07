@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { URL } from 'node:url';
 import { runInNewContext } from 'node:vm';
 
-import type * as GestureModule from '@ap/ui';
+import type * as GestureModule from '@ap-education/ui';
 import type { MouseEvent, TouchEvent } from 'react';
 import ts from 'typescript';
 
@@ -119,11 +119,11 @@ export function createGestureFixture() {
   }
 
   const { useTouchGesture } = load<typeof GestureModule>(
-    new URL('./hooks/useTouchGesture.ts', import.meta.resolve('@ap/ui')).href,
+    new URL('./hooks/useTouchGesture.js', import.meta.resolve('@ap-education/ui')).href,
     { react },
   );
   const { useSwipeDrawer } = load<typeof GestureModule>(
-    new URL('./hooks/useSwipeDrawer.ts', import.meta.resolve('@ap/ui')).href,
+    new URL('./hooks/useSwipeDrawer.js', import.meta.resolve('@ap-education/ui')).href,
     {
       react,
       './useTouchGesture': { useTouchGesture },
@@ -135,7 +135,7 @@ export function createGestureFixture() {
     '../../src/features/social/messaging/components/MessageRow/useMessageReplySwipe.ts',
     {
       react,
-      '@ap/ui': { useTouchGesture },
+      '@ap-education/ui': { useTouchGesture },
       '@/shared/lib/haptics': haptics,
     },
   );

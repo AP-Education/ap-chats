@@ -1,4 +1,4 @@
-import { useCurrentUser } from '@ap/shell-sdk';
+import { useCurrentUser } from '@ap-education/shell-sdk';
 import { useMutation, type UseMutationResult } from '@tanstack/react-query';
 
 import { uploadFile } from '../api/workspaces-api';

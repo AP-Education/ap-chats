@@ -1,4 +1,4 @@
-import { IconButton } from '@ap/ui';
+import { IconButton } from '@ap-education/ui';
 import {
   ArrowClockwiseIcon,
   CheckCircleIcon,

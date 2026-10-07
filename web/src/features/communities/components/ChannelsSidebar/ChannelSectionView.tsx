@@ -1,4 +1,4 @@
-import { PanelSection } from '@ap/ui';
+import { PanelSection } from '@ap-education/ui';
 import { PlusIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';

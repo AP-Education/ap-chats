@@ -1,5 +1,5 @@
-import { useIsAppActive, useOpenApp } from '@ap/shell-sdk';
-import { NavAddTile, NavTile } from '@ap/ui';
+import { useIsAppActive, useOpenApp } from '@ap-education/shell-sdk';
+import { NavAddTile, NavTile } from '@ap-education/ui';
 import { ArrowClockwiseIcon } from '@phosphor-icons/react';
 import { Skeleton } from 'antd';
 import { useState } from 'react';

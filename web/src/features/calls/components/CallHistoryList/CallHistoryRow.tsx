@@ -1,4 +1,4 @@
-import { IconButton, LoadingIcon, useIsMobile } from '@ap/ui';
+import { IconButton, LoadingIcon, useIsMobile } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 import { Link } from 'react-router-dom';
 

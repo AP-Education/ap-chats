@@ -1,4 +1,4 @@
-import { useMediaQuery } from '@ap/ui';
+import { useMediaQuery } from '@ap-education/ui';
 
 const narrowLayoutQuery = '(max-width: 1200px)';
 

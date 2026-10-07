@@ -6,7 +6,7 @@ import {
   PanelNav,
   PanelNavItem,
   useIsMobile,
-} from '@ap/ui';
+} from '@ap-education/ui';
 import { ChatsIcon, ChatTextIcon, HouseIcon, PhoneIcon } from '@phosphor-icons/react';
 import { type ComponentProps, useState } from 'react';
 import { useHref, useLocation, useNavigate } from 'react-router-dom';

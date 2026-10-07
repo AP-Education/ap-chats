@@ -1,4 +1,4 @@
-import { useIsMobile } from '@ap/ui';
+import { useIsMobile } from '@ap-education/ui';
 import { Skeleton, theme } from 'antd';
 import { Suspense } from 'react';
 import { useLocation, useRoutes } from 'react-router-dom';

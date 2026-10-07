@@ -1,4 +1,4 @@
-import { Page, PageAside, PageBody, PageHeader } from '@ap/ui';
+import { Page, PageAside, PageBody, PageHeader } from '@ap-education/ui';
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 

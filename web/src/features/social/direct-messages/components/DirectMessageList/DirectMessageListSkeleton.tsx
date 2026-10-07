@@ -1,4 +1,4 @@
-import { useIsMobile } from '@ap/ui';
+import { useIsMobile } from '@ap-education/ui';
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 

@@ -1,4 +1,4 @@
-import { getAppShell } from '@ap/shell-sdk';
+import { getAppShell } from '@ap-education/shell-sdk';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { message as toast } from 'antd';
 

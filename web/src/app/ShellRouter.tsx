@@ -1,4 +1,9 @@
-import { useAppBasePath, useIsAppActive, useShellLocation, useShellNavigate } from '@ap/shell-sdk';
+import {
+  useAppBasePath,
+  useIsAppActive,
+  useShellLocation,
+  useShellNavigate,
+} from '@ap-education/shell-sdk';
 import { type PropsWithChildren, useMemo, useState } from 'react';
 import { createPath, type Navigator, parsePath, Router, type To } from 'react-router-dom';
 

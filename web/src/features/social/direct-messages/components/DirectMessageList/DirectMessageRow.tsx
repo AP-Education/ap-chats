@@ -1,4 +1,4 @@
-import { useIsMobile } from '@ap/ui';
+import { useIsMobile } from '@ap-education/ui';
 import { BellSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { Link, useParams } from 'react-router-dom';

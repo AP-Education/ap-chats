@@ -1,4 +1,4 @@
-import { useIsMobile } from '@ap/ui';
+import { useIsMobile } from '@ap-education/ui';
 import { ChatTextIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Empty, message as toast, Skeleton } from 'antd';

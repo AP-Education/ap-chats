@@ -1,4 +1,4 @@
-import { isNativeShell, onNativeMessage, postToNative } from '@ap/shell-sdk';
+import { isNativeShell, onNativeMessage, postToNative } from '@ap-education/shell-sdk';
 import {
   type RefObject,
   useCallback,

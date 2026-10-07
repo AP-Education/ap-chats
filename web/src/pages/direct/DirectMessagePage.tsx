@@ -1,4 +1,12 @@
-import { Page, PageActions, PageAside, PageBody, PageHeader, PageTitle, useIsMobile } from '@ap/ui';
+import {
+  Page,
+  PageActions,
+  PageAside,
+  PageBody,
+  PageHeader,
+  PageTitle,
+  useIsMobile,
+} from '@ap-education/ui';
 import { Button, Empty, Result } from 'antd';
 import { createStyles } from 'antd-style';
 import { useParams } from 'react-router-dom';

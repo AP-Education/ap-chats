@@ -1,5 +1,5 @@
-import { isNativeShell } from '@ap/shell-sdk';
-import { IconButton, useIsMobile } from '@ap/ui';
+import { isNativeShell } from '@ap-education/shell-sdk';
+import { IconButton, useIsMobile } from '@ap-education/ui';
 import {
   GifIcon,
   KeyboardIcon,

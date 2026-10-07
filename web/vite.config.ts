@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { sharedSingletons } from '@ap/federation';
+import { sharedSingletons } from '@ap-education/federation';
 import { federation } from '@module-federation/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';

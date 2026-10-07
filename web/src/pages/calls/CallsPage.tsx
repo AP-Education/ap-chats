@@ -1,4 +1,4 @@
-import { Page, PageActions, PageBody, PageHeader, PageTitle } from '@ap/ui';
+import { Page, PageActions, PageBody, PageHeader, PageTitle } from '@ap-education/ui';
 import { Segmented } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';

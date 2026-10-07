@@ -288,12 +288,12 @@ importers:
 
   web:
     dependencies:
-      '@ap/shell-sdk':
-        specifier: link:../../../../../ap-app/packages/shell-sdk
-        version: link:../../../../../ap-app/packages/shell-sdk
-      '@ap/ui':
-        specifier: link:../../../../../ap-app/packages/ui
-        version: link:../../../../../ap-app/packages/ui
+      '@ap-education/shell-sdk':
+        specifier: ^0.1.1-beta.0
+        version: 0.1.1-beta.0(react@19.2.3)
+      '@ap-education/ui':
+        specifier: ^0.1.1-beta.0
+        version: 0.1.1-beta.0(@phosphor-icons/react@2.1.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1))(antd@6.5.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       '@emoji-mart/data':
         specifier: ^1.2.1
         version: 1.2.1
@@ -349,9 +349,9 @@ importers:
         specifier: ^5.0.15
         version: 5.0.15(@types/react@19.2.18)(react@19.2.3)
     devDependencies:
-      '@ap/federation':
-        specifier: link:../../../../../ap-app/packages/federation
-        version: link:../../../../../ap-app/packages/federation
+      '@ap-education/federation':
+        specifier: ^0.1.1-beta.0
+        version: 0.1.1-beta.0
       '@module-federation/vite':
         specifier: ^1.23.2
         version: 1.23.2(typescript@6.0.3)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
@@ -431,6 +431,22 @@ packages:
     peerDependencies:
       react: ^0.14.0 || ^15.0.1 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^0.14.0 || ^15.0.1 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  '@ap-education/federation@0.1.1-beta.0':
+    resolution: {integrity: sha512-OCKU7uVcOrscvCUdXVNdArdKqkAxi0lRJwwQAE/6rKYLKRGsX38Zj5VQ5C6zX3fD3nFypxocDgSvvNChbslnbg==, tarball: https://npm.pkg.github.com/download/@ap-education/federation/0.1.1-beta.0/c0f870fad7a36ad99306ca59456f2ba7d16ac55f}
+
+  '@ap-education/shell-sdk@0.1.1-beta.0':
+    resolution: {integrity: sha512-ePCKKroFP68ZVn8qvcyW1+ggmdyuCREXN/TXrY6y3vC7C70haS3B5DXBBbZRYrvwacmVLKzw6Gx0MDBJxMrC6A==, tarball: https://npm.pkg.github.com/download/@ap-education/shell-sdk/0.1.1-beta.0/33cef0ed23bbd2ec0182e1875d99da127b01ecb2}
+    peerDependencies:
+      react: ^19.0.0
+
+  '@ap-education/ui@0.1.1-beta.0':
+    resolution: {integrity: sha512-pwTEO9kEcRhQwtwW/XS9GkmWWqJAJhBSZdsCzuqJT0xbv7eVOPbuZn7/8pjYCUWUBrfASP7N0FkNwuuUbjwP3A==, tarball: https://npm.pkg.github.com/download/@ap-education/ui/0.1.1-beta.0/1de381a2f402f5ae3c902f5add62b1200a6a7da0}
+    peerDependencies:
+      '@phosphor-icons/react': ^2.1.10
+      antd: ^6.5.4
+      antd-style: ^4.1.0
+      react: ^19.0.0
 
   '@aws-sdk/checksums@3.1001.1':
     resolution: {integrity: sha512-x12Q17KYlJAd3nKf8LV5LV0vt8sh8/6YfQLGPtrGnQf/tW4jqxPGq5GPpuVitpQYM3eUR4XB7CbxZf751NMbLw==}
@@ -2372,6 +2388,24 @@ packages:
     resolution: {integrity: sha512-oxMK4vllB9RK5NQ2l1pq1IfOf2AvnEuj/vYGDj0H2nMtmtZpKtCwt/l00GEO6xjGfpBNAvjovvYdCm50dRQkpQ==}
     engines: {node: '>=20'}
     hasBin: true
+
+  '@radix-ui/react-compose-refs@1.1.5':
+    resolution: {integrity: sha512-+48PbAAbq3didjJxa+OaWY2ZwgAKsNiRGyeHKszblZMQ+kcpd9pAaT11cMkGEie0vsOi3QdeTE6d5Fe3Gn61kA==}
+    peerDependencies:
+      '@types/react': '*'
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
+  '@radix-ui/react-slot@1.4.0':
+    resolution: {integrity: sha512-IuMVHZ+Ah5fkctu3X3qeFrV/ZrBcuWuDTFUUPfS/L5hvoTjzhp/HdWGE14CsQombPdEidsa33HVlYZXi49PZ1Q==}
+    peerDependencies:
+      '@types/react': '*'
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
 
   '@rc-component/async-validator@6.0.0':
     resolution: {integrity: sha512-D3AGQwdyE58gmvx6waVSXJ80JGO+IY5L2O8HDnSOex7JNlzB3GuN/4hyHNTdhy2qtOhkpbIjmeAN3tL993wKbA==}
@@ -7049,6 +7083,22 @@ snapshots:
       react-dom: 19.2.3(react@19.2.3)
       throttle-debounce: 5.0.2
 
+  '@ap-education/federation@0.1.1-beta.0': {}
+
+  '@ap-education/shell-sdk@0.1.1-beta.0(react@19.2.3)':
+    dependencies:
+      react: 19.2.3
+
+  '@ap-education/ui@0.1.1-beta.0(@phosphor-icons/react@2.1.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1))(antd@6.5.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@phosphor-icons/react': 2.1.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@radix-ui/react-slot': 1.4.0(@types/react@19.2.18)(react@19.2.3)
+      antd: 6.5.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      antd-style: 4.1.0(@types/react@19.2.18)(antd@6.5.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)
+      react: 19.2.3
+    transitivePeerDependencies:
+      - '@types/react'
+
   '@aws-sdk/checksums@3.1001.1':
     dependencies:
       '@aws-sdk/core': 3.978.1
@@ -9194,6 +9244,19 @@ snapshots:
   '@playwright/test@1.63.0':
     dependencies:
       playwright: 1.63.0
+
+  '@radix-ui/react-compose-refs@1.1.5(@types/react@19.2.18)(react@19.2.3)':
+    dependencies:
+      react: 19.2.3
+    optionalDependencies:
+      '@types/react': 19.2.18
+
+  '@radix-ui/react-slot@1.4.0(@types/react@19.2.18)(react@19.2.3)':
+    dependencies:
+      '@radix-ui/react-compose-refs': 1.1.5(@types/react@19.2.18)(react@19.2.3)
+      react: 19.2.3
+    optionalDependencies:
+      '@types/react': 19.2.18
 
   '@rc-component/async-validator@6.0.0':
     dependencies:

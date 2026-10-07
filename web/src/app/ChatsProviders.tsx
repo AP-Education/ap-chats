@@ -1,4 +1,4 @@
-import { useAppBadge, useBeforeSignOut } from '@ap/shell-sdk';
+import { useAppBadge, useBeforeSignOut } from '@ap-education/shell-sdk';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type PropsWithChildren, useContext } from 'react';
 

@@ -1,4 +1,4 @@
-import { useCurrentUser } from '@ap/shell-sdk';
+import { useCurrentUser } from '@ap-education/shell-sdk';
 import { useEffect } from 'react';
 
 import { setApiAuthSession } from '@/shared/api/http';

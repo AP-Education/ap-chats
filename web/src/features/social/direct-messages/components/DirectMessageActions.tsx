@@ -1,4 +1,4 @@
-import { LoadingIcon, PageAction, PageActionDivider, PageAsideTrigger } from '@ap/ui';
+import { LoadingIcon, PageAction, PageActionDivider, PageAsideTrigger } from '@ap-education/ui';
 import { BellIcon, BellSlashIcon, UserCircleIcon } from '@phosphor-icons/react';
 import { message as toast, Popover } from 'antd';
 import { createStyles } from 'antd-style';

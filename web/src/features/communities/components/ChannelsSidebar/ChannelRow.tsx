@@ -1,4 +1,4 @@
-import { IconButton, useIsMobile } from '@ap/ui';
+import { IconButton, useIsMobile } from '@ap-education/ui';
 import { GearSixIcon, UserPlusIcon } from '@phosphor-icons/react';
 import { Popover } from 'antd';
 import { createStyles } from 'antd-style';

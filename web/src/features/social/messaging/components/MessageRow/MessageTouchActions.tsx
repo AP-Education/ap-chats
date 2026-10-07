@@ -1,4 +1,4 @@
-import { SWIPE_SETTLE_TRANSITION } from '@ap/ui';
+import { SWIPE_SETTLE_TRANSITION } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 import { type CSSProperties, useState } from 'react';
 

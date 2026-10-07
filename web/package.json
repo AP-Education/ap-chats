@@ -12,8 +12,8 @@
     "test": "node --import tsx --test \"src/**/*.spec.ts\" \"tests/*.spec.ts\""
   },
   "dependencies": {
-    "@ap/shell-sdk": "link:../../../../../ap-app/packages/shell-sdk",
-    "@ap/ui": "link:../../../../../ap-app/packages/ui",
+    "@ap-education/shell-sdk": "^0.1.1-beta.0",
+    "@ap-education/ui": "^0.1.1-beta.0",
     "@emoji-mart/data": "^1.2.1",
     "@livekit/components-react": "^2.9.24",
     "@livekit/components-styles": "^1.2.0",
@@ -34,7 +34,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@ap/federation": "link:../../../../../ap-app/packages/federation",
+    "@ap-education/federation": "^0.1.1-beta.0",
     "@module-federation/vite": "^1.23.2",
     "@playwright/test": "1.63.0",
     "@types/node": "^24.13.3",

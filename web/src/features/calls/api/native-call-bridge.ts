@@ -1,4 +1,4 @@
-import { postToNative } from '@ap/shell-sdk';
+import { postToNative } from '@ap-education/shell-sdk';
 
 import { resolveImageUrl } from '@/shared/lib/resolve-image-url';
 

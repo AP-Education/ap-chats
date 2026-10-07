@@ -1,4 +1,4 @@
-import { useCurrentUser } from '@ap/shell-sdk';
+import { useCurrentUser } from '@ap-education/shell-sdk';
 import { useMemo } from 'react';
 
 import type { WorkspaceMember } from '../types';

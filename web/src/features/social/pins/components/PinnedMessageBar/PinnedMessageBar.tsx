@@ -1,4 +1,4 @@
-import { IconButton } from '@ap/ui';
+import { IconButton } from '@ap-education/ui';
 import { ListBulletsIcon, PushPinIcon, XIcon } from '@phosphor-icons/react';
 import { message as toast, Popover } from 'antd';
 import { createStyles } from 'antd-style';

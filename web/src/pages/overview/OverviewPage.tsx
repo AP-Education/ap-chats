@@ -1,4 +1,4 @@
-import { Page, PageBody, PageHeader, PageTitle } from '@ap/ui';
+import { Page, PageBody, PageHeader, PageTitle } from '@ap-education/ui';
 import { Empty } from 'antd';
 import { createStyles } from 'antd-style';
 

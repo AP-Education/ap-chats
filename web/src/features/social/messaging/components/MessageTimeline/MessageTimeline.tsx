@@ -1,4 +1,4 @@
-import { useIsMobile } from '@ap/ui';
+import { useIsMobile } from '@ap-education/ui';
 import { ArrowDownIcon, ArrowUpIcon, HashIcon } from '@phosphor-icons/react';
 import { Button, Empty } from 'antd';
 import { createStyles } from 'antd-style';

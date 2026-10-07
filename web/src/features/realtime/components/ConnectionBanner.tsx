@@ -1,4 +1,4 @@
-import { LoadingIcon } from '@ap/ui';
+import { LoadingIcon } from '@ap-education/ui';
 import { WarningCircleIcon } from '@phosphor-icons/react';
 import { createStyles, keyframes } from 'antd-style';
 

@@ -1,5 +1,5 @@
-import { useMobileMenu, useMobileMenuTrigger } from '@ap/shell-sdk';
-import { CountBadge, IconButton, useIsMobile } from '@ap/ui';
+import { useMobileMenu, useMobileMenuTrigger } from '@ap-education/shell-sdk';
+import { CountBadge, IconButton, useIsMobile } from '@ap-education/ui';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 

@@ -1,4 +1,4 @@
-import { Avatar as BaseAvatar, type AvatarProps as BaseAvatarProps } from '@ap/ui';
+import { Avatar as BaseAvatar, type AvatarProps as BaseAvatarProps } from '@ap-education/ui';
 
 import { resolveImageUrl } from '../lib/resolve-image-url';
 

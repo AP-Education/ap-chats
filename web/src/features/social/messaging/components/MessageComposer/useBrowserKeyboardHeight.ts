@@ -1,4 +1,4 @@
-import { isNativeShell } from '@ap/shell-sdk';
+import { isNativeShell } from '@ap-education/shell-sdk';
 import { useEffect, useState } from 'react';
 
 export function useBrowserKeyboardHeight(): number {

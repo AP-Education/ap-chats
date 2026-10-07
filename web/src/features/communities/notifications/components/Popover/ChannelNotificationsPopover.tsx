@@ -1,4 +1,4 @@
-import { IconButton } from '@ap/ui';
+import { IconButton } from '@ap-education/ui';
 import { BellIcon, BellSlashIcon } from '@phosphor-icons/react';
 import { App, Button, Popover, Spin } from 'antd';
 import { createStyles } from 'antd-style';

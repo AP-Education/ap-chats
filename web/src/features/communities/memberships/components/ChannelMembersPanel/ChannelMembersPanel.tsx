@@ -1,4 +1,4 @@
-import { PageAsideClose, PageHeader, PageTitle } from '@ap/ui';
+import { PageAsideClose, PageHeader, PageTitle } from '@ap-education/ui';
 import { UsersThreeIcon } from '@phosphor-icons/react';
 import { message } from 'antd';
 import { createStyles } from 'antd-style';

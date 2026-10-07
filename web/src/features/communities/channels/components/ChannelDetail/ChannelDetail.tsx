@@ -8,7 +8,7 @@ import {
   PageHeader,
   PageTitle,
   useIsMobile,
-} from '@ap/ui';
+} from '@ap-education/ui';
 import { CaretDownIcon, GearSixIcon, SignOutIcon, UsersThreeIcon } from '@phosphor-icons/react';
 import { Alert, Button, Dropdown, type MenuProps, message } from 'antd';
 import { createStyles } from 'antd-style';

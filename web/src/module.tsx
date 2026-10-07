@@ -1,4 +1,4 @@
-import { defineApp } from '@ap/shell-sdk';
+import { defineApp } from '@ap-education/shell-sdk';
 import { Skeleton } from 'antd';
 
 import { ChatsProviders } from './app/ChatsProviders';

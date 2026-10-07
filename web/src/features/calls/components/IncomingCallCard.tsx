@@ -1,4 +1,4 @@
-import { LoadingIcon } from '@ap/ui';
+import { LoadingIcon } from '@ap-education/ui';
 import { createStyles, keyframes } from 'antd-style';
 
 import { Avatar } from '@/shared/ui/Avatar';

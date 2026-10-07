@@ -1,4 +1,4 @@
-import { IconButton } from '@ap/ui';
+import { IconButton } from '@ap-education/ui';
 import { XIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles, keyframes } from 'antd-style';

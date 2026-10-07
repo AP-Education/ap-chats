@@ -1,4 +1,4 @@
-import { PageAsideClose, PageHeader, PageTitle } from '@ap/ui';
+import { PageAsideClose, PageHeader, PageTitle } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 
 import type { DirectMessage } from '@/features/social/direct-messages/api/direct-messages-api';
