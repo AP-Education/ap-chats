@@ -62,21 +62,25 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     flex-direction: column;
   `,
+  // Floats over the wallpaper and the messages scrolling beneath it; only its controls
+  // take pointer input, the transparent gaps between them pass it through.
   shell: css`
     flex-shrink: 0;
     display: flex;
     align-items: flex-end;
-    gap: 10px;
-    padding: 0 ${token.paddingLG}px ${token.paddingSM}px;
+    gap: 8px;
+    padding: 0 12px 12px;
+
+    & > * {
+      pointer-events: auto;
+    }
 
     @media (max-width: ${token.screenMD}px) {
-      gap: 4px;
-      padding: 4px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+      gap: 6px;
+      padding: 4px 6px calc(6px + env(safe-area-inset-bottom, 0px));
       html[data-native-shell='true'] & {
-        padding-bottom: 8px;
+        padding-bottom: 6px;
       }
-      border-top: 1px solid ${token.colorBorderSecondary};
-      background: ${token.colorBgContainer};
     }
   `,
   desktopPanel: css`
@@ -86,6 +90,7 @@ const useStyles = createStyles(({ token, css }) => ({
   mobileSheet: css`
     flex-shrink: 0;
     overflow: hidden;
+    pointer-events: auto;
     padding: 8px 10px;
     border-top: 1px solid ${token.colorBorderSecondary};
     background: ${token.colorBgContainer};
@@ -109,9 +114,13 @@ const useStyles = createStyles(({ token, css }) => ({
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
+      width: 46px;
       height: 46px;
       flex-shrink: 0;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(20px) saturate(1.7);
+      box-shadow: 0 1px 2px rgba(23, 46, 42, 0.12);
     }
   `,
   toolbarRight: css`
@@ -179,10 +188,10 @@ const useStyles = createStyles(({ token, css }) => ({
     justify-content: space-between;
     gap: 12px;
     min-width: 0;
-    padding: 6px 8px;
-    border-left: 3px solid ${token.colorPrimary};
-    border-radius: 2px;
+    padding: 4px 4px 4px 11px;
+    border-radius: 8px;
     background: ${token.colorPrimaryBg};
+    box-shadow: inset 3px 0 0 ${token.colorPrimary};
   `,
 }));
 

@@ -1,39 +1,38 @@
-import { WarningCircleIcon } from '@phosphor-icons/react';
-import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import { memo, useLayoutEffect, useRef } from 'react';
 
-import { ForwardIcon } from '@/features/social/conversation/actionIcons';
 import type {
   ActionContext,
   ActionTarget,
   ConversationAction,
 } from '@/features/social/conversation/actions';
-import { useConversation } from '@/features/social/conversation/store';
+import { useConversation, useConversationScope } from '@/features/social/conversation/store';
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
 import type { AttachmentDraft } from '../../attachments/types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';
-import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
-import { MessageActions } from './MessageActions';
+import { Bubble } from '../Bubble/Bubble';
+import { bubbleLayout } from './bubbleLayout';
+import { MessageActions, MessageToolbar } from './MessageActions';
 import { MessageActionProvider } from './MessageActionScope';
 import { MessageBody } from './MessageBody';
+import { MessageHeader } from './MessageHeader';
+
+const AVATAR_SIZE = 40;
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
     position: relative;
     display: flex;
-    gap: 12px;
+    align-items: flex-end;
+    gap: 2px;
     min-width: 0;
-    padding: 3px 24px 3px 20px;
+    padding: 1px 6px;
     color: ${token.colorText};
-    &:hover {
-      background: ${token.colorFillQuaternary};
-    }
-    [data-hover-suppressed]
-      &:hover:not([data-selected]):not([data-failed]):not([data-mentions-me]) {
-      background: transparent;
+
+    &[data-own] {
+      justify-content: flex-end;
     }
     &:focus-visible {
       outline: 2px solid ${token.colorPrimary};
@@ -44,7 +43,7 @@ const useStyles = createStyles(({ token, css }) => ({
     }
     @keyframes flash {
       35% {
-        background: ${token.colorPrimaryBgHover};
+        background: color-mix(in srgb, ${token.colorPrimary} 22%, transparent);
       }
       100% {
         background: transparent;
@@ -60,17 +59,12 @@ const useStyles = createStyles(({ token, css }) => ({
       opacity: 0;
       pointer-events: none;
     }
-    @media (max-width: ${token.screenMD}px) {
-      gap: 8px;
-      padding: 3px 12px;
-    }
   `,
   selected: css`
-    background: ${token.colorPrimaryBg};
+    background: color-mix(in srgb, ${token.colorPrimary} 14%, transparent);
   `,
   sending: css`
     [data-message-text] {
-      color: ${token.colorTextTertiary};
       animation: appear 0.2s ease-out;
     }
     @keyframes appear {
@@ -82,47 +76,22 @@ const useStyles = createStyles(({ token, css }) => ({
       }
     }
   `,
-  failed: css`
-    background: ${token.colorErrorBg};
-    &:hover,
-    &:focus-within {
-      background: ${token.colorErrorBgHover};
-    }
-    [data-message-text] {
-      color: ${token.colorErrorText};
-    }
-  `,
   confirmed: css`
     animation: confirmed 0.9s ease-out;
     @keyframes confirmed {
       30% {
-        background: ${token.colorPrimaryBg};
+        background: color-mix(in srgb, ${token.colorPrimary} 12%, transparent);
       }
       100% {
         background: transparent;
       }
     }
   `,
-  highlighted: css`
-    background: rgba(250, 173, 20, 0.08);
-    border-left: 3px solid #faad14;
-    padding-left: 17px;
-
-    &:hover {
-      background: rgba(250, 173, 20, 0.14);
-    }
-
-    @media (max-width: ${token.screenMD}px) {
-      padding-left: 9px;
-    }
-  `,
   avatar: css`
-    width: 44px;
-    flex: 0 0 44px;
     display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding-top: 2px;
+    flex: 0 0 ${AVATAR_SIZE}px;
+    align-self: flex-end;
+    width: ${AVATAR_SIZE}px;
   `,
   avatarTrigger: css`
     display: inline-flex;
@@ -137,102 +106,24 @@ const useStyles = createStyles(({ token, css }) => ({
       outline-offset: 2px;
     }
   `,
-  content: css`
-    flex: 1;
-    min-width: 0;
-    max-width: 880px;
-    overflow-wrap: anywhere;
-  `,
-  heading: css`
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-bottom: 2px;
-  `,
-  author: css`
-    font-size: 16px;
-    line-height: 24px;
-    font-weight: 650;
-    color: ${token.colorText};
-  `,
-  authorTrigger: css`
-    padding: 0;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
-
-    &:hover,
-    &:focus-visible {
-      text-decoration: underline;
-    }
-  `,
-  time: css`
-    color: ${token.colorTextTertiary};
-    font-size: 12px;
-
-    @media (max-width: ${token.screenMD}px) {
-      color: ${token.colorTextSecondary};
-    }
-  `,
-  edited: css`
-    color: ${token.colorTextQuaternary};
-    font-size: 12px;
-  `,
-  reply: css`
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-    margin: 2px 0 4px;
-    padding: 4px 8px;
-    overflow: hidden;
-    border: 0;
-    border-left: 3px solid ${token.colorPrimary};
-    border-radius: 2px;
-    background: ${token.colorFillQuaternary};
-    color: ${token.colorTextSecondary};
-    text-align: left;
-    cursor: pointer;
-    &:hover {
-      background: ${token.colorFillTertiary};
-    }
-  `,
-  forwarded: css`
+  retry: css`
     display: flex;
     align-items: center;
-    gap: 3px;
-    margin-bottom: 2px;
-    color: ${token.colorPrimary};
-    font-size: 14px;
-    line-height: 18px;
+    gap: 6px;
+    color: var(--bubble-meta);
+    font-size: ${token.fontSizeSM}px;
   `,
-  forwardedName: css`
+  retryButton: css`
     padding: 0;
     border: 0;
     background: transparent;
-    color: inherit;
+    color: var(--bubble-link);
     font: inherit;
     font-weight: 600;
     cursor: pointer;
 
-    &:hover,
-    &:focus-visible {
+    &:hover {
       text-decoration: underline;
-    }
-  `,
-  delivery: css`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 4px;
-    color: ${token.colorTextTertiary};
-    font-size: ${token.fontSizeSM}px;
-  `,
-  retry: css`
-    && {
-      padding-inline: 2px;
-      height: auto;
-      font-size: ${token.fontSizeSM}px;
-      line-height: 1.3;
     }
   `,
   checkbox: css`
@@ -241,6 +132,10 @@ const useStyles = createStyles(({ token, css }) => ({
     height: 18px;
     flex-shrink: 0;
     accent-color: ${token.colorPrimary};
+
+    [data-own] > & {
+      margin-right: auto;
+    }
   `,
 }));
 
@@ -248,7 +143,8 @@ const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '
 
 interface MessageRowProps {
   item: MessageHistoryItem;
-  grouped: boolean;
+  groupStart: boolean;
+  groupEnd: boolean;
   actionContext: ActionContext;
   actions: ConversationAction[];
   onAction: (action: ConversationAction, target: ActionTarget) => void;
@@ -261,7 +157,8 @@ interface MessageRowProps {
 
 export const MessageRow = memo(function MessageRow({
   item,
-  grouped,
+  groupStart,
+  groupEnd,
   actionContext,
   actions,
   onAction,
@@ -272,10 +169,10 @@ export const MessageRow = memo(function MessageRow({
   onRetry,
 }: MessageRowProps) {
   const { styles, cx } = useStyles();
+  const { kind } = useConversationScope();
   const authorName = item.author.displayName ?? 'Ім’я недоступне';
-  const replyAuthorName = item.reply?.author?.displayName ?? 'Ім’я недоступне';
-  const forwardAuthorName = item.forwardedFrom?.displayName ?? 'Ім’я недоступне';
   const isOwnMessage = item.message.authorMemberId === actionContext.memberId;
+  const showsAuthors = kind === 'channel' && !isOwnMessage;
   const mentionsMe =
     !isOwnMessage &&
     (item.mentions?.some((mention) => mention.memberId === actionContext.memberId) ?? false);
@@ -286,6 +183,8 @@ export const MessageRow = memo(function MessageRow({
   const toggleSelected = useConversation((state) => state.toggleSelected);
   const editing = useConversation((state) => state.editingId === item.message.id);
   const setEditingId = useConversation((state) => state.setEditingId);
+  const layout = bubbleLayout(item, pendingAttachments, editing);
+  const tone = delivery === 'failed' ? 'failed' : highlighted ? 'attention' : undefined;
   const contentRef = useRef<HTMLDivElement>(null);
   const contentHeight = useRef(40);
   useLayoutEffect(() => {
@@ -310,6 +209,7 @@ export const MessageRow = memo(function MessageRow({
         rowProps={{
           id: `message-${item.message.id}`,
           'data-seq': delivery ? undefined : item.seq,
+          'data-own': isOwnMessage || undefined,
           'data-selected': isSelected || undefined,
           'data-failed': delivery === 'failed' || undefined,
           'data-mentions-me': highlighted || undefined,
@@ -318,9 +218,7 @@ export const MessageRow = memo(function MessageRow({
           className: cx(
             styles.row,
             isSelected && styles.selected,
-            highlighted && styles.highlighted,
             (delivery === 'sending' || delivery === 'uploading') && styles.sending,
-            delivery === 'failed' && styles.failed,
             delivery === 'confirmed' && styles.confirmed,
           ),
           onClick: (event) => {
@@ -356,74 +254,56 @@ export const MessageRow = memo(function MessageRow({
             onChange={() => toggleSelected(item.message.id)}
           />
         )}
-        <div className={styles.avatar}>
-          {!grouped && (
-            <MemberPopover member={item.author}>
-              <button
-                type="button"
-                className={styles.avatarTrigger}
-                aria-label={`Профіль ${authorName}`}
-              >
-                <Avatar path={item.author.avatarPath} alt={authorName} size={44} shape="circle" />
-              </button>
-            </MemberPopover>
-          )}
-        </div>
-        <div className={styles.content}>
-          {!grouped && (
-            <div className={styles.heading}>
+        {showsAuthors && (
+          <div className={styles.avatar}>
+            {groupEnd && (
               <MemberPopover member={item.author}>
-                <button type="button" className={cx(styles.author, styles.authorTrigger)}>
-                  {authorName}
+                <button
+                  type="button"
+                  className={styles.avatarTrigger}
+                  aria-label={`Профіль ${authorName}`}
+                >
+                  <Avatar
+                    path={item.author.avatarPath}
+                    alt={authorName}
+                    size={AVATAR_SIZE}
+                    shape="circle"
+                  />
                 </button>
               </MemberPopover>
-              <time className={styles.time} dateTime={item.message.createdAt}>
-                {timeFormat.format(new Date(item.message.createdAt))}
-              </time>
-              {item.message.editedAt && <span className={styles.edited}>ред.</span>}
-            </div>
-          )}
-          {item.message.isForwarded && (
-            <div className={styles.forwarded}>
-              <ForwardIcon size={14} aria-hidden />
-              <span>
-                Переслано від{' '}
-                {item.forwardedFrom ? (
-                  <MemberPopover member={item.forwardedFrom}>
-                    <button type="button" className={styles.forwardedName}>
-                      {forwardAuthorName}
-                    </button>
-                  </MemberPopover>
-                ) : (
-                  forwardAuthorName
-                )}
-              </span>
-            </div>
-          )}
-          {item.reply && (
-            <button type="button" className={styles.reply} onClick={() => onJump(item.reply!.id)}>
-              <ReplyExcerpt
-                title={replyAuthorName}
-                markdown={item.reply.markdown}
-                quoteText={item.message.quoteText}
-              />
-            </button>
-          )}
+            )}
+          </div>
+        )}
+        <Bubble
+          own={isOwnMessage}
+          groupStart={groupStart}
+          groupEnd={groupEnd}
+          variant={layout.variant}
+          tone={tone}
+          wide={editing}
+          aside={<MessageToolbar />}
+        >
+          <MessageHeader
+            own={isOwnMessage}
+            showAuthor={showsAuthors && groupStart}
+            onJump={onJump}
+          />
           <MessageBody
+            layout={layout}
             contentRef={contentRef}
             minHeight={contentHeight.current}
             onEdit={onEdit}
             onCloseEdit={() => setEditingId(null)}
           />
           {delivery === 'failed' && (
-            <div className={styles.delivery}>
-              <WarningCircleIcon size={14} /> Не надіслано
-              <Button type="link" size="small" className={styles.retry} onClick={onRetry}>
+            <div className={styles.retry}>
+              Не надіслано
+              <button type="button" className={styles.retryButton} onClick={onRetry}>
                 Повторити
-              </Button>
+              </button>
             </div>
           )}
-        </div>
+        </Bubble>
       </MessageActions>
     </MessageActionProvider>
   );

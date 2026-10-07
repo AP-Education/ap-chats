@@ -5,42 +5,37 @@ import {
   PlayIcon,
   VideoCameraIcon,
 } from '@phosphor-icons/react';
-import { Button, Spin } from 'antd';
+import { Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+
+import { IconButton } from '@/shared/ui/IconButton';
+import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 
 import { fileExtension, formatFileSize } from '../../attachments/file-presentation';
 import type { Attachment } from '../../attachments/types';
 import { useAttachmentDownload, useAttachmentUrl } from './useAttachmentAccess';
 
-const useStyles = createStyles(({ token, css }) => ({
+const useStyles = createStyles(({ css }) => ({
   shell: css`
-    width: min(420px, 100%);
-    overflow: hidden;
-    border: 1px solid ${token.colorBorderSecondary};
-    border-radius: ${token.borderRadiusLG}px;
-    background: ${token.colorBgContainer};
+    min-width: min(240px, 100%);
+    max-width: 420px;
   `,
   card: css`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
-    padding: 10px 12px;
-    @media (max-width: ${token.screenMD}px) {
-      gap: 8px;
-      padding: 8px;
-    }
+    padding: 2px 0;
   `,
   icon: css`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 40px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
     height: 44px;
-    border-radius: ${token.borderRadius}px;
-    background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    border-radius: 50%;
+    background: var(--bubble-accent);
+    color: var(--bubble-on-accent, #fff);
   `,
   details: css`
     flex: 1;
@@ -53,29 +48,40 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow: hidden;
     border: 0;
     background: transparent;
-    color: ${token.colorText};
+    color: var(--bubble-text);
     text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
     font: inherit;
-    font-size: ${token.fontSizeSM}px;
+    font-size: 15px;
     font-weight: 550;
     cursor: pointer;
-    &:hover {
-      color: ${token.colorPrimary};
+    &:hover:not(:disabled) {
+      text-decoration: underline;
     }
   `,
   meta: css`
-    margin-top: 3px;
-    color: ${token.colorTextSecondary};
-    font-size: 12px;
+    margin-top: 2px;
+    color: var(--bubble-meta);
+    font-size: 13px;
   `,
   actions: css`
     display: flex;
     flex-shrink: 0;
     gap: 2px;
   `,
+  action: css`
+    color: var(--bubble-muted);
+
+    &:hover:not(:disabled) {
+      background: var(--bubble-fill);
+      color: var(--bubble-text);
+    }
+  `,
   player: css`
+    margin-top: 6px;
+    overflow: hidden;
+    border-radius: 10px;
     video {
       display: block;
       width: 100%;
@@ -88,9 +94,18 @@ const useStyles = createStyles(({ token, css }) => ({
     }
   `,
   error: css`
-    padding: 8px 12px;
-    color: ${token.colorTextSecondary};
+    padding: 6px 0 0;
+    color: var(--bubble-muted);
     font-size: 12px;
+  `,
+  retry: css`
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--bubble-link);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
   `,
 }));
 
@@ -109,11 +124,10 @@ export function FileAttachment({
   const access = useAttachmentUrl(messageId, attachment.id, 'preview', playing && available);
   const download = useAttachmentDownload(messageId, attachment);
   const playable = attachment.preview === 'video' || attachment.preview === 'audio';
-  let icon = <FileIcon size={24} weight="duotone" aria-hidden />;
+  let icon = <FileIcon size={22} weight="fill" aria-hidden />;
   if (attachment.preview === 'video')
-    icon = <VideoCameraIcon size={24} weight="duotone" aria-hidden />;
-  if (attachment.preview === 'audio')
-    icon = <MusicNotesIcon size={24} weight="duotone" aria-hidden />;
+    icon = <VideoCameraIcon size={22} weight="fill" aria-hidden />;
+  if (attachment.preview === 'audio') icon = <MusicNotesIcon size={22} weight="fill" aria-hidden />;
   const failed = mediaFailed || access.isError;
 
   return (
@@ -136,24 +150,25 @@ export function FileAttachment({
         </div>
         <div className={styles.actions}>
           {playable && !playing && (
-            <Button
-              type="text"
-              style={{ width: 40, height: 40 }}
-              icon={<PlayIcon size={20} />}
+            <IconButton
+              size={36}
+              className={styles.action}
               aria-label={`Відтворити ${attachment.name}`}
               disabled={!available}
               onClick={() => setPlaying(true)}
-            />
+            >
+              <PlayIcon size={20} />
+            </IconButton>
           )}
-          <Button
-            type="text"
-            style={{ width: 40, height: 40 }}
-            icon={<DownloadSimpleIcon size={20} />}
+          <IconButton
+            size={36}
+            className={styles.action}
             aria-label={`Завантажити ${attachment.name}`}
-            disabled={!available}
-            loading={download.downloading}
+            disabled={!available || download.downloading}
             onClick={() => void download.download()}
-          />
+          >
+            {download.downloading ? <LoadingIcon size={20} /> : <DownloadSimpleIcon size={20} />}
+          </IconButton>
         </div>
       </div>
       {playing && access.isPending && <Spin size="small" />}
@@ -182,16 +197,16 @@ export function FileAttachment({
       {playing && failed && (
         <div className={styles.error} role="status">
           Перегляд недоступний. Файл можна завантажити.{' '}
-          <Button
-            type="link"
-            size="small"
+          <button
+            type="button"
+            className={styles.retry}
             onClick={() => {
               setMediaFailed(false);
               void access.refetch();
             }}
           >
             Повторити
-          </Button>
+          </button>
         </div>
       )}
     </article>

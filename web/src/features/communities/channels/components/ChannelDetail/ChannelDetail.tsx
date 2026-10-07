@@ -75,6 +75,7 @@ const useStyles = createStyles(({ token, css }) => ({
     border-radius: 12px;
     background: ${token.colorPrimaryBg};
     color: ${token.colorTextSecondary};
+    pointer-events: auto;
 
     @media (max-width: ${token.screenMD}px) {
       gap: 8px;

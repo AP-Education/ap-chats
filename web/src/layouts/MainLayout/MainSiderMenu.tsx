@@ -9,6 +9,7 @@ import { ChannelsSidebar } from '../../features/communities/components/ChannelsS
 import { PushSettings } from '../../features/notifications/components/PushSettings';
 import { DirectMessageList } from '../../features/social/direct-messages/components/DirectMessageList/DirectMessageList';
 import { UnreadDirectMessages } from '../../features/social/direct-messages/components/UnreadDirectMessages/UnreadDirectMessages';
+import { WallpaperSettings } from '../../features/social/wallpaper/components/WallpaperSettings/WallpaperSettings';
 import { WorkspaceSwitcher } from '../../features/workspaces/components/WorkspaceSwitcher';
 import { useActiveWorkspace } from '../../features/workspaces/hooks/useActiveWorkspace';
 import { ChannelsNavBadge } from './ChannelsNavBadge';
@@ -128,7 +129,14 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       )}
       <div className={styles.sidebarProfile}>
-        <AuthStatus actions={<PushSettings />} />
+        <AuthStatus
+          actions={
+            <>
+              <WallpaperSettings />
+              <PushSettings />
+            </>
+          }
+        />
       </div>
     </div>
   );

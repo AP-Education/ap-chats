@@ -1,66 +1,63 @@
 import { createStyles } from 'antd-style';
-import type { RefObject } from 'react';
+import type { ReactNode, RefObject } from 'react';
 
 import { MessageMarkdown } from '@/features/social/mentions/components/MessageMarkdown/MessageMarkdown';
 
+import { isSingleEmoji } from './bubbleLayout';
 import { useMessageActionScope } from './MessageActionScope';
 
-// One grapheme only — a pictographic run joined by ZWJ (so a family/profession
-// emoji still counts as one) or a flag's pair of regional indicators. Two
-// separate emoji side by side, or any other text, fails this.
-const SINGLE_EMOJI_PATTERN = new RegExp(
-  '^(?:\\p{Extended_Pictographic}\\uFE0F?\\p{Emoji_Modifier}?' +
-    '(?:\\u200D\\p{Extended_Pictographic}\\uFE0F?\\p{Emoji_Modifier}?)*' +
-    '|\\p{Regional_Indicator}\\p{Regional_Indicator})$',
-  'u',
-);
-
-const useStyles = createStyles(({ token, css }) => ({
+const useStyles = createStyles(({ css }) => ({
   markdown: css`
-    font-size: ${token.fontSize}px;
-    line-height: 1.5;
+    display: flow-root;
+    font-size: 16px;
+    line-height: 1.35;
     user-select: text;
     p {
       margin: 0 0 5px;
     }
-    p:last-child {
-      margin-bottom: 0;
+    // The last paragraph flows inline so the floated time can share its last line.
+    & > p:nth-last-child(2) {
+      display: inline;
     }
     pre {
+      margin: 4px 0;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
-      padding: 9px 11px;
-      border-radius: 7px;
-      background: ${token.colorFillTertiary};
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: var(--bubble-fill);
     }
     code {
-      padding: 1px 3px;
-      border-radius: 3px;
-      background: ${token.colorFillTertiary};
-      font-size: 0.92em;
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: var(--bubble-fill);
+      font-size: 0.9em;
     }
     pre code {
       padding: 0;
       background: transparent;
     }
     blockquote {
-      margin: 5px 0;
-      padding-left: 9px;
-      border-left: 3px solid ${token.colorBorder};
-      color: ${token.colorTextSecondary};
+      margin: 4px 0;
+      padding-left: 10px;
+      border-left: 3px solid var(--bubble-accent);
+      color: var(--bubble-muted);
     }
     ul,
     ol {
-      margin: 5px 0;
-      padding-left: 21px;
+      margin: 4px 0;
+      padding-left: 22px;
     }
     a {
-      color: ${token.colorLink};
+      color: var(--bubble-link);
+      text-decoration: underline;
+      text-decoration-thickness: from-font;
+      text-underline-offset: 2px;
     }
   `,
   jumboEmoji: css`
-    font-size: 48px;
-    line-height: 1.2;
+    font-size: 56px;
+    line-height: 1.15;
     p {
       margin: 0;
     }
@@ -69,8 +66,10 @@ const useStyles = createStyles(({ token, css }) => ({
 
 export function MessageReadContent({
   contentRef,
+  meta,
 }: {
   contentRef: RefObject<HTMLDivElement | null>;
+  meta: ReactNode;
 }) {
   const { styles, cx } = useStyles();
   const { item, context } = useMessageActionScope();
@@ -79,12 +78,10 @@ export function MessageReadContent({
     return null;
   }
 
-  const isSingleEmoji = SINGLE_EMOJI_PATTERN.test(item.message.markdown.trim());
-
   return (
     <div
       ref={contentRef}
-      className={cx(styles.markdown, isSingleEmoji && styles.jumboEmoji)}
+      className={cx(styles.markdown, isSingleEmoji(item.message.markdown) && styles.jumboEmoji)}
       data-message-text
     >
       <MessageMarkdown
@@ -92,6 +89,7 @@ export function MessageReadContent({
         mentions={item.mentions}
         viewerMemberId={context.memberId}
       />
+      {meta}
     </div>
   );
 }

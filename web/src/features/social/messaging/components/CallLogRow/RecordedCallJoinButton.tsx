@@ -10,7 +10,7 @@ const useStyles = createStyles(({ token, css }) => ({
     padding: 0;
     border: 0;
     background: transparent;
-    color: ${token.colorPrimary};
+    color: var(--bubble-link, ${token.colorPrimary});
     font: inherit;
     font-size: 14px;
     font-weight: 600;

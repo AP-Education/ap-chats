@@ -1,25 +1,43 @@
 import { createStyles } from 'antd-style';
-import { type ReactNode, useMemo } from 'react';
+import { type ReactNode, useMemo, useRef } from 'react';
 
 import { ActiveCallBanner } from '@/features/calls/components/ActiveCallBanner';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import { PinnedMessageBar } from '@/features/social/pins/components/PinnedMessageBar/PinnedMessageBar';
+import { ChatWallpaperSurface } from '@/features/social/wallpaper/components/ChatWallpaperSurface';
 import type { WorkspaceMember } from '@/features/workspaces/types';
 
 import { useConversationScope } from '../../store';
 import { ConversationFooter } from './ConversationFooter';
 import { ConversationForwarding } from './ConversationForwarding';
 import { ConversationHistoryContent } from './ConversationHistoryContent';
+import { ConversationSelectionBar } from './ConversationSelectionBar';
 import { useConversationActions } from './useConversationActions';
 import { useConversationHistoryNavigation } from './useConversationHistoryNavigation';
+import { useOverlayInsets } from './useOverlayInsets';
 
 const useStyles = createStyles(({ css }) => ({
   shell: css`
-    position: relative;
     display: flex;
     flex: 1;
     flex-direction: column;
     min-height: 0;
+  `,
+  top: css`
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 2;
+  `,
+  // Clicks through the transparent space around the composer reach the messages behind it.
+  bottom: css`
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+    pointer-events: none;
   `,
 }));
 
@@ -60,33 +78,42 @@ export function ConversationView({
   });
   const historyReady =
     !navigation.history.isPending && !(navigation.history.isError && !navigation.history.data);
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  useOverlayInsets(surfaceRef, topRef, bottomRef);
 
   return (
-    <div className={styles.shell} data-conversation-drop-target>
-      <PinnedMessageBar canUnpin={canPin && canPost} onJump={navigation.onJump} />
-      <ActiveCallBanner
-        workspaceId={workspaceId}
-        channelId={channelId}
-        title={title}
-        calleeAvatarPath={avatarPath}
-      />
+    <ChatWallpaperSurface ref={surfaceRef} className={styles.shell} data-conversation-drop-target>
       <ConversationHistoryContent
         navigation={navigation}
         interaction={interaction}
         operations={operations}
       />
-      <ConversationFooter
-        canPost={canPost}
-        historyReady={historyReady}
-        readOnlyFooter={readOnlyFooter}
-        items={navigation.items}
-        send={operations.send}
-      />
+      <div ref={topRef} className={styles.top}>
+        <PinnedMessageBar canUnpin={canPin && canPost} onJump={navigation.onJump} />
+        <ActiveCallBanner
+          workspaceId={workspaceId}
+          channelId={channelId}
+          title={title}
+          calleeAvatarPath={avatarPath}
+        />
+      </div>
+      <div ref={bottomRef} className={styles.bottom}>
+        {historyReady && <ConversationSelectionBar interaction={interaction} />}
+        <ConversationFooter
+          canPost={canPost}
+          historyReady={historyReady}
+          readOnlyFooter={readOnlyFooter}
+          items={navigation.items}
+          send={operations.send}
+        />
+      </div>
       <ConversationForwarding
         items={interaction.forwardItems}
         historyReady={historyReady}
         onClose={interaction.closeForward}
       />
-    </div>
+    </ChatWallpaperSurface>
   );
 }

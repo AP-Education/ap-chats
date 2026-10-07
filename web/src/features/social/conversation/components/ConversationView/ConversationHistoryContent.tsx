@@ -3,7 +3,6 @@ import { createStyles } from 'antd-style';
 
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 
-import { ConversationSelectionBar } from './ConversationSelectionBar';
 import { ConversationTimeline } from './ConversationTimeline';
 import type { useConversationActions } from './useConversationActions';
 import type { useConversationHistoryNavigation } from './useConversationHistoryNavigation';
@@ -51,13 +50,10 @@ export function ConversationHistoryContent({
     );
 
   return (
-    <>
-      <ConversationTimeline
-        navigation={navigation}
-        interaction={interaction}
-        operations={operations}
-      />
-      <ConversationSelectionBar interaction={interaction} />
-    </>
+    <ConversationTimeline
+      navigation={navigation}
+      interaction={interaction}
+      operations={operations}
+    />
   );
 }

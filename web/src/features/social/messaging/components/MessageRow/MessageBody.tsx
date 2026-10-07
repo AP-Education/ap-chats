@@ -5,29 +5,33 @@ import { MentionEditor } from '@/features/social/mentions/components/MentionEdit
 import type { MessageHistoryItem } from '../../types';
 import { MessageAttachments } from '../MessageAttachments/MessageAttachments';
 import { PendingAttachments } from '../MessageAttachments/PendingAttachments';
+import type { BubbleLayout } from './bubbleLayout';
 import { useMessageActionScope } from './MessageActionScope';
 import { MessageEditor } from './MessageEditor';
+import { MessageMeta } from './MessageMeta';
 import { MessageReadContent } from './MessageReadContent';
 
 interface MessageBodyProps {
+  layout: BubbleLayout;
   contentRef: RefObject<HTMLDivElement | null>;
   minHeight: number;
   onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
   onCloseEdit: () => void;
 }
 
-export function MessageBody({ contentRef, minHeight, onEdit, onCloseEdit }: MessageBodyProps) {
+// Attachments come first and the caption last, so the time can close the caption's last line.
+export function MessageBody({
+  layout,
+  contentRef,
+  minHeight,
+  onEdit,
+  onCloseEdit,
+}: MessageBodyProps) {
   const { editing, item, delivery, pendingAttachments } = useMessageActionScope();
+  const inlineMeta = layout.meta === 'inline' && <MessageMeta placement="inline" />;
 
   return (
     <>
-      {editing ? (
-        <MessageEditor item={item} minHeight={minHeight} onEdit={onEdit} onClose={onCloseEdit}>
-          <MentionEditor />
-        </MessageEditor>
-      ) : (
-        <MessageReadContent contentRef={contentRef} />
-      )}
       {pendingAttachments ? (
         <PendingAttachments drafts={pendingAttachments} />
       ) : (
@@ -37,6 +41,15 @@ export function MessageBody({ contentRef, minHeight, onEdit, onCloseEdit }: Mess
           available={!delivery || delivery === 'confirmed'}
         />
       )}
+      {editing && (
+        <MessageEditor item={item} minHeight={minHeight} onEdit={onEdit} onClose={onCloseEdit}>
+          <MentionEditor />
+        </MessageEditor>
+      )}
+      {!editing && layout.hasText && (
+        <MessageReadContent contentRef={contentRef} meta={inlineMeta} />
+      )}
+      {layout.meta && layout.meta !== 'inline' && <MessageMeta placement={layout.meta} />}
     </>
   );
 }

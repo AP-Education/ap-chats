@@ -12,7 +12,10 @@ import type { DeliveryStatus, HistoryItem, MessageHistoryItem } from '../../type
 // Everything a strategy might need, regardless of which fields its own kind
 // actually uses (a call entry ignores onEdit/actions/delivery, for instance).
 export interface HistoryItemRenderContext {
-  grouped: boolean;
+  /** Opens a run of messages from one author: the bubble carries the author name. */
+  groupStart: boolean;
+  /** Closes the run: the bubble gets its tail and the author avatar sits next to it. */
+  groupEnd: boolean;
   actionContext: ActionContext;
   actions: ConversationAction[];
   onAction: (action: ConversationAction, target: ActionTarget) => void;

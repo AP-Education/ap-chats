@@ -118,6 +118,7 @@ export default function DirectMessagePage() {
         scope={{
           workspaceId,
           channelId,
+          kind: 'direct',
           title: name,
           avatarPath: participant.avatarPath,
           composer: {

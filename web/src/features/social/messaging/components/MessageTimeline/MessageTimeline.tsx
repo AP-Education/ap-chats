@@ -1,5 +1,5 @@
-import { ArrowDownIcon, ArrowUpIcon, HashIcon } from '@phosphor-icons/react';
-import { Button, Empty } from 'antd';
+import { ArrowDownIcon, ArrowUpIcon, ChatsCircleIcon } from '@phosphor-icons/react';
+import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import { useMemo, useRef } from 'react';
 
@@ -14,6 +14,7 @@ import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import type { DisplayItem, HistoryPage, MessageHistoryItem } from '../../types';
 import { isMessageItem } from '../../types';
 import { HistoryItemRow } from '../HistoryItemRow/HistoryItemRow';
+import { buildTimelineDays, formatDayLabel } from './timeline-days';
 import { useMobileMessageSelection } from './useMobileMessageSelection';
 import { useScrollAnchoring } from './useScrollAnchoring';
 
@@ -28,10 +29,11 @@ const useStyles = createStyles(({ token, css }) => ({
   scroll: css`
     flex: 1;
     min-height: 0;
+    overflow-x: hidden;
     overflow-y: auto;
     overflow-anchor: auto;
     scrollbar-width: thin;
-    scrollbar-color: ${token.colorBorder} transparent;
+    scrollbar-color: var(--chat-service-bg, ${token.colorBorder}) transparent;
     touch-action: pan-y pinch-zoom;
   `,
   feed: css`
@@ -43,97 +45,112 @@ const useStyles = createStyles(({ token, css }) => ({
     // fits, so the layout itself has to push it down instead.
     justify-content: flex-end;
     min-height: 100%;
-    padding: 16px 0 20px;
-
-    & > [data-message-group-start] {
-      margin-top: 10px;
+    // The pinned bar and the composer float over the history (see useOverlayInsets).
+    padding: calc(var(--chat-inset-top, 0px) + 8px) 0 calc(var(--chat-inset-bottom, 0px) + 10px);
+  `,
+  day: css`
+    display: flex;
+    flex-direction: column;
+  `,
+  entry: css`
+    & + &[data-group-start] {
+      margin-top: 8px;
     }
   `,
-  spacer: css`
-    flex: 1;
+  dateBar: css`
+    position: sticky;
+    top: calc(var(--chat-inset-top, 0px) + 8px);
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    margin: 8px 0 10px;
+    pointer-events: none;
+  `,
+  pill: css`
+    padding: 3px 11px;
+    border-radius: 13px;
+    background: var(--chat-service-bg, rgba(0, 0, 0, 0.32));
+    backdrop-filter: blur(12px) saturate(1.4);
+    color: ${token.colorWhite};
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 600;
+    white-space: nowrap;
   `,
   load: css`
     align-self: center;
-    margin: 4px 0 15px;
-  `,
-  date: css`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 13px 20px;
-    color: ${token.colorTextTertiary};
-    font-size: ${token.fontSizeSM}px;
-    font-weight: 600;
-    white-space: nowrap;
-    &::before,
-    &::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: ${token.colorBorderSecondary};
-    }
+    margin: 4px 0 12px;
   `,
   unread: css`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 15px 20px 11px;
-    color: ${token.colorPrimary};
-    font-size: ${token.fontSizeSM}px;
-    font-weight: 700;
-    white-space: nowrap;
-    &::before,
-    &::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: ${token.colorPrimaryBorder};
-    }
+    margin: 10px 0 12px;
+    padding: 3px 0;
+    background: var(--chat-service-bg, rgba(0, 0, 0, 0.32));
+    backdrop-filter: blur(12px) saturate(1.4);
+    color: ${token.colorWhite};
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 650;
+    text-align: center;
   `,
   bottom: css`
     position: absolute;
-    right: 22px;
-    bottom: 14px;
+    right: 16px;
+    bottom: calc(var(--chat-inset-bottom, 0px) + 12px);
     z-index: 3;
     display: grid;
     place-items: center;
     width: 44px;
     height: 44px;
     padding: 0;
-    border: 1px solid ${token.colorBorderSecondary};
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(12px) saturate(180%);
-    box-shadow: ${token.boxShadowSecondary};
-    color: ${token.colorText};
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(16px) saturate(1.6);
+    box-shadow: 0 1px 4px rgba(23, 46, 42, 0.18);
+    color: ${token.colorTextSecondary};
     cursor: pointer;
     transition:
       background 0.15s ease,
-      color 0.15s ease,
-      border-color 0.15s ease;
+      color 0.15s ease;
+
+    &:hover {
+      color: ${token.colorText};
+    }
+
+    @media (max-width: ${token.screenMD}px) {
+      right: 12px;
+    }
   `,
   // Away-from-bottom while there's something new to catch up on reads differently from
   // just having scrolled up on your own — the same cue the unread divider uses.
   bottomUnread: css`
-    border-color: ${token.colorPrimary};
     background: ${token.colorPrimary};
     color: ${token.colorWhite};
+
+    &:hover {
+      color: ${token.colorWhite};
+    }
   `,
   empty: css`
     display: grid;
     place-content: center;
     flex: 1;
     padding: 30px;
+  `,
+  emptyCard: css`
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    max-width: 260px;
+    padding: 18px 22px;
+    border-radius: 18px;
+    background: var(--chat-service-bg, rgba(0, 0, 0, 0.32));
+    backdrop-filter: blur(12px) saturate(1.4);
+    color: ${token.colorWhite};
+    font-weight: 600;
     text-align: center;
-    color: ${token.colorTextSecondary};
   `,
 }));
-
-const dateFormat = new Intl.DateTimeFormat('uk-UA', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
 
 interface MessageTimelineProps {
   pages: HistoryPage[];
@@ -175,16 +192,20 @@ export function MessageTimeline({
   const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
   const gesture = useRef<{ x: number; y: number; dismissed: boolean } | null>(null);
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
+  const firstUnreadSeq = pages.find((page) => page.firstUnreadSeq !== null)?.firstUnreadSeq ?? null;
   // A deleted message keeps its seq (read state, scroll anchoring, and reply
   // excerpts elsewhere all still need it), but has nothing left worth a row —
   // Telegram just removes it rather than leaving a "message deleted" ghost.
   // Filtered only for what's rendered, so grouping recomputes around the gap
   // instead of orphaning the next real message from the same author.
-  const visibleItems = useMemo(
-    () => displayItems.filter(({ item }) => !isMessageItem(item) || item.message.markdown !== null),
-    [displayItems],
+  const days = useMemo(
+    () =>
+      buildTimelineDays(
+        displayItems.filter(({ item }) => !isMessageItem(item) || item.message.markdown !== null),
+        firstUnreadSeq,
+      ),
+    [displayItems, firstUnreadSeq],
   );
-  const firstUnreadSeq = pages.find((page) => page.firstUnreadSeq !== null)?.firstUnreadSeq ?? null;
 
   const { scrollRef, awayFromBottom, lastScrollAt, onScroll, older, goDown } = useScrollAnchoring({
     pages,
@@ -240,6 +261,7 @@ export function MessageTimeline({
           {hasOlder && (
             <Button
               className={styles.load}
+              shape="round"
               icon={<ArrowUpIcon />}
               loading={loadingOlder}
               onClick={() => void older()}
@@ -249,59 +271,48 @@ export function MessageTimeline({
           )}
           {!displayItems.length && (
             <div className={styles.empty}>
-              <Empty image={<HashIcon size={38} />} description="Тут почнеться розмова" />
+              <div className={styles.emptyCard}>
+                <ChatsCircleIcon size={36} weight="duotone" aria-hidden />
+                Тут почнеться розмова
+              </div>
             </div>
           )}
-          {!displayItems.length && <div className={styles.spacer} />}
-          {visibleItems.map(({ item, delivery, nonce, pendingAttachments }, index) => {
-            const previous = visibleItems[index - 1]?.item;
-            const day = new Date(item.createdAt).toDateString();
-            const previousDay = previous ? new Date(previous.createdAt).toDateString() : null;
-            const grouped = Boolean(
-              previous &&
-              isMessageItem(previous) &&
-              isMessageItem(item) &&
-              previousDay === day &&
-              previous.message.authorMemberId === item.message.authorMemberId &&
-              new Date(item.createdAt).getTime() - new Date(previous.createdAt).getTime() < 300_000,
-            );
-            const key = isMessageItem(item)
-              ? (nonce ?? item.message.clientNonce ?? item.id)
-              : item.id;
-            const groupStart = Boolean(
-              !grouped &&
-              previous &&
-              isMessageItem(previous) &&
-              isMessageItem(item) &&
-              previousDay === day &&
-              firstUnreadSeq !== item.seq,
-            );
-            return (
-              <div key={key} data-message-group-start={groupStart || undefined}>
-                {previousDay !== day && (
-                  <div className={styles.date}>{dateFormat.format(new Date(item.createdAt))}</div>
-                )}
-                {firstUnreadSeq === item.seq && (
-                  <div className={styles.unread}>Нові повідомлення</div>
-                )}
-                <HistoryItemRow
-                  item={item}
-                  grouped={grouped}
-                  actionContext={actionContext}
-                  actions={actions}
-                  onAction={onAction}
-                  onJump={onJump}
-                  onEdit={onEdit}
-                  delivery={delivery}
-                  pendingAttachments={pendingAttachments}
-                  onRetry={nonce ? () => onRetry(nonce) : undefined}
-                />
+          {days.map((day) => (
+            <section key={day.key} className={styles.day} aria-label={formatDayLabel(day.date)}>
+              <div className={styles.dateBar}>
+                <span className={styles.pill}>{formatDayLabel(day.date)}</span>
               </div>
-            );
-          })}
+              {day.entries.map(({ key, display, unreadBefore, groupStart, groupEnd }) => {
+                const { item, delivery, nonce, pendingAttachments } = display;
+                return (
+                  <div
+                    key={key}
+                    className={styles.entry}
+                    data-group-start={groupStart || undefined}
+                  >
+                    {unreadBefore && <div className={styles.unread}>Нові повідомлення</div>}
+                    <HistoryItemRow
+                      item={item}
+                      groupStart={groupStart}
+                      groupEnd={groupEnd}
+                      actionContext={actionContext}
+                      actions={actions}
+                      onAction={onAction}
+                      onJump={onJump}
+                      onEdit={onEdit}
+                      delivery={delivery}
+                      pendingAttachments={pendingAttachments}
+                      onRetry={nonce ? () => onRetry(nonce) : undefined}
+                    />
+                  </div>
+                );
+              })}
+            </section>
+          ))}
           {hasNewer && (
             <Button
               className={styles.load}
+              shape="round"
               icon={<ArrowDownIcon />}
               loading={loadingNewer}
               onClick={() => void loadNewer()}

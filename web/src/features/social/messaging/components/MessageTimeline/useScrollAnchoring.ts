@@ -55,6 +55,9 @@ export function useScrollAnchoring({
       if (atBottom.current) container.scrollTop = container.scrollHeight;
     });
     observer.observe(container);
+    // The feed too: a growing composer overlay or a late-loading image changes the
+    // content height without resizing the viewport.
+    if (container.firstElementChild) observer.observe(container.firstElementChild);
     return () => observer.disconnect();
   }, []);
 

@@ -13,7 +13,7 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: ${token.colorPrimary};
+    color: var(--excerpt-accent, ${token.colorPrimary});
     font-size: 14px;
     line-height: 18px;
     font-weight: 600;
@@ -23,7 +23,7 @@ const useStyles = createStyles(({ token, css }) => ({
     align-items: center;
     gap: 4px;
     min-width: 0;
-    color: ${token.colorTextSecondary};
+    color: var(--excerpt-muted, ${token.colorTextSecondary});
     font-size: 14px;
     line-height: 18px;
   `,
