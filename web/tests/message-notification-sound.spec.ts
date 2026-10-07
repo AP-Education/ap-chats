@@ -67,7 +67,7 @@ function fixture({
         },
       },
       '@/shared/audio/audio-context': audio,
-      '@/shared/hooks/useIsPageVisible': { isPageVisible: () => page.visible },
+      '@/shared/hooks/useIsAttending': { isAttending: () => page.visible },
       '../sound/messageBloop': {
         playMessageBloop: () => {
           sounds.push(native ? 'native' : (audio.getSharedAudioContext()?.state ?? 'unavailable'));

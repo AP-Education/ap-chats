@@ -1,20 +1,22 @@
 import { useSyncExternalStore } from 'react';
 
-/** A synchronous, one-off read — for an imperative check inside a callback, not a render. */
-export function isPageVisible(): boolean {
+/** The user is looking at this tab: visible and focused. A synchronous read for callbacks. */
+export function isAttending(): boolean {
   return document.visibilityState === 'visible' && document.hasFocus();
 }
 
 function subscribe(onChange: () => void) {
   window.addEventListener('focus', onChange);
+  window.addEventListener('blur', onChange);
   document.addEventListener('visibilitychange', onChange);
   return () => {
     window.removeEventListener('focus', onChange);
+    window.removeEventListener('blur', onChange);
     document.removeEventListener('visibilitychange', onChange);
   };
 }
 
-/** Reactive form of `isPageVisible`: re-renders (and re-runs dependent effects) on focus/visibility change. */
-export function useIsPageVisible(): boolean {
-  return useSyncExternalStore(subscribe, isPageVisible, () => true);
+/** Reactive form of `isAttending`, for renders and effects. */
+export function useIsAttending(): boolean {
+  return useSyncExternalStore(subscribe, isAttending, () => true);
 }

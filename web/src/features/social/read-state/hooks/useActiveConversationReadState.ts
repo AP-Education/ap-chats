@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { useDebouncedCallback } from '@/shared/hooks/useDebouncedCallback';
-import { isPageVisible, useIsPageVisible } from '@/shared/hooks/useIsPageVisible';
+import { isAttending, useIsAttending } from '@/shared/hooks/useIsAttending';
 
 import type { HistoryPage } from '../../messaging/types';
 import { markRead } from '../api/read-state-api';
@@ -19,7 +19,7 @@ export function useActiveConversationReadState(
 ) {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
-  const pageVisible = useIsPageVisible();
+  const attending = useIsAttending();
   const requested = useRef(0n);
   const latestEventSeq = useRef(0n);
   const snapshotSeq = page?.snapshotSeq;
@@ -40,8 +40,7 @@ export function useActiveConversationReadState(
 
   const consume = useCallback(
     (seq: bigint) => {
-      if (!token || !readCursor || !isPageVisible() || seq <= requested.current || seq === 0n)
-        return;
+      if (!token || !readCursor || !isAttending() || seq <= requested.current || seq === 0n) return;
       const summaryCursor = queryClient
         .getQueryData<ChannelUnread[]>(workspaceUnreadKey(identity, workspaceId))
         ?.find((entry) => entry.channelId === channelId)?.lastReadEntrySeq;
@@ -71,8 +70,8 @@ export function useActiveConversationReadState(
   });
 
   useEffect(() => {
-    if (!pageVisible || !readCursor) return;
+    if (!attending || !readCursor) return;
     const snapshot = BigInt(snapshotSeq ?? '0');
     consume(snapshot > latestEventSeq.current ? snapshot : latestEventSeq.current);
-  }, [snapshotSeq, readCursor, pageVisible, consume]);
+  }, [snapshotSeq, readCursor, attending, consume]);
 }

@@ -7,123 +7,192 @@ import ts from 'typescript';
 
 import type { PushPresence } from '../src/features/notifications/presence/PushPresence';
 
-const channelId = '5824eb71-b12c-4f48-a30d-e15797b7116b';
-const workspaceId = '630bba71-6807-445a-9dbe-aad85a050c09';
+const source = ts.transpileModule(
+  readFileSync(
+    new URL('../src/features/notifications/presence/PushPresence.tsx', import.meta.url),
+    'utf8',
+  ),
+  { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } },
+).outputText;
 
-function fixture(native = false) {
-  const window = new EventTarget();
-  const document = Object.assign(new EventTarget(), {
-    visibilityState: 'visible',
-    focused: true,
-    hasFocus: () => document.focused,
-  });
-  const requests: { token: string; id: string; presence: { focused: boolean } }[] = [];
-  const messages: { payload: { connected: boolean } }[] = [];
-  const timers = new Map<number, () => void>();
-  Object.assign(window, {
-    setInterval: (callback: () => void, delay: number) => {
-      assert.equal(delay, 30000);
-      timers.set(1, callback);
-      return 1;
-    },
-  });
-  if (native) {
-    Object.assign(window, {
-      ReactNativeWebView: { postMessage: (value: string) => messages.push(JSON.parse(value)) },
+type Report = { tab: string; focused: boolean };
+
+/** One browser: tabs share the presence BroadcastChannel and the server-side request log. */
+function browser() {
+  const reports: Report[] = [];
+  const channels = new Set<{ onmessage: (() => void) | null; tab: string }>();
+
+  function openTab(tab: string, { focused = true, native = false, token = 'account-token' } = {}) {
+    const window = new EventTarget();
+    const document = Object.assign(new EventTarget(), {
+      visibilityState: 'visible',
+      focused,
+      hasFocus: () => document.focused,
     });
-  }
-  let cleanup: (() => void) | undefined;
-  const dependencies: Record<string, unknown> = {
-    react: { useEffect: (effect: () => () => void) => (cleanup = effect()) },
-    'react-router-dom': { useLocation: () => ({ pathname: `/channels/${channelId}` }) },
-    '@/features/devices/browser-push': {
-      useWebPush: () => ({ subscriptionId: 'subscription' }),
-      updatePresence: async (token: string, id: string, presence: { focused: boolean }) => {
-        requests.push({ token, id, presence });
+    const intervals = new Map<number, () => void>();
+    const timeouts = new Map<number, () => void>();
+    let nextTimer = 0;
+    Object.assign(window, {
+      setInterval: (callback: () => void) => (intervals.set(++nextTimer, callback), nextTimer),
+      clearInterval: (id: number) => intervals.delete(id),
+      setTimeout: (callback: () => void) => (timeouts.set(++nextTimer, callback), nextTimer),
+      clearTimeout: (id: number) => timeouts.delete(id),
+    });
+
+    class BroadcastChannel {
+      onmessage: (() => void) | null = null;
+      tab = tab;
+      constructor() {
+        channels.add(this);
+      }
+      postMessage() {
+        for (const channel of channels) if (channel !== this) channel.onmessage?.();
+      }
+      close() {
+        channels.delete(this);
+      }
+    }
+
+    let account = token;
+    let cleanups: (() => void)[] = [];
+    const render = () => {
+      cleanups.forEach((cleanup) => cleanup());
+      cleanups = [];
+      const refs: { current: unknown }[] = [];
+      let refIndex = 0;
+      const dependencies: Record<string, unknown> = {
+        react: {
+          useEffect: (effect: () => (() => void) | void) => {
+            const cleanup = effect();
+            if (cleanup) cleanups.push(cleanup);
+          },
+          useRef: (initial: unknown) => (refs[refIndex++] ??= { current: initial }),
+        },
+        '@/features/devices/browser-push': {
+          useWebPush: () => ({ subscriptionId: 'subscription' }),
+          updatePresence: async (_token: string, _id: string, presence: { focused: boolean }) => {
+            reports.push({ tab, focused: presence.focused });
+          },
+        },
+        '@/lib/app-shell': { getAppShell: () => ({ kind: native ? 'mobile' : 'browser' }) },
+        '@/shared/hooks/useIsAttending': {
+          isAttending: () => document.visibilityState === 'visible' && document.hasFocus(),
+        },
+        '@/shared/lib/nativeBridge': {
+          postToNative: (message: { payload: { connected: boolean } }) =>
+            reports.push({ tab, focused: message.payload.connected }),
+        },
+        '../../auth/stores/current-user-context': {
+          useCurrentUser: () => ({ status: 'signed-in', accessToken: account }),
+        },
+        '../../realtime/stores/realtime-context': {
+          useConnection: () => ({ status: 'connected' }),
+        },
+      };
+      const exports = {} as { PushPresence: typeof PushPresence };
+      runInNewContext(source, {
+        exports,
+        window,
+        document,
+        BroadcastChannel,
+        require: (name: string) => {
+          assert.ok(name in dependencies, `Unexpected import: ${name}`);
+          return dependencies[name];
+        },
+      });
+      exports.PushPresence();
+    };
+    render();
+
+    return {
+      focus: () => {
+        document.focused = true;
+        window.dispatchEvent(new Event('focus'));
       },
-    },
-    '@/lib/app-shell': { getAppShell: () => ({ kind: native ? 'mobile' : 'browser' }) },
-    '../../auth/stores/current-user-context': {
-      useCurrentUser: () => ({ status: 'signed-in', accessToken: 'account-token' }),
-    },
-    '../../realtime/stores/realtime-context': {
-      useConnection: () => ({ status: 'connected' }),
-    },
-    '../../workspaces/hooks/useActiveWorkspace': {
-      useActiveWorkspace: () => ({ workspace: { id: workspaceId } }),
-    },
-  };
-  const exports = {} as { PushPresence: typeof PushPresence };
-  const source = ts.transpileModule(
-    readFileSync(
-      new URL('../src/features/notifications/presence/PushPresence.tsx', import.meta.url),
-      'utf8',
-    ),
-    { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } },
-  ).outputText;
-  runInNewContext(source, {
-    exports,
-    window,
-    document,
-    clearInterval: (id: number) => timers.delete(id),
-    require: (name: string) => {
-      assert.ok(name in dependencies, `Unexpected import: ${name}`);
-      return dependencies[name];
-    },
-  });
-  exports.PushPresence();
-  return {
-    window,
-    document,
-    requests,
-    messages,
-    tick: () => timers.get(1)?.(),
-    unmount: () => cleanup?.(),
-  };
+      blur: () => {
+        document.focused = false;
+        window.dispatchEvent(new Event('blur'));
+      },
+      close: () => window.dispatchEvent(new Event('pagehide')),
+      renew: () => intervals.forEach((callback) => callback()),
+      settle: () => {
+        const pending = [...timeouts.values()];
+        timeouts.clear();
+        pending.forEach((callback) => callback());
+      },
+      refreshToken: (next: string) => {
+        account = next;
+        render();
+      },
+    };
+  }
+
+  return { reports, openTab };
 }
 
-test('closing a page immediately clears foreground presence and pageshow restores it', () => {
-  const f = fixture();
-  assert.equal(f.requests.at(-1)?.presence.focused, true);
-  f.window.dispatchEvent(new Event('pagehide'));
-  assert.equal(f.requests.at(-1)?.presence.focused, false);
-  f.window.dispatchEvent(new Event('pageshow'));
-  assert.equal(f.requests.at(-1)?.presence.focused, true);
-  assert.ok(
-    f.requests.every(({ token, id }) => token === 'account-token' && id === 'subscription'),
-  );
+test('the focused tab claims the lease and renews it while the user reads', () => {
+  const b = browser();
+  const tab = b.openTab('a');
+  tab.renew();
+  assert.deepEqual(b.reports, [
+    { tab: 'a', focused: true },
+    { tab: 'a', focused: true },
+  ]);
 });
 
-test('hidden and unfocused pages release the lease while focused pages renew it', () => {
-  const f = fixture();
-  f.document.visibilityState = 'hidden';
-  f.document.dispatchEvent(new Event('visibilitychange'));
-  assert.equal(f.requests.at(-1)?.presence.focused, false);
-  f.document.visibilityState = 'visible';
-  f.document.focused = false;
-  f.window.dispatchEvent(new Event('blur'));
-  assert.equal(f.requests.at(-1)?.presence.focused, false);
-  f.document.focused = true;
-  f.window.dispatchEvent(new Event('focus'));
-  f.tick();
-  assert.equal(f.requests.at(-1)?.presence.focused, true);
+test('a background tab never reports, so it cannot overwrite the reader', () => {
+  const b = browser();
+  b.openTab('a');
+  const background = b.openTab('b', { focused: false });
+  background.renew();
+  background.settle();
+  assert.deepEqual(b.reports, [{ tab: 'a', focused: true }]);
 });
 
-test('unmount clears the lease, timer and page lifecycle listeners', () => {
-  const f = fixture();
-  f.unmount();
-  assert.equal(f.requests.at(-1)?.presence.focused, false);
-  const count = f.requests.length;
-  f.window.dispatchEvent(new Event('pagehide'));
-  f.window.dispatchEvent(new Event('pageshow'));
-  f.tick();
-  assert.equal(f.requests.length, count);
+test('switching tabs hands the lease over without a stray release', () => {
+  const b = browser();
+  const first = b.openTab('a');
+  const second = b.openTab('b', { focused: false });
+  first.blur();
+  second.focus();
+  first.settle();
+  assert.deepEqual(b.reports, [
+    { tab: 'a', focused: true },
+    { tab: 'b', focused: true },
+  ]);
 });
 
-test('native presence goes through the bridge rather than browser subscription requests', () => {
-  const f = fixture(true);
-  assert.equal(f.messages.at(-1)?.payload.connected, true);
-  f.window.dispatchEvent(new Event('pagehide'));
-  assert.equal(f.messages.at(-1)?.payload.connected, false);
-  assert.equal(f.requests.length, 0);
+test('leaving the browser releases the lease after a short grace', () => {
+  const b = browser();
+  const tab = b.openTab('a');
+  tab.blur();
+  assert.equal(b.reports.length, 1);
+  tab.settle();
+  assert.deepEqual(b.reports.at(-1), { tab: 'a', focused: false });
+});
+
+test('closing the reading tab releases at once', () => {
+  const b = browser();
+  const tab = b.openTab('a');
+  tab.close();
+  assert.deepEqual(b.reports.at(-1), { tab: 'a', focused: false });
+});
+
+test('a token refresh does not churn a release before the renewed claim', () => {
+  const b = browser();
+  const tab = b.openTab('a');
+  tab.refreshToken('refreshed-token');
+  tab.settle();
+  assert.ok(b.reports.every((report) => report.focused));
+});
+
+test('the native shell reports attention through the bridge', () => {
+  const b = browser();
+  const tab = b.openTab('native', { native: true });
+  tab.blur();
+  tab.settle();
+  assert.deepEqual(b.reports, [
+    { tab: 'native', focused: true },
+    { tab: 'native', focused: false },
+  ]);
 });

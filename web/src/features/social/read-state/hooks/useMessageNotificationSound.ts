@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useWebPush } from '@/features/devices/browser-push';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { getSharedAudioContext } from '@/shared/audio/audio-context';
-import { isPageVisible } from '@/shared/hooks/useIsPageVisible';
+import { isAttending } from '@/shared/hooks/useIsAttending';
 
 import { playMessageBloop } from '../sound/messageBloop';
 
@@ -17,10 +17,13 @@ export function useMessageNotificationSound(
   }, []);
 
   useSocketEvent('social:unread', (event) => {
-    if (event.workspaceId !== workspaceId) return;
-    if (!event.alert) return;
-    if (push.enabled && !isPageVisible()) return;
-    if (event.channelId === openChannelId && isPageVisible()) return;
+    if (event.workspaceId !== workspaceId || !event.alert) return;
+
+    // Presence uses the same test, so the server pushes exactly when this stays silent.
+    const attending = isAttending();
+    if (push.enabled && !attending) return;
+    if (event.channelId === openChannelId && attending) return;
+
     playMessageBloop();
   });
 }
