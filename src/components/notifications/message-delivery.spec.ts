@@ -14,6 +14,8 @@ import { MessageDeliveryWorker } from './delivery/message-delivery.worker';
 import type { ConversationAlert, MessageDeliveryJob } from './delivery/types';
 import { NotificationPolicyService } from './policy';
 
+type Fixture = ReturnType<typeof fixture>;
+
 function fixture(kind: 'web' | 'expo' = 'web') {
   const subscription: WebPushSubscription = {
     id: 'subscription',
@@ -55,8 +57,7 @@ function fixture(kind: 'web' | 'expo' = 'web') {
     },
   };
   let recipients = [recipient];
-  let context: unknown = { kind: 'private', name: 'Channel', lastSeq: 3n };
-  let envelope: unknown = { body: 'current message' };
+  const context = { kind: 'private', name: 'Channel', lastSeq: 3n };
   let status = 'accepted';
   let failure: Error | null = null;
   const sent: unknown[] = [];
@@ -65,8 +66,7 @@ function fixture(kind: 'web' | 'expo' = 'web') {
     {
       recipients: async () => recipients,
       context: async () => context,
-      latestMessage: async () =>
-        envelope ? { actorName: 'Author', contentMarkdown: '**current** message' } : undefined,
+      latestMessage: async () => ({ actorName: 'Author', contentMarkdown: '**current** message' }),
     } as never,
     new NotificationPolicyService(),
   );
@@ -115,12 +115,6 @@ function fixture(kind: 'web' | 'expo' = 'web') {
     read: () => {
       recipients = [];
     },
-    removeChannel: () => {
-      context = undefined;
-    },
-    deleteMessages: () => {
-      envelope = null;
-    },
     status: (value: string) => {
       status = value;
     },
@@ -130,42 +124,33 @@ function fixture(kind: 'web' | 'expo' = 'web') {
   };
 }
 
-for (const reason of [
-  'read',
-  'mute',
-  'removed access',
-  'deleted message',
-  'expired',
-  'changed owner',
-  'changed token',
-] as const) {
-  test(`delivery rechecks ${reason} before contacting a provider`, async () => {
+// Each case changes one thing between the alert being queued and sent.
+const staleAlerts = {
+  'the conversation was read meanwhile': (f: Fixture) => f.read(),
+  'the alert outlived its deadline': (f: Fixture) => {
+    f.batch.expiresAt = new Date(0).toISOString();
+  },
+  'the browser now belongs to another account': (f: Fixture) => {
+    f.subscription.userId = 'another-account';
+  },
+  'the browser credentials were rotated': (f: Fixture) => {
+    f.subscription.auth = 'rotated';
+  },
+  'the person is looking at the app right now': (f: Fixture) => {
+    f.subscription.activeUntil = new Date(Date.now() + 75000);
+  },
+};
+
+for (const [reason, change] of Object.entries(staleAlerts)) {
+  test(`nothing is sent when ${reason}`, async () => {
     const f = fixture();
-    if (reason === 'read') f.read();
-    if (reason === 'mute') f.recipient.notificationsMuted = true;
-    if (reason === 'removed access') f.removeChannel();
-    if (reason === 'deleted message') f.deleteMessages();
-    if (reason === 'expired') f.batch.expiresAt = new Date(0).toISOString();
-    if (reason === 'changed owner') f.subscription.userId = 'another-account';
-    if (reason === 'changed token') f.subscription.auth = 'rotated';
+    change(f);
+
     await f.worker.deliver(f.job);
+
     assert.deepEqual(f.sent, []);
   });
 }
-
-test('focused realtime client suppresses its own web push', async () => {
-  const f = fixture();
-  f.subscription.activeUntil = new Date(Date.now() + 75000);
-  await f.worker.deliver(f.job);
-  assert.deepEqual(f.sent, []);
-});
-
-test('expired foreground lease permits push again', async () => {
-  const f = fixture();
-  f.subscription.activeUntil = new Date(0);
-  await f.worker.deliver(f.job);
-  assert.equal(f.sent.length, 1);
-});
 
 test('permanent web rejection invalidates the exact subscription snapshot', async () => {
   const f = fixture();

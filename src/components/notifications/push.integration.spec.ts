@@ -7,9 +7,8 @@ import { PGlite } from '@electric-sql/pglite';
 import { type TransactionalAdapter, TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterDrizzleOrm } from '@nestjs-cls/transactional-adapter-drizzle-orm';
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/pglite';
+import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite';
 
-import { BrowserPushTargetsStrategy, NativePushTargetsStrategy } from '@/components/devices';
 import { DrizzleWebPushRepository } from '@/components/devices/browser/repository/drizzle-web-push.repository';
 import { DrizzleDevicesRepository } from '@/components/devices/repository/drizzle-devices.repository';
 import { EntriesFacade } from '@/components/social/entries/entries.facade';
@@ -29,511 +28,355 @@ import { DrizzleEventOutboxRepository } from '@/globals/publisher/repository/dri
 
 import { MessageNotificationContentService } from './alerts/message-notification-content.service';
 import { DrizzlePushAudienceRepository } from './alerts/repository/drizzle-push-audience.repository';
-import type { MessageNotificationSource } from './alerts/types';
-import { AlertDispatcher } from './delivery/alert-dispatcher';
-import { BrowserChannel } from './delivery/channels/browser.channel';
-import { NativeAppChannel } from './delivery/channels/native-app.channel';
-import { NotificationChannelRegistry } from './delivery/channels/notification-channel.registry';
-import type { ConversationAlert } from './delivery/types';
-import { PUSH_EXPO_DELIVERY_QUEUE, PUSH_WEB_DELIVERY_QUEUE } from './delivery/types';
 import { NotificationPolicyService } from './policy';
 
-// Embedded PostgreSQL: no application database or notification provider is contacted.
-test('push migrations, devices, burst policy and durable outbox on PostgreSQL', async (t) => {
+// Embedded PostgreSQL with the real migrations: no application database is contacted.
+test('push persistence on PostgreSQL', async (t) => {
   const pg = await PGlite.create();
   const db = drizzle(pg, { schema });
   t.after(() => pg.close());
-  const migrations = readdirSync('drizzle')
-    .filter((name) => /^\d+.*\.sql$/u.test(name))
-    .sort();
-  const pushMigration = '0018_push_delivery.sql';
-  const pushMigrationIndex = migrations.indexOf(pushMigration);
-  assert.ok(pushMigrationIndex >= 0);
-  for (const migration of migrations.slice(0, pushMigrationIndex))
-    await pg.exec(readFileSync(`drizzle/${migration}`, 'utf8'));
-  await pg.query(`insert into devices (user_id, installation_id, platform, push_token, updated_at) values
-    ('previous-owner', 'shared-install', 'ios', 'old-token', '2026-01-01'),
-    ('current-owner', 'shared-install', 'ios', 'new-token', '2026-02-01')`);
-  await pg.exec(readFileSync(`drizzle/${pushMigration}`, 'utf8'));
-  for (const migration of migrations.slice(pushMigrationIndex + 1))
-    await pg.exec(readFileSync(`drizzle/${migration}`, 'utf8'));
-  assert.deepEqual(
-    (await db.select().from(schema.devices)).map((device) => device.userId),
-    ['current-owner'],
-  );
 
-  const adapter = new TransactionalAdapterDrizzleOrm<typeof db>({
-    drizzleInstanceToken: Symbol('test-db'),
+  // Two owners of one installation exist before the migration that makes installations unique.
+  await migrate(pg, {
+    before: '0018_push_delivery.sql',
+    seed: `insert into devices (user_id, installation_id, platform, push_token, updated_at) values
+      ('previous-owner', 'shared-install', 'ios', 'old-token', '2026-01-01'),
+      ('current-owner', 'shared-install', 'ios', 'new-token', '2026-02-01')`,
   });
-  const txHost = new TransactionHost<TransactionalAdapter<typeof db, typeof db, object>>({
-    ...adapter.optionsFactory(db),
-    connectionName: undefined,
-    enableTransactionProxy: false,
-    defaultTxOptions: { isolationLevel: 'read committed' },
-    extraProviderTokens: [],
-  });
+
+  const txHost = transactionHost(db);
   const devices = new DrizzleDevicesRepository(txHost as never);
   const subscriptions = new DrizzleWebPushRepository(txHost as never);
   const audience = new DrizzlePushAudienceRepository(txHost as never);
+  const outboxRepository = new DrizzleEventOutboxRepository(txHost as never);
+  const outbox = new PersistentEventOutbox(outboxRepository);
 
-  await t.test(
-    'installation takeover prevents old logout and old receipt from deleting current tokens',
-    async () => {
-      await devices.register('owner-A', {
-        installationId: 'install',
-        platform: 'ios',
-        pushToken: 'token-A',
-        voipToken: 'voip-A',
-        apnsEnvironment: 'sandbox',
-      });
-      const [old] = await devices.listForUser('owner-A');
-      assert.ok(old);
-      await devices.register('owner-B', {
-        installationId: 'install',
-        platform: 'ios',
-        pushToken: 'token-B',
-        voipToken: 'voip-B',
-        apnsEnvironment: 'production',
-      });
-      await devices.unregister('owner-A', 'install');
-      await devices.invalidateToken(old.id, 'token-A', 'push');
-      const current = await devices.find(old.id);
-      assert.equal(current?.userId, 'owner-B');
-      assert.equal(current?.pushToken, 'token-B');
-      assert.equal(current?.apnsEnvironment, 'production');
-      await devices.register('owner-B', { installationId: 'install', platform: 'ios' });
-      assert.equal((await devices.find(old.id))?.voipToken, 'voip-B');
-      await devices.register('owner-B', {
-        installationId: 'install',
-        platform: 'ios',
-        pushToken: null,
-      });
-      assert.equal((await devices.find(old.id))?.pushToken, null);
-      assert.equal((await devices.find(old.id))?.voipToken, 'voip-B');
-    },
-  );
+  // A workspace with an author and a reader in one channel; each test gets its own.
+  async function seedConversation(level: 'default' | 'mentions' = 'default') {
+    const ids = {
+      workspaceId: randomUUID(),
+      channelId: randomUUID(),
+      authorId: randomUUID(),
+      readerId: randomUUID(),
+    };
+    const [authorProfile, readerProfile] = [randomUUID(), randomUUID()];
+    const readerUserId = `reader-${ids.readerId}`;
+    let seq = 0n;
 
-  await t.test(
-    'old subscription cleanup cannot delete a rotated subscription or a new owner',
-    async () => {
-      const installationId = randomUUID();
-      const keys = { p256dh: 'public-key', auth: 'old-auth' };
-      const { id } = await subscriptions.register('owner-A', {
-        installationId,
-        endpoint: 'https://fcm.googleapis.com/push/one',
-        keys,
-      });
-      const previous = await subscriptions.find(id);
-      assert.ok(previous);
-      await subscriptions.register('owner-B', {
-        installationId,
-        endpoint: previous.endpoint,
-        keys: { ...keys, auth: 'new-auth' },
-      });
-      await subscriptions.remove('owner-A', id);
-      await subscriptions.invalidate(previous);
-      assert.equal((await subscriptions.find(id))?.userId, 'owner-B');
-      await subscriptions.presence('owner-A', id, { focused: true });
-      assert.equal((await subscriptions.find(id))?.activeUntil, null);
-      await subscriptions.presence('owner-B', id, { focused: true });
-      assert.ok((await subscriptions.find(id))?.activeUntil);
-      assert.deepEqual(await subscriptions.forUser('owner-A'), []);
-      assert.deepEqual(
-        (await subscriptions.forUser('owner-B')).map((item) => item.id),
-        [id],
-      );
-    },
-  );
-
-  const workspaceId = randomUUID();
-  const channelId = randomUUID();
-  const actorMemberId = randomUUID();
-  const recipientId = randomUUID();
-  const messageId = randomUUID();
-  const actorProfile = randomUUID();
-  const recipientProfile = randomUUID();
-  await db.insert(schema.workspaces).values({ id: workspaceId, name: 'Workspace' });
-  await db.insert(schema.userProfiles).values([
-    { id: actorProfile, oidcUserId: 'author', displayName: 'Author' },
-    { id: recipientProfile, oidcUserId: 'reader' },
-  ]);
-  await db.insert(schema.workspaceMembers).values([
-    { id: actorMemberId, workspaceId, userProfileId: actorProfile },
-    { id: recipientId, workspaceId, userProfileId: recipientProfile },
-  ]);
-  await db.insert(schema.channels).values({
-    id: channelId,
-    workspaceId,
-    kind: 'private',
-    name: 'Private',
-    createdByMemberId: actorMemberId,
-    lastEntrySeq: 11n,
-  });
-  await db
-    .insert(schema.channelMemberships)
-    .values({ workspaceId, channelId, memberId: recipientId, notificationLevel: 'mentions' });
-  await db.insert(schema.chatMessages).values({
-    id: messageId,
-    workspaceId,
-    channelId,
-    authorMemberId: actorMemberId,
-    contentMarkdown: '**message**',
-    requestDigest: 'digest',
-    clientNonce: randomUUID(),
-  });
-  await db.insert(schema.channelEntries).values({ workspaceId, channelId, messageId, seq: 10n });
-  await db
-    .insert(schema.messageMentions)
-    .values({ workspaceId, channelId, messageId, memberId: recipientId });
-  const event: MessageNotificationSource = {
-    workspaceId,
-    channelId,
-    actorMemberId,
-    firstSeq: '10',
-    lastSeq: '10',
-  };
-
-  await t.test(
-    'audience reads current mention, preferences, membership and read cursor',
-    async () => {
-      const [recipient] = await audience.recipients(event);
-      assert.equal(recipient?.mentioned, true);
-      assert.equal(recipient?.level, 'mentions');
-      assert.equal(recipient?.userId, 'reader');
-      await db
-        .update(schema.channelMemberships)
-        .set({ lastReadEntrySeq: 10n })
-        .where(eq(schema.channelMemberships.memberId, recipientId));
-      assert.deepEqual(await audience.recipients(event), []);
-      await db
-        .update(schema.channelMemberships)
-        .set({ lastReadEntrySeq: 0n })
-        .where(eq(schema.channelMemberships.memberId, recipientId));
-      await db
-        .update(schema.workspaceMembers)
-        .set({ status: 'removed' })
-        .where(eq(schema.workspaceMembers.id, recipientId));
-      assert.deepEqual(await audience.recipients(event), []);
-      await db
-        .update(schema.workspaceMembers)
-        .set({ status: 'active' })
-        .where(eq(schema.workspaceMembers.id, recipientId));
-    },
-  );
-
-  const [recipient] = await audience.recipients(event);
-  assert.ok(recipient);
-  const now = new Date();
-  const alert = (overrides: Partial<ConversationAlert> = {}): ConversationAlert => ({
-    id: randomUUID(),
-    userId: 'reader',
-    memberId: recipientId,
-    workspaceId,
-    channelId,
-    firstSeq: '10',
-    lastSeq: '11',
-    expiresAt: new Date(now.getTime() + 3600000).toISOString(),
-    ...overrides,
-  });
-
-  await t.test('a later ordinary message does not erase an earlier unread mention', async () => {
-    const ordinary = randomUUID();
-    await db.insert(schema.chatMessages).values({
-      id: ordinary,
-      workspaceId,
-      channelId,
-      authorMemberId: actorMemberId,
-      contentMarkdown: 'ordinary',
-      requestDigest: 'ordinary',
-      clientNonce: randomUUID(),
+    await db.insert(schema.workspaces).values({ id: ids.workspaceId, name: 'Workspace' });
+    await db.insert(schema.userProfiles).values([
+      { id: authorProfile, oidcUserId: `author-${ids.authorId}`, displayName: 'Author' },
+      { id: readerProfile, oidcUserId: readerUserId },
+    ]);
+    await db.insert(schema.workspaceMembers).values([
+      { id: ids.authorId, workspaceId: ids.workspaceId, userProfileId: authorProfile },
+      { id: ids.readerId, workspaceId: ids.workspaceId, userProfileId: readerProfile },
+    ]);
+    await db.insert(schema.channels).values({
+      id: ids.channelId,
+      workspaceId: ids.workspaceId,
+      kind: 'private',
+      name: 'Private',
+      createdByMemberId: ids.authorId,
     });
-    await db
-      .insert(schema.channelEntries)
-      .values({ workspaceId, channelId, messageId: ordinary, seq: 11n });
-    const scope = { ...event, lastSeq: '11' };
-    assert.equal(
-      (await audience.latestMessage(scope, recipient, true))?.contentMarkdown,
-      '**message**',
-    );
-    assert.equal(
-      (await audience.latestMessage(scope, recipient, false))?.contentMarkdown,
-      'ordinary',
-    );
-    await db
-      .update(schema.chatMessages)
-      .set({ deletedAt: new Date() })
-      .where(eq(schema.chatMessages.id, ordinary));
-    assert.equal(
-      (await audience.latestMessage(scope, recipient, false))?.contentMarkdown,
-      '**message**',
-    );
-    await db
-      .update(schema.chatMessages)
-      .set({ deletedAt: new Date() })
-      .where(eq(schema.chatMessages.id, messageId));
-    assert.equal(await audience.latestMessage(scope, recipient, true), undefined);
-  });
+    await db.insert(schema.channelMemberships).values({
+      workspaceId: ids.workspaceId,
+      channelId: ids.channelId,
+      memberId: ids.readerId,
+      notificationLevel: level,
+    });
 
-  const repository = new DrizzleEventOutboxRepository(txHost as never);
-  const config = { get: () => true };
-  const outbox = new PersistentEventOutbox(repository);
-  await t.test(
-    'outbox is atomic with the business transaction and stable IDs deduplicate',
-    async () => {
-      const cancelled = jobId('cancelled');
-      await assert.rejects(
-        txHost.withTransaction(async () => {
-          await outbox.record('atomic', { value: 1 }, { id: cancelled });
-          throw new Error('rollback');
-        }),
-        /rollback/u,
-      );
-      assert.equal(
-        (await db.select().from(schema.eventOutbox).where(eq(schema.eventOutbox.id, cancelled)))
-          .length,
-        0,
-      );
-      const id = jobId('committed');
-      await outbox.record('atomic', { value: 1 }, { id });
-      await outbox.record('atomic', { value: 2 }, { id });
-      assert.deepEqual(
-        (await db.select().from(schema.eventOutbox).where(eq(schema.eventOutbox.id, id)))[0]
-          ?.payload,
-        { value: 1 },
-      );
-    },
-  );
+    async function post(markdown: string, options: { mention?: boolean } = {}) {
+      const messageId = randomUUID();
+      seq += 1n;
 
-  await t.test(
-    'outbox acknowledges queue handoff and retries failed enqueue with the same ID',
-    async () => {
-      const queued = new Map<string, object>();
-      let unavailable = true;
-      const events = new IntegrationEvents({
-        work: () => {},
-        enqueue: async (_queue: string, payload: object, options: { id: string }) => {
-          if (unavailable) throw new Error('Valkey unavailable');
-          queued.set(options.id, payload);
-        },
-      } as never);
-      events.subscribe('atomic', 'subscriber', async () => {});
-      const dispatcher = new OutboxDispatcher(
-        repository,
-        events,
-        config as never,
-        { error: () => {} } as never,
-      );
-      await assert.rejects(dispatcher.relay(), /Valkey unavailable/u);
-      const id = jobId('committed');
-      const stored = async () =>
-        (await db.select().from(schema.eventOutbox).where(eq(schema.eventOutbox.id, id)))[0];
-      assert.ok(await stored(), 'a failed handoff keeps the event');
-      assert.equal((await stored())?.leasedUntil, null);
-      unavailable = false;
-      const acknowledge = repository.acknowledge.bind(repository);
-      let first = true;
-      repository.acknowledge = async (eventId) => {
-        if (first) {
-          first = false;
-          throw new Error('crash after enqueue');
-        }
-        await acknowledge(eventId);
-      };
-      await assert.rejects(dispatcher.relay(), /crash after enqueue/u);
-      assert.ok(await stored(), 'an unacknowledged event is relayed again');
-      await dispatcher.relay();
-      await dispatcher.relay();
-      assert.equal(queued.size, 1);
-      assert.deepEqual(queued.get(jobId(`${id}:subscriber`)), { value: 1 });
-      assert.equal(await stored(), undefined, 'an acknowledged event leaves the outbox');
-    },
-  );
-
-  await t.test(
-    'failed fanout retries stable per-device jobs without child outbox records',
-    async () => {
-      await db
-        .update(schema.chatMessages)
-        .set({ deletedAt: null })
-        .where(eq(schema.chatMessages.id, messageId));
-      await devices.register('reader', {
-        installationId: 'native-reader',
-        platform: 'ios',
-        pushToken: 'ExpoPushToken[reader]',
-      });
-      await subscriptions.register('reader', {
-        installationId: randomUUID(),
-        endpoint: 'https://fcm.googleapis.com/push/reader',
-        keys: { p256dh: 'key', auth: 'auth' },
-      });
-      const channels = new NotificationChannelRegistry([
-        new NativeAppChannel(new NativePushTargetsStrategy(devices), {} as never),
-        new BrowserChannel(new BrowserPushTargetsStrategy(subscriptions), {
-          configured: true,
-        } as never),
-      ]);
-      const content = new MessageNotificationContentService(
-        audience,
-        new NotificationPolicyService(),
-      );
-      const queued = new Map<string, { name: string; data: object }>();
-      let fail = true;
-      const dispatcher = new AlertDispatcher(
-        {
-          enqueue: async (name: string, data: object, options: { id: string }) => {
-            if (name === PUSH_WEB_DELIVERY_QUEUE && fail) throw new Error('enqueue failed');
-            queued.set(options.id, { name, data });
-          },
-        } as never,
-        channels,
-        {} as never,
-      );
-      const request = alert({ firstSeq: '11', lastSeq: '11' });
-      await assert.rejects(dispatcher.dispatch(request), /enqueue failed/u);
-      assert.equal(queued.size, 1);
-      fail = false;
-      await dispatcher.dispatch(request);
-      await dispatcher.dispatch(request);
-      assert.equal(queued.size, 2);
-      assert.ok([...queued.values()].some((job) => job.name === PUSH_EXPO_DELIVERY_QUEUE));
-      assert.ok(!JSON.stringify([...queued.values()]).includes('ExpoPushToken[reader]'));
-      assert.equal(
-        (await db.select().from(schema.eventOutbox)).length,
-        0,
-        'fanout and delivery jobs never write back to the outbox',
-      );
-      const firstJob = [...queued.values()][0]!.data as { alert: ConversationAlert };
-      assert.equal((await content.render(firstJob.alert))?.body, 'message');
-      await db
-        .update(schema.chatMessages)
-        .set({
-          contentMarkdown: '',
-          attachments: [
-            {
-              id: randomUUID(),
-              name: 'report.pdf',
-              size: 100,
-              mediaType: 'application/pdf',
-              preview: null,
-              width: null,
-              height: null,
-              description: null,
-            },
-          ],
-        })
-        .where(eq(schema.chatMessages.id, messageId));
-      assert.equal((await content.render(firstJob.alert))?.body, 'Нове вкладення');
-
-      // A coalesced alert announces the newest unread message, not the one that triggered it.
-      const newest = randomUUID();
       await db.insert(schema.chatMessages).values({
-        id: newest,
-        workspaceId,
-        channelId,
-        authorMemberId: actorMemberId,
-        contentMarkdown: 'newest',
-        requestDigest: 'newest',
+        id: messageId,
+        workspaceId: ids.workspaceId,
+        channelId: ids.channelId,
+        authorMemberId: ids.authorId,
+        contentMarkdown: markdown,
+        requestDigest: messageId,
         clientNonce: randomUUID(),
       });
       await db
         .insert(schema.channelEntries)
-        .values({ workspaceId, channelId, messageId: newest, seq: 12n });
-      await db
-        .insert(schema.messageMentions)
-        .values({ workspaceId, channelId, messageId: newest, memberId: recipientId });
+        .values({ workspaceId: ids.workspaceId, channelId: ids.channelId, messageId, seq });
       await db
         .update(schema.channels)
-        .set({ lastEntrySeq: 12n })
-        .where(eq(schema.channels.id, channelId));
-      assert.equal((await content.render(firstJob.alert))?.body, 'newest');
+        .set({ lastEntrySeq: seq })
+        .where(eq(schema.channels.id, ids.channelId));
+      if (options.mention) {
+        await db.insert(schema.messageMentions).values({
+          workspaceId: ids.workspaceId,
+          channelId: ids.channelId,
+          messageId,
+          memberId: ids.readerId,
+        });
+      }
+
+      return messageId;
+    }
+
+    const alertFor = (firstSeq: string) => ({
+      id: randomUUID(),
+      workspaceId: ids.workspaceId,
+      channelId: ids.channelId,
+      firstSeq,
+      lastSeq: firstSeq,
+      userId: readerUserId,
+      memberId: ids.readerId,
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    });
+
+    return { ...ids, readerUserId, post, alertFor };
+  }
+
+  await t.test('the migration keeps only the newest owner of a shared installation', async () => {
+    const owners = await db.select().from(schema.devices);
+
+    assert.deepEqual(
+      owners.map((device) => device.userId),
+      ['current-owner'],
+    );
+  });
+
+  await t.test(
+    'the previous owner of an installation cannot drop the new owner tokens',
+    async () => {
+      await devices.register('owner-A', {
+        installationId: 'install',
+        platform: 'ios',
+        pushToken: 'A',
+      });
+      const [previous] = await devices.listForUser('owner-A');
+      await devices.register('owner-B', {
+        installationId: 'install',
+        platform: 'ios',
+        pushToken: 'B',
+      });
+
+      await devices.unregister('owner-A', 'install');
+      await devices.invalidateToken(previous!.id, 'A', 'push');
+
+      const current = await devices.find(previous!.id);
+      assert.equal(current?.userId, 'owner-B');
+      assert.equal(current?.pushToken, 'B');
     },
   );
 
+  await t.test('the previous owner of a browser subscription cannot touch it', async () => {
+    const registration = {
+      installationId: randomUUID(),
+      endpoint: 'https://fcm.googleapis.com/push/one',
+      keys: { p256dh: 'key', auth: 'old' },
+    };
+    const { id } = await subscriptions.register('owner-A', registration);
+    const previous = await subscriptions.find(id);
+    await subscriptions.register('owner-B', {
+      ...registration,
+      keys: { p256dh: 'key', auth: 'new' },
+    });
+
+    await subscriptions.remove('owner-A', id);
+    await subscriptions.invalidate(previous!);
+    await subscriptions.presence('owner-A', id, { focused: true });
+
+    const current = await subscriptions.find(id);
+    assert.equal(current?.userId, 'owner-B');
+    assert.equal(current?.activeUntil, null, 'only the owner sets presence');
+  });
+
+  await t.test('recipients follow mentions, level, read cursor and membership', async () => {
+    const chat = await seedConversation('mentions');
+    await chat.post('hello', { mention: true });
+    const scope = { ...chat, firstSeq: '1', lastSeq: '1' };
+
+    const [recipient] = await audience.recipients(scope);
+    assert.equal(recipient?.mentioned, true);
+    assert.equal(recipient?.level, 'mentions');
+
+    await db
+      .update(schema.channelMemberships)
+      .set({ lastReadEntrySeq: 1n })
+      .where(eq(schema.channelMemberships.memberId, chat.readerId));
+    assert.deepEqual(await audience.recipients(scope), [], 'already read');
+
+    await db
+      .update(schema.channelMemberships)
+      .set({ lastReadEntrySeq: 0n })
+      .where(eq(schema.channelMemberships.memberId, chat.readerId));
+    await db
+      .update(schema.workspaceMembers)
+      .set({ status: 'removed' })
+      .where(eq(schema.workspaceMembers.id, chat.readerId));
+    assert.deepEqual(await audience.recipients(scope), [], 'left the workspace');
+  });
+
+  await t.test('an alert shows the newest unread message the person should see', async () => {
+    const content = new MessageNotificationContentService(
+      audience,
+      new NotificationPolicyService(),
+    );
+    const chat = await seedConversation('mentions');
+    const mention = await chat.post('**first** mention', { mention: true });
+    const alert = chat.alertFor('1');
+
+    await chat.post('ordinary');
+    assert.equal(
+      (await content.render(alert))?.body,
+      'first mention',
+      'mentions level skips chatter',
+    );
+
+    await chat.post('newer mention', { mention: true });
+    assert.equal(
+      (await content.render(alert))?.body,
+      'newer mention',
+      'not the triggering message',
+    );
+
+    await db
+      .update(schema.chatMessages)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.chatMessages.contentMarkdown, 'newer mention'));
+    await db
+      .update(schema.chatMessages)
+      .set({ contentMarkdown: '', attachments: [attachment()] })
+      .where(eq(schema.chatMessages.id, mention));
+    assert.equal((await content.render(alert))?.body, 'Нове вкладення');
+  });
+
   await t.test(
-    'DM message and call projections require both active peers and a ringing call',
+    'a DM or call alert needs both peers active and the call still ringing',
     async () => {
-      const dmId = randomUUID(),
-        callId = randomUUID();
-      await db
-        .insert(schema.channels)
-        .values({ id: dmId, workspaceId, kind: 'dm', createdByMemberId: actorMemberId });
-      const [firstMemberId, secondMemberId] = [actorMemberId, recipientId].sort();
+      const chat = await seedConversation();
+      const dmId = randomUUID();
+      const callId = randomUUID();
+      const [firstMemberId, secondMemberId] = [chat.authorId, chat.readerId].sort();
+      await db.insert(schema.channels).values({
+        id: dmId,
+        workspaceId: chat.workspaceId,
+        kind: 'dm',
+        createdByMemberId: chat.authorId,
+      });
       await db.insert(schema.directMessages).values({
-        workspaceId,
+        workspaceId: chat.workspaceId,
         channelId: dmId,
         firstMemberId: firstMemberId!,
         secondMemberId: secondMemberId!,
       });
       await db
         .insert(schema.channelMemberships)
-        .values({ workspaceId, channelId: dmId, memberId: recipientId });
+        .values({ workspaceId: chat.workspaceId, channelId: dmId, memberId: chat.readerId });
       await db.insert(schema.calls).values({
         id: callId,
-        workspaceId,
+        workspaceId: chat.workspaceId,
         channelId: dmId,
         roomName: `room-${callId}`,
-        startedByMemberId: actorMemberId,
+        startedByMemberId: chat.authorId,
       });
       const calls = new DrizzleCallPushRepository(txHost as never);
-      const scope = { ...event, channelId: dmId };
-      assert.equal((await audience.context(scope))?.kind, 'dm');
-      assert.ok(await calls.ringingForRecipient(workspaceId, dmId, callId, 'reader'));
+      const dm = { workspaceId: chat.workspaceId, channelId: dmId, firstSeq: '1', lastSeq: '1' };
+      const isRinging = () =>
+        calls.ringingForRecipient(chat.workspaceId, dmId, callId, chat.readerUserId);
+
+      assert.equal((await audience.context(dm))?.kind, 'dm');
+      assert.ok(await isRinging());
+
       await db
         .update(schema.workspaceMembers)
         .set({ status: 'removed' })
-        .where(eq(schema.workspaceMembers.id, actorMemberId));
-      assert.equal(await audience.context(scope), undefined);
-      assert.equal(await calls.ringingForRecipient(workspaceId, dmId, callId, 'reader'), null);
+        .where(eq(schema.workspaceMembers.id, chat.authorId));
+      assert.equal(await audience.context(dm), undefined);
+      assert.equal(await isRinging(), null);
+
       await db
         .update(schema.workspaceMembers)
         .set({ status: 'active' })
-        .where(eq(schema.workspaceMembers.id, actorMemberId));
+        .where(eq(schema.workspaceMembers.id, chat.authorId));
       await db.update(schema.calls).set({ status: 'active' }).where(eq(schema.calls.id, callId));
-      assert.equal(await calls.ringingForRecipient(workspaceId, dmId, callId, 'reader'), null);
+      assert.equal(await isRinging(), null, 'answered calls stop ringing');
     },
   );
 
-  await t.test('expired source events are not selected by the relay', async () => {
-    await outbox.record('expired', {}, { id: jobId('expired') });
-    await db
-      .update(schema.eventOutbox)
-      .set({ expiresAt: new Date(0) })
-      .where(eq(schema.eventOutbox.id, jobId('expired')));
-    assert.deepEqual(await repository.claim(100), []);
+  await t.test('an outbox event commits with its transaction, once per ID', async () => {
+    const rolledBack = jobId('rolled-back');
+    const committed = jobId('committed');
+
+    await assert.rejects(
+      txHost.withTransaction(async () => {
+        await outbox.record('test.event', { value: 1 }, { id: rolledBack });
+        throw new Error('rollback');
+      }),
+    );
+    await outbox.record('test.event', { value: 1 }, { id: committed });
+    await outbox.record('test.event', { value: 2 }, { id: committed });
+
+    const stored = await db.select().from(schema.eventOutbox);
+    assert.deepEqual(
+      stored.map((row) => [row.id, row.payload]),
+      [[committed, { value: 1 }]],
+    );
+  });
+
+  await t.test('the relay keeps an event until a subscriber queue accepts it', async () => {
+    const id = jobId('committed');
+    const queued = new Map<string, object>();
+    let queueDown = true;
+    const events = new IntegrationEvents({
+      work: () => {},
+      enqueue: async (_queue: string, payload: object, options: { id: string }) => {
+        if (queueDown) throw new Error('Valkey unavailable');
+        queued.set(options.id, payload);
+      },
+    } as never);
+    events.subscribe('test.event', 'subscriber', async () => {});
+    const relay = new OutboxDispatcher(outboxRepository, events, {} as never, {} as never);
+    const stored = async () =>
+      (await db.select().from(schema.eventOutbox).where(eq(schema.eventOutbox.id, id)))[0];
+
+    await assert.rejects(relay.relay(), /Valkey unavailable/u);
+    assert.ok(await stored(), 'a failed handoff keeps the event');
+
+    queueDown = false;
+    await relay.relay();
+    await relay.relay();
+
+    assert.deepEqual([...queued.values()], [{ value: 1 }], 'delivered exactly once');
+    assert.equal(await stored(), undefined, 'an accepted event leaves the outbox');
+
+    await outbox.record('test.expired', {}, { expireInSeconds: -1 });
+    assert.deepEqual(await outboxRepository.claim(100), [], 'expired events are never relayed');
   });
 
   await t.test(
-    'message and forward publication follows commit and stays silent on nonce replay or rollback',
+    'messages and forwards publish after commit, never on replay or rollback',
     async () => {
-      const published: { name: string; payload: object }[] = [];
-      let rejectOutbox = false;
-      const events = {
-        publish: (name: string, payload: unknown) => {
-          assert.equal(txHost.isTransactionActive(), false);
-          assert.ok(payload && typeof payload === 'object');
-          published.push({ name, payload });
+      const chat = await seedConversation();
+      const published: string[] = [];
+      let outboxDown = false;
+      const realtime = {
+        publish: (name: string) => {
+          assert.equal(txHost.isTransactionActive(), false, 'only after commit');
+          published.push(name);
         },
       };
       const transactionalOutbox = {
         record: async (name: string, payload: object) => {
-          assert.equal(txHost.isTransactionActive(), true);
-          if (rejectOutbox) throw new Error('outbox unavailable');
+          if (outboxDown) throw new Error('outbox unavailable');
           await outbox.record(name, payload);
         },
       };
-      const access = {
-        requirePostAccess: async () => {},
-        requireForwardAccess: async () => {},
-      };
-      const messagesRepository = new DrizzleMessagesRepository(txHost as never);
+      const access = { requirePostAccess: async () => {}, requireForwardAccess: async () => {} };
       const messages = new MessagesFacade(
         access as never,
         new EntriesFacade(new DrizzleEntriesRepository(txHost as never)),
         {} as never,
         { requireValid: async () => {}, replace: async () => {} } as never,
-        messagesRepository,
+        new DrizzleMessagesRepository(txHost as never),
         new MessageMarkdownService(),
-        events,
+        realtime,
         transactionalOutbox,
         { claim: async () => [] } as never,
       );
@@ -542,45 +385,73 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
         {} as never,
         messages,
         new DrizzleForwardingRepository(txHost as never),
-        events,
+        realtime,
         transactionalOutbox,
       );
-      const member = { workspaceId, id: actorMemberId } as never;
+      const author = { workspaceId: chat.workspaceId, id: chat.authorId } as never;
       const send = { markdown: 'publication', clientNonce: randomUUID() };
-      const message = await messages.send(member, channelId, send);
-      assert.equal(published.length, 1);
-      assert.deepEqual(await messages.send(member, channelId, send), message);
-      assert.equal(published.length, 1);
-
-      const forward = {
-        sourceChannelId: channelId,
+      const forward = (message: { id: string }) => ({
+        sourceChannelId: chat.channelId,
         messageIds: [message.id],
-        target: { kind: 'channel' as const, id: channelId },
+        target: { kind: 'channel' as const, id: chat.channelId },
         batchNonce: randomUUID(),
-      };
-      const forwarded = await forwarding.forward(member, forward);
-      assert.equal(published.length, 2);
-      assert.deepEqual(await forwarding.forward(member, forward), forwarded);
-      assert.equal(published.length, 2);
+      });
 
-      const stored = await db.select().from(schema.eventOutbox);
-      for (const event of published) {
-        const storedEvent = stored.find((row) => row.name === event.name);
-        assert.deepEqual(storedEvent?.payload, { ...event.payload });
-      }
-      const messageCount = (await db.select().from(schema.chatMessages)).length;
-      rejectOutbox = true;
+      const message = await messages.send(author, chat.channelId, send);
+      await messages.send(author, chat.channelId, send);
+      const batch = forward(message);
+      await forwarding.forward(author, batch);
+      await forwarding.forward(author, batch);
+      assert.equal(published.length, 2, 'a replayed nonce publishes nothing');
+
+      outboxDown = true;
       await assert.rejects(
-        messages.send(member, channelId, { ...send, clientNonce: randomUUID() }),
-        /outbox unavailable/u,
+        messages.send(author, chat.channelId, { ...send, clientNonce: randomUUID() }),
       );
-      await assert.rejects(
-        forwarding.forward(member, { ...forward, batchNonce: randomUUID() }),
-        /outbox unavailable/u,
-      );
-      assert.equal(published.length, 2);
-      assert.equal((await db.select().from(schema.eventOutbox)).length, stored.length);
-      assert.equal((await db.select().from(schema.chatMessages)).length, messageCount);
+      await assert.rejects(forwarding.forward(author, forward(message)));
+      assert.equal(published.length, 2, 'a rolled back write publishes nothing');
     },
   );
 });
+
+async function migrate(pg: PGlite, options: { before: string; seed: string }) {
+  const migrations = readdirSync('drizzle')
+    .filter((name) => /^\d+.*\.sql$/u.test(name))
+    .sort();
+  const seedAt = migrations.indexOf(options.before);
+  assert.ok(seedAt >= 0, `missing migration ${options.before}`);
+
+  for (const [index, migration] of migrations.entries()) {
+    if (index === seedAt) await pg.query(options.seed);
+    await pg.exec(readFileSync(`drizzle/${migration}`, 'utf8'));
+  }
+}
+
+type TestDatabase = PgliteDatabase<typeof schema>;
+
+function transactionHost(db: TestDatabase) {
+  const adapter = new TransactionalAdapterDrizzleOrm<TestDatabase>({
+    drizzleInstanceToken: Symbol('test-db'),
+  });
+
+  return new TransactionHost<TransactionalAdapter<TestDatabase, TestDatabase, object>>({
+    ...adapter.optionsFactory(db),
+    connectionName: undefined,
+    enableTransactionProxy: false,
+    defaultTxOptions: { isolationLevel: 'read committed' },
+    extraProviderTokens: [],
+  });
+}
+
+function attachment() {
+  return {
+    id: randomUUID(),
+    name: 'report.pdf',
+    size: 100,
+    mediaType: 'application/pdf',
+    preview: null,
+    width: null,
+    height: null,
+    description: null,
+  };
+}
