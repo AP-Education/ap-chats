@@ -6,7 +6,7 @@ import { AppLoading } from '@/shared/ui/AppLoading/AppLoading';
 import { useCurrentUser } from '../../auth/stores/current-user-context';
 import { useActiveWorkspace } from '../../workspaces/hooks/useActiveWorkspace';
 import { useActiveWorkspaceId } from '../../workspaces/stores/active-workspace-context';
-import { notificationIntent } from './notification-intent';
+import { notificationIntent } from '../navigation/notification-intent';
 
 export function PushNavigation({ children }: PropsWithChildren) {
   const user = useCurrentUser();

@@ -1,28 +1,22 @@
 import { BellIcon } from '@phosphor-icons/react';
 import { Spin, Tooltip } from 'antd';
 
-import { useWebPush } from '@/features/devices/browser-push';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { IconButton } from '@/shared/ui/IconButton';
 
+import { usePush } from '../hooks/usePush';
+import { usePushToggle } from '../hooks/usePushToggle';
+
 export function PushSettings() {
-  const push = useWebPush();
+  const push = usePush();
+  const toggle = usePushToggle();
   const isMobile = useIsMobile();
   if (!push.available) return null;
 
   const label = push.enabled ? 'Вимкнути сповіщення' : 'Увімкнути сповіщення';
   const help =
-    push.error ??
+    toggle.error ??
     (push.permission === 'default' ? 'Натисніть, щоб браузер запитав дозвіл на сповіщення' : label);
-
-  function togglePush() {
-    if (push.enabled) {
-      void push.disable();
-      return;
-    }
-
-    void push.enable();
-  }
 
   return (
     <Tooltip title={help}>
@@ -30,11 +24,11 @@ export function PushSettings() {
         size={isMobile ? 44 : 36}
         aria-label={label}
         aria-pressed={push.enabled}
-        aria-busy={push.busy}
-        disabled={push.busy}
-        onClick={togglePush}
+        aria-busy={toggle.busy}
+        disabled={toggle.busy}
+        onClick={toggle.toggle}
       >
-        {push.busy ? (
+        {toggle.busy ? (
           <Spin size="small" />
         ) : (
           <BellIcon size={isMobile ? 24 : 20} weight={push.enabled ? 'fill' : 'regular'} />

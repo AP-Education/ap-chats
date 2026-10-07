@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { useWebPush } from '@/features/devices/browser-push';
+import { usePush } from '@/features/notifications/hooks/usePush';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { getSharedAudioContext } from '@/shared/audio/audio-context';
 import { isAttending } from '@/shared/hooks/useIsAttending';
@@ -11,7 +11,7 @@ export function useMessageNotificationSound(
   workspaceId: string,
   openChannelId: string | undefined,
 ): void {
-  const push = useWebPush();
+  const push = usePush();
   useEffect(() => {
     if (!window.ReactNativeWebView) getSharedAudioContext();
   }, []);

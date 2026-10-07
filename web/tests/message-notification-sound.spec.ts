@@ -59,7 +59,7 @@ function fixture({
     '../src/features/social/read-state/hooks/useMessageNotificationSound.ts',
     {
       react: { useEffect: (effect: () => void) => effect() },
-      '@/features/devices/browser-push': { useWebPush: () => push },
+      '@/features/notifications/hooks/usePush': { usePush: () => push },
       '@/features/realtime/hooks/useSocketEvent': {
         useSocketEvent: (event: string, handler: typeof listener) => {
           assert.equal(event, 'social:unread');

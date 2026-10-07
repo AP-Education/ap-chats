@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react';
 
-import { updatePresence, useWebPush } from '@/features/devices/browser-push';
+import { useCurrentUser } from '@/features/auth/stores/current-user-context';
+import { useConnection } from '@/features/realtime/stores/realtime-context';
 import { getAppShell } from '@/lib/app-shell';
 import { isAttending } from '@/shared/hooks/useIsAttending';
 import { postToNative } from '@/shared/lib/nativeBridge';
 
-import { useCurrentUser } from '../../auth/stores/current-user-context';
-import { useConnection } from '../../realtime/stores/realtime-context';
+import { updatePresence } from '../api/push-api';
+import { usePush } from '../hooks/usePush';
 
 const LEASE_RENEW_MS = 30000;
 // Long enough for the tab taking focus to claim the lease before this one lets it go.
@@ -20,7 +21,7 @@ const TABS_CHANNEL = 'ap:push-presence';
 export function PushPresence() {
   const user = useCurrentUser();
   const connection = useConnection();
-  const { subscriptionId } = useWebPush();
+  const { subscriptionId } = usePush();
   const token = user.status === 'signed-in' ? user.accessToken : '';
   const connected = connection.status === 'connected';
   const isConnected = useRef(connected);

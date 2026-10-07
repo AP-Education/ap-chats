@@ -5,11 +5,11 @@ import { runInNewContext } from 'node:vm';
 
 import ts from 'typescript';
 
-import type { PushPresence } from '../src/features/notifications/presence/PushPresence';
+import type { PushPresence } from '../src/features/notifications/components/PushPresence';
 
 const source = ts.transpileModule(
   readFileSync(
-    new URL('../src/features/notifications/presence/PushPresence.tsx', import.meta.url),
+    new URL('../src/features/notifications/components/PushPresence.tsx', import.meta.url),
     'utf8',
   ),
   { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } },
@@ -68,8 +68,8 @@ function browser() {
           },
           useRef: (initial: unknown) => (refs[refIndex++] ??= { current: initial }),
         },
-        '@/features/devices/browser-push': {
-          useWebPush: () => ({ subscriptionId: 'subscription' }),
+        '../hooks/usePush': { usePush: () => ({ subscriptionId: 'subscription' }) },
+        '../api/push-api': {
           updatePresence: async (_token: string, _id: string, presence: { focused: boolean }) => {
             reports.push({ tab, focused: presence.focused });
           },
@@ -82,10 +82,10 @@ function browser() {
           postToNative: (message: { payload: { connected: boolean } }) =>
             reports.push({ tab, focused: message.payload.connected }),
         },
-        '../../auth/stores/current-user-context': {
+        '@/features/auth/stores/current-user-context': {
           useCurrentUser: () => ({ status: 'signed-in', accessToken: account }),
         },
-        '../../realtime/stores/realtime-context': {
+        '@/features/realtime/stores/realtime-context': {
           useConnection: () => ({ status: 'connected' }),
         },
       };

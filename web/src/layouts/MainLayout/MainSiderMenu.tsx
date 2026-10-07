@@ -6,8 +6,7 @@ import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 import { AuthStatus } from '../../features/auth/components/AuthStatus';
 import { ChannelsSidebar } from '../../features/communities/components/ChannelsSidebar';
-import { useWebPush } from '../../features/devices/browser-push';
-import { PushSettings } from '../../features/notifications/PushSettings';
+import { PushSettings } from '../../features/notifications/components/PushSettings';
 import { DirectMessageList } from '../../features/social/direct-messages/components/DirectMessageList/DirectMessageList';
 import { UnreadDirectMessages } from '../../features/social/direct-messages/components/UnreadDirectMessages/UnreadDirectMessages';
 import { WorkspaceSwitcher } from '../../features/workspaces/components/WorkspaceSwitcher';
@@ -28,7 +27,6 @@ const navItems: { key: NavKey; icon: typeof HouseIcon; label: string }[] = [
 type ConversationSection = 'channels' | 'direct';
 
 export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
-  const push = useWebPush();
   const { styles, cx } = useMainLayoutStyles();
   const { pathname, key: locationKey } = useLocation();
   const { workspace } = useActiveWorkspace();
@@ -130,7 +128,7 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       )}
       <div className={styles.sidebarProfile}>
-        <AuthStatus actions={<PushSettings />} beforeSignOut={push.disable} />
+        <AuthStatus actions={<PushSettings />} />
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import ts from 'typescript';
 import type {
   registerSubscription,
   updatePresence,
-} from '../src/features/devices/browser-push/browser-push-api';
+} from '../src/features/notifications/api/push-api';
 import { jsonInit } from '../src/shared/api/http';
 
 const installationId = '6195ac98-4010-4344-92b9-d39a55d96937';
@@ -20,10 +20,7 @@ function fixture() {
     updatePresence: typeof updatePresence;
   };
   const source = ts.transpileModule(
-    readFileSync(
-      new URL('../src/features/devices/browser-push/browser-push-api.ts', import.meta.url),
-      'utf8',
-    ),
+    readFileSync(new URL('../src/features/notifications/api/push-api.ts', import.meta.url), 'utf8'),
     { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } },
   ).outputText;
   runInNewContext(source, {

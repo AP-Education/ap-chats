@@ -8,13 +8,7 @@ import { Avatar } from '../../../shared/ui/Avatar/Avatar';
 import { useCurrentUser } from '../stores/current-user-context';
 import styles from './AuthStatus.module.css';
 
-export function AuthStatus({
-  actions,
-  beforeSignOut,
-}: {
-  actions?: ReactNode;
-  beforeSignOut?: () => Promise<void>;
-}) {
+export function AuthStatus({ actions }: { actions?: ReactNode }) {
   const user = useCurrentUser();
   const isMobile = useIsMobile();
 
@@ -51,20 +45,7 @@ export function AuthStatus({
       </div>
       <div className={styles.actions}>
         {actions}
-        <button
-          type="button"
-          aria-label="Вийти"
-          title="Вийти"
-          onClick={() =>
-            void (async () => {
-              try {
-                await beforeSignOut?.();
-              } finally {
-                signOut();
-              }
-            })()
-          }
-        >
+        <button type="button" aria-label="Вийти" title="Вийти" onClick={signOut}>
           <SignOutIcon size={isMobile ? 24 : 20} weight="regular" />
         </button>
       </div>

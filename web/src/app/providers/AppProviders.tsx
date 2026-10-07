@@ -5,7 +5,6 @@ import { UserProfileSync } from '../../features/auth/components/UserProfileSync/
 import { ApiAuthSession } from '../../features/auth/providers/ApiAuthSession';
 import { CurrentUserProvider } from '../../features/auth/providers/CurrentUserProvider';
 import { ChannelListRealtime } from '../../features/communities/realtime/ChannelListRealtime';
-import { BrowserPushProvider } from '../../features/devices/browser-push';
 import { RealtimeProvider } from '../../features/realtime/providers/RealtimeProvider';
 import { ActiveWorkspaceProvider } from '../../features/workspaces/providers/ActiveWorkspaceProvider';
 import { ThemeProvider } from './ThemeProvider';
@@ -25,9 +24,7 @@ export function AppProviders({ children }: PropsWithChildren) {
         <RealtimeProvider>
           <ChannelListRealtime />
           <ActiveWorkspaceProvider>
-            <ThemeProvider>
-              <BrowserPushProvider>{children}</BrowserPushProvider>
-            </ThemeProvider>
+            <ThemeProvider>{children}</ThemeProvider>
           </ActiveWorkspaceProvider>
         </RealtimeProvider>
       </CurrentUserProvider>

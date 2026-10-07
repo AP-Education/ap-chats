@@ -8,77 +8,83 @@ import * as jsxRuntime from 'react/jsx-runtime';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ts from 'typescript';
 
-import type { BrowserPushState } from '../src/features/devices/browser-push/browser-push-context';
-import type { PushSettings } from '../src/features/notifications/PushSettings';
+import type { PushSettings } from '../src/features/notifications/components/PushSettings';
+import type { PushState } from '../src/features/notifications/hooks/usePush';
+
+const source = ts.transpileModule(
+  readFileSync(
+    new URL('../src/features/notifications/components/PushSettings.tsx', import.meta.url),
+    'utf8',
+  ),
+  {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+      jsx: ts.JsxEmit.ReactJSX,
+    },
+  },
+).outputText;
+
+function render(push: Partial<PushState>, error: string | null = null) {
+  let toggled = 0;
+  let onClick: (() => void) | undefined;
+  const state: PushState = {
+    available: true,
+    enabled: false,
+    permission: 'default',
+    subscriptionId: null,
+    publicKey: 'vapid',
+    synchronizationFailed: false,
+    ...push,
+  };
+  const dependencies: Record<string, unknown> = {
+    'react/jsx-runtime': jsxRuntime,
+    '@phosphor-icons/react': { BellIcon: () => null },
+    '../hooks/usePush': { usePush: () => state },
+    '../hooks/usePushToggle': {
+      usePushToggle: () => ({ busy: false, error, toggle: () => toggled++ }),
+    },
+    '@/shared/hooks/useIsMobile': { useIsMobile: () => false },
+    '@/shared/ui/IconButton': {
+      IconButton: (props: { onClick?: () => void; 'aria-label'?: string }) => {
+        onClick = props.onClick;
+        return createElement('button', { 'aria-label': props['aria-label'] });
+      },
+    },
+    antd: {
+      Tooltip: ({ title, children }: { title: string; children: ReactNode }) =>
+        createElement('span', { title }, children),
+      Spin: () => null,
+    },
+  };
+  const exports = {} as { PushSettings: typeof PushSettings };
+  runInNewContext(source, {
+    exports,
+    require: (name: string) => {
+      assert.ok(name in dependencies, `Unexpected import: ${name}`);
+      return dependencies[name];
+    },
+  });
+
+  const html = renderToStaticMarkup(createElement(exports.PushSettings));
+  return { html, click: () => onClick?.(), toggled: () => toggled };
+}
 
 for (const permission of ['default', 'denied', 'granted'] as const) {
-  test(`the notification button requests permission when notifications are off and browser permission is ${permission}`, () => {
-    let enabled = 0;
-    let onClick: (() => void) | undefined;
-    const push: BrowserPushState = {
-      available: true,
-      enabled: false,
-      busy: false,
-      permission,
-      error: null,
-      subscriptionId: null,
-      enable: async () => {
-        enabled++;
-      },
-      disable: async () => {
-        assert.fail('An inactive subscription should not be disabled');
-      },
-    };
-    const dependencies: Record<string, unknown> = {
-      'react/jsx-runtime': jsxRuntime,
-      '@phosphor-icons/react': { BellIcon: () => null, BellSlashIcon: () => null },
-      '@/features/devices/browser-push': { useWebPush: () => push },
-      '@/shared/hooks/useIsMobile': { useIsMobile: () => false },
-      '@/shared/ui/IconButton': {
-        IconButton: (props: {
-          onClick?: () => void;
-          disabled?: boolean;
-          'aria-label'?: string;
-        }) => {
-          onClick = props.onClick;
-          return createElement('button', {
-            disabled: props.disabled,
-            'aria-label': props['aria-label'],
-          });
-        },
-      },
-      antd: {
-        Tooltip: ({ children }: { children: ReactNode }) => children,
-        Popover: ({ children }: { children: ReactNode }) => children,
-      },
-    };
-    const exports = {} as { PushSettings: typeof PushSettings };
-    const source = ts.transpileModule(
-      readFileSync(
-        new URL('../src/features/notifications/PushSettings.tsx', import.meta.url),
-        'utf8',
-      ),
-      {
-        compilerOptions: {
-          module: ts.ModuleKind.CommonJS,
-          target: ts.ScriptTarget.ES2022,
-          jsx: ts.JsxEmit.ReactJSX,
-        },
-      },
-    ).outputText;
-    runInNewContext(source, {
-      exports,
-      require: (name: string) => {
-        assert.ok(name in dependencies, `Unexpected import: ${name}`);
-        return dependencies[name];
-      },
-    });
-
-    const html = renderToStaticMarkup(createElement(exports.PushSettings));
-    assert.match(html, /aria-label="Увімкнути сповіщення"/);
-    assert.doesNotMatch(html, /disabled/);
-    assert.ok(onClick, 'Clicking the bell must call the enable action');
-    onClick();
-    assert.equal(enabled, 1);
+  test(`the bell offers to turn push on when it is off and permission is ${permission}`, () => {
+    const view = render({ permission });
+    assert.match(view.html, /aria-label="Увімкнути сповіщення"/);
+    view.click();
+    assert.equal(view.toggled(), 1);
   });
 }
+
+test('the bell explains a failure instead of the plain label', () => {
+  const view = render({ enabled: true }, 'Не вдалося вимкнути сповіщення. Спробуйте ще раз.');
+  assert.match(view.html, /aria-label="Вимкнути сповіщення"/);
+  assert.match(view.html, /title="Не вдалося вимкнути/);
+});
+
+test('the bell is hidden where push is unavailable', () => {
+  assert.equal(render({ available: false }).html, '');
+});
