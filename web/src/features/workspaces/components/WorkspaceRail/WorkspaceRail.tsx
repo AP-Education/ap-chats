@@ -37,8 +37,8 @@ export function WorkspaceRail() {
   if (isLoading) {
     return (
       <>
-        <Skeleton.Avatar active shape="circle" size={44} />
-        <Skeleton.Avatar active shape="circle" size={44} />
+        <Skeleton.Avatar active shape="square" size={44} />
+        <Skeleton.Avatar active shape="square" size={44} />
       </>
     );
   }
@@ -60,7 +60,7 @@ export function WorkspaceRail() {
           active={chatsActive && item.id === workspace?.id}
           onClick={() => handleSelect(item.id)}
         >
-          <Avatar path={item.avatarPath} alt={item.name} size={44} shape="square" lazy={false} />
+          <Avatar path={item.avatarPath} alt={item.name} size={40} shape="square" lazy={false} />
         </NavTile>
       ))}
       <NavAddTile label="Створити робочий простір" onClick={() => setCreating(true)} />
