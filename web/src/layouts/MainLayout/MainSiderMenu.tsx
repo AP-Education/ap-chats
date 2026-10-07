@@ -6,6 +6,7 @@ import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 import { AuthStatus } from '../../features/auth/components/AuthStatus';
 import { ChannelsSidebar } from '../../features/communities/components/ChannelsSidebar';
+import { PushSettings } from '../../features/notifications/components/PushSettings';
 import { DirectMessageList } from '../../features/social/direct-messages/components/DirectMessageList/DirectMessageList';
 import { UnreadDirectMessages } from '../../features/social/direct-messages/components/UnreadDirectMessages/UnreadDirectMessages';
 import { WorkspaceSwitcher } from '../../features/workspaces/components/WorkspaceSwitcher';
@@ -127,7 +128,7 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       )}
       <div className={styles.sidebarProfile}>
-        <AuthStatus />
+        <AuthStatus actions={<PushSettings />} />
       </div>
     </div>
   );

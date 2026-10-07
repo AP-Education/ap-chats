@@ -2,7 +2,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import type { Namespace } from 'socket.io';
 
-import { ChannelAudienceFacade } from '@/components/communities/channel-audience/channel-audience.facade';
+import { ChannelAudienceFacade } from '@/components/communities/channel-audience';
 import { Logger } from '@/globals/logger';
 
 import { deliverChannelEvent } from '../realtime/deliver-channel-event';

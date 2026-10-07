@@ -1,5 +1,6 @@
 import { getSharedAudioContext } from '@/shared/audio/audio-context';
 import { scheduleBell } from '@/shared/audio/tone';
+import { isNativeShell, postToNative } from '@/shared/lib/nativeBridge';
 
 // Same struck-bell voice as the call ringtone, one sonic identity across the app.
 const NOTES = [659.25, 987.77]; // E5 -> B5
@@ -8,8 +9,8 @@ const NOTE_GAIN = 0.16;
 const NOTE_DECAY_SECONDS = 0.4;
 
 export function playMessageBloop(): void {
-  if (window.ReactNativeWebView) {
-    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'notifications/message-sound' }));
+  if (isNativeShell()) {
+    postToNative({ type: 'notifications/message-sound' });
     return;
   }
   const context = getSharedAudioContext();

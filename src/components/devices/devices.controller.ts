@@ -3,7 +3,7 @@ import { Body, Controller, Delete, HttpCode, Param, Post, UseGuards } from '@nes
 import { type AuthenticatedUser, AuthGuard, CurrentUser } from '@/components/auth';
 
 import { DevicesService } from './devices.service';
-import { RegisterDeviceDto } from './dto/register-device.dto';
+import { RegisterDeviceDto } from './dto';
 
 @Controller('devices')
 @UseGuards(AuthGuard)

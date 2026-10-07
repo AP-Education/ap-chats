@@ -131,7 +131,8 @@ export function createGestureFixture() {
     },
   );
 
-  const haptics = load('../../src/shared/lib/haptics.ts', {});
+  const nativeBridge = load('../../src/shared/lib/nativeBridge.ts', {});
+  const haptics = load('../../src/shared/lib/haptics.ts', { './nativeBridge': nativeBridge });
   const { useMessageReplySwipe } = load<typeof ReplySwipeModule>(
     '../../src/features/social/messaging/components/MessageRow/useMessageReplySwipe.ts',
     {
