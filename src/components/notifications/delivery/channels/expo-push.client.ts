@@ -6,11 +6,6 @@ import { PermanentJobError } from '@/globals/jobs/job-queue';
 
 import type { MessageNotificationPayload } from '../types';
 
-export type ExpoPushAcceptance =
-  { status: 'accepted'; receiptId: string } | { status: 'unregistered' };
-
-export type ExpoPushReceipt = 'pending' | 'accepted' | 'unregistered';
-
 @Injectable()
 export class ExpoPushClient {
   private readonly client: Expo;
@@ -24,9 +19,9 @@ export class ExpoPushClient {
     token: string,
     envelope: MessageNotificationPayload,
     ttl: number,
-  ): Promise<ExpoPushAcceptance> {
+  ): Promise<'accepted' | 'unregistered'> {
     // A malformed token never becomes valid, so it is dropped like an unregistered one.
-    if (!Expo.isExpoPushToken(token)) return { status: 'unregistered' };
+    if (!Expo.isExpoPushToken(token)) return 'unregistered';
 
     const [ticket] = await this.client.sendPushNotificationsAsync([
       {
@@ -49,17 +44,9 @@ export class ExpoPushClient {
       },
     ]);
     if (!ticket) throw new Error('Expo returned no push ticket');
-    if (ticket.status === 'ok') return { status: 'accepted', receiptId: ticket.id };
+    if (ticket.status === 'ok') return 'accepted';
 
-    return { status: unregisteredOrThrow(ticket.details?.error, 'Expo rejected notification') };
-  }
-
-  async receipt(id: string): Promise<ExpoPushReceipt> {
-    const receipt = (await this.client.getPushNotificationReceiptsAsync([id]))[id];
-    if (!receipt) return 'pending';
-    if (receipt.status === 'ok') return 'accepted';
-
-    return unregisteredOrThrow(receipt.details?.error, 'Expo receipt rejected');
+    return unregisteredOrThrow(ticket.details?.error, 'Expo rejected notification');
   }
 }
 

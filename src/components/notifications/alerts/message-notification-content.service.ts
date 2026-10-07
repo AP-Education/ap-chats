@@ -7,7 +7,7 @@ import type { ConversationAlert, MessageNotificationPayload } from '../delivery/
 import { NotificationPolicyService } from '../policy';
 import { PushAudienceRepository } from './repository/push-audience.repository';
 
-/** The chat side's answers to delivery: what is new, whether it still matters, how it reads. */
+/** The chat side's answer to delivery: the newest unread message, as it reads right now. */
 @Injectable()
 export class MessageNotificationContentService extends NotificationContent {
   constructor(
@@ -15,18 +15,6 @@ export class MessageNotificationContentService extends NotificationContent {
     private readonly policy: NotificationPolicyService,
   ) {
     super();
-  }
-
-  async latestSeq(alert: ConversationAlert): Promise<bigint | null> {
-    const context = await this.audience.context(alert);
-
-    return context?.lastSeq ?? null;
-  }
-
-  async findEligible(alert: ConversationAlert): Promise<{ urgent: boolean } | null> {
-    const preview = await this.preview(alert);
-
-    return preview && { urgent: preview.urgent };
   }
 
   async render(alert: ConversationAlert): Promise<MessageNotificationPayload | null> {
@@ -63,15 +51,11 @@ export class MessageNotificationContentService extends NotificationContent {
     const level = this.policy.messageLevel(recipient);
     if (level === 'none') return null;
 
-    // A mention outranks newer chatter, both for the preview and for the alert budget.
-    const mention = await this.audience.latestMessage(alert, recipient, true);
-    const message =
-      mention ??
-      (level === 'all' ? await this.audience.latestMessage(alert, recipient, false) : undefined);
+    // Everything still unread up to now, so a coalesced alert shows the latest message, not its first.
+    const unread = { ...alert, firstSeq: '1', lastSeq: context.lastSeq.toString() };
+    const message = await this.audience.latestMessage(unread, recipient, level === 'mentions');
     if (!message) return null;
 
-    const urgent = context.kind === 'dm' || mention !== undefined;
-
-    return { context, message, urgent };
+    return { context, message };
   }
 }

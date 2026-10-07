@@ -141,6 +141,13 @@
       "when": 1791366182257,
       "tag": "0019_push_simplify",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791367687583,
+      "tag": "0020_drop_notification_windows",
+      "breakpoints": true
     }
   ]
 }

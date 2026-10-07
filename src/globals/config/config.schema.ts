@@ -24,8 +24,6 @@ const schema = z
       }, 'Use redis:// or rediss:// with an integer database')
       .default('redis://127.0.0.1:6380/0'),
     PUSH_COALESCE_SECONDS: z.coerce.number().int().min(1).max(10).default(3),
-    PUSH_COOLDOWN_SECONDS: z.coerce.number().int().min(10).max(300).default(30),
-    PUSH_USER_ALERTS_PER_MINUTE: z.coerce.number().int().min(1).max(60).default(5),
     PUSH_WORKER_ENABLED: z.stringbool().default(true),
     PUSH_WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(8),
     EXPO_ACCESS_TOKEN: z.preprocess((value) => value || undefined, z.string().min(1).optional()),

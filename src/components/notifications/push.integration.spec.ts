@@ -34,7 +34,6 @@ import { AlertDispatcher } from './delivery/alert-dispatcher';
 import { BrowserChannel } from './delivery/channels/browser.channel';
 import { NativeAppChannel } from './delivery/channels/native-app.channel';
 import { NotificationChannelRegistry } from './delivery/channels/notification-channel.registry';
-import { DrizzleNotificationWindowsRepository } from './delivery/repository/drizzle-notification-windows.repository';
 import type { ConversationAlert } from './delivery/types';
 import { PUSH_EXPO_DELIVERY_QUEUE, PUSH_WEB_DELIVERY_QUEUE } from './delivery/types';
 import { NotificationPolicyService } from './policy';
@@ -222,7 +221,6 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
     },
   );
 
-  const batches = new DrizzleNotificationWindowsRepository(txHost as never);
   const [recipient] = await audience.recipients(event);
   assert.ok(recipient);
   const now = new Date();
@@ -236,48 +234,6 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
     lastSeq: '11',
     expiresAt: new Date(now.getTime() + 3600000).toISOString(),
     ...overrides,
-  });
-  const limits = { cooldownSeconds: 30, userAlertsPerMinute: 5, urgent: false };
-  const later = (seconds: number) => new Date(now.getTime() + seconds * 1000);
-
-  await t.test('reservations are idempotent and keep their original range on retry', async () => {
-    const request = alert();
-    const first = await batches.reserve(request, now, limits);
-    assert.equal(first.status, 'reserved');
-
-    const retry = await batches.reserve({ ...request, lastSeq: '99' }, now, limits);
-    assert.deepEqual(retry, first);
-    assert.equal((await db.select().from(schema.notificationWindows)).length, 1);
-  });
-
-  await t.test('a cooldown defers the next alert to its end instead of dropping it', async () => {
-    const throttled = await batches.reserve(alert({ lastSeq: '12' }), later(10), limits);
-    assert.equal(throttled.status, 'deferred');
-    assert.equal(throttled.status === 'deferred' && throttled.until > later(10), true);
-
-    const next = await batches.reserve(alert({ lastSeq: '13' }), later(31), limits);
-    assert.equal(next.status, 'reserved');
-    assert.equal(
-      (await batches.latest('reader', channelId))?.id,
-      next.status === 'reserved' ? next.window.id : undefined,
-    );
-
-    const covered = await batches.reserve(alert(), later(61), limits);
-    assert.equal(covered.status, 'superseded', 'an older range is already covered');
-  });
-
-  await t.test('the user budget defers ordinary alerts but lets urgent ones through', async () => {
-    const reserve = (urgent: boolean, at = now) =>
-      batches.reserve(alert({ userId: 'budget-reader', channelId: randomUUID() }), at, {
-        ...limits,
-        urgent,
-      });
-
-    for (let index = 0; index < 5; index++) assert.equal((await reserve(false)).status, 'reserved');
-
-    assert.equal((await reserve(false)).status, 'deferred');
-    assert.equal((await reserve(true)).status, 'reserved', 'a DM or mention skips the budget');
-    assert.equal((await reserve(false, later(61))).status, 'reserved');
   });
 
   await t.test('a later ordinary message does not erase an earlier unread mention', async () => {
@@ -394,11 +350,8 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
   );
 
   await t.test(
-    'failed fanout retries one reservation and stable per-device jobs without child outbox records',
+    'failed fanout retries stable per-device jobs without child outbox records',
     async () => {
-      await db
-        .delete(schema.notificationWindows)
-        .where(eq(schema.notificationWindows.userId, 'reader'));
       await db
         .update(schema.chatMessages)
         .set({ deletedAt: null })
@@ -414,18 +367,11 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
         keys: { p256dh: 'key', auth: 'auth' },
       });
       const channels = new NotificationChannelRegistry([
-        new NativeAppChannel(
-          new NativePushTargetsStrategy(devices),
-          {} as never,
-          {} as never,
-          {} as never,
-        ),
+        new NativeAppChannel(new NativePushTargetsStrategy(devices), {} as never),
         new BrowserChannel(new BrowserPushTargetsStrategy(subscriptions), {
           configured: true,
         } as never),
       ]);
-      const settings = { PUSH_COOLDOWN_SECONDS: 30, PUSH_USER_ALERTS_PER_MINUTE: 5 };
-      const appConfig = { get: (key: keyof typeof settings) => settings[key] };
       const content = new MessageNotificationContentService(
         audience,
         new NotificationPolicyService(),
@@ -439,12 +385,9 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
             queued.set(options.id, { name, data });
           },
         } as never,
-        content,
-        batches,
         channels,
-        appConfig as never,
+        {} as never,
       );
-      // A later source still picks the earlier eligible unread mention in the collected burst.
       const request = alert({ firstSeq: '11', lastSeq: '11' });
       await assert.rejects(dispatcher.dispatch(request), /enqueue failed/u);
       assert.equal(queued.size, 1);
@@ -452,15 +395,6 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
       await dispatcher.dispatch(request);
       await dispatcher.dispatch(request);
       assert.equal(queued.size, 2);
-      assert.equal(
-        (
-          await db
-            .select()
-            .from(schema.notificationWindows)
-            .where(eq(schema.notificationWindows.userId, 'reader'))
-        ).length,
-        1,
-      );
       assert.ok([...queued.values()].some((job) => job.name === PUSH_EXPO_DELIVERY_QUEUE));
       assert.ok(!JSON.stringify([...queued.values()]).includes('ExpoPushToken[reader]'));
       assert.equal(
@@ -489,6 +423,29 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
         })
         .where(eq(schema.chatMessages.id, messageId));
       assert.equal((await content.render(firstJob.alert))?.body, 'Нове вкладення');
+
+      // A coalesced alert announces the newest unread message, not the one that triggered it.
+      const newest = randomUUID();
+      await db.insert(schema.chatMessages).values({
+        id: newest,
+        workspaceId,
+        channelId,
+        authorMemberId: actorMemberId,
+        contentMarkdown: 'newest',
+        requestDigest: 'newest',
+        clientNonce: randomUUID(),
+      });
+      await db
+        .insert(schema.channelEntries)
+        .values({ workspaceId, channelId, messageId: newest, seq: 12n });
+      await db
+        .insert(schema.messageMentions)
+        .values({ workspaceId, channelId, messageId: newest, memberId: recipientId });
+      await db
+        .update(schema.channels)
+        .set({ lastEntrySeq: 12n })
+        .where(eq(schema.channels.id, channelId));
+      assert.equal((await content.render(firstJob.alert))?.body, 'newest');
     },
   );
 

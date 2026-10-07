@@ -62,11 +62,4 @@ export class NativePushTargetsStrategy {
 
     return this.repository.invalidateToken(device.id, token, kind);
   }
-
-  async invalidateTokenFromReceipt(deviceId: string, fingerprint: string): Promise<void> {
-    const device = await this.repository.find(deviceId);
-    if (!device?.pushToken || tokenFingerprint(device.pushToken) !== fingerprint) return;
-
-    await this.invalidateTokenIfCurrent(device, 'push');
-  }
 }

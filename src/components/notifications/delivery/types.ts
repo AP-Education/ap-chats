@@ -26,28 +26,11 @@ export interface MessageNotificationPayload {
   body: string;
 }
 
-export interface NotificationWindow {
-  id: string;
-  userId: string;
-  channelId: string;
-  firstSeq: bigint;
-  lastSeq: bigint;
-  expiresAt: Date;
-  createdAt: Date;
-}
-
 export interface MessageDeliveryJob {
   alert: ConversationAlert;
   target: ChannelTarget;
 }
 
-export interface NativePushReceiptJob {
-  receiptId: string;
-  deviceId: string;
-  tokenFingerprint: string;
-}
-
 export const PUSH_ALERT_DUE_QUEUE = 'push.batch-ready';
 export const PUSH_EXPO_DELIVERY_QUEUE = 'push.expo-delivery';
 export const PUSH_WEB_DELIVERY_QUEUE = 'push.web-delivery';
-export const EXPO_RECEIPT_QUEUE = 'push.expo-receipt';

@@ -54,15 +54,13 @@ function fixture(kind: 'web' | 'expo' = 'web') {
         kind === 'web' ? subscriptionFingerprint(subscription) : tokenFingerprint(device.pushToken),
     },
   };
-  let latest = true;
   let recipients = [recipient];
-  let context: unknown = { kind: 'private', name: 'Channel', actorName: 'Author' };
+  let context: unknown = { kind: 'private', name: 'Channel', lastSeq: 3n };
   let envelope: unknown = { body: 'current message' };
   let status = 'accepted';
   let failure: Error | null = null;
   const sent: unknown[] = [];
   const invalidated: unknown[] = [];
-  const queued: unknown[] = [];
   const content = new MessageNotificationContentService(
     {
       recipients: async () => recipients,
@@ -72,11 +70,6 @@ function fixture(kind: 'web' | 'expo' = 'web') {
     } as never,
     new NotificationPolicyService(),
   );
-  const jobs = {
-    enqueue: async (_queue: unknown, data: unknown) => {
-      queued.push(data);
-    },
-  };
   const nativeTargets = new NativePushTargetsStrategy({
     find: async () => device,
     invalidateToken: async (...args: unknown[]) => {
@@ -89,19 +82,13 @@ function fixture(kind: 'web' | 'expo' = 'web') {
       invalidated.push(snapshot);
     },
   } as never);
-  const nativeChannel = new NativeAppChannel(
-    nativeTargets,
-    {
-      send: async (_token: unknown, payload: unknown) => {
-        if (failure) throw failure;
-        sent.push(payload);
-        return { status, receiptId: 'receipt' };
-      },
-      receipt: async () => status,
-    } as never,
-    jobs as never,
-    {} as never,
-  );
+  const nativeChannel = new NativeAppChannel(nativeTargets, {
+    send: async (_token: unknown, payload: unknown) => {
+      if (failure) throw failure;
+      sent.push(payload);
+      return status;
+    },
+  } as never);
   const browserChannel = new BrowserChannel(browserTargets, {
     configured: true,
     send: async (_subscription: unknown, payload: unknown) => {
@@ -111,26 +98,20 @@ function fixture(kind: 'web' | 'expo' = 'web') {
     },
   } as never);
   const worker = new MessageDeliveryWorker(
-    jobs as never,
-    new NotificationChannelRegistry([nativeChannel, browserChannel]),
-    { latest: async () => (latest ? batch : undefined) } as never,
     {} as never,
+    new NotificationChannelRegistry([nativeChannel, browserChannel]),
     content,
+    {} as never,
   );
   return {
     worker,
-    nativeChannel,
     job,
     batch,
-    supersede: () => {
-      latest = false;
-    },
     device,
     subscription,
     recipient,
     sent,
     invalidated,
-    queued,
     read: () => {
       recipients = [];
     },
@@ -200,13 +181,6 @@ test('temporary failure reaches the queue retry mechanism', async () => {
   assert.deepEqual(f.invalidated, []);
 });
 
-test('accepted Expo delivery schedules a receipt rather than marking transport receipt as device delivery', async () => {
-  const f = fixture('expo');
-  await f.worker.deliver(f.job);
-  assert.equal(f.queued.length, 1);
-  assert.equal((f.queued[0] as { receiptId: string }).receiptId, 'receipt');
-});
-
 test('Expo DeviceNotRegistered clears only the attempted token', async () => {
   const f = fixture('expo');
   f.status('unregistered');
@@ -214,47 +188,9 @@ test('Expo DeviceNotRegistered clears only the attempted token', async () => {
   assert.deepEqual(f.invalidated, [['device', 'token', 'push']]);
 });
 
-test('queue backlog delivers only the latest conversation window', async () => {
-  const f = fixture();
-  f.supersede();
-  await f.worker.deliver(f.job);
-  assert.deepEqual(f.sent, []);
-});
-
 test('message previews preserve Markdown storage and use the current author', async () => {
   const f = fixture('expo');
   await f.worker.deliver(f.job);
   assert.equal((f.sent[0] as { body: string }).body, 'current message');
   assert.equal((f.sent[0] as { title: string }).title, 'Author · Channel');
-});
-
-test('a pending native receipt stays retryable', async () => {
-  const f = fixture('expo');
-  f.status('pending');
-  const receipt = {
-    receiptId: 'receipt',
-    deviceId: f.device.id,
-    tokenFingerprint: f.job.target.fingerprint,
-  };
-
-  await assert.rejects(f.nativeChannel.checkReceipt(receipt), /not available yet/u);
-  assert.deepEqual(f.invalidated, []);
-});
-
-test('a delayed receipt cannot invalidate a rotated native token', async () => {
-  const f = fixture('expo');
-  f.status('unregistered');
-  const receipt = {
-    receiptId: 'receipt',
-    deviceId: f.device.id,
-    tokenFingerprint: f.job.target.fingerprint,
-  };
-
-  f.device.pushToken = 'rotated';
-  await f.nativeChannel.checkReceipt(receipt);
-  assert.deepEqual(f.invalidated, []);
-
-  f.device.pushToken = 'token';
-  await f.nativeChannel.checkReceipt(receipt);
-  assert.deepEqual(f.invalidated, [['device', 'token', 'push']]);
 });

@@ -29,9 +29,7 @@ function clientRejecting(error: string) {
 test('a malformed token is dropped like an unregistered device, without calling Expo', async () => {
   const provider = clientRejecting('never reached');
 
-  assert.deepEqual(await provider.send('not-a-token', notification, 60), {
-    status: 'unregistered',
-  });
+  assert.equal(await provider.send('not-a-token', notification, 60), 'unregistered');
 });
 
 test('a rejection no retry can fix fails the job permanently', async () => {

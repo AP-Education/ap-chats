@@ -1,42 +1,47 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { AlertDispatcher } from './alert-dispatcher';
-import { type ConversationAlert, PUSH_ALERT_DUE_QUEUE } from './types';
+import { jobId } from '@/globals/jobs/job-id';
 
-test('a throttled alert is rescheduled for when its window opens, not dropped', async () => {
-  const until = new Date(Date.now() + 20_000);
-  const deferred: Array<{ name: string; data: ConversationAlert; options: { delay?: number } }> =
-    [];
-  const request: ConversationAlert = {
-    id: 'alert-1',
-    workspaceId: 'workspace',
-    channelId: 'channel',
-    firstSeq: '10',
-    lastSeq: '12',
-    userId: 'reader',
-    memberId: 'member',
-    expiresAt: new Date(Date.now() + 3600000).toISOString(),
-  };
+import { AlertDispatcher } from './alert-dispatcher';
+import type { ConversationAlert } from './types';
+
+const alert: ConversationAlert = {
+  id: 'alert-1',
+  workspaceId: 'workspace',
+  channelId: 'channel',
+  firstSeq: '10',
+  lastSeq: '12',
+  userId: 'reader',
+  memberId: 'member',
+  expiresAt: new Date(Date.now() + 3600000).toISOString(),
+};
+
+test('a due alert becomes one stable job per target on that channel queue', async () => {
+  const enqueued: Array<{ queue: string; id: string }> = [];
+  const queues: Record<string, string> = { expo: 'push.expo-delivery', web: 'push.web-delivery' };
   const dispatcher = new AlertDispatcher(
     {
-      enqueue: async (name: string, data: ConversationAlert, options: { delay?: number }) => {
-        deferred.push({ name, data, options });
+      enqueue: async (queue: string, _job: unknown, options: { id: string }) => {
+        enqueued.push({ queue, id: options.id });
       },
     } as never,
-    { latestSeq: async () => 12n, findEligible: async () => ({ urgent: false }) } as never,
     {
-      latest: async () => undefined,
-      reserve: async () => ({ status: 'deferred', until }),
+      listTargets: async () => [
+        { channel: 'expo', id: 'phone', fingerprint: 'token' },
+        { channel: 'web', id: 'browser', fingerprint: 'keys' },
+      ],
+      resolve: (kind: string) => ({ delivery: { queue: queues[kind] } }),
     } as never,
-    { listTargets: async () => [{ channel: 'expo', id: 'device', fingerprint: 'token' }] } as never,
-    { get: () => 30 } as never,
+    {} as never,
   );
 
-  await dispatcher.dispatch(request);
+  await dispatcher.dispatch(alert);
+  await dispatcher.dispatch(alert);
 
-  assert.equal(deferred.length, 1);
-  assert.equal(deferred[0]!.name, PUSH_ALERT_DUE_QUEUE);
-  assert.equal(deferred[0]!.data, request);
-  assert.ok(deferred[0]!.options.delay! > 19_000 && deferred[0]!.options.delay! <= 20_000);
+  assert.deepEqual(enqueued.slice(0, 2), [
+    { queue: 'push.expo-delivery', id: jobId('alert-1:expo:phone:token') },
+    { queue: 'push.web-delivery', id: jobId('alert-1:web:browser:keys') },
+  ]);
+  assert.deepEqual(enqueued.slice(2), enqueued.slice(0, 2), 'a retry reuses the same job IDs');
 });
