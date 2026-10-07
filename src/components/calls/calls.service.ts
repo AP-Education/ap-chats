@@ -72,7 +72,7 @@ export class CallsService {
     }
 
     const channel = await this.channelAccess.requirePostAccess(member, channelId);
-    await this.expireStale(member, channel);
+    await this.expireStale(member, channel, accessToken);
 
     // A channel holds one live call: calling into it joins that one instead of ringing again.
     const ongoing = await this.calls.findActive(channelId);
@@ -84,9 +84,9 @@ export class CallsService {
     return this.toView(call);
   }
 
-  async active(member: WorkspaceMember, channelId: string) {
+  async active(member: WorkspaceMember, channelId: string, accessToken: string) {
     const { channel } = await this.channelAccess.requireReadAccess(member, channelId);
-    await this.expireStale(member, channel);
+    await this.expireStale(member, channel, accessToken);
 
     const call = await this.calls.findActive(channelId);
     return call ? this.toView(call) : null;
@@ -116,7 +116,11 @@ export class CallsService {
 
   async join(member: WorkspaceMember, channelId: string, callId: string, accessToken: string) {
     const { channel, call } = await this.own(member, channelId, callId);
-    if (!isLive(call)) throw new ForbiddenException('Call is no longer available');
+
+    // Nobody may have polled since the ring ran out, so answering must not revive it.
+    const missed = await this.expireStale(member, channel, accessToken);
+    const rangOut = missed?.id === call.id;
+    if (!isLive(call) || rangOut) throw new ForbiddenException('Call is no longer available');
 
     const answersRing = call.status === 'ringing' && member.id !== call.startedByMemberId;
     if (answersRing) {
@@ -222,23 +226,29 @@ export class CallsService {
     await this.notify(member, channel, call, 'call:incoming', { includeActor: false });
   }
 
-  // Our state is already settled; ai-native counts the call ended and retries a failed close itself.
+  // Our state is already settled, so closing the media room comes last.
   private async close(
     actor: WorkspaceMember,
     channel: ChannelAccessSnapshot,
     call: CallRecord,
-    event: 'call:declined' | 'call:ended',
+    event: 'call:declined' | 'call:ended' | 'call:missed',
     accessToken: string,
   ) {
     await this.notify(actor, channel, call, event);
     await this.provider.end(call, accessToken);
   }
 
-  private async expireStale(actor: WorkspaceMember, channel: ChannelAccessSnapshot) {
+  private async expireStale(
+    actor: WorkspaceMember,
+    channel: ChannelAccessSnapshot,
+    accessToken: string,
+  ) {
     const ringDeadline = new Date(Date.now() - RING_TTL_SECONDS * 1000);
     const missed = await this.calls.sweepStale(channel.id, ringDeadline);
 
-    if (missed) await this.notify(actor, channel, missed, 'call:missed');
+    if (missed) await this.close(actor, channel, missed, 'call:missed', accessToken);
+
+    return missed;
   }
 
   // Post access, not read: a non-member reader of a public channel must not get a media credential.

@@ -25,8 +25,9 @@ export class CallsController {
   active(
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
+    @AccessToken() accessToken: string,
   ) {
-    return this.calls.active(member, channelId);
+    return this.calls.active(member, channelId, accessToken);
   }
 
   @Post(':callId/token')

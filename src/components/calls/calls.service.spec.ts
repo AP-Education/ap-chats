@@ -406,7 +406,7 @@ test('a ring nobody answers is swept to missed and reaches whoever polled, inclu
 
   // The caller's own client is what happens to poll — e.g. the ringback
   // sound's periodic check — and must still hear its own call went missed.
-  await calls.active(caller, dm.id);
+  await calls.active(caller, dm.id, 'test-token');
 
   assert.equal(repository.record?.status, 'missed');
   assert.deepEqual(
@@ -414,12 +414,13 @@ test('a ring nobody answers is swept to missed and reaches whoever polled, inclu
     new Set([caller.profile.oidcUserId, callee.profile.oidcUserId]),
     "the caller's own trigger must not exclude themselves",
   );
+  assert.deepEqual(provider.ended, ['call-1'], 'a missed ring must also close its media room');
 });
 
 test('a ring within the TTL is left alone', async () => {
   repository.seed(ringingCall(dm, caller, new Date()));
 
-  await calls.active(caller, dm.id);
+  await calls.active(caller, dm.id, 'test-token');
 
   assert.equal(repository.record?.status, 'ringing');
   assert.deepEqual(realtime.recipientsOf('call:missed'), []);
@@ -432,4 +433,14 @@ test('start: calling into a channel with a live call returns it without ringing 
 
   assert.equal(view.id, 'call-1');
   assert.deepEqual(realtime.recipientsOf('call:incoming'), []);
+});
+
+test('join: answering a ring past its TTL that nobody swept yet is refused and marks it missed', async () => {
+  const startedAt = new Date(Date.now() - 120_000);
+  repository.seed(ringingCall(dm, caller, startedAt));
+
+  await assert.rejects(calls.join(callee, dm.id, 'call-1', 'test-token'), /no longer available/);
+
+  assert.equal(repository.record?.status, 'missed');
+  assert.deepEqual(realtime.recipientsOf('call:accepted'), []);
 });

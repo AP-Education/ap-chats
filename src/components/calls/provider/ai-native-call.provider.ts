@@ -74,8 +74,13 @@ export class AiNativeCallProvider extends CallProvider {
     }
   }
 
+  // A room left open still empties out and closes on ai-native's own timeout.
   async end(call: ProviderCall, accessToken: string): Promise<void> {
-    await this.request('POST', `${call.id}/end`, accessToken);
+    try {
+      await this.request('POST', `${call.id}/end`, accessToken);
+    } catch (error) {
+      this.logger.warn({ err: error, callId: call.id }, '[calls] ai-native failed to end call');
+    }
   }
 
   private async request<T>(

@@ -38,5 +38,6 @@ export abstract class CallProvider {
    */
   abstract countParticipants(call: ProviderCall, accessToken: string): Promise<number>;
 
+  /** Best effort: our call is already over when this runs, so a failure must not surface. */
   abstract end(call: ProviderCall, accessToken: string): Promise<void>;
 }
