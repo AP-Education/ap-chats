@@ -10,37 +10,39 @@ The flow is:
 flowchart LR
   Transaction[Message or call transaction] --> Outbox[PostgreSQL outbox]
   Outbox --> Relay[Leased relay]
-  Relay --> Queue[BullMQ on Valkey]
-  Queue --> Audience[Paged recipient policy]
-  Audience --> Window[User and conversation window]
-  Window --> Intent[Per-device BullMQ job]
-  Intent --> Verify[Current access, cursor, preferences and target]
-  Verify --> Expo[Expo adapter]
-  Verify --> Web[Web Push adapter]
-  Queue --> Call[Immediate call delivery]
+  Relay --> Events[IntegrationEvents: one queue per subscriber]
+  Events --> Audience[alerts: paged recipient policy]
+  Audience --> Requests[NotificationRequests]
+  Requests --> Window[delivery: user and conversation window]
+  Window --> Intent[Per-target job for each NotificationChannel]
+  Intent --> Verify[NotificationContent: current access, cursor, preferences]
+  Verify --> Expo[NativeAppChannel]
+  Verify --> Web[BrowserChannel]
+  Events --> Call[voip-push: immediate call delivery]
 ```
 
-`EventPublisher` keeps its process-local realtime contract. `EventOutbox` records source message and call events in their owning Drizzle transaction. The outbox repository owns append, leasing, acknowledgement and retention. `OutboxDispatcher` enqueues committed source events and acknowledges the handoff; `BullMqJobQueue` owns only queue connections, scheduling, retries and shared rate limits. Business workers import repository and provider contracts, not BullMQ, provider SDKs or Drizzle.
+`EventPublisher` keeps its process-local realtime contract. `EventOutbox` records source message and call events in their owning Drizzle transaction, whether or not push is enabled: it is the durable path between modules, and push is one subscriber. The outbox repository owns append, leasing, acknowledgement and retention. `OutboxDispatcher` hands committed events to `IntegrationEvents`, which copies each one into the queue of every subscriber (`<event>@<subscriber>`), so a second consumer never competes with push for the same job. An event nobody subscribes to is acknowledged and dropped. The relay starts after application bootstrap, once every subscriber has registered; `BullMqJobQueue` owns only queue connections, scheduling, retries and shared rate limits. Business workers import repository and provider contracts, not BullMQ, provider SDKs or Drizzle.
 
-The relay claims up to 100 eligible rows with `SKIP LOCKED` and a 60-second lease. It prioritizes call intents. Failed enqueue releases unsubmitted leases for the next relay tick; the 60-second lease is only crash recovery. PostgreSQL retains each source event until BullMQ accepts it. A failed handoff is retried with the same ID. After handoff, fanout and per-device jobs live in Valkey and use BullMQ retries; they are not additional PostgreSQL outbox records. Recovery of an accepted job therefore depends on Valkey persistence. Exhausted BullMQ jobs stay in the failed set for operator inspection and retry rather than receiving an unbounded automatic replay loop.
+The relay claims up to 100 eligible rows with `SKIP LOCKED` and a 60-second lease. It prioritizes call intents. Failed enqueue releases unsubmitted leases for the next relay tick; the 60-second lease is only crash recovery. PostgreSQL retains each source event until BullMQ accepts it, then deletes the row. A failed handoff is retried with the same per-subscriber job ID. A full batch is followed by the next one immediately instead of the one-second idle pause. After handoff, fanout and per-device jobs live in Valkey and use BullMQ retries; they are not additional PostgreSQL outbox records. Recovery of an accepted job therefore depends on Valkey persistence. Exhausted BullMQ jobs stay in the failed set for operator inspection and retry rather than receiving an unbounded automatic replay loop.
 
 Notification audience is a read-only indexed projection over existing membership, cursor, settings, entries and mentions. This intentionally batches cross-module reads without making notifications the owner of those records. Only repositories in their owning modules write them. `NotificationPolicyService` remains the authority for mute, notification levels and own-message suppression. The default level alerts on all messages in channels and DMs; an explicit mentions level limits alerts to structured mentions.
 
 ## Component boundaries
 
-| Owner                                 | Responsibility                                                                             |
-| ------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `devices`                             | Installation registration, current account owner and credentials                           |
-| `devices/targets`                     | Native/browser discovery and validation of the credential version held by a queued job     |
-| `notifications/preferences`           | Authenticated preference changes; channel access remains with channel-access               |
-| `notifications/policy`                | Shared mute, mention defaults and own-message rules for realtime and push                  |
-| `notifications/realtime`              | Source-event conversion and unread socket delivery                                         |
-| `NotificationAudienceModule`          | Read-only recipient discovery; it does not write memberships, cursors or preferences       |
-| `ConversationNotificationWorker`      | Paged audience scheduling and conversation-window reservation                              |
-| `MessageDeliveryWorker`               | Expiry/current-window checks and reconstruction of currently eligible notification content |
-| `MessagePushDelivery` implementations | Native/browser transport selection, credentials, provider rejection and native receipts    |
+| Owner                       | Responsibility                                                                                     |
+| --------------------------- | -------------------------------------------------------------------------------------------------- |
+| `devices`                   | Installation registration, current account owner and credentials                                   |
+| `devices/targets`           | Native/browser device lookups and validation of the credential version held by a queued job        |
+| `notifications/preferences` | Authenticated preference changes; channel access remains with channel-access                       |
+| `notifications/policy`      | Shared mute, notification level and own-message rules for realtime and push                        |
+| `notifications/realtime`    | Source-event conversion and unread socket delivery                                                 |
+| `notifications/alerts`      | Chat side: paged recipient discovery and policy, and `NotificationContent` answered from chat data |
+| `notifications/delivery`    | Delivery side: windows, cooldown and budget, channels, transports, receipts                        |
+| `delivery/channels`         | `NotificationChannel` strategies; each owns its targets, transport and permanent rejections        |
 
-`NotificationsModule` composes preferences, realtime and push. Modules expose explicit barrel exports and Nest exports; two known delivery strategies use explicit dependency injection rather than reflective plugin discovery. Message delivery and incoming-call delivery have separate contracts because their payloads, deadlines and native obligations differ.
+`NotificationsModule` composes preferences, realtime, alerts and delivery. Alerts hand chosen recipients to `NotificationRequests`; delivery asks the chat side only through the `NotificationContent` port (`latestSeq`, `findEligible`, `render`), bound in `NotificationDeliveryModule.register`. An ESLint rule forbids `notifications/delivery` and `devices` from importing chat modules or chat tables, so they can move to a separate notification service with the port becoming a call back to this API. A new channel (a messenger bot, a device on a desk) is one `NotificationChannel` class added to `NotificationChannelsModule`; the alert flow does not change. Message delivery and incoming-call delivery have separate contracts because their payloads, deadlines and native obligations differ. `voip-push` still reads call state directly and is the next step before extraction.
+
+Throttled alerts are not dropped: a cooldown or spent budget defers the alert to the moment its window opens, and the rerun covers every message since. DMs and mentions skip the per-user budget, and a mention is preferred over newer messages for the preview.
 
 Client installation lifecycle belongs to `features/devices/browser-push`, following the existing feature/provider structure. `BrowserPushRegistration` owns one subscription, serializes account changes and stores the exact account used for an in-flight registration. The React hook owns UI state and binds configuration and browser refresh events. Registration reports state changes to React directly, without a separate observable store. The provider owns the authenticated feature scope. `features/notifications` owns the enable/disable presentation, foreground presence and notification navigation; it does not own credentials. The browser service worker uses native Push and Notifications APIs.
 
@@ -71,15 +73,15 @@ One installation or browser endpoint has one current owner. Account takeover upd
 
 ## Configuration
 
-1. Use PostgreSQL 16 and Valkey from `infra/docker-compose.yml`. Valkey has a persistent volume, AOF and `noeviction`, as required for durable queues. Migration `0018_push_delivery` adds the outbox, notification windows and device-owned browser subscriptions. Existing duplicate native installations retain their newest owner. Set `VALKEY_URL` (`redis://` or `rediss://`) for the deployment. AOF every second has a durability window. Unacknowledged source events can be replayed from PostgreSQL; acknowledged source events and their accepted child jobs depend on Valkey persistence. See [BullMQ production configuration](https://docs.bullmq.io/guide/going-to-production) and [Valkey persistence](https://valkey.io/topics/persistence/).
-2. Set `PUSH_ENABLED=true` after migration, provider credentials and client builds are ready. All API instances creating messages/calls must enable push, including HTTP-only instances. Redis availability does not participate in the message transaction; outbox insertion does.
-3. Keep `PUSH_WORKER_ENABLED=true` on at least one running API instance. Set it to false on HTTP-only instances. `PUSH_WORKER_CONCURRENCY` controls per-instance transport workers, default 8. Start modestly and adjust using queue lag and provider rate-limit errors.
+1. Use PostgreSQL 16 and Valkey from `infra/docker-compose.yml`. Valkey has a persistent volume, AOF and `noeviction`, as required for durable queues. Migration `0018_push_delivery` adds the outbox, notification windows and device-owned browser subscriptions; `0019_push_simplify` drops the published-row history and unused presence columns. Existing duplicate native installations retain their newest owner. Set `VALKEY_URL` (`redis://` or `rediss://`) for the deployment. AOF every second has a durability window. Unacknowledged source events can be replayed from PostgreSQL; acknowledged source events and their accepted child jobs depend on Valkey persistence. See [BullMQ production configuration](https://docs.bullmq.io/guide/going-to-production) and [Valkey persistence](https://valkey.io/topics/persistence/).
+2. Set `PUSH_ENABLED=true` after migration, provider credentials and client builds are ready. Every instance records outbox events regardless of this flag; it only decides whether push subscribes to them. Redis availability does not participate in the message transaction; outbox insertion does.
+3. Keep `PUSH_WORKER_ENABLED=true` on at least one running API instance: it runs the outbox relay and all queue workers, so without one the outbox only grows. Set it to false on HTTP-only instances. `PUSH_WORKER_CONCURRENCY` controls per-instance transport workers, default 8. Start modestly and adjust using queue lag and provider rate-limit errors.
 4. Generate a persistent VAPID pair with `pnpm exec web-push generate-vapid-keys --json`. Set `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY` and `WEB_PUSH_SUBJECT` together. Subject is an HTTPS or `mailto:` contact. Keep the private key server-side. After rotating VAPID keys, disable and re-enable push in each browser to create a new subscription.
 5. Configure Expo EAS push credentials for `com.apeducation.native`: an Apple APNs key and Android FCM v1 credentials. The EAS project ID is already in `mobile/app.json`. Set server `EXPO_ACCESS_TOKEN` if enhanced Expo push security is enabled. EAS access credentials and the application's Accounts user token are separate credentials.
 6. Supply `mobile/google-services.json` for the matching Firebase Android application before generating/building Android. It is referenced by app config and must come from the project's Firebase setup. The server's `FCM_PROJECT_ID` and `FCM_SERVICE_ACCOUNT_JSON` are additionally needed for direct Android call pushes.
 7. iOS call pushes use all four `APNS_*` server values, with the VoIP topic for the native bundle. `mobile/app.config.ts` is the single source for the build's APNs environment and its entitlement. Local builds default to sandbox; EAS profiles explicitly set `EXPO_PUBLIC_APNS_ENVIRONMENT=production`. Match the actual signed provisioning profile. The registered device environment selects the sandbox or production APNs host.
 
-`PUSH_ENABLED=false` disables ordinary and call push delivery and hides browser enablement. There is one durable push path. Socket unread delivery remains independent of push configuration.
+`PUSH_ENABLED=false` disables ordinary and call push delivery and hides browser enablement; outbox events are still relayed and, with no push subscriber, dropped. There is one durable push path. Socket unread delivery remains independent of push configuration.
 
 ## Clients
 
