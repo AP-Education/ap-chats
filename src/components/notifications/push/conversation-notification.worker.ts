@@ -11,6 +11,7 @@ import {
 import { AppConfigService } from '@/globals/config';
 import { jobId } from '@/globals/jobs/job-id';
 import { JobQueue, type JobRequest } from '@/globals/jobs/job-queue';
+import { IntegrationEvents } from '@/globals/publisher/integration-events';
 
 import { NotificationPolicyService } from '../policy';
 import { NotificationChannelRegistry } from './channels/notification-channel.registry';
@@ -37,6 +38,7 @@ const ALERT_LIFETIME_MS = 3600_000;
 @Injectable()
 export class ConversationNotificationWorker implements OnModuleInit {
   constructor(
+    private readonly events: IntegrationEvents,
     private readonly jobs: JobQueue,
     private readonly audience: PushAudienceRepository,
     private readonly policy: NotificationPolicyService,
@@ -49,10 +51,10 @@ export class ConversationNotificationWorker implements OnModuleInit {
   onModuleInit(): void {
     if (!this.config.get('PUSH_ENABLED') || !this.config.get('PUSH_WORKER_ENABLED')) return;
 
-    this.jobs.work<MessageCreatedEvent>(MESSAGE_CREATED_EVENT, (event) =>
+    this.events.subscribe<MessageCreatedEvent>(MESSAGE_CREATED_EVENT, 'push', (event) =>
       this.scheduleConversationAlerts({ source: newMessages(event, event.seq, event.seq) }),
     );
-    this.jobs.work<ForwardBatchCreatedEvent>(FORWARD_BATCH_CREATED_EVENT, (event) =>
+    this.events.subscribe<ForwardBatchCreatedEvent>(FORWARD_BATCH_CREATED_EVENT, 'push', (event) =>
       this.scheduleConversationAlerts({
         source: newMessages(event, event.firstSeq, event.lastSeq),
       }),

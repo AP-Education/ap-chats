@@ -9,6 +9,7 @@ import { NativePushTargetsStrategy } from '@/components/devices';
 import { AppConfigService } from '@/globals/config';
 import { jobId } from '@/globals/jobs/job-id';
 import { JobQueue } from '@/globals/jobs/job-queue';
+import { IntegrationEvents } from '@/globals/publisher/integration-events';
 
 import { CallPushProviderRegistry } from './provider';
 import { PushProviderError } from './provider/push-provider-error';
@@ -25,6 +26,7 @@ const CALL_DELIVERY_EVENT = 'push.call-delivery';
 @Injectable()
 export class CallPushWorker implements OnModuleInit {
   constructor(
+    private readonly events: IntegrationEvents,
     private readonly jobs: JobQueue,
     private readonly targets: NativePushTargetsStrategy,
     private readonly providers: CallPushProviderRegistry,
@@ -34,7 +36,9 @@ export class CallPushWorker implements OnModuleInit {
 
   onModuleInit(): void {
     if (!this.config.get('PUSH_ENABLED') || !this.config.get('PUSH_WORKER_ENABLED')) return;
-    this.jobs.work<CallSignalEvent>(CALL_SIGNAL_EVENT, (event) => this.fanout(event));
+    this.events.subscribe<CallSignalEvent>(CALL_SIGNAL_EVENT, 'voip-push', (event) =>
+      this.fanout(event),
+    );
     this.jobs.work<CallPushJob>(CALL_DELIVERY_EVENT, (job) => this.deliver(job), {
       concurrency: this.config.get('PUSH_WORKER_CONCURRENCY'),
       rateLimit: { max: 200, duration: 1000 },

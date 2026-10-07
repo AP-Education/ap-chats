@@ -35,6 +35,7 @@ function fixture(level: 'default' | 'mentions' = 'mentions') {
   const continuation: MessageFanoutJob[] = [];
   let fail = false;
   const worker = new ConversationNotificationWorker(
+    {} as never,
     {
       enqueueMany: async (name: string, jobs: JobRequest<ConversationAlert>[]) => {
         assert.equal(name, PUSH_ALERT_DUE_QUEUE);
@@ -127,6 +128,7 @@ test('a throttled alert is rescheduled for when its window opens, not dropped', 
     expiresAt: new Date(Date.now() + 3600000).toISOString(),
   };
   const worker = new ConversationNotificationWorker(
+    {} as never,
     {
       enqueue: async (name: string, data: ConversationAlert, options: { delay?: number }) => {
         deferred.push({ name, data, options });

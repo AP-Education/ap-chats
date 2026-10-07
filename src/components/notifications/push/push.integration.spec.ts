@@ -22,6 +22,7 @@ import { DrizzleMessagesRepository } from '@/components/social/messages/reposito
 import { DrizzleCallPushRepository } from '@/components/voip-push/repository/drizzle-call-push.repository';
 import * as schema from '@/database/drizzle/schema';
 import { jobId } from '@/globals/jobs/job-id';
+import { IntegrationEvents } from '@/globals/publisher/integration-events';
 import { OutboxDispatcher } from '@/globals/publisher/outbox-dispatcher';
 import { PersistentEventOutbox } from '@/globals/publisher/persistent-event-outbox';
 import { DrizzleEventOutboxRepository } from '@/globals/publisher/repository/drizzle-event-outbox.repository';
@@ -318,7 +319,7 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
 
   const repository = new DrizzleEventOutboxRepository(txHost as never);
   const config = { get: () => true };
-  const outbox = new PersistentEventOutbox(repository, config as never);
+  const outbox = new PersistentEventOutbox(repository);
   await t.test(
     'outbox is atomic with the business transaction and stable IDs deduplicate',
     async () => {
@@ -351,14 +352,17 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
     async () => {
       const queued = new Map<string, object>();
       let unavailable = true;
+      const events = new IntegrationEvents({
+        work: () => {},
+        enqueue: async (_queue: string, payload: object, options: { id: string }) => {
+          if (unavailable) throw new Error('Valkey unavailable');
+          queued.set(options.id, payload);
+        },
+      } as never);
+      events.subscribe('atomic', 'subscriber', async () => {});
       const dispatcher = new OutboxDispatcher(
         repository,
-        {
-          enqueue: async (_name: string, payload: object, options: { id: string }) => {
-            if (unavailable) throw new Error('Valkey unavailable');
-            queued.set(options.id, payload);
-          },
-        } as never,
+        events,
         config as never,
         { error: () => {} } as never,
       );
@@ -383,7 +387,7 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
       await dispatcher.relay();
       await dispatcher.relay();
       assert.equal(queued.size, 1);
-      assert.deepEqual(queued.get(id), { value: 1 });
+      assert.deepEqual(queued.get(jobId(`${id}:subscriber`)), { value: 1 });
       assert.equal(await stored(), undefined, 'an acknowledged event leaves the outbox');
     },
   );
@@ -426,6 +430,7 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
       const queued = new Map<string, { name: string; data: object }>();
       let fail = true;
       const worker = new ConversationNotificationWorker(
+        {} as never,
         {
           enqueue: async (name: string, data: object, options: { id: string }) => {
             if (name === PUSH_WEB_DELIVERY_QUEUE && fail) throw new Error('enqueue failed');

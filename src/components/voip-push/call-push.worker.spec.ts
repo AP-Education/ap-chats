@@ -44,6 +44,7 @@ function fixture() {
   };
   const registry = new CallPushProviderRegistry(provider as never, provider as never);
   const worker = new CallPushWorker(
+    {} as never,
     {
       enqueue: async (...args: unknown[]) => {
         queued.push(args);
