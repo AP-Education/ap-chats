@@ -143,18 +143,21 @@ compose stack and nightly Postgres backup for the first time.
 
 ## Build, push, deploy (repeat for every release)
 
+Releases are semver: tag the release commit on `main` (`git tag -a v0.3.0`)
+and build the images under the same tag.
+
 ```bash
 # 1. Build and push both images from the repo root
 cp web/.env.production.example web/.env.production  # once, then fill in
 docker login ghcr.io -u <your-gh-username>
-./infra/scripts/build-and-push.sh v2026.02.01
+./infra/scripts/build-and-push.sh v0.3.0
 
 # 2. Point the host at the new tag and redeploy — app_tag isn't a secret
 # and changes every release, so it stays an explicit flag rather than
 # living in .env. Direct dotenv-cli, not the pnpm script: same -- passthrough
 # issue as the terraform output example above.
 cd infra/ansible
-dotenv -e ../terraform/prod/.env -- ansible-playbook playbooks/deploy.yml -e app_tag=v2026.02.01
+dotenv -e ../terraform/prod/.env -- ansible-playbook playbooks/deploy.yml -e app_tag=v0.3.0
 ```
 
 `compose_runtime` pulls both images, recreates the stack, and prunes
