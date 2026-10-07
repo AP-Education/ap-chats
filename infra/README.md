@@ -96,6 +96,33 @@ pnpm exec dotenv -e infra/terraform/prod/.env -- terraform -chdir=infra/terrafor
 (`do_spaces_bucket`, `do_backups_bucket`, `do_spaces_endpoint`,
 `do_spaces_access_key`, `do_spaces_secret_key`).
 
+## Data volume and reserved IP
+
+Postgres, Valkey and Caddy keep their state on a DigitalOcean block volume
+(`<project>-<environment>-data`, `data_volume_size_gb`, default 10) mounted at
+`/mnt/ap-connect-data`, not on the droplet's own disk. The volume has
+`prevent_destroy`, and the droplet ignores changes to `user_data`, `ssh_keys`
+and `image`, so editing cloud-init or adding a key never replaces the host.
+If the droplet is ever replaced on purpose, the new one attaches the same
+volume and comes back with its data. DNS points at a reserved IP, which a new
+droplet takes over without a DNS change. Grow the volume in place by raising
+`data_volume_size_gb`, then `sudo resize2fs /dev/disk/by-id/scsi-0DO_Volume_<name>`.
+
+A host provisioned before the volume existed moves its data once, in a quiet
+window (the stack is stopped while copying):
+
+```bash
+pnpm run infra:tf:apply                      # creates the volume and reserved IP, repoints DNS
+sudo systemctl start postgres-backup         # on the host: a fresh dump before touching data
+cd infra/ansible
+dotenv -e ../terraform/prod/.env -- ansible-playbook playbooks/move-data-to-volume.yml -e app_tag=<deployed tag>
+```
+
+The playbook copies each Docker named volume onto the mounted volume and
+redeploys with bind mounts. The old named volumes stay as a fallback; remove
+them with `docker volume rm ap-connect_postgres_data ap-connect_valkey_data
+ap-connect_caddy_data ap-connect_caddy_config` once the app is verified.
+
 ## Bootstrap the host (Ansible, one time)
 
 One-time setup (in the same `infra/terraform/prod/.env` from step 6): set
@@ -131,9 +158,16 @@ dotenv -e ../terraform/prod/.env -- ansible-playbook playbooks/deploy.yml -e app
 ```
 
 `compose_runtime` pulls both images, recreates the stack, and prunes
-image layers nothing is using anymore. Database migrations run automatically
-on API boot (Drizzle's migrator runs in `onModuleInit`) — there is no
-separate migration step.
+image layers nothing is using anymore. The API runs under `init` with a
+30-second stop grace period, so a redeploy lets it finish queued jobs and close
+its connections before the old container exits.
+
+Migrations are their own step. Before bringing the stack up, the deploy dumps
+the running database to the backups bucket, so a bad migration is undone from
+a dump taken minutes earlier rather than last night's. The one-shot `migrate`
+service then applies pending migrations, and the API starts only after it
+succeeds. Pending migrations apply in one transaction, so a failed run leaves
+the schema as it was and the previous tag can simply be redeployed. Locally, `pnpm dev` runs `pnpm db:migrate` first.
 
 The build script targets `linux/amd64` for the default DigitalOcean droplet,
 including builds from ARM Macs. Set `DOCKER_BUILD_PLATFORM` only when deploying
@@ -226,16 +260,16 @@ and registered device tokens.
 
 ## Queued push delivery
 
-The `PUSH_*`, Expo and Web Push settings are prepared for
-`feat/chat-push-notifications`; they are not consumed by `origin/main` at
-`fbec3fc`. Deploying main alone does not enable queued notifications.
-After that feature is merged and its migrations are reconciled with main's
-attachment migrations, build new images and set `push_enabled: true` in
-`ansible/inventory/group_vars/prod/vars.yml`. Keep `push_worker_enabled: true`
-on this single API instance: it runs both the outbox dispatcher and delivery
-workers, including incoming call pushes in the new implementation.
+Push ships with `feat/chat-push-notifications`; its migration `0018` already
+follows main's attachment migrations. With an image built from it, set
+`push_enabled: true` in `ansible/inventory/group_vars/prod/vars.yml` once the
+provider credentials below are in the vault. Keep `push_worker_enabled: true`
+on this single API instance: it runs the outbox relay and every delivery
+worker, including incoming call pushes. Valkey is required either way: besides
+the queues it holds which users are reading the app, so their devices stay
+silent meanwhile.
 
-Valkey runs on the private Compose network with an AOF volume and
+Valkey runs on the private Compose network with AOF on the data volume and
 `noeviction`, with no published host port. The API uses
 `redis://valkey:6379/0`; the local development URL
 `redis://127.0.0.1:6380/0` cannot reach this container. Queue timing,
@@ -325,7 +359,7 @@ LMS's existing ops host later if/when this needs the same treatment.
 ## Design choices worth knowing
 
 - **No load balancer, no managed Postgres/Valkey.** One instance, Postgres
-  and Valkey as containers with volumes, nightly `pg_dump` to DO Spaces. Swapping in a managed Postgres
+  and Valkey as containers on the block storage volume, nightly `pg_dump` to DO Spaces. Swapping in a managed Postgres
   later only means changing `DATABASE_URL`, not application code. The backup
   script only ever uploads — Terraform's `spaces_backup_retention_days`
   (default 30) is what actually expires old backups, via a lifecycle rule on
