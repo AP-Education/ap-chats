@@ -1,28 +1,16 @@
 export interface NotificationIntent {
   eventId: string;
   userId: string;
-  workspaceId: string;
-  channelId: string;
-  url: string;
+  target: Record<string, unknown>;
 }
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+
+/** A well-formed tap; where its target leads is the page's call, so it is passed on unread. */
 export function notificationIntent(value: unknown): NotificationIntent | null {
   if (!value || typeof value !== 'object') return null;
-  const data = value as Record<string, unknown>;
-  if (
-    typeof data.eventId !== 'string' ||
-    !data.eventId ||
-    typeof data.userId !== 'string' ||
-    !data.userId ||
-    typeof data.workspaceId !== 'string' ||
-    !uuid.test(data.workspaceId) ||
-    typeof data.channelId !== 'string' ||
-    !uuid.test(data.channelId) ||
-    typeof data.url !== 'string'
-  )
-    return null;
-  const route = `/channels/${data.channelId}?pushWorkspace=${data.workspaceId}`;
-  const direct = `/direct/${data.channelId}?pushWorkspace=${data.workspaceId}`;
-  if (data.url !== route && data.url !== direct) return null;
-  return data as unknown as NotificationIntent;
+
+  const { eventId, userId, target } = value as Record<string, unknown>;
+  if (typeof eventId !== 'string' || !eventId || typeof userId !== 'string' || !userId) return null;
+  if (!target || typeof target !== 'object') return null;
+
+  return { eventId, userId, target: target as Record<string, unknown> };
 }

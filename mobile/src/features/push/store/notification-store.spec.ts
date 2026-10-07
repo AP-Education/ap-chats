@@ -6,9 +6,7 @@ import { useNotificationStore } from './notification-store';
 const tap = {
   eventId: 'first',
   userId: 'user',
-  workspaceId: 'workspace',
-  channelId: 'channel',
-  url: '/channels/channel',
+  target: { type: 'conversation' },
 };
 
 test('a tap stays pending through page reloads until the page routes it', () => {

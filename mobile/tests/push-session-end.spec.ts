@@ -17,6 +17,7 @@ function session() {
     tokens: { accessToken: 'first-token' },
   };
   const unregistered: string[] = [];
+  let dismissals = 0;
   const refs: { current: unknown }[] = [];
   const previousDeps: unknown[][] = [];
 
@@ -38,6 +39,11 @@ function session() {
       '../../auth': { useAuthStore: (select: (value: typeof state) => unknown) => select(state) },
       '../../calls/utils/callkit-module': { loadCallKitModule: async () => null },
       '../api/register-current-device': { registerCurrentDeviceForPush: async () => {} },
+      '../api/presented-notifications': {
+        dismissPresentedNotifications: async () => {
+          dismissals += 1;
+        },
+      },
       '../api/unregister-current-device': {
         unregisterCurrentDevice: async (token: string) => {
           unregistered.push(token);
@@ -60,6 +66,7 @@ function session() {
 
   return {
     unregistered,
+    dismissals: () => dismissals,
     refreshToken: (accessToken: string) => {
       state = { status: 'signed-in', tokens: { accessToken } };
       render();
@@ -78,6 +85,7 @@ test('a forced sign-out after a failed refresh unregisters the device with the e
 
   s.end('signed-out');
   assert.deepEqual(s.unregistered, ['refreshed-token']);
+  assert.equal(s.dismissals(), 1, 'previews of the ended account leave the screen');
 });
 
 test('a normal logout unregisters once, however many states it passes through', () => {

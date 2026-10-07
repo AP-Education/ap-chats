@@ -4,6 +4,7 @@ import { AppState } from 'react-native';
 
 import { useAuthStore } from '../../auth';
 import { loadCallKitModule } from '../../calls/utils/callkit-module';
+import { dismissPresentedNotifications } from '../api/presented-notifications';
 import { registerCurrentDeviceForPush } from '../api/register-current-device';
 import { unregisterCurrentDevice } from '../api/unregister-current-device';
 
@@ -19,7 +20,11 @@ export function PushRegistration() {
     const endedToken = accessToken ? null : sessionToken.current;
     sessionToken.current = accessToken;
 
-    if (endedToken) void unregisterCurrentDevice(endedToken);
+    if (!endedToken) return;
+
+    void unregisterCurrentDevice(endedToken);
+    // The previous account's previews must not stay on screen for whoever uses the phone next.
+    void dismissPresentedNotifications();
   }, [accessToken]);
 
   // Registration calls are already serialized; a failure simply retries the next time the app opens.

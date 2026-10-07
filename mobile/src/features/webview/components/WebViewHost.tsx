@@ -20,6 +20,7 @@ import {
   isComposerInputRequest,
   useComposerInput,
 } from '../../composer';
+import { dismissPresentedNotifications } from '../../push/api/presented-notifications';
 import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
 import { useNotificationStore } from '../../push/store/notification-store';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
@@ -101,8 +102,10 @@ export function WebViewHost() {
       const routed = useNotificationStore.getState().pending?.eventId === message.eventId;
       useNotificationStore.getState().acknowledge(message.eventId);
       if (routed) void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
+    } else if (message.type === 'notifications/dismiss') {
+      void dismissPresentedNotifications(message.collapseKey);
     } else if (message.type === 'notifications/context') {
-      useNotificationStore.getState().setWebAttending(message.payload.connected);
+      useNotificationStore.getState().setWebAttending(message.payload.attending);
     } else if (message.type === 'auth/sign-out') {
       // PushRegistration unregisters the device on any way out of the session.
       void useAuthStore.getState().signOut();
