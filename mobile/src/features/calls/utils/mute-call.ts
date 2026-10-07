@@ -12,12 +12,19 @@ export async function setCallMuted(
   event: SetMutedActionEvent,
   CallKit: NonNullable<Awaited<ReturnType<typeof loadCallKitModule>>>,
 ): Promise<void> {
-  const session = getTrackedSession(event.id);
-  if (!session?.room) return;
+  const call = useNativeCallStore.getState().call;
+  if (call?.sessionId !== event.id) return;
+
+  // Recorded even while connecting: the connect paths read it before turning the mic on.
+  useNativeCallStore.getState().updateCall({ isMuted: event.isMuted });
+
   try {
-    await session.room.localParticipant.setMicrophoneEnabled(!event.isMuted);
+    // Before audio activation the mic stays untouched, or CallKit can deadlock the answer.
+    const room = getTrackedSession(event.id)?.room;
+    const micIsLive = room && CallKit.getAudioSession().isActive;
+    if (micIsLive) await room.localParticipant.setMicrophoneEnabled(!event.isMuted);
+
     await CallKit.setMuted(event.id, event.isMuted);
-    useNativeCallStore.getState().updateCall({ isMuted: event.isMuted });
     (event.isMuted ? playMuteChime : playUnmuteChime)();
   } catch (error) {
     if (__DEV__) console.warn('[calls] mute failed', error);

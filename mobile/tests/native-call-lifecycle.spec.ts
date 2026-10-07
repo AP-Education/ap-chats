@@ -13,6 +13,7 @@ import type { connectBridgedCall } from '../src/features/calls/utils/connect-bri
 import type { endCallSession } from '../src/features/calls/utils/end-call';
 import * as hydration from '../src/features/calls/utils/hydrate-call-session';
 import type * as media from '../src/features/calls/utils/livekit-room';
+import type { setCallMuted } from '../src/features/calls/utils/mute-call';
 import * as registry from '../src/features/calls/utils/session-registry';
 import type { synchronizeCallSession } from '../src/features/calls/utils/synchronize-call-session';
 
@@ -146,6 +147,9 @@ function fixture(t: TestContext) {
     reportOutgoingCallConnected: async () => {
       steps.push('outgoing-connected');
     },
+    setMuted: async (_id: string, muted: boolean) => {
+      steps.push(muted ? 'callkit-muted' : 'callkit-unmuted');
+    },
   };
   const mediaFunctions = load<typeof media>('livekit-room', {
     'livekit-client': {
@@ -187,6 +191,10 @@ function fixture(t: TestContext) {
     ...dependencies,
     './end-call': ending,
   });
+  const muting = load<{ setCallMuted: typeof setCallMuted }>('mute-call', {
+    ...dependencies,
+    './call-chimes': { playMuteChime() {}, playUnmuteChime() {} },
+  });
   t.after(() => {
     registry.untrackSession(id);
     useNativeCallStore.getState().clearCall();
@@ -199,6 +207,7 @@ function fixture(t: TestContext) {
     payload,
     answer: () =>
       answering.answerCall({ id, requestId: 'answer-request' } as never, CallKit as never),
+    mute: (isMuted: boolean) => muting.setCallMuted({ id, isMuted } as never, CallKit as never),
     end: (notifyServer = true) => ending.endCallSession({ id }, { notifyServer }),
     bridge: () => bridging.connectBridgedCall(payload),
     setActive: (value: typeof active) => {
@@ -226,6 +235,24 @@ test('cold answer waits for auth, fulfills CallKit before audio, and connects on
   assert.deepEqual(f.steps, ['join', 'connect', 'fulfill-answer', 'mic-on']);
   assert.equal(useNativeCallStore.getState().call?.status, 'connected');
   assert.ok(useNativeCallStore.getState().call?.connectedAt);
+});
+
+test('muting while an answer is still connecting keeps the microphone off once audio starts', async (t) => {
+  const f = fixture(t);
+  const answer = f.answer();
+  await flush();
+
+  await f.mute(true);
+  assert.equal(useNativeCallStore.getState().call?.isMuted, true);
+  assert.deepEqual(
+    f.steps,
+    ['callkit-muted'],
+    'the mic must not be touched before audio activation',
+  );
+
+  f.auth.resolve('restored-token');
+  await answer;
+  assert.deepEqual(f.steps, ['callkit-muted', 'join', 'connect', 'fulfill-answer', 'mic-off']);
 });
 
 test('ending during auth restore prevents a late join or phantom UI', async (t) => {

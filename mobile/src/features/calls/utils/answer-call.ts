@@ -28,11 +28,13 @@ export async function answerCall(
     if (session.answerRequestId) return;
     session.answerRequestId = event.requestId;
     const signal = session.abortController.signal;
+    const current = useNativeCallStore.getState().call;
+    const mutedBeforeAnswer = current?.sessionId === event.id && current.isMuted;
     useNativeCallStore.getState().setCall({
       sessionId: event.id,
       caller: session.caller,
       status: 'connecting',
-      isMuted: useNativeCallStore.getState().call?.isMuted ?? false,
+      isMuted: mutedBeforeAnswer,
     });
     const { workspaceId, channelId } = session.metadata;
     const accessToken = await requireAccessToken();
