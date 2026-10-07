@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { onSignOut, runSignOutTasks } from '../src/features/auth/stores/sign-out-tasks';
+import { onSignOut, runSignOutTasks } from './sign-out-tasks';
 
-test('sign-out waits for every registered task, and a failing one does not block the rest', async () => {
+test('an offline cleanup task never blocks the others or the sign-out itself', async () => {
   const done: string[] = [];
   const stopFailing = onSignOut(async () => {
     throw new Error('offline');
@@ -13,10 +13,12 @@ test('sign-out waits for every registered task, and a failing one does not block
   });
 
   await runSignOutTasks();
+
   assert.deepEqual(done, ['release push']);
 
   stopFailing();
   stopRelease();
   await runSignOutTasks();
-  assert.deepEqual(done, ['release push']);
+
+  assert.deepEqual(done, ['release push'], 'an unregistered task does not run again');
 });

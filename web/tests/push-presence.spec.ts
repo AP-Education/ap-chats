@@ -130,67 +130,69 @@ function browser() {
   return { reports, openTab };
 }
 
-test('the focused tab claims the lease and renews it while the user reads', () => {
+test('the reading tab claims the lease and renews it', () => {
   const b = browser();
+
   const tab = b.openTab('a');
   tab.renew();
+
   assert.deepEqual(b.reports, [
     { tab: 'a', focused: true },
     { tab: 'a', focused: true },
   ]);
 });
 
-test('a background tab never reports, so it cannot overwrite the reader', () => {
-  const b = browser();
-  b.openTab('a');
-  const background = b.openTab('b', { focused: false });
-  background.renew();
-  background.settle();
-  assert.deepEqual(b.reports, [{ tab: 'a', focused: true }]);
-});
-
-test('switching tabs hands the lease over without a stray release', () => {
+test('a background tab never reports, and switching tabs hands the lease over cleanly', () => {
   const b = browser();
   const first = b.openTab('a');
   const second = b.openTab('b', { focused: false });
+
+  second.renew();
+  second.settle();
   first.blur();
   second.focus();
   first.settle();
+
   assert.deepEqual(b.reports, [
     { tab: 'a', focused: true },
     { tab: 'b', focused: true },
   ]);
 });
 
-test('leaving the browser releases the lease after a short grace', () => {
+test('leaving releases the lease after a short grace, closing releases it at once', () => {
   const b = browser();
-  const tab = b.openTab('a');
-  tab.blur();
-  assert.equal(b.reports.length, 1);
-  tab.settle();
-  assert.deepEqual(b.reports.at(-1), { tab: 'a', focused: false });
+  const leaving = b.openTab('a');
+  const closing = b.openTab('b');
+
+  leaving.blur();
+  const beforeGrace = b.reports.length;
+  leaving.settle();
+  closing.close();
+
+  assert.equal(beforeGrace, 2);
+  assert.deepEqual(b.reports.slice(2), [
+    { tab: 'a', focused: false },
+    { tab: 'b', focused: false },
+  ]);
 });
 
-test('closing the reading tab releases at once', () => {
+test('a token refresh renews the claim without a release in between', () => {
   const b = browser();
   const tab = b.openTab('a');
-  tab.close();
-  assert.deepEqual(b.reports.at(-1), { tab: 'a', focused: false });
-});
 
-test('a token refresh does not churn a release before the renewed claim', () => {
-  const b = browser();
-  const tab = b.openTab('a');
   tab.refreshToken('refreshed-token');
   tab.settle();
+
   assert.ok(b.reports.every((report) => report.focused));
 });
 
-test('the native shell reports attention through the bridge', () => {
+test('the native shell reports attention through the bridge instead', () => {
   const b = browser();
   const tab = b.openTab('native', { native: true });
+
   tab.blur();
   tab.settle();
+
   assert.deepEqual(b.reports, [
     { tab: 'native', focused: true },
     { tab: 'native', focused: false },

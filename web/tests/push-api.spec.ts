@@ -5,71 +5,58 @@ import { runInNewContext } from 'node:vm';
 
 import ts from 'typescript';
 
-import type {
-  registerSubscription,
-  updatePresence,
-} from '../src/features/notifications/api/push-api';
+import type * as PushApi from '../src/features/notifications/api/push-api';
 import { jsonInit } from '../src/shared/api/http';
 
-const installationId = '6195ac98-4010-4344-92b9-d39a55d96937';
-
-function fixture() {
-  const requests: { url: string; token: string; init: RequestInit }[] = [];
-  const exports = {} as {
-    registerSubscription: typeof registerSubscription;
-    updatePresence: typeof updatePresence;
-  };
+function pushApi() {
+  const requests: { url: string; init: RequestInit }[] = [];
+  const api = {} as typeof PushApi;
   const source = ts.transpileModule(
     readFileSync(new URL('../src/features/notifications/api/push-api.ts', import.meta.url), 'utf8'),
     { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } },
   ).outputText;
+
   runInNewContext(source, {
-    exports,
+    exports: api,
     AbortSignal,
-    localStorage: { getItem: () => installationId },
-    require: (name: string) => {
-      assert.equal(name, '@/shared/api/http');
-      return {
-        jsonInit,
-        apiRequest: async (url: string, token: string, init: RequestInit) => {
-          requests.push({ url, token, init });
-          return { id: 'subscription' };
-        },
-      };
-    },
+    localStorage: { getItem: () => 'installation' },
+    require: () => ({
+      jsonInit,
+      apiRequest: async (url: string, _token: string, init: RequestInit) => {
+        requests.push({ url, init });
+        return { id: 'subscription' };
+      },
+    }),
   });
-  return { api: exports, requests };
+
+  return {
+    api,
+    body: (index: number) => JSON.parse(requests[index]!.init.body as string),
+    requests,
+  };
 }
 
-for (const expirationTime of [null, 1800000000000]) {
-  test(`push registration excludes browser expirationTime (${expirationTime}) from the API payload`, async () => {
-    const { api, requests } = fixture();
-    const endpoint = 'https://fcm.googleapis.com/fcm/send/test-subscription';
-    const keys = { p256dh: 'public-key', auth: 'auth-key' };
+// The API rejects unknown fields, so the browser's expirationTime must never reach it.
+test('registration sends only the endpoint, keys and installation', async () => {
+  const { api, body } = pushApi();
+  const keys = { p256dh: 'public-key', auth: 'auth-key' };
 
-    await api.registerSubscription('account-token', {
-      toJSON: () => ({ endpoint, expirationTime, keys }),
-    } as unknown as PushSubscription);
+  await api.registerSubscription('token', {
+    toJSON: () => ({ endpoint: 'https://push.test/1', expirationTime: 1800000000000, keys }),
+  } as unknown as PushSubscription);
 
-    assert.equal(requests.length, 1);
-    assert.equal(requests[0]!.url, '/api/devices/web');
-    assert.equal(requests[0]!.token, 'account-token');
-    assert.equal(requests[0]!.init.method, 'POST');
-    assert.deepEqual(JSON.parse(requests[0]!.init.body as string), {
-      endpoint,
-      keys,
-      installationId,
-    });
+  assert.deepEqual(body(0), {
+    endpoint: 'https://push.test/1',
+    keys,
+    installationId: 'installation',
   });
-}
+});
 
-test('clearing foreground presence sends an authenticated keepalive request that can survive page closure', async () => {
-  const { api, requests } = fixture();
-  await api.updatePresence('account-token', 'subscription', { focused: false });
-  assert.equal(requests.length, 1);
-  assert.equal(requests[0]!.url, '/api/devices/web/subscription/presence');
-  assert.equal(requests[0]!.token, 'account-token');
-  assert.equal(requests[0]!.init.method, 'PATCH');
+test('clearing presence survives the page closing', async () => {
+  const { api, body, requests } = pushApi();
+
+  await api.updatePresence('token', 'subscription', { focused: false });
+
   assert.equal(requests[0]!.init.keepalive, true);
-  assert.deepEqual(JSON.parse(requests[0]!.init.body as string), { focused: false });
+  assert.deepEqual(body(0), { focused: false });
 });

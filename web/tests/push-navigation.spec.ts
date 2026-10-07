@@ -92,19 +92,23 @@ function page({ native }: { native: boolean }) {
   };
 }
 
-test('a browser notification click routes the open app to the conversation', () => {
+test('a browser notification click routes the open app to the conversation, never elsewhere', () => {
   const p = page({ native: false });
+
   p.clickBrowser(`https://connect.test${route}&pushUser=reader`);
   p.clickBrowser('https://attacker.test/');
+
   assert.deepEqual(p.navigated, [`${route}&pushUser=reader`]);
   assert.deepEqual(p.toNative(), []);
 });
 
-test('the native shell hears the page is ready, and a tap is routed with its owner and acknowledged', () => {
+test('a native tap is routed with its owner once the page says it is ready, and acknowledged', () => {
   const p = page({ native: true });
-  assert.deepEqual(p.toNative(), [{ type: 'notifications/ready' }]);
+  const ready = p.toNative();
 
   p.tapNative({ eventId: 'event', userId: 'reader', url: route });
+
+  assert.deepEqual(ready, [{ type: 'notifications/ready' }]);
   assert.deepEqual(p.navigated, [`${route}&pushUser=reader`]);
   assert.deepEqual(p.toNative().at(-1), { type: 'notifications/ack', eventId: 'event' });
 });

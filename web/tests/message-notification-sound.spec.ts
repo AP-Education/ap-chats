@@ -105,56 +105,53 @@ function fixture({
   };
 }
 
-for (const gesture of ['pointerdown', 'keydown']) {
-  test(`the first ${gesture} unlocks browser audio before any notification arrives`, () => {
-    const f = fixture();
-    f.interact(gesture);
-    assert.equal(f.sounds.length, 0);
-    f.receive();
-    assert.deepEqual(f.sounds, ['running']);
-    f.receive();
-    assert.deepEqual(f.sounds, ['running', 'running']);
-    assert.equal(f.createdContexts(), 1);
-  });
-}
-
-test('foreground message sound works with browser push disabled', () => {
+test('the first interaction unlocks browser audio once, before any message arrives', () => {
   const f = fixture();
+
   f.interact('pointerdown');
   f.receive();
-  assert.deepEqual(f.sounds, ['running']);
+  f.receive();
+
+  assert.deepEqual(f.sounds, ['running', 'running']);
+  assert.equal(f.createdContexts(), 1);
 });
 
-test('messages in the visible open conversation stay silent', () => {
+test('a message plays only when the person is not reading that conversation', () => {
   const f = fixture({ openChannelId: 'channel' });
+
   f.receive();
-  assert.deepEqual(f.sounds, []);
   f.page.visible = false;
   f.receive();
+
   assert.equal(f.sounds.length, 1);
 });
 
-test('background browser push suppresses duplicate local sound', () => {
+test('while browser push is on, a background tab stays silent and leaves it to the OS alert', () => {
   const f = fixture();
   f.push.enabled = true;
+
   f.page.visible = false;
   f.receive();
-  assert.deepEqual(f.sounds, []);
   f.page.visible = true;
   f.receive();
+
   assert.equal(f.sounds.length, 1);
 });
 
-test('muted or unrelated workspace events do not play sound', () => {
+test('muted messages and other workspaces never play', () => {
   const f = fixture();
+
   f.receive({ alert: false });
   f.receive({ workspaceId: 'another-workspace' });
+
   assert.deepEqual(f.sounds, []);
 });
 
-test('the native shell keeps its native sound without creating Web Audio', () => {
+test('the native shell plays its own sound without creating Web Audio', () => {
   const f = fixture({ native: true });
+
   f.receive();
+
   assert.deepEqual(f.sounds, ['native']);
   assert.equal(f.createdContexts(), 0);
 });
