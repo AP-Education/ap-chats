@@ -6,6 +6,8 @@ import { Logger } from '@/globals/logger';
 
 import { EventOutboxRepository } from './repository/event-outbox.repository';
 
+const OUTBOX_BATCH_SIZE = 100;
+
 @Injectable()
 export class OutboxDispatcher implements OnModuleInit, OnModuleDestroy {
   private timer: ReturnType<typeof setTimeout> | undefined;
@@ -26,14 +28,19 @@ export class OutboxDispatcher implements OnModuleInit, OnModuleDestroy {
 
   private tick(): void {
     this.pending = this.relay()
-      .catch((err: unknown) => this.logger.error({ err }, 'Outbox relay failed'))
-      .finally(() => {
-        if (!this.stopped) this.timer = setTimeout(() => this.tick(), 1000);
+      .catch((err: unknown) => {
+        this.logger.error({ err }, 'Outbox relay failed');
+        return 0;
+      })
+      .then((relayed) => {
+        // A full batch means a backlog, so the next one goes out without the idle pause.
+        const idleMs = relayed >= OUTBOX_BATCH_SIZE ? 0 : 1000;
+        if (!this.stopped) this.timer = setTimeout(() => this.tick(), idleMs);
       });
   }
 
-  async relay(): Promise<void> {
-    const claimed = await this.repository.claim();
+  async relay(): Promise<number> {
+    const claimed = await this.repository.claim(OUTBOX_BATCH_SIZE);
     for (let index = 0; index < claimed.length; index++) {
       const row = claimed[index]!;
       try {
@@ -49,6 +56,8 @@ export class OutboxDispatcher implements OnModuleInit, OnModuleDestroy {
       }
     }
     await this.repository.purge();
+
+    return claimed.length;
   }
 
   async onModuleDestroy(): Promise<void> {

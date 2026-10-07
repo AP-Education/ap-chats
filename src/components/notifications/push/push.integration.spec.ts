@@ -527,7 +527,7 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
       .update(schema.eventOutbox)
       .set({ expiresAt: new Date(0) })
       .where(eq(schema.eventOutbox.id, jobId('expired')));
-    assert.deepEqual(await repository.claim(), []);
+    assert.deepEqual(await repository.claim(100), []);
   });
 
   await t.test(

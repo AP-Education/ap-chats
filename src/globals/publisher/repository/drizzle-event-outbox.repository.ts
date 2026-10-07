@@ -20,7 +20,7 @@ export class DrizzleEventOutboxRepository extends EventOutboxRepository {
   async append(event: NewOutboxEvent): Promise<void> {
     await this.txHost.tx.insert(eventOutbox).values(event).onConflictDoNothing();
   }
-  async claim() {
+  async claim(limit: number) {
     const result = await this.txHost.tx.execute<
       Omit<StoredOutboxEvent, 'expiresAt'> & { expiresAt: number | string }
     >(sql`
@@ -28,7 +28,7 @@ export class DrizzleEventOutboxRepository extends EventOutboxRepository {
       where id in (select id from ${eventOutbox}
         where published_at is null and expires_at > now()
         and (leased_until is null or leased_until <= now())
-        order by priority, created_at, id limit 100 for update skip locked)
+        order by priority, created_at, id limit ${limit} for update skip locked)
       returning id, name, payload, priority,
         extract(epoch from expires_at) * 1000 as "expiresAt"`);
     return result.rows.map((row) => ({ ...row, expiresAt: new Date(Number(row.expiresAt)) }));
