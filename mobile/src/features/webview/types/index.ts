@@ -1,5 +1,6 @@
 import type { NativeCallConnectPayload } from '../../calls/types';
 import type { ComposerInputRequest, ComposerInputState } from '../../composer';
+import type { NotificationIntent } from '../../push/utils/notification-intent';
 
 // Bridge protocol: mirrors web/src/features/auth/types/index.ts. Keep additive.
 export interface NativeAuthTokenPayload {
@@ -16,16 +17,7 @@ export type NativeToWebMessage =
   | ({ type: 'composer/state' } & ComposerInputState)
   | { type: 'composer/insert'; sessionId: string; requestId: number; text: string }
   | { type: 'composer/gif'; sessionId: string; requestId: number; url: string; title: string }
-  | {
-      type: 'notifications/open';
-      payload: {
-        eventId: string;
-        userId: string;
-        workspaceId: string;
-        channelId: string;
-        url: string;
-      };
-    };
+  | { type: 'notifications/open'; payload: NotificationIntent };
 
 export type WebToNativeMessage =
   | { type: 'auth/sign-out' }
@@ -33,13 +25,11 @@ export type WebToNativeMessage =
   | { type: 'calls/connect'; payload: NativeCallConnectPayload }
   | { type: 'haptics/selection' }
   | { type: 'notifications/message-sound' }
+  /** The page can route a tapped notification now; sent on every mount of its handler. */
   | { type: 'notifications/ready' }
-  | { type: 'notifications/not-ready' }
   | { type: 'notifications/ack'; eventId: string }
-  | {
-      type: 'notifications/context';
-      payload: { connected: boolean; workspaceId?: string; channelId?: string };
-    }
+  /** `connected` means the user is reading the WebView, so its own sound replaces the banner. */
+  | { type: 'notifications/context'; payload: { connected: boolean } }
   /** __DEV__ only — see debug-console.ts. Lets web/'s own console show up in the
    * RN console, since the WebView runs in a separate JS context Metro can't see. */
   | { type: 'debug/console'; level: 'log' | 'warn' | 'error'; args: string[] }

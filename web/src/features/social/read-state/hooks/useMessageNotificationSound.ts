@@ -4,6 +4,7 @@ import { usePush } from '@/features/notifications/hooks/usePush';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { getSharedAudioContext } from '@/shared/audio/audio-context';
 import { isAttending } from '@/shared/hooks/useIsAttending';
+import { isNativeShell } from '@/shared/lib/nativeBridge';
 
 import { playMessageBloop } from '../sound/messageBloop';
 
@@ -13,7 +14,7 @@ export function useMessageNotificationSound(
 ): void {
   const push = usePush();
   useEffect(() => {
-    if (!window.ReactNativeWebView) getSharedAudioContext();
+    if (!isNativeShell()) getSharedAudioContext();
   }, []);
 
   useSocketEvent('social:unread', (event) => {

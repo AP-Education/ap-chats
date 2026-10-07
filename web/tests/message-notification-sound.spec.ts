@@ -67,6 +67,7 @@ function fixture({
         },
       },
       '@/shared/audio/audio-context': audio,
+      '@/shared/lib/nativeBridge': { isNativeShell: () => native },
       '@/shared/hooks/useIsAttending': { isAttending: () => page.visible },
       '../sound/messageBloop': {
         playMessageBloop: () => {

@@ -34,7 +34,8 @@ const webUrl = process.env.EXPO_PUBLIC_WEB_URL;
 export function WebViewHost() {
   const webViewRef = useRef<WebView>(null);
   const auth = useAuthStore();
-  const notification = useNotificationStore();
+  const pendingNotification = useNotificationStore((state) => state.pending);
+  const webReady = useNotificationStore((state) => state.webReady);
   const miniCallBarVisible = useIsMiniCallBarVisible();
   // injectJavaScript silently drops calls made before the page has actually finished
   // loading (no JS context to run in yet) — this counts WebView loads (initial + any
@@ -74,20 +75,16 @@ export function WebViewHost() {
     webViewRef.current?.injectJavaScript(buildBridgeScript(message));
   }, [auth, loadCount]);
 
+  // Routed only once the page says it can; it acknowledges, and the tap stays pending until then.
   useEffect(() => {
-    if (
-      auth.status !== 'signed-in' ||
-      !notification.webReady ||
-      !notification.pending ||
-      loadCount === 0
-    )
-      return;
-    webViewRef.current?.injectJavaScript(
-      buildBridgeScript({ type: 'notifications/open', payload: notification.pending }),
-    );
-  }, [auth.status, notification.webReady, notification.pending, loadCount]);
+    if (auth.status !== 'signed-in' || !webReady || !pendingNotification || loadCount === 0) return;
 
-  useEffect(() => () => useNotificationStore.getState().setReady(false), []);
+    webViewRef.current?.injectJavaScript(
+      buildBridgeScript({ type: 'notifications/open', payload: pendingNotification }),
+    );
+  }, [auth.status, webReady, pendingNotification, loadCount]);
+
+  useEffect(() => () => useNotificationStore.getState().setWebReady(false), []);
 
   function handleMessage(event: WebViewMessageEvent) {
     let message: WebToNativeMessage;
@@ -99,16 +96,13 @@ export function WebViewHost() {
     if (isComposerInputRequest(message)) {
       input.request(message);
     } else if (message.type === 'notifications/ready') {
-      useNotificationStore.getState().setReady(true);
-    } else if (message.type === 'notifications/not-ready') {
-      useNotificationStore.getState().setReady(false);
+      useNotificationStore.getState().setWebReady(true);
     } else if (message.type === 'notifications/ack') {
-      if (useNotificationStore.getState().pending?.eventId === message.eventId) {
-        useNotificationStore.getState().acknowledge(message.eventId);
-        void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
-      }
+      const routed = useNotificationStore.getState().pending?.eventId === message.eventId;
+      useNotificationStore.getState().acknowledge(message.eventId);
+      if (routed) void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
     } else if (message.type === 'notifications/context') {
-      useNotificationStore.getState().setContext(message.payload);
+      useNotificationStore.getState().setWebAttending(message.payload.connected);
     } else if (message.type === 'auth/sign-out') {
       // PushRegistration unregisters the device on any way out of the session.
       void useAuthStore.getState().signOut();
@@ -180,7 +174,7 @@ export function WebViewHost() {
           bounces={false}
           onLoadStart={() => {
             input.close();
-            useNotificationStore.getState().setReady(false);
+            useNotificationStore.getState().setWebReady(false);
           }}
           applicationNameForUserAgent={APP_SHELL_USER_AGENT}
           onMessage={handleMessage}

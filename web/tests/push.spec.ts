@@ -3,7 +3,9 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { runInNewContext } from 'node:vm';
 
-import { notificationIntent } from '../src/features/notifications/navigation/notification-intent';
+import ts from 'typescript';
+
+import type { pushTarget as PushTarget } from '../src/features/notifications/push-target';
 
 const channelId = '5824eb71-b12c-4f48-a30d-e15797b7116b';
 const workspaceId = '630bba71-6807-445a-9dbe-aad85a050c09';
@@ -15,17 +17,37 @@ const intent = {
   url: `/channels/${channelId}?pushWorkspace=${workspaceId}`,
 };
 
-test('notification intent accepts only the matching channel and workspace route', () => {
-  assert.equal(notificationIntent(intent)?.channelId, channelId);
+function loadPushTarget(): typeof PushTarget {
+  const exports = {} as { pushTarget: typeof PushTarget };
+  const source = ts.transpileModule(
+    readFileSync(new URL('../src/features/notifications/push-target.ts', import.meta.url), 'utf8'),
+    { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } },
+  ).outputText;
+  runInNewContext(source, {
+    exports,
+    URL,
+    window: { location: { origin: 'https://connect.test' } },
+  });
+  return exports.pushTarget;
+}
+
+test('a notification opens only a conversation route of this app', () => {
+  const pushTarget = loadPushTarget();
+  assert.equal(pushTarget(intent.url), intent.url);
+  assert.equal(
+    pushTarget(`https://connect.test${intent.url}&pushUser=reader`),
+    `${intent.url}&pushUser=reader`,
+  );
   for (const url of [
     'https://attacker.test/',
     '//attacker.test/',
     '/auth/callback',
     `/channels/${channelId}?pushWorkspace=another-workspace`,
+    `/channels/${channelId}`,
+    42,
   ]) {
-    assert.equal(notificationIntent({ ...intent, url }), null);
+    assert.equal(pushTarget(url), null);
   }
-  assert.equal(notificationIntent({ ...intent, channelId: 'invalid' }), null);
 });
 
 function workerFixture() {
