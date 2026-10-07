@@ -45,6 +45,20 @@ export function PushNavigation({ children }: PropsWithChildren) {
   ]);
 
   useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    function openFromWorker(event: MessageEvent<{ type?: string; url?: unknown }>) {
+      if (event.data?.type !== 'notifications/open' || typeof event.data.url !== 'string') return;
+
+      const target = new URL(event.data.url);
+      if (target.origin === window.location.origin) navigate(target.pathname + target.search);
+    }
+
+    navigator.serviceWorker.addEventListener('message', openFromWorker);
+    return () => navigator.serviceWorker.removeEventListener('message', openFromWorker);
+  }, [navigate]);
+
+  useEffect(() => {
     if (!identity) return;
     function open(event: Event) {
       const intent = notificationIntent((event as CustomEvent<unknown>).detail);

@@ -35,6 +35,10 @@ function safeUrl(value) {
   return self.location.origin + '/';
 }
 
+// No fetch handler, so taking over open pages at once is safe and lets a click reach them.
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
@@ -43,12 +47,34 @@ self.addEventListener('notificationclick', (event) => {
       if (typeof event.notification.data?.userId === 'string')
         destination.searchParams.set('pushUser', event.notification.data.userId);
       const url = destination.href;
+
       const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       const client = windows.find((client) => new URL(client.url).origin === self.location.origin);
-      if (client) {
-        await client.navigate(url);
-        await client.focus();
-      } else await self.clients.openWindow(url);
+      if (!client) {
+        await self.clients.openWindow(url);
+        return;
+      }
+
+      // Focus first, while the click still counts as a user gesture; the page routes in-app.
+      await client.focus();
+      client.postMessage({ type: 'notifications/open', url });
+    })(),
+  );
+});
+
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    (async () => {
+      const applicationServerKey = event.oldSubscription?.options?.applicationServerKey;
+      if (applicationServerKey) {
+        await self.registration.pushManager
+          .subscribe({ userVisibleOnly: true, applicationServerKey })
+          .catch(() => undefined);
+      }
+
+      // Registering needs the user's token, which only an open page has.
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const client of windows) client.postMessage({ type: 'push/subscription-changed' });
     })(),
   );
 });

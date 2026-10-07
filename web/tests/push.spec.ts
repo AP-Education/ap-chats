@@ -37,22 +37,34 @@ function workerFixture() {
   };
   const shown: { title: string; options: NotificationOptions }[] = [];
   const opened: string[] = [];
-  const navigated: string[] = [];
-  const focused: boolean[] = [];
+  const steps: string[] = [];
+  const pageMessages: unknown[] = [];
+  const subscribed: unknown[] = [];
   let windows: unknown[] = [];
   const self = {
     location: { origin: 'https://connect.test' },
     addEventListener: (name: string, handler: (event: unknown) => void) =>
       listeners.set(name, handler),
+    skipWaiting: async () => {
+      steps.push('skip-waiting');
+    },
     registration: {
       showNotification: async (title: string, options: NotificationOptions) => {
         shown.push({ title, options });
+      },
+      pushManager: {
+        subscribe: async (options: unknown) => {
+          subscribed.push(options);
+        },
       },
     },
     clients: {
       matchAll: async () => windows,
       openWindow: async (url: string) => {
         opened.push(url);
+      },
+      claim: async () => {
+        steps.push('claim');
       },
     },
   };
@@ -63,17 +75,19 @@ function workerFixture() {
   return {
     shown,
     opened,
-    navigated,
-    focused,
+    steps,
+    pageMessages,
+    subscribed,
     addWindow: () => {
       windows = [
         {
           url: 'https://connect.test/',
-          navigate: async (url: string) => {
-            navigated.push(url);
-          },
           focus: async () => {
-            focused.push(true);
+            steps.push('focus');
+          },
+          postMessage: (message: unknown) => {
+            steps.push('post');
+            pageMessages.push(message);
           },
         },
       ];
@@ -119,15 +133,39 @@ test('successive messages in the same channel request a fresh OS alert', async (
   }
 });
 
-test('click reuses an existing window and carries the intended account', async () => {
+test('a new worker takes over open pages so their clicks reach it', async () => {
+  const f = workerFixture();
+  await f.emit('install', {});
+  await f.emit('activate', {});
+  assert.deepEqual(f.steps, ['skip-waiting', 'claim']);
+});
+
+test('click focuses an existing window first, then routes it in-app to the intended account', async () => {
   const f = workerFixture();
   f.addWindow();
   await f.emit('notificationclick', {
     notification: { close() {}, data: { url: intent.url, userId: 'reader' } },
   });
   assert.equal(f.opened.length, 0);
-  assert.equal(f.focused.length, 1);
-  assert.equal(new URL(f.navigated[0]!).searchParams.get('pushUser'), 'reader');
+  assert.deepEqual(f.steps, ['focus', 'post']);
+  const message = f.pageMessages[0] as { type: string; url: string };
+  assert.equal(message.type, 'notifications/open');
+  assert.equal(new URL(message.url).searchParams.get('pushUser'), 'reader');
+});
+
+test('a rotated subscription is renewed and open pages are asked to register it', async () => {
+  const f = workerFixture();
+  f.addWindow();
+  await f.emit('pushsubscriptionchange', {
+    oldSubscription: { options: { applicationServerKey: 'vapid-key' } },
+  });
+  // Plain copies: objects created inside the worker's VM context have another prototype.
+  assert.deepEqual(JSON.parse(JSON.stringify(f.subscribed)), [
+    { userVisibleOnly: true, applicationServerKey: 'vapid-key' },
+  ]);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.pageMessages)), [
+    { type: 'push/subscription-changed' },
+  ]);
 });
 
 test('an external notification URL cannot open an external site', async () => {
