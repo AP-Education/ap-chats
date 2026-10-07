@@ -31,8 +31,6 @@ chat_upload_max_pending_bytes: 4000000000
 push_enabled: false
 valkey_url: redis://valkey:6379/0
 push_coalesce_seconds: 3
-push_cooldown_seconds: 30
-push_user_alerts_per_minute: 5
 push_worker_enabled: true
 push_worker_concurrency: 8
 expo_access_token: ''

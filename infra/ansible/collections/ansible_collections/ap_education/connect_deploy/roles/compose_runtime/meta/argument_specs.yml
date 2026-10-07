@@ -84,12 +84,6 @@ argument_specs:
       push_coalesce_seconds:
         type: int
         default: 3
-      push_cooldown_seconds:
-        type: int
-        default: 30
-      push_user_alerts_per_minute:
-        type: int
-        default: 5
       push_worker_enabled:
         type: bool
         default: true
