@@ -36,7 +36,7 @@
     "prepare": "husky",
     "lint-staged": "lint-staged",
     "commitlint": "commitlint --edit",
-    "test:api": "node --import tsx --test \"src/**/*.spec.ts\"",
+    "test:api": "node --import tsx --import ./src/testing/test-env.ts --test \"src/**/*.spec.ts\"",
     "test:web": "pnpm --filter @ap-chats/web test",
     "test:mobile": "pnpm --filter @ap-chats/mobile test",
     "test:uploads:integration": "pnpm build && node --import tsx test/uploads.integration.mts"
