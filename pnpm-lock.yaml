@@ -168,6 +168,67 @@ importers:
         specifier: 5.105.4
         version: 5.105.4(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.28)
 
+  host:
+    dependencies:
+      '@ap/shell-sdk':
+        specifier: workspace:*
+        version: link:../packages/shell-sdk
+      '@ap/ui':
+        specifier: workspace:*
+        version: link:../packages/ui
+      '@module-federation/runtime':
+        specifier: ^2.9.2
+        version: 2.9.2
+      '@phosphor-icons/react':
+        specifier: ^2.1.10
+        version: 2.1.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      antd:
+        specifier: 6.5.4
+        version: 6.5.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      antd-style:
+        specifier: 4.1.0
+        version: 4.1.0(@types/react@19.2.18)(antd@6.5.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)
+      oidc-client-ts:
+        specifier: 3.5.0
+        version: 3.5.0
+      react:
+        specifier: 19.2.3
+        version: 19.2.3
+      react-dom:
+        specifier: 19.2.3
+        version: 19.2.3(react@19.2.3)
+      react-oidc-context:
+        specifier: 3.3.1
+        version: 3.3.1(oidc-client-ts@3.5.0)(react@19.2.3)
+      react-router-dom:
+        specifier: 6.30.1
+        version: 6.30.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+    devDependencies:
+      '@ap/federation':
+        specifier: workspace:*
+        version: link:../packages/federation
+      '@module-federation/vite':
+        specifier: ^1.23.2
+        version: 1.23.2(typescript@6.0.3)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.6
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.7
+        version: 19.2.7(@types/react@19.2.18)
+      '@vitejs/plugin-react':
+        specifier: ^6.1.1
+        version: 6.1.1(babel-plugin-react-compiler@1.0.0)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
+      vite:
+        specifier: ^8.3.0
+        version: 8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+
   mobile:
     dependencies:
       '@config-plugins/react-native-webrtc':
@@ -300,15 +361,11 @@ importers:
         specifier: ~6.0.2
         version: 6.0.3
 
-  packages/shell-ui:
-    dependencies:
-      '@ap/shell-sdk':
-        specifier: workspace:*
-        version: link:../shell-sdk
+  packages/ui:
+    devDependencies:
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-    devDependencies:
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
@@ -321,113 +378,6 @@ importers:
       react:
         specifier: 19.2.3
         version: 19.2.3
-      typescript:
-        specifier: ~6.0.2
-        version: 6.0.3
-      vite:
-        specifier: ^8.3.0
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
-
-  remotes/demo:
-    dependencies:
-      '@ap/shell-sdk':
-        specifier: workspace:*
-        version: link:../../packages/shell-sdk
-      '@ap/shell-ui':
-        specifier: workspace:*
-        version: link:../../packages/shell-ui
-      '@phosphor-icons/react':
-        specifier: ^2.1.10
-        version: 2.1.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      antd:
-        specifier: 6.5.4
-        version: 6.5.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      react:
-        specifier: 19.2.3
-        version: 19.2.3
-      react-dom:
-        specifier: 19.2.3
-        version: 19.2.3(react@19.2.3)
-      react-router-dom:
-        specifier: 6.30.1
-        version: 6.30.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-    devDependencies:
-      '@ap/federation':
-        specifier: workspace:*
-        version: link:../../packages/federation
-      '@module-federation/vite':
-        specifier: ^1.23.2
-        version: 1.23.2(typescript@6.0.3)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.7
-        version: 19.2.7(@types/react@19.2.18)
-      '@vitejs/plugin-react':
-        specifier: ^6.1.1
-        version: 6.1.1(babel-plugin-react-compiler@1.0.0)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
-      typescript:
-        specifier: ~6.0.2
-        version: 6.0.3
-      vite:
-        specifier: ^8.3.0
-        version: 8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
-
-  shell:
-    dependencies:
-      '@ap/shell-sdk':
-        specifier: workspace:*
-        version: link:../packages/shell-sdk
-      '@ap/shell-ui':
-        specifier: workspace:*
-        version: link:../packages/shell-ui
-      '@module-federation/runtime':
-        specifier: ^2.9.2
-        version: 2.9.2
-      '@phosphor-icons/react':
-        specifier: ^2.1.10
-        version: 2.1.10(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      antd:
-        specifier: 6.5.4
-        version: 6.5.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      antd-style:
-        specifier: 4.1.0
-        version: 4.1.0(@types/react@19.2.18)(antd@6.5.4(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(supports-color@8.1.1)
-      oidc-client-ts:
-        specifier: 3.5.0
-        version: 3.5.0
-      react:
-        specifier: 19.2.3
-        version: 19.2.3
-      react-dom:
-        specifier: 19.2.3
-        version: 19.2.3(react@19.2.3)
-      react-oidc-context:
-        specifier: 3.3.1
-        version: 3.3.1(oidc-client-ts@3.5.0)(react@19.2.3)
-      react-router-dom:
-        specifier: 6.30.1
-        version: 6.30.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-    devDependencies:
-      '@ap/federation':
-        specifier: workspace:*
-        version: link:../packages/federation
-      '@module-federation/vite':
-        specifier: ^1.23.2
-        version: 1.23.2(typescript@6.0.3)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
-      '@types/node':
-        specifier: ^24.13.3
-        version: 24.13.6
-      '@types/react':
-        specifier: 19.2.18
-        version: 19.2.18
-      '@types/react-dom':
-        specifier: 19.2.7
-        version: 19.2.7(@types/react@19.2.18)
-      '@vitejs/plugin-react':
-        specifier: ^6.1.1
-        version: 6.1.1(babel-plugin-react-compiler@1.0.0)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
       typescript:
         specifier: ~6.0.2
         version: 6.0.3
@@ -440,9 +390,9 @@ importers:
       '@ap/shell-sdk':
         specifier: workspace:*
         version: link:../packages/shell-sdk
-      '@ap/shell-ui':
+      '@ap/ui':
         specifier: workspace:*
-        version: link:../packages/shell-ui
+        version: link:../packages/ui
       '@emoji-mart/data':
         specifier: ^1.2.1
         version: 1.2.1

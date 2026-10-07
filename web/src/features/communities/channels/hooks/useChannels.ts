@@ -19,6 +19,7 @@ export function useChannels(
     queryKey: communityQueryKeys.channels(identity, workspaceId, scope),
     queryFn: () => listChannels(token as string, workspaceId as string, scope),
     enabled: Boolean(token && workspaceId),
+    meta: { persist: true },
   });
 }
 

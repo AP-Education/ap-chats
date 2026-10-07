@@ -3,6 +3,7 @@ import { createContext, useContext } from 'react';
 export interface CurrentUserProfile {
   name?: string;
   email?: string;
+  /** Fetchable URL; the host resolves storage keys before publishing the profile. */
   picture?: string;
   sub?: string;
 }

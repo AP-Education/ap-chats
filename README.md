@@ -8,10 +8,9 @@ AP Chats — місце для щоденного спілкування ком�
 
 ```text
 src/       NestJS API
-shell/     host мікрофронтендів: OIDC, роутер, тема, спільний sider (порт 5556)
+host/      shell, що деплоїться: sider, runtime застосунків, OIDC (порт 5556)
 web/       Chats як remote: React, Vite, Ant Design (порт 5557)
-remotes/   інші remote-и (demo, порт 5558)
-packages/  внутрішні пакети: shell-sdk (контракт), shell-ui (sider), federation (спільні залежності)
+packages/  shell-sdk (контракт), ui (дизайн-система), federation
 mobile/    Expo-оболонка для shell
 infra/     локальний Postgres
 ```
@@ -24,14 +23,14 @@ infra/     локальний Postgres
 
 ```bash
 cp .env.example .env
-cp shell/.env.example shell/.env
+cp host/.env.example host/.env
 cp web/.env.example web/.env
 cp mobile/.env.example mobile/.env
 corepack enable
 pnpm install --frozen-lockfile
 pnpm infra:up           # локальний Postgres
 pnpm dev                # API: http://localhost:3211/api/health/live
-pnpm dev:web            # shell http://localhost:5556 + remotes chats :5557, demo :5558
+pnpm dev:web            # host http://localhost:5556 + remote chats :5557
 pnpm --filter @ap-chats/mobile start
 ```
 
@@ -39,7 +38,7 @@ pnpm --filter @ap-chats/mobile start
 
 ## Спільний вхід
 
-У `backend-LMS` потрібно зареєструвати окремий публічний OIDC-клієнт Chats з `application_id`, authorization code + PKCE, redirect URI `http://localhost:5556/auth/callback` і дозволити web origin у CORS. У кореневому `.env` задайте `OIDC_ISSUER` (точний issuer Accounts) та `OIDC_AUDIENCE` (resource audience цього API); у `shell/.env` — ті самі issuer й audience та виданий `VITE_OIDC_CLIENT_ID`. Для production використовуйте HTTPS і відповідні production URI. Секрет клієнта у вебі не потрібний і зберігати його там не можна.
+У `backend-LMS` потрібно зареєструвати окремий публічний OIDC-клієнт Chats з `application_id`, authorization code + PKCE, redirect URI `http://localhost:5556/auth/callback` і дозволити web origin у CORS. У кореневому `.env` задайте `OIDC_ISSUER` (точний issuer Accounts) та `OIDC_AUDIENCE` (resource audience цього API); у `host/.env` — ті самі issuer й audience та виданий `VITE_OIDC_CLIENT_ID`. Для production використовуйте HTTPS і відповідні production URI. Секрет клієнта у вебі не потрібний і зберігати його там не можна.
 
 Web запитує access token для цього resource; API перевіряє підпис за JWKS Accounts, issuer, audience, час дії та identity. `GET /api/auth/me` повертає лише перевірені `sub` і `appId`, не повний профіль LMS. Без реєстрації Chats-клієнта в Accounts браузерний вхід не запрацює. Вихід завершує OIDC-сесію в Accounts; для веб-клієнта зареєструйте origin застосунку в `post_logout_redirect_uris`.
 

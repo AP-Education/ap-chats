@@ -3,7 +3,8 @@ import { createContext, useContext, useEffect } from 'react';
 export interface MobileMenuStore {
   open: () => void;
   isOpen: boolean;
-  unreadCount: number;
+  /** Sum of every application's badge, shown on the button that opens the menu. */
+  badgeCount: number;
 }
 
 export const MobileMenuContext = createContext<MobileMenuStore | null>(null);
@@ -13,14 +14,31 @@ export function useMobileMenu(): MobileMenuStore {
     useContext(MobileMenuContext) ?? {
       open: () => {},
       isOpen: false,
-      unreadCount: 0,
+      badgeCount: 0,
     }
   );
+}
+
+export const MOBILE_NAVIGATION_ID = 'mobile-navigation';
+/** The shell returns focus to the element carrying it when the navigation sheet closes. */
+export const MOBILE_MENU_TRIGGER_ATTRIBUTE = 'data-mobile-menu-trigger';
+
+/** Props that turn an application's button into the opener of the shell's navigation sheet. */
+export function useMobileMenuTrigger() {
+  const { open, isOpen } = useMobileMenu();
+  return {
+    [MOBILE_MENU_TRIGGER_ATTRIBUTE]: true,
+    'aria-controls': MOBILE_NAVIGATION_ID,
+    'aria-expanded': isOpen,
+    onClick: open,
+  };
 }
 
 export interface ShellActions {
   /** Opens an application at `to`, or at the place it was last left. */
   openApp: (appId: string, to?: string) => void;
+  /** Navigates the one browser history the shell owns. */
+  navigate: (to: string, options?: { replace?: boolean }) => void;
   setBadge: (appId: string, count: number) => void;
   registerBeforeSignOut: (hook: () => void | Promise<void>) => () => void;
 }
@@ -28,6 +46,7 @@ export interface ShellActions {
 export const ShellActionsContext = createContext<ShellActions | null>(null);
 export const AppIdContext = createContext<string | null>(null);
 export const AppActiveContext = createContext(false);
+export const ShellLocationContext = createContext('/');
 
 /** Whether the application is the one currently shown in the content area. */
 export function useIsAppActive(): boolean {
@@ -38,6 +57,18 @@ export function useOpenApp(): ShellActions['openApp'] {
   return useShellActions().openApp;
 }
 
+/**
+ * The shell's current URL (path, search and hash). Applications with their own router
+ * follow it instead of the browser history, which only the shell changes.
+ */
+export function useShellLocation(): string {
+  return useContext(ShellLocationContext);
+}
+
+export function useShellNavigate(): ShellActions['navigate'] {
+  return useShellActions().navigate;
+}
+
 function useShellActions(): ShellActions {
   const value = useContext(ShellActionsContext);
   if (!value)
@@ -45,7 +76,7 @@ function useShellActions(): ShellActions {
   return value;
 }
 
-/** Publishes the application's unread count to its rail icon and the mobile menu button. */
+/** Publishes a count that wants the user's attention to the application's rail tile and the mobile menu button. */
 export function useAppBadge(count: number): void {
   const { setBadge } = useShellActions();
   const appId = useContext(AppIdContext);

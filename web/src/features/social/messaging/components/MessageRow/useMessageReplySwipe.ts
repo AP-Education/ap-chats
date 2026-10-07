@@ -1,4 +1,4 @@
-import { useTouchGesture } from '@ap/shell-ui';
+import { useTouchGesture } from '@ap/ui';
 import { useState } from 'react';
 
 import { selectionHaptic } from '@/shared/lib/haptics';

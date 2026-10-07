@@ -1,4 +1,4 @@
-import { useIsMobile } from '@ap/shell-ui';
+import { useIsMobile } from '@ap/ui';
 import {
   useDisconnectButton,
   useLocalParticipant,

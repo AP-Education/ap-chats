@@ -1,9 +1,7 @@
-import { useMobileMenu } from '@ap/shell-sdk';
-import { useIsMobile } from '@ap/shell-ui';
+import { useMobileMenu, useMobileMenuTrigger } from '@ap/shell-sdk';
+import { CountBadge, IconButton, useIsMobile } from '@ap/ui';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
-
-import { IconButton } from '@/shared/ui/IconButton';
 
 const useStyles = createStyles(({ token, css }) => ({
   button: css`
@@ -14,43 +12,26 @@ const useStyles = createStyles(({ token, css }) => ({
     position: absolute;
     right: 0;
     bottom: 0;
-    display: grid;
-    place-items: center;
-    min-width: 18px;
-    height: 18px;
-    padding-inline: 4px;
-    border-radius: 9px;
-    background: ${token.colorError};
-    color: ${token.colorWhite};
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 1;
   `,
 }));
 
 export function MobileMenuButton() {
   const { styles } = useStyles();
   const isMobile = useIsMobile();
-  const menu = useMobileMenu();
+  const { badgeCount: unreadCount } = useMobileMenu();
+  const trigger = useMobileMenuTrigger();
 
   if (!isMobile) return null;
 
+  const label =
+    unreadCount > 0
+      ? `Відкрити список розмов, непрочитаних: ${unreadCount}`
+      : 'Відкрити список розмов';
+
   return (
-    <IconButton
-      size={44}
-      className={styles.button}
-      data-mobile-menu-trigger
-      aria-controls="mobile-navigation"
-      aria-expanded={menu.isOpen}
-      aria-label={`Відкрити список розмов${menu.unreadCount > 0 ? `, ${menu.unreadCount} непрочитаних` : ''}`}
-      onClick={menu.open}
-    >
+    <IconButton size={44} className={styles.button} aria-label={label} {...trigger}>
       <ArrowLeftIcon size={22} />
-      {menu.unreadCount > 0 && (
-        <span className={styles.badge} aria-hidden="true">
-          {menu.unreadCount > 99 ? '99+' : menu.unreadCount}
-        </span>
-      )}
+      <CountBadge count={unreadCount} className={styles.badge} />
     </IconButton>
   );
 }

@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@ap/shell-sdk": "workspace:*",
-    "@ap/shell-ui": "workspace:*",
+    "@ap/ui": "workspace:*",
     "@emoji-mart/data": "^1.2.1",
     "@livekit/components-react": "^2.9.24",
     "@livekit/components-styles": "^1.2.0",

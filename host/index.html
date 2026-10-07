@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0c7d77" />
+    <title>AP Chats</title>
+    <link rel="stylesheet" href="/src/shared/ui/ShellSkeleton.css" />
+    <!-- The web font loads without blocking the first paint; text falls back until it arrives. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Ubuntu+Sans:ital,wght@0,100..800;1,100..800&display=swap"
+      media="print"
+      onload="this.media = 'all'"
+    />
+  </head>
+  <body>
+    <!-- Same markup as ShellSkeleton.tsx: the frame is on screen before any script runs. -->
+    <div id="app-bootstrap" class="shell-skeleton" role="status" aria-label="Завантаження">
+      <div class="shell-skeleton__sider">
+        <div class="shell-skeleton__rail">
+          <span class="shell-skeleton__tile"></span>
+          <span class="shell-skeleton__rail-divider"></span>
+          <span class="shell-skeleton__tile"></span>
+        </div>
+        <div class="shell-skeleton__panel">
+          <div class="shell-skeleton__header">
+            <span class="shell-skeleton__bone shell-skeleton__bone--title"></span>
+          </div>
+          <div class="shell-skeleton__nav">
+            <div class="shell-skeleton__nav-item">
+              <span class="shell-skeleton__bone shell-skeleton__bone--icon"></span>
+              <span
+                class="shell-skeleton__bone shell-skeleton__bone--text"
+                style="width: 96px"
+              ></span>
+            </div>
+            <div class="shell-skeleton__nav-item">
+              <span class="shell-skeleton__bone shell-skeleton__bone--icon"></span>
+              <span
+                class="shell-skeleton__bone shell-skeleton__bone--text"
+                style="width: 64px"
+              ></span>
+            </div>
+            <div class="shell-skeleton__nav-item">
+              <span class="shell-skeleton__bone shell-skeleton__bone--icon"></span>
+              <span
+                class="shell-skeleton__bone shell-skeleton__bone--text"
+                style="width: 84px"
+              ></span>
+            </div>
+            <div class="shell-skeleton__nav-item">
+              <span class="shell-skeleton__bone shell-skeleton__bone--icon"></span>
+              <span
+                class="shell-skeleton__bone shell-skeleton__bone--text"
+                style="width: 72px"
+              ></span>
+            </div>
+          </div>
+          <div class="shell-skeleton__divider"></div>
+          <div class="shell-skeleton__list">
+            <span
+              class="shell-skeleton__bone shell-skeleton__bone--text"
+              style="width: 148px"
+            ></span>
+            <span
+              class="shell-skeleton__bone shell-skeleton__bone--text"
+              style="width: 120px"
+            ></span>
+            <span
+              class="shell-skeleton__bone shell-skeleton__bone--text"
+              style="width: 164px"
+            ></span>
+            <span
+              class="shell-skeleton__bone shell-skeleton__bone--text"
+              style="width: 104px"
+            ></span>
+            <span
+              class="shell-skeleton__bone shell-skeleton__bone--text"
+              style="width: 136px"
+            ></span>
+          </div>
+        </div>
+        <div class="shell-skeleton__footer">
+          <span class="shell-skeleton__bone shell-skeleton__bone--avatar"></span>
+          <span class="shell-skeleton__bone shell-skeleton__bone--text" style="width: 112px"></span>
+        </div>
+      </div>
+      <div class="shell-skeleton__content"></div>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

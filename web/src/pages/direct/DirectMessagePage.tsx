@@ -1,4 +1,4 @@
-import { Avatar, useIsMobile } from '@ap/shell-ui';
+import { useIsMobile } from '@ap/ui';
 import { Button, Empty, Result } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
@@ -18,6 +18,8 @@ import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspa
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
+import { paths } from '@/shared/lib/paths';
+import { Avatar } from '@/shared/ui/Avatar';
 
 const useStyles = createStyles(({ css }) => ({
   title: css`
@@ -53,7 +55,7 @@ export default function DirectMessagePage() {
     workspaceId,
     channelId,
     conversation,
-    '/direct',
+    paths.direct,
   );
   const { byId, currentMember } = useWorkspaceMemberLabels(workspaceId);
 

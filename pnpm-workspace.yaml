@@ -1,8 +1,7 @@
 packages:
-  - shell
+  - host
   - web
   - mobile
-  - remotes/*
   - packages/*
 
 packageExtensions:

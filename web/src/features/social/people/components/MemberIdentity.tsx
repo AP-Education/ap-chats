@@ -1,5 +1,6 @@
-import { Avatar } from '@ap/shell-ui';
 import { createStyles } from 'antd-style';
+
+import { Avatar } from '@/shared/ui/Avatar';
 
 const useStyles = createStyles(({ token, css }) => ({
   avatar: css`

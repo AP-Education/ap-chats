@@ -1,4 +1,4 @@
-import { useIsMobile } from '@ap/shell-ui';
+import { IconButton, useIsMobile } from '@ap/ui';
 import { GearSixIcon, PlusIcon } from '@phosphor-icons/react';
 import { Button, message } from 'antd';
 import { createStyles } from 'antd-style';
@@ -8,7 +8,7 @@ import { matchPath, useLocation } from 'react-router-dom';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { getLastConversation } from '@/features/social/conversation/lastConversation';
 import { useWorkspaceUnreadStore } from '@/features/social/read-state/workspace-unread-context';
-import { IconButton } from '@/shared/ui/IconButton';
+import { paths } from '@/shared/lib/paths';
 
 import { ChannelCategoriesModal } from '../../channel-categories/components/ChannelCategoriesModal';
 import { ChannelFormModal } from '../../channels/components/ChannelFormModal';
@@ -58,7 +58,8 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
   const { identity } = useQueryAuth();
   const isMobile = useIsMobile();
   const location = useLocation();
-  const routedChannelId = matchPath('/channels/:channelId', location.pathname)?.params.channelId;
+  const routedChannelId = matchPath(`${paths.channels}/:channelId`, location.pathname)?.params
+    .channelId;
   const selectedChannelId =
     routedChannelId ??
     (isMobile ? (getLastConversation(identity, workspaceId, 'channels') ?? undefined) : undefined);

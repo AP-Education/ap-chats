@@ -1,8 +1,7 @@
+import { IconButton } from '@ap/ui';
 import { XIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
-
-import { IconButton } from '@/shared/ui/IconButton';
 
 const useStyles = createStyles(({ token, css }) => ({
   header: css`

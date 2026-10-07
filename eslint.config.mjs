@@ -46,8 +46,7 @@ export default defineConfig(
     files: [
       'web/**/*.{ts,tsx}',
       'mobile/**/*.{ts,tsx}',
-      'shell/**/*.{ts,tsx}',
-      'remotes/**/*.{ts,tsx}',
+      'host/**/*.{ts,tsx}',
       'packages/**/*.{ts,tsx}',
     ],
     plugins: { 'react-hooks': reactHooks },
@@ -57,12 +56,7 @@ export default defineConfig(
     },
   },
   {
-    files: [
-      'web/**/*.{ts,tsx}',
-      'shell/**/*.{ts,tsx}',
-      'remotes/**/*.{ts,tsx}',
-      'packages/**/*.{ts,tsx}',
-    ],
+    files: ['web/**/*.{ts,tsx}', 'host/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',

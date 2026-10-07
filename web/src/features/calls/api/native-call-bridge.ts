@@ -1,5 +1,6 @@
 import { postToNative } from '@ap/shell-sdk';
-import { resolveImageUrl } from '@ap/shell-ui';
+
+import { resolveImageUrl } from '@/shared/lib/resolve-image-url';
 
 import type { NativeCallConnectPayload } from '../types';
 

@@ -11,6 +11,7 @@ const PORT = 5557;
 
 // Chats is a remote: the shell owns the document, auth, theme and router.
 export default defineConfig({
+  define: { __BUILD_ID__: JSON.stringify(Date.now().toString(36)) },
   plugins: [
     react(),
     federation({

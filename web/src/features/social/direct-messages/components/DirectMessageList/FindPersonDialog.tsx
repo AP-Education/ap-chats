@@ -1,4 +1,3 @@
-import { Avatar } from '@ap/shell-ui';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Empty, Input, message as toast, Modal, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
@@ -6,6 +5,7 @@ import { useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
+import { Avatar } from '@/shared/ui/Avatar';
 
 import { type PersonResult, searchPeople } from '../../api/direct-messages-api';
 import { useOpenDirectMessage } from '../../hooks/useOpenDirectMessage';

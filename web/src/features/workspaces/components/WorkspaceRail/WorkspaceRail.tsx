@@ -1,9 +1,12 @@
 import { useIsAppActive, useOpenApp } from '@ap/shell-sdk';
-import { Avatar, RailAddTile, RailTile } from '@ap/shell-ui';
+import { NavAddTile, NavTile } from '@ap/ui';
 import { ArrowClockwiseIcon } from '@phosphor-icons/react';
 import { Skeleton } from 'antd';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+
+import { paths } from '@/shared/lib/paths';
+import { Avatar } from '@/shared/ui/Avatar';
 
 import { useActiveWorkspace } from '../../hooks/useActiveWorkspace';
 import { WorkspaceFormModal } from '../WorkspaceFormModal';
@@ -24,12 +27,12 @@ export function WorkspaceRail() {
     if (changed) selectWorkspace(workspaceId);
 
     if (!chatsActive) {
-      openApp('chats', changed ? '/' : undefined);
+      openApp('chats', changed ? paths.home : undefined);
       return;
     }
     if (!changed) return;
-    if (pathname.startsWith('/channels/')) void navigate('/channels');
-    if (pathname.startsWith('/direct/')) void navigate('/direct');
+    if (pathname.startsWith(`${paths.channels}/`)) void navigate(paths.channels);
+    if (pathname.startsWith(`${paths.direct}/`)) void navigate(paths.direct);
   }
 
   if (isLoading) {
@@ -43,25 +46,25 @@ export function WorkspaceRail() {
 
   if (isError && !workspaces) {
     return (
-      <RailTile label="Повторити завантаження робочих просторів" onClick={retry}>
+      <NavTile label="Повторити завантаження робочих просторів" onClick={retry}>
         <ArrowClockwiseIcon size={22} />
-      </RailTile>
+      </NavTile>
     );
   }
 
   return (
     <>
       {(workspaces ?? []).map((item) => (
-        <RailTile
+        <NavTile
           key={item.id}
           label={item.name}
           active={chatsActive && item.id === workspace?.id}
           onClick={() => handleSelect(item.id)}
         >
           <Avatar path={item.avatarPath} alt={item.name} size={40} shape="square" lazy={false} />
-        </RailTile>
+        </NavTile>
       ))}
-      <RailAddTile label="Створити робочий простір" onClick={() => setCreating(true)} />
+      <NavAddTile label="Створити робочий простір" onClick={() => setCreating(true)} />
       <WorkspaceFormModal open={creating} onClose={() => setCreating(false)} />
     </>
   );

@@ -1,4 +1,4 @@
-import { useIsMobile } from '@ap/shell-ui';
+import { IconButton, LoadingIcon, useIsMobile } from '@ap/ui';
 import { CaretDownIcon, GearSixIcon, SignOutIcon, UsersThreeIcon } from '@phosphor-icons/react';
 import { Alert, Button, Dropdown, type MenuProps, message } from 'antd';
 import { createStyles } from 'antd-style';
@@ -15,8 +15,7 @@ import { useCallAction } from '@/features/calls/hooks/useCallAction';
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { ApiError } from '@/shared/api/http';
-import { IconButton } from '@/shared/ui/IconButton';
-import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
+import { paths } from '@/shared/lib/paths';
 
 import { canManageChannel } from '../../../channel-permissions';
 import { useChannelMembership } from '../../../memberships/hooks/useChannelMembership';
@@ -267,7 +266,7 @@ export function ChannelDetail({
 
   function handleLeave() {
     leave.mutate(undefined, {
-      onSuccess: () => navigate('/channels'),
+      onSuccess: () => navigate(paths.channels),
       onError: (error) =>
         message.error(
           error instanceof ApiError && error.status === 409

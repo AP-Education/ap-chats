@@ -1,7 +1,17 @@
-import { useIsMobile } from '@ap/shell-ui';
+import {
+  Panel,
+  PanelBody,
+  PanelDivider,
+  PanelHeader,
+  PanelNav,
+  PanelNavItem,
+  useIsMobile,
+} from '@ap/ui';
 import { ChatsIcon, ChatTextIcon, HouseIcon, PhoneIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+
+import { paths } from '@/shared/lib/paths';
 
 import { ChannelsSidebar } from '../../features/communities/components/ChannelsSidebar';
 import { DirectMessageList } from '../../features/social/direct-messages/components/DirectMessageList/DirectMessageList';
@@ -10,31 +20,33 @@ import { WorkspaceHeader } from '../../features/workspaces/components/WorkspaceH
 import { useActiveWorkspace } from '../../features/workspaces/hooks/useActiveWorkspace';
 import { ChannelsNavBadge } from './ChannelsNavBadge';
 import { DirectMessagesNavBadge } from './DirectMessagesNavBadge';
-import { useChatsLayoutStyles } from './useChatsLayoutStyles';
-
-type NavKey = '/' | '/channels' | '/direct' | '/calls';
-
-const navItems: { key: NavKey; icon: typeof HouseIcon; label: string }[] = [
-  { key: '/', icon: HouseIcon, label: 'Головна' },
-  { key: '/channels', icon: ChatsIcon, label: 'Чати' },
-  { key: '/direct', icon: ChatTextIcon, label: 'Особисті' },
-  { key: '/calls', icon: PhoneIcon, label: 'Дзвінки' },
-];
 
 type ConversationSection = 'channels' | 'direct';
 
+const navItems: {
+  to: string;
+  section: ConversationSection | null;
+  icon: typeof HouseIcon;
+  label: string;
+}[] = [
+  { to: paths.home, section: null, icon: HouseIcon, label: 'Головна' },
+  { to: paths.channels, section: 'channels', icon: ChatsIcon, label: 'Чати' },
+  { to: paths.direct, section: 'direct', icon: ChatTextIcon, label: 'Особисті' },
+  { to: paths.calls, section: null, icon: PhoneIcon, label: 'Дзвінки' },
+];
+
 export function ChatsPanel() {
-  const { styles, cx } = useChatsLayoutStyles();
   const { pathname, key: locationKey } = useLocation();
+  const navigate = useNavigate();
   const { workspace } = useActiveWorkspace();
   const isMobile = useIsMobile();
   const [selection, setSelection] = useState<{
     locationKey: string;
     section: ConversationSection;
   } | null>(null);
-  const routeSection = pathname.startsWith('/direct')
+  const routeSection = pathname.startsWith(paths.direct)
     ? 'direct'
-    : pathname.startsWith('/channels')
+    : pathname.startsWith(paths.channels)
       ? 'channels'
       : null;
   const hasSelection = selection?.locationKey === locationKey;
@@ -42,81 +54,70 @@ export function ChatsPanel() {
   const listSection = activeSection ?? 'channels';
 
   return (
-    <div className={styles.sidebarStack}>
-      <div className={styles.sidebarWorkspace}>
+    <Panel>
+      <PanelHeader>
         <WorkspaceHeader />
-      </div>
-      <nav className={styles.nav}>
-        {navItems.map(({ key, icon: Icon, label }) => {
-          const section = key === '/channels' ? 'channels' : key === '/direct' ? 'direct' : null;
-          const routeActive = pathname === key || (key !== '/' && pathname.startsWith(`${key}/`));
-          const active = isMobile
-            ? section
-              ? activeSection === section
-              : !hasSelection && routeActive
-            : routeActive;
-          const content = (
-            <>
-              <Icon size={isMobile ? 22 : 20} weight={active ? 'fill' : 'regular'} />
-              <span className={styles.navLabel}>{label}</span>
-              {workspace && key === '/channels' && <ChannelsNavBadge />}
-              {workspace && key === '/direct' && <DirectMessagesNavBadge />}
-            </>
-          );
+      </PanelHeader>
+      <PanelNav>
+        {navItems.map(({ to, section, icon, label }) => {
+          const routeActive =
+            pathname === to || (to !== paths.home && pathname.startsWith(`${to}/`));
+          const badge = workspace && <NavItemBadge section={section} />;
 
           if (isMobile && section) {
             return (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={active}
+              <PanelNavItem
+                key={to}
+                icon={icon}
+                label={label}
+                badge={badge}
+                active={activeSection === section}
                 onClick={() => setSelection({ locationKey, section })}
-                className={cx(styles.navItem, active && styles.navItemActive)}
-              >
-                {content}
-              </button>
+              />
             );
           }
 
           return (
-            <Link key={key} to={key} className={cx(styles.navItem, active && styles.navItemActive)}>
-              {content}
-            </Link>
+            <PanelNavItem
+              key={to}
+              icon={icon}
+              label={label}
+              badge={badge}
+              active={isMobile ? !hasSelection && routeActive : routeActive}
+              href={to}
+              onClick={() => void navigate(to)}
+            />
           );
         })}
-      </nav>
+      </PanelNav>
       {workspace && (!isMobile || listSection === 'channels') && <UnreadDirectMessages />}
-      <div className={styles.navDivider} />
+      <PanelDivider />
       {isMobile ? (
         <>
-          <div
-            className={cx(
-              styles.channelSection,
-              listSection !== 'channels' && styles.channelSectionHidden,
-            )}
-          >
+          <PanelBody hidden={listSection !== 'channels'}>
             <ChannelsSidebar />
-          </div>
+          </PanelBody>
           {workspace && (
-            <div
-              className={cx(
-                styles.channelSection,
-                listSection !== 'direct' && styles.channelSectionHidden,
-              )}
-            >
+            <PanelBody hidden={listSection !== 'direct'}>
               <DirectMessageList workspaceId={workspace.id} />
-            </div>
+            </PanelBody>
           )}
         </>
       ) : (
-        <div className={styles.channelSection}>
-          {pathname.startsWith('/direct') && workspace ? (
+        <PanelBody>
+          {pathname.startsWith(paths.direct) && workspace ? (
             <DirectMessageList workspaceId={workspace.id} />
           ) : (
             <ChannelsSidebar />
           )}
-        </div>
+        </PanelBody>
       )}
-    </div>
+    </Panel>
   );
+}
+
+function NavItemBadge({ section }: { section: ConversationSection | null }) {
+  if (section === 'channels') return <ChannelsNavBadge />;
+  if (section === 'direct') return <DirectMessagesNavBadge />;
+  return null;
 }

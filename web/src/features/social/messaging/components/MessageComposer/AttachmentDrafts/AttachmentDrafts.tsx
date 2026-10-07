@@ -1,3 +1,4 @@
+import { IconButton } from '@ap/ui';
 import {
   ArrowClockwiseIcon,
   CheckCircleIcon,
@@ -8,8 +9,6 @@ import {
 import { Button, Input, Modal, Progress } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
-
-import { IconButton } from '@/shared/ui/IconButton';
 
 import { fileExtension, formatFileSize } from '../../../attachments/file-presentation';
 import type { AttachmentDraft } from '../../../attachments/types';

@@ -13,6 +13,7 @@ export function useDirectMessages(workspaceId: string) {
     queryFn: ({ pageParam }) => listDirectMessages(token as string, workspaceId, pageParam),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     enabled: Boolean(token),
+    meta: { persist: true },
   });
 }
 

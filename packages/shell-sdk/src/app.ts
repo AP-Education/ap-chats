@@ -7,7 +7,10 @@ export interface AppManifest {
   id: string;
   label: string;
   icon: AppIcon;
-  /** URL prefixes the application owns; '/' matches only the root path. */
+  /**
+   * URL prefixes the application owns. The longest matching prefix wins, so an
+   * application with '/' receives every path no other application claims.
+   */
   paths: string[];
   /** Where the rail sends the user when the application has no remembered location. */
   home: string;
@@ -44,10 +47,4 @@ export interface AppModule {
 
 export function defineApp(module: AppModule): AppModule {
   return module;
-}
-
-export function matchesAppPath(manifest: Pick<AppManifest, 'paths'>, pathname: string): boolean {
-  return manifest.paths.some((path) =>
-    path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(`${path}/`),
-  );
 }

@@ -1,4 +1,3 @@
-import { Avatar } from '@ap/shell-ui';
 import { CheckIcon } from '@phosphor-icons/react';
 import { Button, Empty, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
@@ -7,6 +6,7 @@ import {
   PrivateChannelIcon,
   PublicChannelIcon,
 } from '@/features/communities/channels/channelIcons';
+import { Avatar } from '@/shared/ui/Avatar';
 
 import type { ForwardTarget, ForwardTargetGroup, ForwardTargetOption } from './forward-targets';
 

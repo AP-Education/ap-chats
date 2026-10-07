@@ -1,4 +1,4 @@
-import { Avatar, useIsMobile } from '@ap/shell-ui';
+import { useIsMobile } from '@ap/ui';
 import { ChatTextIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Empty, message as toast, Skeleton } from 'antd';
@@ -6,6 +6,7 @@ import { createStyles } from 'antd-style';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
+import { Avatar } from '@/shared/ui/Avatar';
 
 import { searchPeople } from '../../api/direct-messages-api';
 import { useOpenDirectMessage } from '../../hooks/useOpenDirectMessage';

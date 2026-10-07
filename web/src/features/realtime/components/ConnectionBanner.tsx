@@ -1,7 +1,6 @@
+import { LoadingIcon } from '@ap/ui';
 import { WarningCircleIcon } from '@phosphor-icons/react';
 import { createStyles, keyframes } from 'antd-style';
-
-import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 
 import { useSocketEvent } from '../hooks/useSocketEvent';
 import { sessionReadySchema } from '../schemas';

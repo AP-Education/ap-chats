@@ -1,5 +1,5 @@
 import { isNativeShell } from '@ap/shell-sdk';
-import { useIsMobile } from '@ap/shell-ui';
+import { IconButton, useIsMobile } from '@ap/ui';
 import {
   GifIcon,
   KeyboardIcon,
@@ -25,7 +25,6 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversation, useConversationScope } from '@/features/social/conversation/store';
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
 import { randomId } from '@/shared/lib/random-id';
-import { IconButton } from '@/shared/ui/IconButton';
 
 import { useAttachments } from '../../attachments/useAttachments';
 import { MessageEditorSlotProvider } from '../../MessageEditorSlot';

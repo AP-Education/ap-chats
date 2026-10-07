@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { ApiError } from '@/shared/api/http';
+import { paths } from '@/shared/lib/paths';
 
 import { useChannelCategories } from '../../../channel-categories/hooks/useChannelCategories';
 import { useChannelActions } from '../../hooks/useChannelActions';
@@ -114,7 +115,7 @@ export function ChannelFormModal({
   async function handleDelete() {
     if (!channel) return;
     const wasOpen = routedChannelId === channel.id;
-    if (wasOpen) navigate('/channels', { replace: true });
+    if (wasOpen) navigate(paths.channels, { replace: true });
     try {
       await remove.mutateAsync(channel.id);
       if (!wasOpen) handleClose();
@@ -137,7 +138,7 @@ export function ChannelFormModal({
           kind: values.kind,
           categoryId,
         });
-        navigate(`/channels/${created.id}`);
+        navigate(paths.channel(created.id));
       }
       handleClose();
     } catch (error) {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import { paths } from '@/shared/lib/paths';
 
 import { openDirectMessage } from '../api/direct-messages-api';
 
@@ -15,7 +16,7 @@ export function useOpenDirectMessage(workspaceId: string) {
     setOpening(true);
     try {
       const conversation = await openDirectMessage(token, workspaceId, memberId);
-      navigate(`/direct/${conversation.id}`);
+      navigate(paths.directMessage(conversation.id));
     } finally {
       setOpening(false);
     }

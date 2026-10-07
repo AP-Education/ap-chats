@@ -1,3 +1,4 @@
+import { IconButton, LoadingIcon } from '@ap/ui';
 import { BellIcon, BellSlashIcon, UserCircleIcon } from '@phosphor-icons/react';
 import { message as toast, Popover } from 'antd';
 import { createStyles } from 'antd-style';
@@ -7,8 +8,6 @@ import { ConversationActionDivider } from '@/domain/conversation/ConversationPan
 import { callActionLabel } from '@/features/calls/callActionLabel';
 import { CallIcon } from '@/features/calls/callIcons';
 import { useCallAction } from '@/features/calls/hooks/useCallAction';
-import { IconButton } from '@/shared/ui/IconButton';
-import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
 
 import type { DirectMessage } from '../api/direct-messages-api';
 import { useDirectMessageMute } from '../hooks/useDirectMessageMute';

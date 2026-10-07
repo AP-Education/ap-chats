@@ -1,4 +1,4 @@
-import { useMediaQuery } from '@ap/shell-ui';
+import { useMediaQuery } from '@ap/ui';
 
 const narrowLayoutQuery = '(max-width: 1200px)';
 

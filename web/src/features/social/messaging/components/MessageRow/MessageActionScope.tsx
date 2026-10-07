@@ -1,4 +1,4 @@
-import { useIsMobile } from '@ap/shell-ui';
+import { useIsMobile } from '@ap/ui';
 import { createContext, type PropsWithChildren, type RefObject, useContext, useState } from 'react';
 
 import type {

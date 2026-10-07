@@ -51,6 +51,7 @@ export function useChannelCategories(workspaceId: string | undefined): ChannelCa
     queryKey,
     queryFn: () => listChannelCategories(token as string, workspaceId as string),
     enabled: Boolean(token && workspaceId),
+    meta: { persist: true },
   });
 
   const create = useMutation({

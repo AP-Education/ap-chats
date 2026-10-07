@@ -4,9 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'shell/**'
+      - 'host/**'
       - 'web/**'
-      - 'remotes/**'
       - 'packages/**'
       - '*.json'
       - '*.yaml'
@@ -16,9 +15,8 @@ on:
       - '.github/workflows/web.yml'
   pull_request:
     paths:
-      - 'shell/**'
+      - 'host/**'
       - 'web/**'
-      - 'remotes/**'
       - 'packages/**'
       - '*.json'
       - '*.yaml'
@@ -45,4 +43,4 @@ jobs:
       - run: pnpm typecheck:web
       - run: pnpm test:web
       - run: pnpm build:web
-      - run: pnpm exec prettier --check shell web remotes packages
+      - run: pnpm exec prettier --check host web packages

@@ -1,9 +1,8 @@
+import { IconButton } from '@ap/ui';
 import { XIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles, keyframes } from 'antd-style';
 import { useState } from 'react';
-
-import { IconButton } from '@/shared/ui/IconButton';
 
 import { callActionLabel } from '../callActionLabel';
 import { CallIcon } from '../callIcons';

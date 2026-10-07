@@ -1,4 +1,4 @@
-import { useTouchGesture } from '@ap/shell-ui';
+import { useTouchGesture } from '@ap/ui';
 import { createStyles } from 'antd-style';
 import { lazy, type PropsWithChildren, Suspense, useState } from 'react';
 

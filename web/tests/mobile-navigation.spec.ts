@@ -7,7 +7,7 @@ import { createGestureFixture as fixture } from './fixtures/touch-gesture-runtim
 
 function menuProgress(style: CSSProperties | undefined): number {
   assert.ok(style);
-  return (style as CSSProperties & { '--mobile-menu-progress': number })['--mobile-menu-progress'];
+  return (style as CSSProperties & { '--drawer-progress': number })['--drawer-progress'];
 }
 
 test('drawer follows the finger on the next frame, before release', () => {

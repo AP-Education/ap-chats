@@ -1,9 +1,8 @@
+import { IconButton } from '@ap/ui';
 import { BellIcon, BellSlashIcon } from '@phosphor-icons/react';
 import { App, Button, Popover, Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
-
-import { IconButton } from '@/shared/ui/IconButton';
 
 import type { NotificationLevel } from '../../types';
 import { NotificationPopoverContent } from './NotificationPopoverContent';

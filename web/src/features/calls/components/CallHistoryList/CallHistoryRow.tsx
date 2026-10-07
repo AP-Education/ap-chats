@@ -1,4 +1,4 @@
-import { Avatar, useIsMobile } from '@ap/shell-ui';
+import { IconButton, LoadingIcon, useIsMobile } from '@ap/ui';
 import { createStyles } from 'antd-style';
 import { Link } from 'react-router-dom';
 
@@ -7,8 +7,8 @@ import { CallIcon } from '@/features/calls/callIcons';
 import { getCallStatusIcon } from '@/features/calls/callStatusIcon';
 import { formatCallDuration } from '@/features/calls/formatCallDuration';
 import { useKnownCallAction } from '@/features/calls/hooks/useKnownCallAction';
-import { IconButton } from '@/shared/ui/IconButton';
-import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
+import { paths } from '@/shared/lib/paths';
+import { Avatar } from '@/shared/ui/Avatar';
 
 import type { CallHistoryItem } from '../../api/calls-api';
 
@@ -176,7 +176,7 @@ export function CallHistoryRow({ item, workspaceId }: CallHistoryRowProps) {
   return (
     <div className={styles.row}>
       <Link
-        to={`/direct/${item.channelId}`}
+        to={paths.directMessage(item.channelId)}
         className={styles.identity}
         aria-label={`Відкрити розмову з ${name}`}
       >
