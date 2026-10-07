@@ -12,5 +12,5 @@ export abstract class EventOutboxRepository {
   abstract claim(limit: number): Promise<StoredOutboxEvent[]>;
   abstract release(ids: string[]): Promise<void>;
   abstract acknowledge(id: string): Promise<void>;
-  abstract purge(): Promise<void>;
+  abstract purgeExpired(): Promise<void>;
 }

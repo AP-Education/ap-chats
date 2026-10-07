@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import { eventOutbox } from '@/database/drizzle/schema';
@@ -26,7 +26,7 @@ export class DrizzleEventOutboxRepository extends EventOutboxRepository {
     >(sql`
       update ${eventOutbox} set leased_until = now() + interval '60 seconds'
       where id in (select id from ${eventOutbox}
-        where published_at is null and expires_at > now()
+        where expires_at > now()
         and (leased_until is null or leased_until <= now())
         order by priority, created_at, id limit ${limit} for update skip locked)
       returning id, name, payload, priority,
@@ -38,17 +38,15 @@ export class DrizzleEventOutboxRepository extends EventOutboxRepository {
     await this.txHost.tx
       .update(eventOutbox)
       .set({ leasedUntil: null })
-      .where(and(inArray(eventOutbox.id, ids), isNull(eventOutbox.publishedAt)));
+      .where(inArray(eventOutbox.id, ids));
   }
+  // Once the queue holds the event, the queue's own job ID is what keeps it from repeating.
   async acknowledge(id: string): Promise<void> {
-    await this.txHost.tx
-      .update(eventOutbox)
-      .set({ publishedAt: new Date(), leasedUntil: null })
-      .where(eq(eventOutbox.id, id));
+    await this.txHost.tx.delete(eventOutbox).where(eq(eventOutbox.id, id));
   }
-  async purge(): Promise<void> {
+
+  async purgeExpired(): Promise<void> {
     await this.txHost.tx.execute(sql`delete from ${eventOutbox} where id in (
-      select id from ${eventOutbox} where expires_at < now() - interval '7 days'
-      order by expires_at limit 1000)`);
+      select id from ${eventOutbox} where expires_at < now() order by expires_at limit 1000)`);
   }
 }

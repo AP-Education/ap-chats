@@ -55,7 +55,7 @@ export class OutboxDispatcher implements OnModuleInit, OnModuleDestroy {
         throw error;
       }
     }
-    await this.repository.purge();
+    await this.repository.purgeExpired();
 
     return claimed.length;
   }

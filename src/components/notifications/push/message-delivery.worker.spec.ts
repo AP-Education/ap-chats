@@ -21,8 +21,6 @@ function fixture(kind: 'web' | 'expo' = 'web') {
     endpoint: 'https://fcm.googleapis.com/push/one',
     p256dh: 'key',
     auth: 'auth',
-    activeWorkspaceId: null,
-    activeChannelId: null,
     activeUntil: null,
     createdAt: new Date(),
     updatedAt: new Date(),

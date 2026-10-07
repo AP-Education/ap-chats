@@ -13,8 +13,6 @@ const selection = {
   endpoint: webPushSubscriptions.endpoint,
   p256dh: webPushSubscriptions.p256dh,
   auth: webPushSubscriptions.auth,
-  activeWorkspaceId: webPushSubscriptions.activeWorkspaceId,
-  activeChannelId: webPushSubscriptions.activeChannelId,
   activeUntil: webPushSubscriptions.activeUntil,
   userId: devices.userId,
   createdAt: devices.createdAt,
@@ -63,8 +61,6 @@ export class DrizzleWebPushRepository extends WebPushRepository {
           endpoint: dto.endpoint,
           ...dto.keys,
           activeUntil: sameOwner ? webPushSubscriptions.activeUntil : null,
-          activeWorkspaceId: sameOwner ? webPushSubscriptions.activeWorkspaceId : null,
-          activeChannelId: sameOwner ? webPushSubscriptions.activeChannelId : null,
         },
       });
     return device;
@@ -80,8 +76,6 @@ export class DrizzleWebPushRepository extends WebPushRepository {
     await this.txHost.tx
       .update(webPushSubscriptions)
       .set({
-        activeWorkspaceId: presence.focused ? (presence.workspaceId ?? null) : null,
-        activeChannelId: presence.focused ? (presence.channelId ?? null) : null,
         activeUntil: presence.focused ? new Date(Date.now() + 75000) : null,
       })
       .where(

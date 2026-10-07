@@ -54,6 +54,8 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
     ('previous-owner', 'shared-install', 'ios', 'old-token', '2026-01-01'),
     ('current-owner', 'shared-install', 'ios', 'new-token', '2026-02-01')`);
   await pg.exec(readFileSync(`drizzle/${pushMigration}`, 'utf8'));
+  for (const migration of migrations.slice(pushMigrationIndex + 1))
+    await pg.exec(readFileSync(`drizzle/${migration}`, 'utf8'));
   assert.deepEqual(
     (await db.select().from(schema.devices)).map((device) => device.userId),
     ['current-owner'],
@@ -364,7 +366,7 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
       const id = jobId('committed');
       const stored = async () =>
         (await db.select().from(schema.eventOutbox).where(eq(schema.eventOutbox.id, id)))[0];
-      assert.equal((await stored())?.publishedAt, null);
+      assert.ok(await stored(), 'a failed handoff keeps the event');
       assert.equal((await stored())?.leasedUntil, null);
       unavailable = false;
       const acknowledge = repository.acknowledge.bind(repository);
@@ -377,12 +379,12 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
         await acknowledge(eventId);
       };
       await assert.rejects(dispatcher.relay(), /crash after enqueue/u);
-      assert.equal((await stored())?.publishedAt, null);
+      assert.ok(await stored(), 'an unacknowledged event is relayed again');
       await dispatcher.relay();
       await dispatcher.relay();
       assert.equal(queued.size, 1);
       assert.deepEqual(queued.get(id), { value: 1 });
-      assert.ok((await stored())?.publishedAt);
+      assert.equal(await stored(), undefined, 'an acknowledged event leaves the outbox');
     },
   );
 
@@ -452,7 +454,11 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
       );
       assert.ok([...queued.values()].some((job) => job.name === PUSH_EXPO_DELIVERY_QUEUE));
       assert.ok(!JSON.stringify([...queued.values()]).includes('ExpoPushToken[reader]'));
-      assert.equal((await db.select().from(schema.eventOutbox)).length, 1);
+      assert.equal(
+        (await db.select().from(schema.eventOutbox)).length,
+        0,
+        'fanout and delivery jobs never write back to the outbox',
+      );
       const firstJob = [...queued.values()][0]!.data as { alert: ConversationAlert };
       assert.equal((await content.buildNotification(firstJob.alert))?.body, 'message');
       await db

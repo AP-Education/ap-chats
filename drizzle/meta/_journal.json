@@ -134,6 +134,13 @@
       "when": 1791198520854,
       "tag": "0018_push_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791366182257,
+      "tag": "0019_push_simplify",
+      "breakpoints": true
     }
   ]
 }

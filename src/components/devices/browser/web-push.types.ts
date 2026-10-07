@@ -4,8 +4,6 @@ export interface WebPushSubscription {
   endpoint: string;
   p256dh: string;
   auth: string;
-  activeWorkspaceId: string | null;
-  activeChannelId: string | null;
   activeUntil: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -17,6 +15,4 @@ export interface WebPushRegistration {
 }
 export interface WebPushPresence {
   focused: boolean;
-  workspaceId?: string;
-  channelId?: string;
 }
