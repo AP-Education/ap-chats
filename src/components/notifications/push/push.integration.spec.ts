@@ -234,43 +234,48 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
     expiresAt: new Date(now.getTime() + 3600000).toISOString(),
     ...overrides,
   });
+  const limits = { cooldownSeconds: 30, userAlertsPerMinute: 5, urgent: false };
+  const later = (seconds: number) => new Date(now.getTime() + seconds * 1000);
+
   await t.test('reservations are idempotent and keep their original range on retry', async () => {
     const request = alert();
-    const first = await batches.reserve(request, now, 30, 5);
-    assert.ok(first);
-    const retry = await batches.reserve({ ...request, lastSeq: '99' }, now, 30, 5);
+    const first = await batches.reserve(request, now, limits);
+    assert.equal(first.status, 'reserved');
+
+    const retry = await batches.reserve({ ...request, lastSeq: '99' }, now, limits);
     assert.deepEqual(retry, first);
     assert.equal((await db.select().from(schema.pushBatches)).length, 1);
   });
 
-  await t.test('conversation cooldown and source watermark suppress duplicate alerts', async () => {
+  await t.test('a cooldown defers the next alert to its end instead of dropping it', async () => {
+    const throttled = await batches.reserve(alert({ lastSeq: '12' }), later(10), limits);
+    assert.equal(throttled.status, 'deferred');
+    assert.equal(throttled.status === 'deferred' && throttled.until > later(10), true);
+
+    const next = await batches.reserve(alert({ lastSeq: '13' }), later(31), limits);
+    assert.equal(next.status, 'reserved');
     assert.equal(
-      await batches.reserve(alert({ lastSeq: '12' }), new Date(now.getTime() + 10000), 30, 5),
-      null,
+      (await batches.latest('reader', channelId))?.id,
+      next.status === 'reserved' ? next.window.id : undefined,
     );
-    const next = await batches.reserve(
-      alert({ lastSeq: '13' }),
-      new Date(now.getTime() + 31000),
-      30,
-      5,
-    );
-    assert.ok(next);
-    assert.equal((await batches.latest('reader', channelId))?.id, next.id);
-    assert.equal(await batches.reserve(alert(), new Date(now.getTime() + 61000), 30, 5), null);
+
+    const covered = await batches.reserve(alert(), later(61), limits);
+    assert.equal(covered.status, 'superseded', 'an older range is already covered');
   });
 
-  await t.test(
-    'one user budget covers different conversations and is renewed after a minute',
-    async () => {
-      for (let index = 0; index < 6; index++) {
-        const request = alert({ userId: 'budget-reader', channelId: randomUUID() });
-        const result = await batches.reserve(request, now, 30, 5);
-        assert.equal(Boolean(result), index < 5);
-        if (index === 5)
-          assert.ok(await batches.reserve(request, new Date(now.getTime() + 61000), 30, 5));
-      }
-    },
-  );
+  await t.test('the user budget defers ordinary alerts but lets urgent ones through', async () => {
+    const reserve = (urgent: boolean, at = now) =>
+      batches.reserve(alert({ userId: 'budget-reader', channelId: randomUUID() }), at, {
+        ...limits,
+        urgent,
+      });
+
+    for (let index = 0; index < 5; index++) assert.equal((await reserve(false)).status, 'reserved');
+
+    assert.equal((await reserve(false)).status, 'deferred');
+    assert.equal((await reserve(true)).status, 'reserved', 'a DM or mention skips the budget');
+    assert.equal((await reserve(false, later(61))).status, 'reserved');
+  });
 
   await t.test('a later ordinary message does not erase an earlier unread mention', async () => {
     const ordinary = randomUUID();

@@ -30,10 +30,16 @@ export class MessageNotificationContentService {
     const level = this.policy.messageLevel(recipient);
     if (level === 'none') return null;
 
-    const message = await this.audience.latestMessage(scope, recipient, level === 'mentions');
+    // A mention outranks newer chatter, both for the preview and for the alert budget.
+    const mention = await this.audience.latestMessage(scope, recipient, true);
+    const message =
+      mention ??
+      (level === 'all' ? await this.audience.latestMessage(scope, recipient, false) : undefined);
     if (!message) return null;
 
-    return { context, message };
+    const urgent = context.kind === 'dm' || mention !== undefined;
+
+    return { context, message, urgent };
   }
 
   async buildNotification(alert: ConversationAlert): Promise<MessageNotificationPayload | null> {

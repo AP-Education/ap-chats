@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, count, desc, eq, gt, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gt, min, sql } from 'drizzle-orm';
 
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import { pushBatches } from '@/database/drizzle/schema';
 
-import type { ConversationAlert } from '../types';
-import { NotificationWindowsRepository } from './notification-windows.repository';
+import type { ConversationAlert, NotificationWindow } from '../types';
+import {
+  NotificationWindowsRepository,
+  type WindowLimits,
+  type WindowReservation,
+} from './notification-windows.repository';
 
 @Injectable()
 export class DrizzleNotificationWindowsRepository extends NotificationWindowsRepository {
@@ -24,38 +28,35 @@ export class DrizzleNotificationWindowsRepository extends NotificationWindowsRep
     return batch;
   }
 
-  reserve(alert: ConversationAlert, now: Date, cooldownSeconds: number, userLimit: number) {
+  reserve(alert: ConversationAlert, now: Date, limits: WindowLimits): Promise<WindowReservation> {
     return this.txHost.withTransaction(async () => {
       // One user lock makes both conversation cooldown and the cross-conversation budget atomic.
       await this.txHost.tx.execute(
         sql`select pg_advisory_xact_lock(hashtextextended(${'push-budget:' + alert.userId}, 0))`,
       );
+
       const [existing] = await this.txHost.tx
         .select()
         .from(pushBatches)
         .where(eq(pushBatches.id, alert.id));
-      if (existing)
-        return existing.userId === alert.userId && existing.channelId === alert.channelId
-          ? existing
-          : null;
+      if (existing) {
+        const isSameConversation =
+          existing.userId === alert.userId && existing.channelId === alert.channelId;
+        return isSameConversation ? reserved(existing) : SUPERSEDED;
+      }
+
       const previous = await this.latest(alert.userId, alert.channelId);
-      if (
-        previous &&
-        (previous.lastSeq >= BigInt(alert.lastSeq) ||
-          now.getTime() - previous.createdAt.getTime() < cooldownSeconds * 1000)
-      )
-        return null;
-      const [recent] = await this.txHost.tx
-        .select({ count: count() })
-        .from(pushBatches)
-        .where(
-          and(
-            eq(pushBatches.userId, alert.userId),
-            gt(pushBatches.createdAt, new Date(now.getTime() - 60000)),
-          ),
-        );
-      if ((recent?.count ?? 0) >= userLimit) return null;
-      const [batch] = await this.txHost.tx
+      if (previous && previous.lastSeq >= BigInt(alert.lastSeq)) return SUPERSEDED;
+
+      const cooldownEndsAt = previous && addSeconds(previous.createdAt, limits.cooldownSeconds);
+      if (cooldownEndsAt && cooldownEndsAt > now) return deferred(cooldownEndsAt);
+
+      if (!limits.urgent) {
+        const budgetFreesAt = await this.budgetFreesAt(alert.userId, now, limits);
+        if (budgetFreesAt) return deferred(budgetFreesAt);
+      }
+
+      const [window] = await this.txHost.tx
         .insert(pushBatches)
         .values({
           id: alert.id,
@@ -67,9 +68,34 @@ export class DrizzleNotificationWindowsRepository extends NotificationWindowsRep
           createdAt: now,
         })
         .returning();
+
       await this.txHost.tx.execute(sql`delete from ${pushBatches} where id in
         (select id from ${pushBatches} where expires_at < now() - interval '7 days' limit 1000)`);
-      return batch ?? null;
+
+      return window ? reserved(window) : SUPERSEDED;
     });
   }
+
+  // When the oldest alert of the last minute ages out, if the budget is spent.
+  private async budgetFreesAt(userId: string, now: Date, limits: WindowLimits) {
+    const minuteAgo = addSeconds(now, -60);
+    const [recent] = await this.txHost.tx
+      .select({ count: count(), oldest: min(pushBatches.createdAt) })
+      .from(pushBatches)
+      .where(and(eq(pushBatches.userId, userId), gt(pushBatches.createdAt, minuteAgo)));
+
+    const isSpent = (recent?.count ?? 0) >= limits.userAlertsPerMinute;
+    return isSpent && recent?.oldest ? addSeconds(recent.oldest, 60) : undefined;
+  }
 }
+
+const SUPERSEDED: WindowReservation = { status: 'superseded' };
+
+const reserved = (window: NotificationWindow): WindowReservation => ({
+  status: 'reserved',
+  window,
+});
+
+const deferred = (until: Date): WindowReservation => ({ status: 'deferred', until });
+
+const addSeconds = (date: Date, seconds: number) => new Date(date.getTime() + seconds * 1000);

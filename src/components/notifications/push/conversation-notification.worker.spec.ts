@@ -112,3 +112,43 @@ test('failed page enqueue does not advance fanout and retry retains the same ale
   assert.deepEqual(f.batches[1], f.batches[0]);
   assert.equal(f.continuation.length, 1);
 });
+
+test('a throttled alert is rescheduled for when its window opens, not dropped', async () => {
+  const until = new Date(Date.now() + 20_000);
+  const deferred: Array<{ name: string; data: ConversationAlert; options: { delay?: number } }> =
+    [];
+  const request: ConversationAlert = {
+    id: 'alert-1',
+    workspaceId: 'workspace',
+    channelId: 'channel',
+    firstSeq: '10',
+    lastSeq: '12',
+    userId: 'reader',
+    memberId: 'member',
+    expiresAt: new Date(Date.now() + 3600000).toISOString(),
+  };
+  const worker = new ConversationNotificationWorker(
+    {
+      enqueue: async (name: string, data: ConversationAlert, options: { delay?: number }) => {
+        deferred.push({ name, data, options });
+      },
+    } as never,
+    { context: async () => ({ kind: 'private', lastSeq: 12n }) } as never,
+    new NotificationPolicyService(),
+    {
+      latest: async () => undefined,
+      reserve: async () => ({ status: 'deferred', until }),
+    } as never,
+    { get: () => 30 } as never,
+    { listMessageTargetsForUser: async () => [{ kind: 'expo', id: 'device' }] } as never,
+    { browserEnabled: false } as never,
+    { findEligibleMessage: async () => ({ urgent: false }) } as never,
+  );
+
+  await worker.dispatchConversationAlert(request);
+
+  assert.equal(deferred.length, 1);
+  assert.equal(deferred[0]!.name, PUSH_BATCH_READY_EVENT);
+  assert.equal(deferred[0]!.data, request);
+  assert.ok(deferred[0]!.options.delay! > 19_000 && deferred[0]!.options.delay! <= 20_000);
+});

@@ -162,7 +162,8 @@ export class ConversationNotificationWorker implements OnModuleInit {
       };
     }
 
-    if (!(await this.content.findEligibleMessage(candidate))) return;
+    const eligible = await this.content.findEligibleMessage(candidate);
+    if (!eligible) return;
 
     const targets = await this.targets.listMessageTargetsForUser(
       request.userId,
@@ -170,19 +171,20 @@ export class ConversationNotificationWorker implements OnModuleInit {
     );
     if (!targets.length) return;
 
-    const reservation = await this.windows.reserve(
-      candidate,
-      new Date(),
-      this.config.get('PUSH_COOLDOWN_SECONDS'),
-      this.config.get('PUSH_USER_ALERTS_PER_MINUTE'),
-    );
-    if (!reservation) return;
+    const reservation = await this.windows.reserve(candidate, new Date(), {
+      cooldownSeconds: this.config.get('PUSH_COOLDOWN_SECONDS'),
+      userAlertsPerMinute: this.config.get('PUSH_USER_ALERTS_PER_MINUTE'),
+      urgent: eligible.urgent,
+    });
+    if (reservation.status === 'superseded') return;
+    if (reservation.status === 'deferred') return this.deferAlert(request, reservation.until);
 
+    const { window } = reservation;
     const alert = {
       ...candidate,
-      firstSeq: reservation.firstSeq.toString(),
-      lastSeq: reservation.lastSeq.toString(),
-      expiresAt: reservation.expiresAt.toISOString(),
+      firstSeq: window.firstSeq.toString(),
+      lastSeq: window.lastSeq.toString(),
+      expiresAt: window.expiresAt.toISOString(),
     };
 
     // Retry the same reservation after an enqueue failure; stable child IDs prevent duplicate jobs.
@@ -192,9 +194,18 @@ export class ConversationNotificationWorker implements OnModuleInit {
         { alert, target },
         {
           id: jobId(`${alert.id}:${target.kind}:${target.id}:${target.fingerprint}`),
-          expiresAt: reservation.expiresAt.getTime(),
+          expiresAt: window.expiresAt.getTime(),
         },
       );
     }
+  }
+
+  // A throttled alert waits for its window instead of being dropped; the rerun covers every message since.
+  private async deferAlert(request: ConversationAlert, until: Date): Promise<void> {
+    await this.jobs.enqueue(PUSH_BATCH_READY_EVENT, request, {
+      id: jobId(`${request.id}:deferred:${until.getTime()}`),
+      delay: Math.max(0, until.getTime() - Date.now()),
+      expiresAt: Date.parse(request.expiresAt),
+    });
   }
 }
