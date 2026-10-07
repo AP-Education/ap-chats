@@ -1,0 +1,108 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
+import { jobId } from '@/globals/jobs/job-id';
+import type { JobRequest } from '@/globals/jobs/job-queue';
+
+import { NotificationRequests } from '../delivery/notification-requests';
+import { type ConversationAlert, PUSH_ALERT_DUE_QUEUE } from '../delivery/types';
+import { NotificationPolicyService } from '../policy';
+import { ConversationAlertScheduler } from './conversation-alert.scheduler';
+import { type MessageFanoutJob, PUSH_FANOUT_QUEUE } from './types';
+
+function fixture(level: 'default' | 'mentions' = 'mentions') {
+  const source = {
+    workspaceId: 'workspace',
+    channelId: 'channel',
+    actorMemberId: '003',
+    firstSeq: '10',
+    lastSeq: '10',
+  };
+  const createdAt = new Date();
+  const page = Array.from({ length: 100 }, (_, index) => ({
+    memberId: String(index).padStart(3, '0'),
+    userId: `reader-${index}`,
+    level,
+    mutedUntil: null,
+    notificationsMuted: index === 10,
+    mentioned: [3, 7, 10].includes(index),
+    lastReadEntrySeq: 0n,
+  }));
+  const batches: JobRequest<ConversationAlert>[][] = [];
+  const continuation: MessageFanoutJob[] = [];
+  let fail = false;
+  const jobs = {
+    enqueueMany: async (name: string, requests: JobRequest<ConversationAlert>[]) => {
+      assert.equal(name, PUSH_ALERT_DUE_QUEUE);
+      batches.push(requests);
+      if (fail) throw new Error('queue unavailable');
+    },
+    enqueue: async (name: string, job: MessageFanoutJob) => {
+      assert.equal(name, PUSH_FANOUT_QUEUE);
+      continuation.push(job);
+    },
+  };
+  const config = { get: () => 3 };
+  const worker = new ConversationAlertScheduler(
+    {} as never,
+    jobs as never,
+    {
+      context: async () => ({ kind: 'private' }),
+      lastCreatedAt: async () => createdAt,
+      recipients: async () => page,
+    } as never,
+    new NotificationPolicyService(),
+    new NotificationRequests(jobs as never, config as never),
+    config as never,
+  );
+
+  return {
+    worker,
+    source,
+    createdAt,
+    batches,
+    continuation,
+    fail: (value: boolean) => {
+      fail = value;
+    },
+  };
+}
+
+test('fanout preserves recipient policy and advances past silent members in a bounded page', async () => {
+  const f = fixture();
+  await f.worker.schedule({ source: f.source });
+
+  const alerts = f.batches[0]!;
+  assert.equal(alerts.length, 1);
+  assert.equal(alerts[0]!.data.userId, 'reader-7');
+  assert.equal(alerts[0]!.options?.delay, 3000);
+  assert.equal(alerts[0]!.options?.expiresAt, f.createdAt.getTime() + 3600000);
+  assert.deepEqual(alerts[0]!.options?.deduplication, {
+    id: jobId('reader-7:channel'),
+    ttl: 3000,
+  });
+  assert.deepEqual(f.continuation, [{ source: f.source, after: '099' }]);
+});
+
+test('default channel fanout includes non-mentions but excludes the author and muted members', async () => {
+  const f = fixture('default');
+  await f.worker.schedule({ source: f.source });
+  const recipients = f.batches[0]!.map((alert) => alert.data.memberId);
+  assert.equal(recipients.length, 98);
+  assert.ok(recipients.includes('000'));
+  assert.ok(recipients.includes('007'));
+  assert.ok(!recipients.includes('003'));
+  assert.ok(!recipients.includes('010'));
+});
+
+test('failed page enqueue does not advance fanout and retry retains the same alert IDs', async () => {
+  const f = fixture();
+  f.fail(true);
+  await assert.rejects(f.worker.schedule({ source: f.source }), /queue unavailable/u);
+  assert.deepEqual(f.continuation, []);
+
+  f.fail(false);
+  await f.worker.schedule({ source: f.source });
+  assert.deepEqual(f.batches[1], f.batches[0]);
+  assert.equal(f.continuation.length, 1);
+});

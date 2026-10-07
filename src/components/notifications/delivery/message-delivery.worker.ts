@@ -4,7 +4,7 @@ import { AppConfigService } from '@/globals/config';
 import { JobQueue } from '@/globals/jobs/job-queue';
 
 import { NotificationChannelRegistry } from './channels/notification-channel.registry';
-import { MessageNotificationContentService } from './message-notification-content.service';
+import { NotificationContent } from './notification-content';
 import { NotificationWindowsRepository } from './repository/notification-windows.repository';
 import type { MessageDeliveryJob } from './types';
 
@@ -15,7 +15,7 @@ export class MessageDeliveryWorker implements OnModuleInit {
     private readonly channels: NotificationChannelRegistry,
     private readonly windows: NotificationWindowsRepository,
     private readonly config: AppConfigService,
-    private readonly content: MessageNotificationContentService,
+    private readonly content: NotificationContent,
   ) {}
 
   onModuleInit(): void {
@@ -37,7 +37,7 @@ export class MessageDeliveryWorker implements OnModuleInit {
     const ttl = Math.ceil((Date.parse(alert.expiresAt) - Date.now()) / 1000);
     if (ttl <= 0) return;
 
-    const notification = await this.content.buildNotification(alert);
+    const notification = await this.content.render(alert);
     if (!notification) return;
 
     await this.channels.resolve(target.channel).send(target, notification, ttl);

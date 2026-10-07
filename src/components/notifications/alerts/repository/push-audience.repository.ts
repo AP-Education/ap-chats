@@ -1,13 +1,7 @@
 import type { ChannelKind } from '@/components/communities/channels';
 
+import type { ConversationRange } from '../../delivery/types';
 import type { StoredNotificationSettings } from '../../preferences/types';
-
-export interface PushScope {
-  workspaceId: string;
-  channelId: string;
-  firstSeq: string;
-  lastSeq: string;
-}
 
 export interface PushContext {
   name: string | null;
@@ -27,15 +21,15 @@ export interface PushMessagePreview {
 }
 
 export abstract class PushAudienceRepository {
-  abstract context(scope: PushScope): Promise<PushContext | undefined>;
+  abstract context(scope: ConversationRange): Promise<PushContext | undefined>;
   abstract recipients(
-    scope: PushScope,
+    scope: ConversationRange,
     after?: string,
     memberId?: string,
   ): Promise<PushRecipient[]>;
-  abstract lastCreatedAt(scope: PushScope): Promise<Date | undefined>;
+  abstract lastCreatedAt(scope: ConversationRange): Promise<Date | undefined>;
   abstract latestMessage(
-    scope: PushScope,
+    scope: ConversationRange,
     recipient: PushRecipient,
     mentionsOnly: boolean,
   ): Promise<PushMessagePreview | undefined>;

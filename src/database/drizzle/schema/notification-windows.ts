@@ -1,6 +1,6 @@
 import { bigint, index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
-export const pushBatches = pgTable(
+export const notificationWindows = pgTable(
   'push_batches',
   {
     id: uuid('id').primaryKey().defaultRandom(),

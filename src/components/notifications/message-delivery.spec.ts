@@ -6,13 +6,13 @@ import type { WebPushSubscription } from '@/components/devices/browser/web-push.
 import { subscriptionFingerprint } from '@/components/devices/targets/credential-fingerprint';
 import { tokenFingerprint } from '@/components/devices/targets/credential-fingerprint';
 
-import { NotificationPolicyService } from '../policy';
-import { BrowserChannel } from './channels/browser.channel';
-import { NativeAppChannel } from './channels/native-app.channel';
-import { NotificationChannelRegistry } from './channels/notification-channel.registry';
-import { MessageDeliveryWorker } from './message-delivery.worker';
-import { MessageNotificationContentService } from './message-notification-content.service';
-import type { ConversationAlert, MessageDeliveryJob } from './types';
+import { MessageNotificationContentService } from './alerts/message-notification-content.service';
+import { BrowserChannel } from './delivery/channels/browser.channel';
+import { NativeAppChannel } from './delivery/channels/native-app.channel';
+import { NotificationChannelRegistry } from './delivery/channels/notification-channel.registry';
+import { MessageDeliveryWorker } from './delivery/message-delivery.worker';
+import type { ConversationAlert, MessageDeliveryJob } from './delivery/types';
+import { NotificationPolicyService } from './policy';
 
 function fixture(kind: 'web' | 'expo' = 'web') {
   const subscription: WebPushSubscription = {

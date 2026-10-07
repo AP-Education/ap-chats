@@ -27,16 +27,17 @@ import { OutboxDispatcher } from '@/globals/publisher/outbox-dispatcher';
 import { PersistentEventOutbox } from '@/globals/publisher/persistent-event-outbox';
 import { DrizzleEventOutboxRepository } from '@/globals/publisher/repository/drizzle-event-outbox.repository';
 
-import { NotificationPolicyService } from '../policy';
-import { BrowserChannel } from './channels/browser.channel';
-import { NativeAppChannel } from './channels/native-app.channel';
-import { NotificationChannelRegistry } from './channels/notification-channel.registry';
-import { ConversationNotificationWorker } from './conversation-notification.worker';
-import { MessageNotificationContentService } from './message-notification-content.service';
-import { DrizzleNotificationWindowsRepository } from './repository/drizzle-notification-windows.repository';
-import { DrizzlePushAudienceRepository } from './repository/drizzle-push-audience.repository';
-import type { ConversationAlert, MessageNotificationSource } from './types';
-import { PUSH_EXPO_DELIVERY_QUEUE, PUSH_WEB_DELIVERY_QUEUE } from './types';
+import { MessageNotificationContentService } from './alerts/message-notification-content.service';
+import { DrizzlePushAudienceRepository } from './alerts/repository/drizzle-push-audience.repository';
+import type { MessageNotificationSource } from './alerts/types';
+import { AlertDispatcher } from './delivery/alert-dispatcher';
+import { BrowserChannel } from './delivery/channels/browser.channel';
+import { NativeAppChannel } from './delivery/channels/native-app.channel';
+import { NotificationChannelRegistry } from './delivery/channels/notification-channel.registry';
+import { DrizzleNotificationWindowsRepository } from './delivery/repository/drizzle-notification-windows.repository';
+import type { ConversationAlert } from './delivery/types';
+import { PUSH_EXPO_DELIVERY_QUEUE, PUSH_WEB_DELIVERY_QUEUE } from './delivery/types';
+import { NotificationPolicyService } from './policy';
 
 // Embedded PostgreSQL: no application database or notification provider is contacted.
 test('push migrations, devices, burst policy and durable outbox on PostgreSQL', async (t) => {
@@ -246,7 +247,7 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
 
     const retry = await batches.reserve({ ...request, lastSeq: '99' }, now, limits);
     assert.deepEqual(retry, first);
-    assert.equal((await db.select().from(schema.pushBatches)).length, 1);
+    assert.equal((await db.select().from(schema.notificationWindows)).length, 1);
   });
 
   await t.test('a cooldown defers the next alert to its end instead of dropping it', async () => {
@@ -395,7 +396,9 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
   await t.test(
     'failed fanout retries one reservation and stable per-device jobs without child outbox records',
     async () => {
-      await db.delete(schema.pushBatches).where(eq(schema.pushBatches.userId, 'reader'));
+      await db
+        .delete(schema.notificationWindows)
+        .where(eq(schema.notificationWindows.userId, 'reader'));
       await db
         .update(schema.chatMessages)
         .set({ deletedAt: null })
@@ -429,32 +432,33 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
       );
       const queued = new Map<string, { name: string; data: object }>();
       let fail = true;
-      const worker = new ConversationNotificationWorker(
-        {} as never,
+      const dispatcher = new AlertDispatcher(
         {
           enqueue: async (name: string, data: object, options: { id: string }) => {
             if (name === PUSH_WEB_DELIVERY_QUEUE && fail) throw new Error('enqueue failed');
             queued.set(options.id, { name, data });
           },
         } as never,
-        audience,
-        new NotificationPolicyService(),
-        batches,
-        appConfig as never,
-        channels,
         content,
+        batches,
+        channels,
+        appConfig as never,
       );
       // A later source still picks the earlier eligible unread mention in the collected burst.
       const request = alert({ firstSeq: '11', lastSeq: '11' });
-      await assert.rejects(worker.dispatchConversationAlert(request), /enqueue failed/u);
+      await assert.rejects(dispatcher.dispatch(request), /enqueue failed/u);
       assert.equal(queued.size, 1);
       fail = false;
-      await worker.dispatchConversationAlert(request);
-      await worker.dispatchConversationAlert(request);
+      await dispatcher.dispatch(request);
+      await dispatcher.dispatch(request);
       assert.equal(queued.size, 2);
       assert.equal(
-        (await db.select().from(schema.pushBatches).where(eq(schema.pushBatches.userId, 'reader')))
-          .length,
+        (
+          await db
+            .select()
+            .from(schema.notificationWindows)
+            .where(eq(schema.notificationWindows.userId, 'reader'))
+        ).length,
         1,
       );
       assert.ok([...queued.values()].some((job) => job.name === PUSH_EXPO_DELIVERY_QUEUE));
@@ -465,7 +469,7 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
         'fanout and delivery jobs never write back to the outbox',
       );
       const firstJob = [...queued.values()][0]!.data as { alert: ConversationAlert };
-      assert.equal((await content.buildNotification(firstJob.alert))?.body, 'message');
+      assert.equal((await content.render(firstJob.alert))?.body, 'message');
       await db
         .update(schema.chatMessages)
         .set({
@@ -484,7 +488,7 @@ test('push migrations, devices, burst policy and durable outbox on PostgreSQL', 
           ],
         })
         .where(eq(schema.chatMessages.id, messageId));
-      assert.equal((await content.buildNotification(firstJob.alert))?.body, 'Нове вкладення');
+      assert.equal((await content.render(firstJob.alert))?.body, 'Нове вкладення');
     },
   );
 

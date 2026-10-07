@@ -1,8 +1,19 @@
 import type { ChannelTarget } from './channels/notification-channel';
-import type { PushScope } from './repository/push-audience.repository';
 
-export interface MessageNotificationSource extends PushScope {
-  actorMemberId: string;
+/** A run of messages in one conversation, addressed by position, never by content. */
+export interface ConversationRange {
+  workspaceId: string;
+  channelId: string;
+  firstSeq: string;
+  lastSeq: string;
+}
+
+/** One person to alert about a conversation range; a queued job holds no message text. */
+export interface ConversationAlert extends ConversationRange {
+  id: string;
+  userId: string;
+  memberId: string;
+  expiresAt: string;
 }
 
 export interface MessageNotificationPayload {
@@ -14,13 +25,7 @@ export interface MessageNotificationPayload {
   title: string;
   body: string;
 }
-/** Points at a range of messages, never their content, so a queued job holds no message text. */
-export interface ConversationAlert extends PushScope {
-  id: string;
-  userId: string;
-  memberId: string;
-  expiresAt: string;
-}
+
 export interface NotificationWindow {
   id: string;
   userId: string;
@@ -42,12 +47,6 @@ export interface NativePushReceiptJob {
   tokenFingerprint: string;
 }
 
-export interface MessageFanoutJob {
-  source: MessageNotificationSource;
-  after?: string;
-}
-
-export const PUSH_FANOUT_QUEUE = 'push.message-fanout';
 export const PUSH_ALERT_DUE_QUEUE = 'push.batch-ready';
 export const PUSH_EXPO_DELIVERY_QUEUE = 'push.expo-delivery';
 export const PUSH_WEB_DELIVERY_QUEUE = 'push.web-delivery';

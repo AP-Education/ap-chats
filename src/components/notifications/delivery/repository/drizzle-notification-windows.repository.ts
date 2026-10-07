@@ -3,7 +3,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, count, desc, eq, gt, min, sql } from 'drizzle-orm';
 
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
-import { pushBatches } from '@/database/drizzle/schema';
+import { notificationWindows } from '@/database/drizzle/schema';
 
 import type { ConversationAlert, NotificationWindow } from '../types';
 import {
@@ -21,9 +21,11 @@ export class DrizzleNotificationWindowsRepository extends NotificationWindowsRep
   async latest(userId: string, channelId: string) {
     const [batch] = await this.txHost.tx
       .select()
-      .from(pushBatches)
-      .where(and(eq(pushBatches.userId, userId), eq(pushBatches.channelId, channelId)))
-      .orderBy(desc(pushBatches.createdAt), desc(pushBatches.id))
+      .from(notificationWindows)
+      .where(
+        and(eq(notificationWindows.userId, userId), eq(notificationWindows.channelId, channelId)),
+      )
+      .orderBy(desc(notificationWindows.createdAt), desc(notificationWindows.id))
       .limit(1);
     return batch;
   }
@@ -37,8 +39,8 @@ export class DrizzleNotificationWindowsRepository extends NotificationWindowsRep
 
       const [existing] = await this.txHost.tx
         .select()
-        .from(pushBatches)
-        .where(eq(pushBatches.id, alert.id));
+        .from(notificationWindows)
+        .where(eq(notificationWindows.id, alert.id));
       if (existing) {
         const isSameConversation =
           existing.userId === alert.userId && existing.channelId === alert.channelId;
@@ -57,7 +59,7 @@ export class DrizzleNotificationWindowsRepository extends NotificationWindowsRep
       }
 
       const [window] = await this.txHost.tx
-        .insert(pushBatches)
+        .insert(notificationWindows)
         .values({
           id: alert.id,
           userId: alert.userId,
@@ -69,8 +71,8 @@ export class DrizzleNotificationWindowsRepository extends NotificationWindowsRep
         })
         .returning();
 
-      await this.txHost.tx.execute(sql`delete from ${pushBatches} where id in
-        (select id from ${pushBatches} where expires_at < now() - interval '7 days' limit 1000)`);
+      await this.txHost.tx.execute(sql`delete from ${notificationWindows} where id in
+        (select id from ${notificationWindows} where expires_at < now() - interval '7 days' limit 1000)`);
 
       return window ? reserved(window) : SUPERSEDED;
     });
@@ -80,9 +82,11 @@ export class DrizzleNotificationWindowsRepository extends NotificationWindowsRep
   private async budgetFreesAt(userId: string, now: Date, limits: WindowLimits) {
     const minuteAgo = addSeconds(now, -60);
     const [recent] = await this.txHost.tx
-      .select({ count: count(), oldest: min(pushBatches.createdAt) })
-      .from(pushBatches)
-      .where(and(eq(pushBatches.userId, userId), gt(pushBatches.createdAt, minuteAgo)));
+      .select({ count: count(), oldest: min(notificationWindows.createdAt) })
+      .from(notificationWindows)
+      .where(
+        and(eq(notificationWindows.userId, userId), gt(notificationWindows.createdAt, minuteAgo)),
+      );
 
     const isSpent = (recent?.count ?? 0) >= limits.userAlertsPerMinute;
     return isSpent && recent?.oldest ? addSeconds(recent.oldest, 60) : undefined;

@@ -14,11 +14,8 @@ import {
   workspaceMembers,
 } from '@/database/drizzle/schema';
 
-import {
-  PushAudienceRepository,
-  type PushRecipient,
-  type PushScope,
-} from './push-audience.repository';
+import type { ConversationRange } from '../../delivery/types';
+import { PushAudienceRepository, type PushRecipient } from './push-audience.repository';
 
 @Injectable()
 export class DrizzlePushAudienceRepository extends PushAudienceRepository {
@@ -26,7 +23,7 @@ export class DrizzlePushAudienceRepository extends PushAudienceRepository {
     super();
   }
 
-  async context(scope: PushScope) {
+  async context(scope: ConversationRange) {
     const [row] = await this.txHost.tx
       .select({ name: channels.name, kind: channels.kind, lastSeq: channels.lastEntrySeq })
       .from(channels)
@@ -40,7 +37,7 @@ export class DrizzlePushAudienceRepository extends PushAudienceRepository {
     return row;
   }
 
-  recipients(scope: PushScope, after?: string, memberId?: string) {
+  recipients(scope: ConversationRange, after?: string, memberId?: string) {
     const mentioned = sql<boolean>`exists (select 1 from ${messageMentions}
       join ${chatMessages} on ${chatMessages.id} = ${messageMentions.messageId}
       join ${channelEntries} on ${channelEntries.messageId} = ${messageMentions.messageId}
@@ -76,7 +73,7 @@ export class DrizzlePushAudienceRepository extends PushAudienceRepository {
       .limit(memberId ? 1 : 100);
   }
 
-  async lastCreatedAt(scope: PushScope): Promise<Date | undefined> {
+  async lastCreatedAt(scope: ConversationRange): Promise<Date | undefined> {
     const [row] = await this.txHost.tx
       .select({ createdAt: chatMessages.createdAt })
       .from(channelEntries)
@@ -94,7 +91,7 @@ export class DrizzlePushAudienceRepository extends PushAudienceRepository {
     return row?.createdAt;
   }
 
-  async latestMessage(scope: PushScope, recipient: PushRecipient, mentionsOnly: boolean) {
+  async latestMessage(scope: ConversationRange, recipient: PushRecipient, mentionsOnly: boolean) {
     const [row] = await this.txHost.tx
       .select({
         contentMarkdown: chatMessages.contentMarkdown,

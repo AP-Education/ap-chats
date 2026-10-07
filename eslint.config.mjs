@@ -43,6 +43,58 @@ export default defineConfig(
     },
   },
   {
+    // Delivery and devices are meant to leave for their own service: they reach chat data only
+    // through NotificationContent and the delivery contract, never by importing it.
+    files: ['src/components/notifications/delivery/**/*.ts', 'src/components/devices/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@/components/social/*',
+                '@/components/communities/*',
+                '@/components/calls/*',
+                '@/components/workspaces/*',
+                '**/notifications/alerts/*',
+                '**/notifications/policy*',
+                '**/notifications/preferences*',
+                '**/notifications/realtime*',
+                '../alerts/*',
+                '../policy*',
+                '../preferences*',
+                '../realtime*',
+              ],
+              message: 'Delivery reads no chat data; ask through NotificationContent instead.',
+            },
+          ],
+          paths: [
+            {
+              name: '@/database/drizzle/schema',
+              importNames: [
+                'calls',
+                'channelCategories',
+                'channelEntries',
+                'channelMemberships',
+                'channels',
+                'chatMessages',
+                'chatUploads',
+                'directMessages',
+                'messageMentions',
+                'messagePins',
+                'userProfiles',
+                'workspaceMembers',
+                'workspaces',
+              ],
+              message: 'Delivery reads no chat tables; ask through NotificationContent instead.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['web/public/push-sw.js'],
     languageOptions: {
       globals: { ...globals.serviceworker, ...globals.es2023 },
