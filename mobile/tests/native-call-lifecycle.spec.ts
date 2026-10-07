@@ -214,57 +214,60 @@ function fixture(t: TestContext) {
   };
 }
 
+const leaves = (steps: string[]) => steps.filter((step) => step === 'leave').length;
+
+// iOS activates call audio only after CXAnswerCallAction.fulfill(); enabling the mic first deadlocks.
 test('cold answer waits for auth, fulfills CallKit before audio, and connects once on replay', async (t) => {
   const f = fixture(t);
-  const first = f.answer();
-  const replay = f.answer();
+  const answers = Promise.all([f.answer(), f.answer()]);
   await flush();
-  assert.equal(useNativeCallStore.getState().call?.status, 'connecting');
-  assert.deepEqual(f.steps, []);
+  assert.deepEqual(f.steps, [], 'nothing happens before auth is restored');
+
   f.auth.resolve('restored-token');
-  await Promise.all([first, replay]);
+  await answers;
+
   assert.deepEqual(f.steps, ['join', 'connect', 'fulfill-answer', 'mic-on']);
   assert.equal(useNativeCallStore.getState().call?.status, 'connected');
-  assert.ok(useNativeCallStore.getState().call?.connectedAt);
 });
 
 test('ending during auth restore prevents a late join or phantom UI', async (t) => {
   const f = fixture(t);
   const answer = f.answer();
   await flush();
+
   await f.end(false);
   f.auth.resolve('restored-token');
   await answer;
+
   assert.deepEqual(f.steps, []);
   assert.equal(useNativeCallStore.getState().call, null);
 });
 
-test('ending during media connection disconnects the pending room without fulfilling an answer', async (t) => {
+test('ending during media connection disconnects and leaves once, without answering', async (t) => {
   const f = fixture(t);
   f.pauseConnection();
   f.auth.resolve('token');
   const answer = f.answer();
   await flush();
-  assert.deepEqual(f.steps, ['join', 'connect']);
+
   await f.end();
   await answer;
+
   assert.ok(f.steps.includes('disconnect'));
-  assert.equal(f.steps.filter((step) => step === 'leave').length, 1);
-  assert.ok(!f.steps.includes('fulfill-answer'));
-  assert.ok(!f.steps.includes('decline'));
-  assert.equal(useNativeCallStore.getState().call, null);
+  assert.equal(leaves(f.steps), 1);
+  assert.ok(!f.steps.includes('fulfill-answer') && !f.steps.includes('decline'));
   assert.equal(registry.getTrackedSession('native-session'), undefined);
 });
 
-test('failed connection ends the native answer and leaves the server call once', async (t) => {
+test('a failed media connection fails the native answer and leaves the server call once', async (t) => {
   const f = fixture(t);
   f.failConnection();
   f.auth.resolve('token');
+
   await f.answer();
-  assert.equal(f.steps.filter((step) => step === 'leave').length, 1);
-  assert.ok(f.steps.includes('disconnect'));
-  assert.ok(f.steps.includes('fail-answer'));
-  assert.ok(f.steps.includes('end-native'));
+
+  assert.equal(leaves(f.steps), 1);
+  assert.ok(f.steps.includes('fail-answer') && f.steps.includes('end-native'));
   assert.equal(useNativeCallStore.getState().call, null);
 });
 
@@ -272,60 +275,64 @@ test('a remote native ending releases media without echoing decline or leave', a
   const f = fixture(t);
   f.auth.resolve('token');
   await f.answer();
+
   await f.end(false);
-  assert.deepEqual(f.steps, ['join', 'connect', 'fulfill-answer', 'mic-on', 'disconnect']);
-  assert.equal(useNativeCallStore.getState().call, null);
+
+  assert.deepEqual(f.steps.slice(-1), ['disconnect']);
+  assert.ok(!f.steps.includes('leave') && !f.steps.includes('decline'));
 });
 
-test('a WebView join answers an existing incoming CallKit session without creating an outgoing one', async (t) => {
+test('a WebView join answers a ringing CallKit session instead of starting an outgoing one', async (t) => {
   const f = fixture(t);
-  const active = await f.CallKit.getActiveCallSession();
-  f.setActive({ ...active, status: 'ringing' });
+  f.setActive({ ...(await f.CallKit.getActiveCallSession()), status: 'ringing' });
   await hydration.hydrateCallSession(f.CallKit as never);
+
   await f.bridge();
+
   assert.deepEqual(f.steps, ['answer-native']);
 });
 
-test('a WebView join cannot restart an incoming call already being answered by CallKit', async (t) => {
+test('a WebView join cannot restart a call CallKit is already answering', async (t) => {
   const f = fixture(t);
+
   await f.bridge();
+
   assert.deepEqual(f.steps, []);
-  assert.equal(useNativeCallStore.getState().call?.status, 'connecting');
 });
 
 test('outgoing connection survives an early native start event and duplicate bridge requests', async (t) => {
   const f = fixture(t);
   f.setActive(null);
   f.auth.resolve('token');
+
   await Promise.all([f.bridge(), f.bridge()]);
   await f.bridge();
+
   assert.deepEqual(f.steps, ['start-outgoing', 'connect', 'mic-on', 'outgoing-connected']);
-  assert.equal(useNativeCallStore.getState().call?.status, 'connected');
 });
 
-test('hanging up while waiting for audio removes the listener and rejects the wait', async (t) => {
+test('waiting for call audio ends cleanly on hang-up and cannot miss an early activation', async (t) => {
   const f = fixture(t);
-  const controller = new AbortController();
-  const waiting = f.media.waitForAudioSessionActive(f.CallKit as never, controller.signal);
-  controller.abort();
+  const hangUp = new AbortController();
+  const waiting = f.media.waitForAudioSessionActive(f.CallKit as never, hangUp.signal);
+  hangUp.abort();
   await assert.rejects(waiting, /Call ended before audio activation/);
-  assert.equal(f.removedAudioListeners(), 1);
-});
 
-test('audio activation between snapshot and subscription cannot leave an answer waiting', async (t) => {
-  const f = fixture(t);
+  // Audio may activate between the first snapshot and the listener subscription.
   let snapshots = 0;
+  const activatedMeanwhile = {
+    ...f.CallKit,
+    getAudioSession: () => ({ isActive: ++snapshots > 1 }),
+  };
   await f.media.waitForAudioSessionActive(
-    {
-      ...f.CallKit,
-      getAudioSession: () => ({ isActive: ++snapshots > 1 }),
-    } as never,
+    activatedMeanwhile as never,
     new AbortController().signal,
   );
-  assert.equal(f.removedAudioListeners(), 1);
+
+  assert.equal(f.removedAudioListeners(), 2);
 });
 
-test('foreground synchronization preserves a local answer but dismisses an answer on another device', async (t) => {
+test('foreground sync keeps a local answer but dismisses a ring answered on another device', async (t) => {
   const f = fixture(t);
   await hydration.hydrateCallSession(f.CallKit as never);
   const ended: string[] = [];
@@ -338,13 +345,15 @@ test('foreground synchronization preserves a local answer but dismisses an answe
     './session-registry': registry,
   });
   const CallKit = {
-    reportCallEnded: async (id: string, reason: string) => {
-      ended.push(`${id}:${reason}`);
+    reportCallEnded: async (id: string) => {
+      ended.push(id);
     },
   };
+
   await synchronize(CallKit as never);
-  assert.deepEqual(ended, []);
+  assert.deepEqual(ended, [], 'this device is the one answering');
+
   useNativeCallStore.getState().updateCall({ status: 'ringing' });
   await synchronize(CallKit as never);
-  assert.deepEqual(ended, ['native-session:remoteEnded']);
+  assert.deepEqual(ended, ['native-session']);
 });

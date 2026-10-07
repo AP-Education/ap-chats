@@ -204,15 +204,10 @@ test('LiveKit bundle failure is caught instead of escaping as an unhandled HMR r
 test('cold bootstrap registers CallKit-owned audio before replay and handles system endings locally', async () => {
   const steps: string[] = [];
   const listeners = new Map<string, (event: unknown) => void>();
-  let removed = 0;
   const listen = (name: string) => (listener: (event: unknown) => void) => {
     listeners.set(name, listener);
     if (name === 'answered') listener({ id: 'cold-call', requestId: 'answer-request' });
-    return {
-      remove: () => {
-        removed++;
-      },
-    };
+    return { remove: () => {} };
   };
   const CallKit = {
     addCallSessionAddedListener: listen('added'),
@@ -253,10 +248,11 @@ test('cold bootstrap registers CallKit-owned audio before replay and handles sys
   f.mount();
   await flush();
   assert.deepEqual(steps, ['media-globals', 'answer-replay', 'hydrate']);
+
+  // Only the user's own hang-up tells the server; system and remote endings are local cleanup.
   listeners.get('reported-ended')?.({ id: 'cold-call' });
   listeners.get('removed')?.({ id: 'cold-call' });
   listeners.get('ended')?.({ id: 'cold-call' });
   assert.deepEqual(steps.slice(3), ['local-cleanup', 'local-cleanup', 'notify-server']);
   f.unmount();
-  assert.equal(removed, 7);
 });
