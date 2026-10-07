@@ -6,6 +6,10 @@ argument_specs:
         type: str
         default: prod
         description: Image tag to deploy for both the api and web images.
+      data_path:
+        type: str
+        default: '/mnt/<project_name>-data'
+        description: Mounted data volume (see data_volume); Postgres, Valkey and Caddy state are bind-mounted from it.
       ghcr_username:
         type: str
         required: true

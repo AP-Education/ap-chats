@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: "{{ postgres_password }}"
       POSTGRES_DB: "{{ postgres_db }}"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - {{ data_path }}/postgres:/var/lib/postgresql/data
     networks:
       - chats
     healthcheck:
@@ -28,7 +28,7 @@ services:
       - --maxmemory-policy
       - noeviction
     volumes:
-      - valkey_data:/data
+      - {{ data_path }}/valkey:/data
     networks:
       - chats
     healthcheck:
@@ -60,8 +60,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - caddy_data:/data
-      - caddy_config:/config
+      - {{ data_path }}/caddy/data:/data
+      - {{ data_path }}/caddy/config:/config
     depends_on:
       - api
     networks:
@@ -70,9 +70,3 @@ services:
 networks:
   chats:
     driver: bridge
-
-volumes:
-  postgres_data:
-  valkey_data:
-  caddy_data:
-  caddy_config:

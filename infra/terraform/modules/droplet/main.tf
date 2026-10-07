@@ -23,8 +23,9 @@ resource "digitalocean_droplet" "this" {
 
   user_data = var.user_data
 
+  # These fields force a new droplet; a key or cloud-init edit must never replace the host by accident.
   lifecycle {
-    create_before_destroy = true
+    ignore_changes = [user_data, ssh_keys, image]
   }
 
   timeouts {

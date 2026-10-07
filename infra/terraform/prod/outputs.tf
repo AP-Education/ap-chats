@@ -10,6 +10,16 @@ output "web_droplet_private_ip" {
   value = module.web.private_ipv4
 }
 
+output "reserved_ip" {
+  description = "Public address of the host; DNS points here."
+  value       = digitalocean_reserved_ip.web.ip_address
+}
+
+output "data_volume_name" {
+  description = "Block storage holding Postgres, Valkey and Caddy state; Ansible mounts it by this name."
+  value       = digitalocean_volume.data.name
+}
+
 output "vpc_cidr" {
   value = var.vpc_id != null ? data.digitalocean_vpc.shared[0].ip_range : null
 }

@@ -48,6 +48,7 @@ def extract_inventory(outputs: dict, group_name: str = "web") -> dict:
     public_ip = outputs.get("web_droplet_public_ip", {}).get("value")
     private_ip = outputs.get("web_droplet_private_ip", {}).get("value")
     vpc_cidr = outputs.get("vpc_cidr", {}).get("value")
+    data_volume_name = outputs.get("data_volume_name", {}).get("value")
 
     if not name or not public_ip:
         return inventory
@@ -62,6 +63,8 @@ def extract_inventory(outputs: dict, group_name: str = "web") -> dict:
     }
     if private_ip:
         hostvars["private_ip"] = private_ip
+    if data_volume_name:
+        hostvars["data_volume_name"] = data_volume_name
     inventory["_meta"]["hostvars"][name] = hostvars
 
     return inventory

@@ -48,6 +48,33 @@ module "web" {
   tags      = local.common_tags
 }
 
+# Stateful services live on this volume, not the droplet's disk, so replacing the host keeps the data.
+resource "digitalocean_volume" "data" {
+  name                    = "${local.base_prefix}-data"
+  region                  = var.region
+  size                    = var.data_volume_size_gb
+  initial_filesystem_type = "ext4"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "digitalocean_volume_attachment" "data" {
+  droplet_id = module.web.id
+  volume_id  = digitalocean_volume.data.id
+}
+
+# DNS points here, so a replaced droplet takes over the address without waiting on DNS.
+resource "digitalocean_reserved_ip" "web" {
+  region = var.region
+}
+
+resource "digitalocean_reserved_ip_assignment" "web" {
+  ip_address = digitalocean_reserved_ip.web.ip_address
+  droplet_id = module.web.id
+}
+
 module "attachments" {
   source = "../modules/spaces"
 
@@ -94,7 +121,7 @@ resource "digitalocean_record" "chats" {
   domain = var.domain_name
   type   = "A"
   name   = var.chats_subdomain
-  value  = module.web.public_ipv4
+  value  = digitalocean_reserved_ip.web.ip_address
   ttl    = 300
 
   depends_on = [digitalocean_domain.primary]

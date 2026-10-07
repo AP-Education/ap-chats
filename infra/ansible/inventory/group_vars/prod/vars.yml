@@ -4,6 +4,7 @@
 # without depending on Ansible's role-defaults-leak-into-the-play behavior.
 project_name: ap-connect
 deploy_project_path: /opt/ap-connect
+data_path: /mnt/ap-connect-data
 postgres_user: ap_chats
 postgres_db: ap_chats
 

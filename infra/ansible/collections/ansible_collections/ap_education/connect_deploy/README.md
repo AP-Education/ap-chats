@@ -10,6 +10,7 @@ Run `ansible-doc -t role ap_education.connect_deploy.<role>` for each role's doc
 | `sshd_hardening`  | Disable password/root SSH login                                             |
 | `ufw`             | Default-deny firewall, open 22/80/443                                       |
 | `fail2ban`        | Ban repeat SSH offenders                                                    |
+| `data_volume`     | Mount the block storage volume holding Postgres, Valkey and Caddy state     |
 | `docker_engine`   | Install Docker CE + Compose plugin                                          |
 | `compose_runtime` | Render and run the app's docker-compose stack from GHCR                     |
 | `postgres_backup` | Nightly `pg_dump` of the in-stack Postgres container to DigitalOcean Spaces |

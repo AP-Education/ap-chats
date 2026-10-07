@@ -22,6 +22,12 @@ variable "droplet_size" {
   default     = "s-2vcpu-4gb"
 }
 
+variable "data_volume_size_gb" {
+  description = "Block storage for Postgres, Valkey and Caddy state. It outlives the droplet and can grow in place."
+  type        = number
+  default     = 10
+}
+
 variable "droplet_image" {
   description = "Base image slug for the droplet."
   type        = string
