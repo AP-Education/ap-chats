@@ -1,5 +1,7 @@
 import { apiRequest, jsonInit } from '@/shared/api/http';
 
+import type { CallHistoryFilter } from '../types';
+
 export type CallStatus = 'ringing' | 'active' | 'ended' | 'declined' | 'missed';
 
 export interface CallView {
@@ -81,10 +83,13 @@ export function declineCall(
 export function listCallHistory(
   token: string,
   workspaceId: string,
+  filter: CallHistoryFilter,
   before?: string,
 ): Promise<{ items: CallHistoryItem[]; nextCursor: string | null }> {
-  const suffix = before ? `?before=${encodeURIComponent(before)}` : '';
-  return apiRequest(`/api/workspaces/${workspaceId}/calls${suffix}`, token);
+  const query = new URLSearchParams({ filter });
+  if (before) query.set('before', before);
+
+  return apiRequest(`/api/workspaces/${workspaceId}/calls?${query}`, token);
 }
 
 export function leaveCall(

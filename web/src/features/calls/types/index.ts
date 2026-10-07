@@ -12,6 +12,8 @@ export interface NativeCallConnectPayload {
   grant: CallJoinGrant;
 }
 
+export type CallHistoryFilter = 'all' | 'missed';
+
 export interface CallAction {
   onClick: () => void;
   pending: boolean;
