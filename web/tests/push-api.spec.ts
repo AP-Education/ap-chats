@@ -51,12 +51,3 @@ test('registration sends only the endpoint, keys and installation', async () => 
     installationId: 'installation',
   });
 });
-
-test('clearing presence survives the page closing', async () => {
-  const { api, body, requests } = pushApi();
-
-  await api.updatePresence('token', 'subscription', { focused: false });
-
-  assert.equal(requests[0]!.init.keepalive, true);
-  assert.deepEqual(body(0), { focused: false });
-});

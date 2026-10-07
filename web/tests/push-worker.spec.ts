@@ -4,12 +4,11 @@ import { test } from 'node:test';
 import { runInNewContext } from 'node:vm';
 
 const origin = 'https://connect.test';
-const channelId = '5824eb71-b12c-4f48-a30d-e15797b7116b';
-const route = `/channels/${channelId}?pushWorkspace=630bba71-6807-445a-9dbe-aad85a050c09`;
+const target = { type: 'conversation', channelId: 'channel' };
 
 type Shown = {
   title: string;
-  options: { tag?: string; renotify?: boolean; data: { url: string } };
+  options: { tag?: string; renotify?: boolean; data: { userId?: string; target?: unknown } };
 };
 
 function serviceWorker() {
@@ -78,11 +77,11 @@ test('every push shows a notification that re-alerts within its conversation, ev
 
   await worker.emit(
     'push',
-    push(() => ({ title: 'Title', url: route, channelId })),
+    push(() => ({ title: 'Title', userId: 'reader', collapseKey: 'channel', target })),
   );
   await worker.emit(
     'push',
-    push(() => ({ title: 'Next', url: route, channelId })),
+    push(() => ({ title: 'Next', userId: 'reader', collapseKey: 'channel', target })),
   );
   await worker.emit(
     'push',
@@ -92,10 +91,10 @@ test('every push shows a notification that re-alerts within its conversation, ev
   );
 
   const [first, second, unreadable] = worker.shown;
-  assert.equal(first?.options.data.url, `${origin}${route}`);
-  assert.deepEqual([first?.options.tag, second?.options.tag], [channelId, channelId]);
+  assert.deepEqual(JSON.parse(JSON.stringify(first?.options.data)), { userId: 'reader', target });
+  assert.deepEqual([first?.options.tag, second?.options.tag], ['channel', 'channel']);
   assert.equal(second?.options.renotify, true);
-  assert.equal(unreadable?.options.data.url, `${origin}/`);
+  assert.equal(unreadable?.options.tag, 'ap-connect');
 });
 
 test('a new worker takes over open pages at once, so their clicks reach it', async () => {
@@ -107,29 +106,34 @@ test('a new worker takes over open pages at once, so their clicks reach it', asy
   assert.deepEqual(worker.steps, ['skip-waiting', 'claim']);
 });
 
-test('a click focuses the open app first, then routes it in-app to the intended account', async () => {
+test('a click focuses the open app first, then hands it the tap to route in-app', async () => {
   const worker = serviceWorker();
   worker.openAppWindow();
 
   await worker.emit('notificationclick', {
-    notification: { close() {}, data: { url: route, userId: 'reader' } },
+    notification: { close() {}, data: { userId: 'reader', target } },
   });
 
   assert.deepEqual(worker.steps, ['focus', 'post']);
   assert.deepEqual(worker.opened, []);
-  const [message] = worker.pageMessages();
-  assert.equal(message.type, 'notifications/open');
-  assert.equal(new URL(message.url).searchParams.get('pushUser'), 'reader');
+  assert.deepEqual(worker.pageMessages(), [
+    { type: 'notifications/open', userId: 'reader', target },
+  ]);
 });
 
-test('without an open app a click opens one, and never an external site', async () => {
+test('without an open app a click starts the app at home with the tap', async () => {
   const worker = serviceWorker();
 
   await worker.emit('notificationclick', {
-    notification: { close() {}, data: { url: 'https://attacker.test/' } },
+    notification: { close() {}, data: { userId: 'reader', target } },
   });
 
-  assert.deepEqual(worker.opened, [`${origin}/`]);
+  const opened = new URL(worker.opened[0]!, origin);
+  assert.equal(opened.pathname, '/');
+  assert.deepEqual(JSON.parse(opened.searchParams.get('notification')!), {
+    userId: 'reader',
+    target,
+  });
 });
 
 test('a rotated subscription is renewed and open pages are asked to register it', async () => {

@@ -1,6 +1,7 @@
 import { RequireAuth } from '../features/auth/components/RequireAuth';
+import { AttentionReporter } from '../features/notifications/components/AttentionReporter';
+import { NotificationDismissal } from '../features/notifications/components/NotificationDismissal';
 import { PushNavigation } from '../features/notifications/components/PushNavigation';
-import { PushPresence } from '../features/notifications/components/PushPresence';
 import { PushSubscriptionSync } from '../features/notifications/components/PushSubscriptionSync';
 import { MainLayout } from '../layouts/MainLayout/MainLayout';
 import { WorkspaceUnreadScope } from '../layouts/MainLayout/WorkspaceUnreadScope';
@@ -11,7 +12,8 @@ export function ProtectedLayout() {
     <RequireAuth>
       <PushNavigation>
         <PushSubscriptionSync />
-        <PushPresence />
+        <AttentionReporter />
+        <NotificationDismissal />
         <WorkspaceStartup>
           <WorkspaceUnreadScope>
             <MainLayout />

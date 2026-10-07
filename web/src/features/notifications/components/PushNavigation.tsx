@@ -1,4 +1,4 @@
-import { type PropsWithChildren, useEffect } from 'react';
+import { type PropsWithChildren, useEffect, useEffectEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useCurrentUser } from '@/features/auth/stores/current-user-context';
@@ -7,65 +7,57 @@ import { useActiveWorkspaceId } from '@/features/workspaces/stores/active-worksp
 import { isNativeShell, onNativeMessage, postToNative } from '@/shared/lib/nativeBridge';
 import { AppLoading } from '@/shared/ui/AppLoading/AppLoading';
 
-import { pushTarget } from '../push-target';
-import type { NativeNotificationOpen, NotificationsToNativeMessage } from '../types';
+import { notificationRoute } from '../notification-route';
+import type {
+  NativeNotificationOpen,
+  NotificationsToNativeMessage,
+  NotificationTap,
+} from '../types';
 
+// The service worker starts the app here when a tap finds no open window.
+const LAUNCH_PARAM = 'notification';
+
+/** Opens what a tapped notification points at, from the service worker or the native shell. */
 export function PushNavigation({ children }: PropsWithChildren) {
   const user = useCurrentUser();
   const identity = user.status === 'signed-in' ? user.queryIdentity : null;
   const location = useLocation();
   const navigate = useNavigate();
   const { workspaces } = useActiveWorkspace();
-  const { activeWorkspaceId, setActiveWorkspaceId } = useActiveWorkspaceId();
-  const params = new URLSearchParams(location.search);
-  const target = params.get('pushWorkspace');
-  const owner = params.get('pushUser');
-  const member = workspaces?.some((workspace) => workspace.id === target);
+  const { setActiveWorkspaceId } = useActiveWorkspaceId();
+  const launch = new URLSearchParams(location.search).get(LAUNCH_PARAM);
+  const ready = Boolean(identity && workspaces);
 
-  // A notification route names its workspace and owner: switch to it, or go home if it isn't ours.
+  // Only for the account and a workspace it was meant for; any other tap goes nowhere.
+  const open = useEffectEvent((tap: NotificationTap, replace = false): boolean => {
+    const route = notificationRoute(tap.target);
+    const isOurs =
+      tap.userId === identity && workspaces?.some(({ id }) => id === route?.workspaceId);
+    if (!route || !isOurs) return false;
+
+    setActiveWorkspaceId(route.workspaceId);
+    navigate(route.path, { replace });
+    return true;
+  });
+
   useEffect(() => {
-    if (!target || !identity || !workspaces) return;
+    if (!launch || !ready) return;
 
-    if (!member || (owner && owner !== identity)) {
-      navigate('/', { replace: true });
-      return;
-    }
+    if (!open(parseTap(launch), true)) navigate('/', { replace: true });
+  }, [launch, ready, navigate]);
 
-    setActiveWorkspaceId(target);
-
-    const params = new URLSearchParams(location.search);
-    params.delete('pushWorkspace');
-    params.delete('pushUser');
-    const search = params.toString();
-    navigate(`${location.pathname}${search ? `?${search}` : ''}`, { replace: true });
-  }, [
-    target,
-    owner,
-    identity,
-    workspaces,
-    member,
-    navigate,
-    setActiveWorkspaceId,
-    location.pathname,
-    location.search,
-  ]);
-
-  // Browser and native taps both land here; the effect above then checks owner and workspace.
   useEffect(() => {
-    function open(url: unknown) {
-      const route = pushTarget(url);
-      if (route) navigate(route);
-    }
+    if (!ready) return;
 
-    function openFromWorker(event: MessageEvent<{ type?: string; url?: unknown }>) {
-      if (event.data?.type === 'notifications/open') open(event.data.url);
+    function openFromWorker(event: MessageEvent<{ type?: string } & NotificationTap>) {
+      if (event.data?.type === 'notifications/open') open(event.data);
     }
 
     const stopNative = onNativeMessage<NativeNotificationOpen | { type: string }>((message) => {
       if (message.type !== 'notifications/open') return;
 
-      const { eventId, userId, url } = (message as NativeNotificationOpen).payload;
-      open(withOwner(url, userId));
+      const { eventId, ...tap } = (message as NativeNotificationOpen).payload;
+      open(tap);
       tellNative({ type: 'notifications/ack', eventId });
     });
 
@@ -77,15 +69,18 @@ export function PushNavigation({ children }: PropsWithChildren) {
       stopNative();
       navigator.serviceWorker?.removeEventListener('message', openFromWorker);
     };
-  }, [navigate]);
+  }, [ready]);
 
-  if (target && (!workspaces || (member && activeWorkspaceId !== target))) return <AppLoading />;
+  if (launch) return <AppLoading />;
   return children;
 }
 
-function withOwner(url: string, userId: string): string {
-  const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}pushUser=${encodeURIComponent(userId)}`;
+function parseTap(launch: string): NotificationTap {
+  try {
+    return JSON.parse(launch) as NotificationTap;
+  } catch {
+    return { userId: null, target: null };
+  }
 }
 
 function tellNative(message: NotificationsToNativeMessage): void {

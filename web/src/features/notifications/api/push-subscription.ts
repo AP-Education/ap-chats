@@ -1,4 +1,5 @@
 import { registerSubscription, removeSubscription } from './push-api';
+import { dismissNotifications } from './shown-notifications';
 
 export interface PushRegistration {
   permission: NotificationPermission;
@@ -45,8 +46,7 @@ export function disablePush(
 ): Promise<PushRegistration> {
   return oneAtATime(async () => {
     const registration = await workerRegistration();
-    const notifications = await registration.getNotifications();
-    notifications.forEach((notification) => notification.close());
+    await dismissNotifications();
 
     const subscription = await registration.pushManager.getSubscription();
     if (subscription && !(await subscription.unsubscribe())) throw new Error('Unsubscribe failed');
@@ -60,7 +60,10 @@ export function disablePush(
 
 /** Signing out forgets the owner on the server; the browser keeps its subscription for the next sign-in. */
 export function releasePush(token: string, subscriptionId: string): Promise<void> {
-  return oneAtATime(() => removeSubscription(token, subscriptionId));
+  return oneAtATime(async () => {
+    await dismissNotifications();
+    await removeSubscription(token, subscriptionId);
+  });
 }
 
 async function workerRegistration(): Promise<ServiceWorkerRegistration> {

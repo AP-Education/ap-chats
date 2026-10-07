@@ -28,6 +28,7 @@ function browser({
   const events: string[] = [];
   const registrations: string[] = [];
   const removals: string[] = [];
+  let shown = 1;
 
   const subscription = () => ({
     options: {
@@ -39,6 +40,17 @@ function browser({
       return true;
     },
   });
+
+  const registration = {
+    pushManager: {
+      getSubscription: async () => (subscribedWith ? subscription() : null),
+      subscribe: async ({ applicationServerKey }: { applicationServerKey: Uint8Array }) => {
+        subscribedWith = btoa(String.fromCharCode(...applicationServerKey));
+        events.push('subscribe');
+        return subscription();
+      },
+    },
+  };
 
   const push = {} as typeof PushSubscriptionModule;
   runInNewContext(source, {
@@ -53,17 +65,7 @@ function browser({
     navigator: {
       serviceWorker: {
         register: async () => undefined,
-        ready: Promise.resolve({
-          pushManager: {
-            getSubscription: async () => (subscribedWith ? subscription() : null),
-            subscribe: async ({ applicationServerKey }: { applicationServerKey: Uint8Array }) => {
-              subscribedWith = btoa(String.fromCharCode(...applicationServerKey));
-              events.push('subscribe');
-              return subscription();
-            },
-          },
-          getNotifications: async () => [],
-        }),
+        ready: Promise.resolve(registration),
       },
     },
     Notification: {
@@ -75,16 +77,25 @@ function browser({
         return (permission = promptAnswer);
       },
     },
-    require: () => ({
-      registerSubscription: async (token: string) => {
-        registrations.push(token);
-        return { id: 'subscription' };
-      },
-      removeSubscription: async (token: string) => removals.push(token),
-    }),
+    require: (name: string) =>
+      ({
+        './push-api': {
+          registerSubscription: async (token: string) => {
+            registrations.push(token);
+            return { id: 'subscription' };
+          },
+          removeSubscription: async (token: string) => removals.push(token),
+        },
+        './shown-notifications': {
+          dismissNotifications: async () => {
+            shown = 0;
+          },
+        },
+      })[name],
   });
 
   return {
+    shown: () => shown,
     push,
     events,
     registrations,
@@ -154,6 +165,7 @@ test('signing out forgets the owner on the server but keeps the browser subscrip
 
   assert.deepEqual(b.removals, ['token']);
   assert.equal(b.subscribedWith(), currentKey);
+  assert.equal(b.shown(), 0, 'the previous account leaves no previews behind');
 });
 
 test('a sign-out waits for a synchronization already in flight', async () => {

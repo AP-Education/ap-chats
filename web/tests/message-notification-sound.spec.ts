@@ -68,7 +68,10 @@ function fixture({
       },
       '@/shared/audio/audio-context': audio,
       '@/shared/lib/nativeBridge': { isNativeShell: () => native },
-      '@/shared/hooks/useIsAttending': { isAttending: () => page.visible },
+      '@/shared/hooks/useIsAttending': {
+        isAttending: () => page.visible,
+        isPresent: () => page.visible,
+      },
       '../sound/messageBloop': {
         playMessageBloop: () => {
           sounds.push(native ? 'native' : (audio.getSharedAudioContext()?.state ?? 'unavailable'));
@@ -138,13 +141,22 @@ test('while browser push is on, a background tab stays silent and leaves it to t
   assert.equal(f.sounds.length, 1);
 });
 
-test('muted messages and other workspaces never play', () => {
+test('muted messages never play', () => {
   const f = fixture();
 
   f.receive({ alert: false });
-  f.receive({ workspaceId: 'another-workspace' });
 
   assert.deepEqual(f.sounds, []);
+});
+
+// Presence silences the OS alert for every workspace, so the open app has to speak for them all.
+test('another workspace plays even while the same channel is open here', () => {
+  const f = fixture({ openChannelId: 'channel' });
+  f.push.enabled = true;
+
+  f.receive({ workspaceId: 'another-workspace' });
+
+  assert.equal(f.sounds.length, 1);
 });
 
 test('the native shell plays its own sound without creating Web Audio', () => {

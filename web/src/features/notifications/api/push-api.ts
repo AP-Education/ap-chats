@@ -23,14 +23,6 @@ export function removeSubscription(token: string, id: string) {
   });
 }
 
-export function updatePresence(token: string, id: string, presence: { focused: boolean }) {
-  return apiRequest<void>(`${base}/${id}/presence`, token, {
-    ...jsonInit('PATCH', presence),
-    keepalive: true,
-    signal: AbortSignal.timeout(5000),
-  });
-}
-
 function browserInstallationId(): string {
   const key = 'ap:browser-installation';
   const previous = localStorage.getItem(key);
