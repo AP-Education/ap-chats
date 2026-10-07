@@ -1,0 +1,36 @@
+---
+# One time, for a host that predates the data volume: stops the stack, copies each
+# Docker named volume onto the mounted volume, then redeploys with bind mounts.
+# The old named volumes stay in place as a fallback until removed by hand.
+- name: Move stateful data from Docker volumes to the data volume
+  hosts: all
+  become: true
+  vars:
+    compose_volumes:
+      - { volume: postgres_data, dir: postgres }
+      - { volume: valkey_data, dir: valkey }
+      - { volume: caddy_data, dir: caddy/data }
+      - { volume: caddy_config, dir: caddy/config }
+  tasks:
+    - name: Mount the data volume
+      ansible.builtin.import_role:
+        name: ap_education.connect_deploy.data_volume
+
+    - name: Stop the stack so nothing writes while copying
+      community.docker.docker_compose_v2:
+        project_src: '{{ deploy_project_path }}'
+        state: stopped
+
+    # The marker makes a rerun skip what was already copied instead of overwriting newer data.
+    - name: Copy each named volume onto the data volume
+      ansible.builtin.shell: >-
+        rsync -aHAX /var/lib/docker/volumes/{{ project_name }}_{{ item.volume }}/_data/
+        {{ data_path }}/{{ item.dir }}/
+        && touch {{ data_path }}/.moved-{{ item.volume }}
+      args:
+        creates: '{{ data_path }}/.moved-{{ item.volume }}'
+      loop: '{{ compose_volumes }}'
+
+    - name: Redeploy with the data volume
+      ansible.builtin.import_role:
+        name: ap_education.connect_deploy.compose_runtime

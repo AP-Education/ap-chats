@@ -1,0 +1,53 @@
+---
+project_name: ap-connect
+deploy_project_path: '/opt/{{ project_name }}'
+data_path: '/mnt/{{ project_name }}-data'
+postgres_backup_bin: '/opt/{{ project_name }}/bin/postgres-backup.sh'
+
+app_image_repository: ghcr.io/ap-education/ap-connect-api
+web_image_repository: ghcr.io/ap-education/ap-connect-web
+app_tag: prod
+app_image: '{{ app_image_repository }}:{{ app_tag }}'
+web_image: '{{ web_image_repository }}:{{ app_tag }}'
+
+ghcr_registry: ghcr.io
+
+postgres_user: ap_chats
+postgres_db: ap_chats
+
+api_port: 3211
+log_level: info
+log_transport: json
+log_target_type: stdout
+log_target_dest: ''
+
+chat_upload_max_file_bytes: 1000000000
+chat_upload_max_message_bytes: 2000000000
+chat_upload_max_files: 10
+chat_upload_max_pending_files: 20
+chat_upload_max_pending_bytes: 4000000000
+
+# Prepared for feat/chat-push-notifications; origin/main does not consume these yet.
+push_enabled: false
+valkey_url: redis://valkey:6379/0
+push_coalesce_seconds: 3
+push_worker_enabled: true
+push_worker_concurrency: 8
+expo_access_token: ''
+web_push_public_key: ''
+web_push_private_key: ''
+web_push_subject: ''
+
+# argument_specs documents these as optional with a "" default for type
+# checking, but role argument validation doesn't inject that default into
+# the task namespace — it only enforces it on an explicit value. The actual
+# default has to live here too for the template to see it when unset.
+livekit_url: ''
+livekit_api_key: ''
+livekit_api_secret: ''
+apns_key_id: ''
+apns_team_id: ''
+apns_private_key: ''
+apns_voip_topic: ''
+fcm_project_id: ''
+fcm_service_account_json: ''

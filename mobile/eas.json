@@ -18,6 +18,7 @@
       }
     },
     "production": {
+      "environment": "production",
       "env": {
         "EXPO_PUBLIC_APNS_ENVIRONMENT": "production"
       }

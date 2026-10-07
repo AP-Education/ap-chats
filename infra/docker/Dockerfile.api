@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1
+FROM node:24-alpine AS workspace
+RUN corepack enable
+WORKDIR /app
+# Every workspace manifest keeps the lockfile check honest; only the API's own packages get installed.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY web/package.json ./web/
+COPY mobile/package.json ./mobile/
+
+FROM workspace AS build
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --filter @ap-chats/api --store-dir /pnpm/store
+COPY tsconfig.json tsconfig.base.json tsconfig.build.json nest-cli.json ./
+COPY src ./src
+RUN pnpm run build
+
+FROM workspace AS prod-deps
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prod --ignore-scripts --filter @ap-chats/api --store-dir /pnpm/store
+
+FROM node:24-alpine AS runtime
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY drizzle ./drizzle
+COPY package.json ./
+USER node
+EXPOSE 3211
+CMD ["node", "dist/main.js"]

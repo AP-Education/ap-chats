@@ -1,0 +1,76 @@
+# Copy to vault.yml (gitignored) and encrypt in place:
+#   ansible-vault encrypt infra/ansible/inventory/group_vars/prod/vault.yml
+#
+# Edit later with:
+#   ansible-vault edit infra/ansible/inventory/group_vars/prod/vault.yml
+
+ghcr_username: CHANGE_ME
+ghcr_token: CHANGE_ME
+
+postgres_password: CHANGE_ME
+
+acme_email: ops@ap-platform.online
+
+# Must match the Chats OIDC client registered in backend-LMS's Accounts.
+oidc_issuer: https://api.ap-platform.online/accounts
+oidc_audience: https://chats.ap-platform.online
+
+# Calls: set all three or leave all empty. Use an existing LiveKit Cloud or
+# self-hosted server; this stack does not provision LiveKit. The wss:// URL
+# must be reachable by browsers and mobile clients, not just the API container.
+livekit_url: ''
+livekit_api_key: ''
+livekit_api_secret: ''
+
+# iOS VoIP push: set all four or leave all empty. Paste the complete Apple
+# AuthKey_<KEY_ID>.p8 contents as a YAML literal block with REAL newlines:
+# apns_private_key: |-
+#   -----BEGIN PRIVATE KEY-----
+#   <base64 contents of your .p8 file>
+#   -----END PRIVATE KEY-----
+# apns_voip_topic must be the iOS app's bundle identifier followed by .voip.
+apns_key_id: ''
+apns_team_id: ''
+apns_private_key: ''
+apns_voip_topic: ''
+
+# Android VoIP push: set both or leave both empty. Paste the complete Firebase
+# service account JSON as a STRING, not a YAML mapping. Pretty-printed JSON is
+# supported; keep the JSON private_key's own \n escapes intact:
+# fcm_service_account_json: |-
+#   {
+#     ...complete JSON downloaded from Firebase...
+#   }
+fcm_project_id: ''
+fcm_service_account_json: ''
+
+# Prepared for feat/chat-push-notifications (not present in origin/main yet).
+# Ordinary native notifications use Expo; APNS/FCM above handle incoming calls.
+# Optional: set this if enhanced Expo push security is enabled in EAS.
+expo_access_token: ''
+# One persistent VAPID key pair for browser push. Set all three or none.
+# Generate the pair with the web-push package's generateVAPIDKeys().
+# Subject is mailto:ops@example.com or an HTTPS contact URL.
+web_push_public_key: ''
+web_push_private_key: ''
+web_push_subject: ''
+
+# ap-connect's own two Spaces buckets (not shared with backend-LMS, and not
+# shared with each other — chat attachments are private, avatar objects are
+# public-read, backups are always private, and live in separate buckets rather than two
+# prefixes in one). Both are created by infra/terraform/prod. These two keys
+# are the exact same spaces_access_key_id / spaces_secret_access_key values
+# you passed to `terraform apply` — one key pair, account-wide, used to
+# provision both buckets and for the app/backup script to read and write
+# objects in them.
+#
+# do_spaces_endpoint = `terraform output -raw spaces_region_endpoint`
+#   (the bare region endpoint, NOT a bucket-qualified domain — the backup
+#   script's `aws s3 cp --endpoint-url` breaks on one of those)
+# do_spaces_bucket   = `terraform output -raw attachments_bucket_name`
+# do_backups_bucket  = `terraform output -raw backups_bucket_name`
+do_spaces_endpoint: https://fra1.digitaloceanspaces.com
+do_spaces_access_key: CHANGE_ME
+do_spaces_secret_key: CHANGE_ME
+do_spaces_bucket: CHANGE_ME
+do_backups_bucket: CHANGE_ME

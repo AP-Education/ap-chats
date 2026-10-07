@@ -10,7 +10,7 @@ export async function startValkey(t: TestContext): Promise<number> {
   const { port } = listener.address() as { port: number };
   listener.close();
 
-  const server = spawn('valkey-server', [
+  const server = spawn(process.env.VALKEY_SERVER_BIN ?? 'valkey-server', [
     '--port',
     String(port),
     '--save',

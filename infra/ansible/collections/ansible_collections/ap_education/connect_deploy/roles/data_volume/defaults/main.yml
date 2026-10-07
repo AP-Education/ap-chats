@@ -1,0 +1,3 @@
+---
+project_name: ap-connect
+data_path: '/mnt/{{ project_name }}-data'

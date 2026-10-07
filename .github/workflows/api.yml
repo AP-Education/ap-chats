@@ -37,6 +37,10 @@ jobs:
           cache: true
       - run: pnpm lint
       - run: pnpm typecheck
+      # Queue and attention tests start their own isolated server; Redis speaks the same protocol.
+      - run: sudo apt-get update && sudo apt-get install -y redis-server
       - run: pnpm test:api
+        env:
+          VALKEY_SERVER_BIN: redis-server
       - run: pnpm build
       - run: pnpm exec prettier --check src package.json eslint.config.mjs
