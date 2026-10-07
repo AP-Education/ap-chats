@@ -2,6 +2,7 @@ import type { CallAnsweredEvent } from 'expo-callkit-telecom';
 
 import { joinCall } from '../api/calls-api';
 import { useNativeCallStore } from '../store/native-call-store';
+import { syncCurrentAudioRoute } from './audio-route';
 import { playJoinChime } from './call-chimes';
 import type { loadCallKitModule } from './callkit-module';
 import { endCallSession } from './end-call';
@@ -54,6 +55,7 @@ export async function answerCall(
     // Completing the answer action lets CallKit activate audio; waiting first deadlocks.
     await CallKit.fulfillIncomingCallConnected(event.requestId);
     await waitForAudioSessionActive(CallKit, signal);
+    syncCurrentAudioRoute(CallKit);
     await room.localParticipant.setMicrophoneEnabled(!useNativeCallStore.getState().call?.isMuted);
     if (signal.aborted) return;
     useNativeCallStore.getState().updateCall({

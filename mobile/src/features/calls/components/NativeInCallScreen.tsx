@@ -3,16 +3,15 @@ import {
   Microphone,
   MicrophoneSlash,
   PhoneX,
-  SpeakerHigh,
   VideoCameraSlash,
 } from 'phosphor-react-native';
-import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useNativeCallStore } from '../store/native-call-store';
 import { loadCallKitModule } from '../utils/callkit-module';
 import { useCallDuration } from '../utils/use-call-duration';
+import { AudioOutputButton } from './AudioOutputButton';
 import { CallSurfaceBackground } from './CallSurfaceBackground';
 
 /**
@@ -30,7 +29,6 @@ export function NativeInCallScreen() {
   const call = useNativeCallStore((state) => state.call);
   const minimized = useNativeCallStore((state) => state.minimized);
   const minimize = useNativeCallStore((state) => state.minimize);
-  const [speakerOn, setSpeakerOn] = useState(false);
   const duration = useCallDuration(call?.connectedAt);
 
   if (!call || call.status === 'ringing' || minimized) return null;
@@ -43,12 +41,6 @@ export function NativeInCallScreen() {
   function endCall() {
     if (!call) return;
     void loadCallKitModule().then((CallKit) => CallKit?.endCall(call.sessionId));
-  }
-
-  function toggleSpeaker() {
-    const next = !speakerOn;
-    setSpeakerOn(next);
-    void loadCallKitModule().then((CallKit) => CallKit?.setAudioSessionPortOverride(next));
   }
 
   const title = call.caller.displayName ?? 'Дзвінок';
@@ -116,12 +108,11 @@ export function NativeInCallScreen() {
               <View style={[styles.circleButton, styles.circleButtonDisabled]}>
                 <VideoCameraSlash size={26} color="rgba(255, 255, 255, 0.4)" />
               </View>
-              <Pressable
-                style={[styles.circleButton, speakerOn && styles.circleButtonActive]}
-                onPress={toggleSpeaker}
-              >
-                <SpeakerHigh size={26} color={speakerOn ? '#0f645b' : '#fff'} />
-              </Pressable>
+              <AudioOutputButton
+                route={call.audioRoute}
+                style={styles.circleButton}
+                activeStyle={styles.circleButtonActive}
+              />
               <Pressable style={[styles.circleButton, styles.endButton]} onPress={endCall}>
                 <PhoneX size={26} color="#fff" weight="fill" />
               </Pressable>

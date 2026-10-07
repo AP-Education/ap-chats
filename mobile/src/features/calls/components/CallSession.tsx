@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { answerCall } from '../utils/answer-call';
+import { syncAudioRoute } from '../utils/audio-route';
 import { loadCallKitModule } from '../utils/callkit-module';
 import { endCallSession } from '../utils/end-call';
 import { hydrateCallSession, restoreIncomingSession } from '../utils/hydrate-call-session';
@@ -38,6 +39,9 @@ export function CallSession() {
           (event) => void endCallSession(event, { notifyServer: false }),
         ),
         CallKit.addSetMutedActionListener((event) => void setCallMuted(event, CallKit)),
+        CallKit.addAudioRouteChangedListener((event) =>
+          syncAudioRoute(event.currentRoute, event.availableRoutes),
+        ),
       ];
       await hydrateCallSession(CallKit);
       await synchronizeCallSession(CallKit);

@@ -179,6 +179,7 @@ function fixture(t: TestContext) {
     './hydrate-call-session': hydration,
     './livekit-room': mediaFunctions,
     './call-chimes': { playJoinChime() {}, playLeaveChime() {} },
+    './audio-route': { syncCurrentAudioRoute() {} },
     './track-remote-participant': { trackRemoteParticipant: () => () => {} },
     './callkit-module': { loadCallKitModule: async () => CallKit },
   };
