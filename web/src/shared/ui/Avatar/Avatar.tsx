@@ -1,7 +1,9 @@
+import { theme } from 'antd';
 import type { HTMLAttributes } from 'react';
 
 import { Image } from '../Image/Image';
-import { getAvatarColor } from './utils/color';
+import { avatarColors } from './utils/color';
+import { avatarInitials } from './utils/initials';
 
 const SIZE_MAP: Record<'small' | 'default' | 'large', number> = {
   small: 32,
@@ -21,8 +23,8 @@ export interface AvatarProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'chil
   lazy?: boolean;
 }
 
-// Ported from front-LMS's shared/ui/Avatar: an Image sized/shaped for avatar use,
-// with a deterministic fallback color derived from `alt`.
+// Ported from front-LMS's shared/ui/Avatar: an Image sized/shaped for avatar use.
+// Without a photo it shows initials on a soft gradient, the hue derived from `alt`.
 export function Avatar({
   path,
   alt,
@@ -34,9 +36,9 @@ export function Avatar({
   lazy = true,
   ...rest
 }: AvatarProps) {
-  const color = getAvatarColor(alt);
+  const { token } = theme.useToken();
+  const colors = avatarColors(alt, token);
   const numericSize = typeof size === 'number' ? size : SIZE_MAP[size];
-  const fallbackText = alt ? alt.trim().slice(0, 2).toUpperCase() : '?';
 
   return (
     <Image
@@ -46,9 +48,9 @@ export function Avatar({
       height={numericSize}
       shape={shape}
       fit={fit}
-      backgroundColor={color.bg}
-      textColor={color.text}
-      fallbackText={fallbackText}
+      fallbackBackground={`linear-gradient(135deg, ${colors.from}, ${colors.to})`}
+      fallbackColor={colors.initials}
+      fallbackText={avatarInitials(alt)}
       className={className}
       style={{ flexShrink: 0, ...style }}
       lazy={lazy}

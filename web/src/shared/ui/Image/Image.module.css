@@ -19,6 +19,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  letter-spacing: 0.02em;
+  line-height: 1;
 }
 
 .circle {

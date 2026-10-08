@@ -14,8 +14,9 @@ export interface ImageProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'dragg
   height?: number | string;
   shape?: Shape;
   fit?: 'cover' | 'contain';
-  backgroundColor?: string;
-  textColor?: string;
+  /** Any CSS background, so a fallback tile can carry a gradient. */
+  fallbackBackground?: string;
+  fallbackColor?: string;
   fallbackText?: string;
   lazy?: boolean;
   draggable?: HTMLAttributes<HTMLImageElement>['draggable'];
@@ -31,8 +32,8 @@ export function Image({
   height,
   shape = 'square',
   fit = 'cover',
-  backgroundColor,
-  textColor,
+  fallbackBackground,
+  fallbackColor,
   fallbackText,
   className,
   style,
@@ -54,16 +55,16 @@ export function Image({
     .filter(Boolean)
     .join(' ');
 
-  const computedText = useMemo(() => {
-    const text = fallbackText ?? alt;
-    return text ? text.trim().slice(0, 2).toUpperCase() : '?';
-  }, [alt, fallbackText]);
+  const computedText = useMemo(
+    () => fallbackText ?? (alt.trim().slice(0, 2).toUpperCase() || '?'),
+    [alt, fallbackText],
+  );
 
   const wrapperStyle: CSSProperties = { width, height, ...style };
 
   const fallbackStyle: CSSProperties = {
-    backgroundColor: backgroundColor ?? 'var(--ant-color-fill-tertiary)',
-    color: textColor ?? 'var(--ant-color-text)',
+    background: fallbackBackground ?? 'var(--ant-color-fill-tertiary)',
+    color: fallbackColor ?? 'var(--ant-color-text)',
     fontSize:
       typeof width === 'number' && typeof height === 'number'
         ? `${Math.max(Math.min(width, height) * 0.4, 12)}px`

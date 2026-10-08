@@ -1,18 +1,41 @@
-// Ported from front-LMS's shared/ui/Avatar/utils/color: deterministic
-// color per name so the same entity always gets the same fallback tile.
-export const avatarColors = [
-  { bg: '#FFE4E0', text: '#D64545' },
-  { bg: '#FFEFD5', text: '#B76B00' },
-  { bg: '#FFFACD', text: '#A89C00' },
-  { bg: '#E8F9E9', text: '#1F9D37' },
-  { bg: '#E3F2FD', text: '#2467C6' },
-  { bg: '#EDE7FD', text: '#6B4AD3' },
-  { bg: '#FCE7FF', text: '#B43BC7' },
-];
+import type { GlobalToken } from 'antd';
 
-export function getAvatarColor(name: string) {
-  const index = simpleHash(name) % avatarColors.length;
-  return avatarColors[index];
+import { surfaceAppearance } from '../../../theme/color';
+
+// The theme's own preset palettes, in the order names were always hashed into, so
+// everyone keeps their hue; yellow gave way to cyan, which stays readable on light.
+export const AVATAR_PRESETS = [
+  'red',
+  'orange',
+  'cyan',
+  'green',
+  'blue',
+  'purple',
+  'magenta',
+] as const;
+
+// Names sit on bubbles rather than on their own tint, so dark takes the next, brighter shade.
+export const NAME_SHADE = { light: 8, dark: 9 } as const;
+
+export interface AvatarColors {
+  /** A light two-step gradient: the palette's palest shades, deep tints on dark. */
+  from: string;
+  to: string;
+  initials: string;
+  name: string;
+}
+
+/** Deterministic per name; the shades follow whichever algorithm the token comes from. */
+export function avatarColors(name: string, token: GlobalToken): AvatarColors {
+  const preset = AVATAR_PRESETS[simpleHash(name) % AVATAR_PRESETS.length]!;
+  const nameShade = NAME_SHADE[surfaceAppearance(token.colorBgContainer)];
+
+  return {
+    from: token[`${preset}1`],
+    to: token[`${preset}2`],
+    initials: token[`${preset}8`],
+    name: token[`${preset}${nameShade}`],
+  };
 }
 
 function simpleHash(str?: string): number {
