@@ -13,8 +13,8 @@
     "test:browser": "playwright test"
   },
   "dependencies": {
-    "@ap-education/shell-sdk": "^0.1.1-beta.0",
-    "@ap-education/ui": "^0.1.1-beta.4",
+    "@ap-education/shell-sdk": "^0.1.1-beta.1",
+    "@ap-education/ui": "^0.1.1-beta.6",
     "@emoji-mart/data": "^1.2.1",
     "@livekit/components-react": "^2.9.24",
     "@livekit/components-styles": "^1.2.0",
