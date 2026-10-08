@@ -7,7 +7,7 @@ import {
   PanelNavItem,
   useIsMobile,
 } from '@ap-education/ui';
-import { ChatsIcon, ChatTextIcon, HouseIcon, PhoneIcon } from '@phosphor-icons/react';
+import { ChatsIcon, ChatTextIcon, PhoneIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { type ComponentProps, useState } from 'react';
 import { useHref, useLocation, useNavigate } from 'react-router-dom';
@@ -35,7 +35,7 @@ const useStyles = createStyles(({ css }) => ({
 const sectionItems: {
   section: SidebarSection;
   path?: '/channels' | '/direct';
-  icon: typeof HouseIcon;
+  icon: typeof ChatsIcon;
   label: string;
 }[] = [
   { section: 'channels', path: '/channels', icon: ChatsIcon, label: 'Чати' },
@@ -65,7 +65,6 @@ export function ChatsPanel() {
       : null;
   const activeSection = chosenSection ?? routeSection;
   const listSection = activeSection ?? 'channels';
-  const homeActive = !chosenSection && pathname === '/';
 
   return (
     <Panel>
@@ -76,13 +75,6 @@ export function ChatsPanel() {
         </div>
       </PanelHeader>
       <PanelNav>
-        <RouteNavItem
-          to="/"
-          icon={HouseIcon}
-          label="Головна"
-          active={homeActive}
-          onNavigate={() => setChosen(null)}
-        />
         {sectionItems.map(({ section, path, icon, label }) => {
           const active = activeSection === section;
           const badge = workspace && <NavItemBadge section={section} />;
