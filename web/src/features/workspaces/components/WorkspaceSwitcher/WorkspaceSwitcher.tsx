@@ -55,7 +55,8 @@ const useStyles = createStyles(({ token, css }) => ({
     max-height: min(520px, calc(100vh - 80px));
     overflow-y: auto;
     padding: 8px 0;
-    background: ${token.colorBgElevated};
+    background: color-mix(in srgb, ${token.colorBgElevated} 78%, transparent);
+    backdrop-filter: blur(24px) saturate(1.6);
     box-shadow: ${token.boxShadowSecondary};
   `,
   popup: css`
@@ -184,7 +185,7 @@ const useStyles = createStyles(({ token, css }) => ({
     height: 40px;
     border: 0;
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    color: ${token.colorPrimaryTextActive};
   `,
   createLabel: css`
     color: ${token.colorPrimary};

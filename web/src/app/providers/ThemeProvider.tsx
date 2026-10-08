@@ -1,60 +1,65 @@
-import { ConfigProvider, type ThemeConfig } from 'antd';
+import { ConfigProvider } from 'antd';
 import ukUA from 'antd/locale/uk_UA';
-import type { PropsWithChildren } from 'react';
+import { createStyles } from 'antd-style';
+import { type PropsWithChildren, useLayoutEffect } from 'react';
 
+import { accentColors } from '../../features/appearance/accents';
+import { useAppearance } from '../../features/appearance/hooks/useAppearance';
+import { useAccent } from '../../features/appearance/stores/appearance-store';
+import { appearanceTheme } from '../../features/appearance/theme';
 import { useIsMobile } from '../../shared/hooks/useIsMobile';
 
-function getTheme(isMobile: boolean): ThemeConfig {
-  return {
-    token: {
-      colorPrimary: '#0c7d77',
-      colorPrimaryBg: '#e6f4f3',
-      colorPrimaryBgHover: '#d2ebe8',
-      colorPrimaryBorder: '#9fcfc9',
-      colorPrimaryBorderHover: '#7dbbb4',
-      controlItemBgActive: '#e6f4f3',
-      controlItemBgActiveHover: '#d2ebe8',
-      colorText: '#1f2f2d',
-      colorBgLayout: '#f3f9f8',
-      colorBorder: '#bcd5d2',
-      borderRadius: 8,
-      fontSize: 16,
-      fontSizeHeading1: isMobile ? 28 : 38,
-      fontFamily:
-        'Ubuntu Sans, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial',
-      padding: 16,
-      paddingContentHorizontalLG: isMobile ? 16 : 24,
-    },
-    components: {
-      Layout: {
-        headerBg: '#fff',
-        siderBg: '#fff',
-        bodyBg: 'linear-gradient(135deg, #f3f9f8, #e7f2f1, #ddedec, #cee5e4)',
-        headerHeight: isMobile ? 48 : 64,
-      },
-      Card: { borderRadiusLG: isMobile ? 8 : 12 },
-      Menu: {
-        iconSize: 20,
-        activeBarBorderWidth: 0,
-        itemHeight: 46,
-        itemPaddingInline: isMobile ? 12 : 16,
-      },
-      // The component token, not a CSS override: Drawer injects its own
-      // `.ant-drawer-body { padding: paddingLG }` rule lazily (on first open),
-      // which can land in the stylesheet after ours and win the tie — setting
-      // the token itself sidesteps that race entirely.
-      Drawer: {
-        padding: 0,
-        paddingLG: 0,
-      },
-    },
-  };
-}
+// Floating surfaces are frosted like the rest of the chat chrome: antd's own colour
+// variables resolve inside the portal, so the same rule fits both themes.
+const GLASS = `
+  background: color-mix(in srgb, var(--ant-color-bg-elevated) 78%, transparent);
+  backdrop-filter: blur(24px) saturate(1.6);
+`;
+
+const useGlassStyles = createStyles(({ css }) => ({
+  // antd shadows the popover with a drop-shadow filter, which isolates the backdrop
+  // from the page, so the shadow moves onto the frosted container instead.
+  popoverRoot: css`
+    && {
+      filter: none;
+    }
+  `,
+  popover: css`
+    && {
+      ${GLASS}
+      box-shadow: var(--ant-box-shadow-secondary);
+    }
+  `,
+  dropdown: css`
+    & .ant-dropdown-menu {
+      ${GLASS}
+    }
+  `,
+}));
 
 export function ThemeProvider({ children }: PropsWithChildren) {
   const isMobile = useIsMobile();
+  const appearance = useAppearance();
+  const accent = accentColors(useAccent(), appearance);
+  const [bubbleFrom, bubbleTo] = accent.bubble;
+  const { styles: glass } = useGlassStyles();
+
+  // Native controls, scrollbars and the few CSS-only overrides follow the same choice;
+  // own chat bubbles read the accent from here, wherever they are rendered.
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute('data-theme', appearance);
+    root.style.setProperty('--chat-own-from', bubbleFrom);
+    root.style.setProperty('--chat-own-to', bubbleTo);
+  }, [appearance, bubbleFrom, bubbleTo]);
+
   return (
-    <ConfigProvider theme={getTheme(isMobile)} locale={ukUA}>
+    <ConfigProvider
+      theme={appearanceTheme(appearance, accent, isMobile)}
+      locale={ukUA}
+      popover={{ arrow: false, classNames: { root: glass.popoverRoot, container: glass.popover } }}
+      dropdown={{ classNames: { root: glass.dropdown } }}
+    >
       {children}
     </ConfigProvider>
   );

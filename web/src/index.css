@@ -10,9 +10,16 @@
     sans-serif;
   color: #1f2f2d;
   background: #f3f9f8;
+  color-scheme: light;
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html[data-theme='dark'] {
+  color: #e3ecea;
+  background: #0c1113;
+  color-scheme: dark;
 }
 
 * {

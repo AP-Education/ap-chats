@@ -19,7 +19,7 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   active: css`
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    color: ${token.colorPrimaryTextActive};
   `,
   muteMenu: css`
     display: grid;

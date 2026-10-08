@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { PropsWithChildren } from 'react';
 
+import { NativeAppearanceSync } from '../../features/appearance/components/NativeAppearanceSync/NativeAppearanceSync';
 import { UserProfileSync } from '../../features/auth/components/UserProfileSync/UserProfileSync';
 import { ApiAuthSession } from '../../features/auth/providers/ApiAuthSession';
 import { CurrentUserProvider } from '../../features/auth/providers/CurrentUserProvider';
@@ -24,7 +25,10 @@ export function AppProviders({ children }: PropsWithChildren) {
         <RealtimeProvider>
           <ChannelListRealtime />
           <ActiveWorkspaceProvider>
-            <ThemeProvider>{children}</ThemeProvider>
+            <ThemeProvider>
+              <NativeAppearanceSync />
+              {children}
+            </ThemeProvider>
           </ActiveWorkspaceProvider>
         </RealtimeProvider>
       </CurrentUserProvider>

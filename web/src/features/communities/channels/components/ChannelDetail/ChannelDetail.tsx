@@ -54,7 +54,7 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   actionActive: css`
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    color: ${token.colorPrimaryTextActive};
   `,
   joinFooter: css`
     flex-shrink: 0;

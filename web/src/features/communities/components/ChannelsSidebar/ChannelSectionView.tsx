@@ -100,7 +100,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
     &:hover {
       background: ${token.colorPrimaryBg};
-      color: ${token.colorPrimary};
+      color: ${token.colorPrimaryTextActive};
       opacity: 1;
     }
 

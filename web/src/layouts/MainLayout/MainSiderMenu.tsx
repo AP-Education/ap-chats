@@ -4,12 +4,12 @@ import { Link, useLocation } from 'react-router-dom';
 
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
+import { AppearanceSettings } from '../../features/appearance/components/AppearanceSettings/AppearanceSettings';
 import { AuthStatus } from '../../features/auth/components/AuthStatus';
 import { ChannelsSidebar } from '../../features/communities/components/ChannelsSidebar';
 import { PushSettings } from '../../features/notifications/components/PushSettings';
 import { DirectMessageList } from '../../features/social/direct-messages/components/DirectMessageList/DirectMessageList';
 import { UnreadDirectMessages } from '../../features/social/direct-messages/components/UnreadDirectMessages/UnreadDirectMessages';
-import { WallpaperSettings } from '../../features/social/wallpaper/components/WallpaperSettings/WallpaperSettings';
 import { WorkspaceSwitcher } from '../../features/workspaces/components/WorkspaceSwitcher';
 import { useActiveWorkspace } from '../../features/workspaces/hooks/useActiveWorkspace';
 import { ChannelsNavBadge } from './ChannelsNavBadge';
@@ -132,7 +132,7 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
         <AuthStatus
           actions={
             <>
-              <WallpaperSettings />
+              <AppearanceSettings />
               <PushSettings />
             </>
           }

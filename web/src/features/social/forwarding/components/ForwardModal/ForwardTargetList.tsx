@@ -64,7 +64,7 @@ const useStyles = createStyles(({ token, css }) => ({
     flex: 0 0 40px;
     border-radius: 50%;
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    color: ${token.colorPrimaryTextActive};
   `,
   body: css`
     flex: 1;

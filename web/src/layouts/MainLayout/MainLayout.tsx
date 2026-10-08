@@ -9,7 +9,7 @@ import { ConnectionBanner } from '../../features/realtime/components/ConnectionB
 import { WorkspaceUnreadContext } from '../../features/social/read-state/workspace-unread-context';
 import {
   AppWallpaper,
-  useAppSurfaceStyle,
+  useSurfaceMaterials,
 } from '../../features/social/wallpaper/components/AppWallpaper';
 import { useIsMobile } from '../../shared/hooks/useIsMobile';
 import { PageSection } from '../../shared/ui/PageSection/PageSection';
@@ -41,7 +41,7 @@ export function MainLayout() {
     [locationKey],
   );
   const unreadCount = (unread?.channelTotal ?? 0) + (unread?.directTotal ?? 0);
-  const surfaceStyle = useAppSurfaceStyle();
+  const materials = useSurfaceMaterials();
   const openMenu = useCallback(() => setMenuOpen(true), [setMenuOpen]);
   const closeMenu = useCallback(() => setMenuOpen(false), [setMenuOpen]);
   const getNavWidth = useCallback(() => containerRef.current?.clientWidth || window.innerWidth, []);
@@ -72,7 +72,7 @@ export function MainLayout() {
   );
 
   return (
-    <Layout className={styles.layout} style={surfaceStyle}>
+    <Layout className={styles.layout} style={materials}>
       <AppWallpaper />
       <CallSurface />
       <ConnectionBanner />
