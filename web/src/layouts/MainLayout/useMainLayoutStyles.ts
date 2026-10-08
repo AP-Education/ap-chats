@@ -1,16 +1,27 @@
 import { createStyles } from 'antd-style';
 
 export const useMainLayoutStyles = createStyles(({ token, css }) => ({
+  // The app wallpaper paints behind everything; layout shells stay see-through over it.
   layout: css`
+    position: relative;
+    isolation: isolate;
     height: 100dvh;
     html[data-native-shell='true'] & {
       height: 100%;
     }
     overflow: hidden;
+
+    && {
+      background: transparent;
+    }
   `,
   mainArea: css`
     min-height: 0;
     overflow: hidden;
+
+    && {
+      background: transparent;
+    }
 
     @media (max-width: ${token.screenMD}px) {
       position: relative;
@@ -44,9 +55,9 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
 
     @media (max-width: ${token.screenMD}px) {
       z-index: 1;
+      isolation: isolate;
       flex: 0 0 100%;
       width: 100%;
-      background: ${token.colorBgContainer};
       touch-action: pan-y pinch-zoom;
       transform: translate3d(calc(var(--mobile-menu-progress) * 100%), 0, 0);
       transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -61,7 +72,7 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
     inset: 0 auto 0 0;
     width: 100%;
     overflow: hidden;
-    background: ${token.colorBgContainer};
+    background: var(--app-surface, ${token.colorBgContainer});
     touch-action: pan-y pinch-zoom;
     transform: translate3d(calc((var(--mobile-menu-progress) - 1) * 32px), 0, 0);
     visibility: hidden;
@@ -76,7 +87,10 @@ export const useMainLayoutStyles = createStyles(({ token, css }) => ({
   sidebar: css`
     border-right: 1px solid ${token.colorBorderSecondary};
     position: relative;
-    background: ${token.colorBgContainer};
+
+    && {
+      background: var(--app-surface, ${token.colorBgContainer});
+    }
   `,
   sidebarStack: css`
     display: flex;

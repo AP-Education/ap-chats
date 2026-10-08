@@ -23,7 +23,7 @@ const useStyles = createStyles(({ token, css }) => ({
     min-height: 0;
     overflow-y: auto;
     border-left: 1px solid ${token.colorBorderSecondary};
-    background: ${token.colorBgContainer};
+    background: var(--app-surface, ${token.colorBgContainer});
   `,
   drawer: css`
     :global(.ant-drawer-body) {

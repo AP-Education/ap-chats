@@ -15,6 +15,7 @@ const useStyles = createStyles(({ token, css }) => ({
     min-height: 60px;
     padding: 0 20px;
     border-bottom: 1px solid ${token.colorBorderSecondary};
+    background: var(--app-surface, ${token.colorBgContainer});
 
     @media (max-width: ${token.screenMD}px) {
       min-height: 56px;

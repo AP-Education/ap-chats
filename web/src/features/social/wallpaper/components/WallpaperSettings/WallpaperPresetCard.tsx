@@ -3,6 +3,7 @@ import { createStyles } from 'antd-style';
 import type { CSSProperties } from 'react';
 
 import { PATTERN_TILE_SIZE } from '../../canvas/pattern-tile';
+import type { WallpaperBase } from '../../hooks/useWallpaperBase';
 import type { WallpaperPreset } from '../../types';
 import { WallpaperBackdrop } from '../WallpaperBackdrop';
 
@@ -64,15 +65,15 @@ const useStyles = createStyles(({ token, css }) => ({
     width: 68%;
     height: 18px;
     border-radius: 9px 9px 9px 3px;
-    background: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 1px 1px rgba(16, 40, 36, 0.08);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 1px 2px rgba(16, 40, 36, 0.14);
   `,
   outgoing: css`
     align-self: flex-end;
     width: 54%;
     height: 18px;
     border-radius: 9px 9px 3px 9px;
-    background: linear-gradient(322deg, var(--accent-from), var(--accent-to));
+    background: linear-gradient(175deg, var(--accent-to), var(--accent-from));
   `,
   check: css`
     position: absolute;
@@ -90,11 +91,17 @@ const useStyles = createStyles(({ token, css }) => ({
 
 interface WallpaperPresetCardProps {
   preset: WallpaperPreset;
+  base: WallpaperBase;
   selected: boolean;
   onSelect: () => void;
 }
 
-export function WallpaperPresetCard({ preset, selected, onSelect }: WallpaperPresetCardProps) {
+export function WallpaperPresetCard({
+  preset,
+  base,
+  selected,
+  onSelect,
+}: WallpaperPresetCardProps) {
   const { styles } = useStyles();
 
   return (
@@ -106,7 +113,7 @@ export function WallpaperPresetCard({ preset, selected, onSelect }: WallpaperPre
       onClick={onSelect}
     >
       <span className={styles.preview}>
-        <WallpaperBackdrop preset={preset} className={styles.backdrop} />
+        <WallpaperBackdrop preset={preset} base={base} className={styles.backdrop} />
         <span className={styles.incoming} />
         <span
           className={styles.outgoing}

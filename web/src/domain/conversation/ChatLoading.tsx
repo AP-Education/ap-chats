@@ -20,6 +20,7 @@ const useStyles = createStyles(({ token, css }) => ({
     height: 60px;
     padding: 0 20px;
     border-bottom: 1px solid ${token.colorBorderSecondary};
+    background: var(--app-surface, ${token.colorBgContainer});
   `,
   body: css`
     display: flex;
@@ -86,6 +87,7 @@ const useStyles = createStyles(({ token, css }) => ({
     flex-shrink: 0;
     border-left: 1px solid ${token.colorBorderSecondary};
     padding: 20px 14px;
+    background: var(--app-surface, ${token.colorBgContainer});
 
     @media (max-width: ${token.screenXL}px) {
       display: none;

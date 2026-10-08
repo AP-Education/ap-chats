@@ -6,20 +6,17 @@ import { useState } from 'react';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { IconButton } from '@/shared/ui/IconButton';
 
+import { useWallpaperBase } from '../../hooks/useWallpaperBase';
 import { wallpaperPresets } from '../../presets';
 import { useChatWallpaper, useChooseWallpaper } from '../../stores/wallpaper-store';
 import { WallpaperPresetCard } from './WallpaperPresetCard';
 
-const useStyles = createStyles(({ token, css }) => ({
+const useStyles = createStyles(({ css }) => ({
   gallery: css`
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px 12px;
     padding-top: 8px;
-
-    @media (max-width: ${token.screenSM}px) {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
   `,
 }));
 
@@ -29,6 +26,7 @@ export function WallpaperSettings() {
   const [open, setOpen] = useState(false);
   const current = useChatWallpaper();
   const choose = useChooseWallpaper();
+  const base = useWallpaperBase();
 
   return (
     <>
@@ -50,6 +48,7 @@ export function WallpaperSettings() {
             <WallpaperPresetCard
               key={preset.id}
               preset={preset}
+              base={base}
               selected={preset.id === current.id}
               onSelect={() => choose(preset.id)}
             />

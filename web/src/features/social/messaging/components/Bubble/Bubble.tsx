@@ -38,11 +38,14 @@ const useStyles = createStyles(({ token, css }) => ({
       margin-left: 8px;
     }
 
+    // Two close tones fading downwards into the tail, frosted like the incoming bubbles,
+    // with a faint top edge of light: a run of own messages reads as one calm column.
     &[data-side='own'] {
       --own-from: var(--chat-own-from, ${token.colorPrimary});
-      --bubble-bg: linear-gradient(322deg, var(--own-from), var(--chat-own-to, var(--own-from)));
+      --bubble-bg: linear-gradient(175deg, var(--chat-own-to, var(--own-from)), var(--own-from));
       --bubble-tail: var(--own-from);
-      --bubble-blur: none;
+      --bubble-blur: blur(20px) saturate(1.5);
+      --bubble-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 2px rgba(18, 22, 60, 0.16);
       --bubble-text: ${token.colorWhite};
       --bubble-muted: rgba(255, 255, 255, 0.8);
       --bubble-meta: rgba(255, 255, 255, 0.72);
@@ -50,6 +53,9 @@ const useStyles = createStyles(({ token, css }) => ({
       --bubble-on-accent: var(--own-from);
       --bubble-link: ${token.colorWhite};
       --bubble-fill: rgba(255, 255, 255, 0.16);
+      --mention-bg: rgba(255, 255, 255, 0.2);
+      --mention-bg-hover: rgba(255, 255, 255, 0.3);
+      --mention-color: ${token.colorWhite};
       align-items: flex-end;
       margin-right: 8px;
     }

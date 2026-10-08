@@ -12,7 +12,6 @@ const useStyles = createStyles(({ token, css }) => ({
     flex-direction: column;
     min-height: 0;
     height: 100%;
-    background: ${token.colorBgContainer};
   `,
   header: css`
     display: flex;

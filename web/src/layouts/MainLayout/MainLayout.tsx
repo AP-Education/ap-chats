@@ -7,6 +7,10 @@ import { ChatLoading } from '@/domain/conversation/ChatLoading';
 import { CallSurface } from '../../features/calls/components/CallSurface';
 import { ConnectionBanner } from '../../features/realtime/components/ConnectionBanner';
 import { WorkspaceUnreadContext } from '../../features/social/read-state/workspace-unread-context';
+import {
+  AppWallpaper,
+  useAppSurfaceStyle,
+} from '../../features/social/wallpaper/components/AppWallpaper';
 import { useIsMobile } from '../../shared/hooks/useIsMobile';
 import { PageSection } from '../../shared/ui/PageSection/PageSection';
 import { MainSider } from './MainSider';
@@ -37,6 +41,7 @@ export function MainLayout() {
     [locationKey],
   );
   const unreadCount = (unread?.channelTotal ?? 0) + (unread?.directTotal ?? 0);
+  const surfaceStyle = useAppSurfaceStyle();
   const openMenu = useCallback(() => setMenuOpen(true), [setMenuOpen]);
   const closeMenu = useCallback(() => setMenuOpen(false), [setMenuOpen]);
   const getNavWidth = useCallback(() => containerRef.current?.clientWidth || window.innerWidth, []);
@@ -67,7 +72,8 @@ export function MainLayout() {
   );
 
   return (
-    <Layout className={styles.layout}>
+    <Layout className={styles.layout} style={surfaceStyle}>
+      <AppWallpaper />
       <CallSurface />
       <ConnectionBanner />
       <Layout
@@ -100,9 +106,19 @@ export function MainLayout() {
           inert={isMobile && isMenuOpen}
           {...sheet.openGesture}
         >
+          {/* The sliding mobile panel covers the menu, so it carries its own piece of the wallpaper. */}
+          {isMobile && <AppWallpaper />}
           <PageSection
             maxWidth={isEdgeToEdge ? 'none' : 1920}
-            style={isEdgeToEdge ? { padding: 0, borderRadius: 0 } : undefined}
+            style={
+              isEdgeToEdge
+                ? {
+                    padding: 0,
+                    borderRadius: 0,
+                    background: isChatPage ? 'transparent' : 'var(--app-surface)',
+                  }
+                : undefined
+            }
           >
             <MobileMenuContext.Provider value={mobileMenu}>
               <Suspense

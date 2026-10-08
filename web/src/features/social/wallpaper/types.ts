@@ -1,24 +1,33 @@
-export type WallpaperPatternId = 'network' | 'university' | 'school' | 'space' | 'stardust';
+export type WallpaperPatternId =
+  'courses' | 'university' | 'school' | 'space' | 'network' | 'stardust';
 
-/** Mesh anchors, in order: top right, upper left, bottom left, lower right. */
-export type WallpaperPalette = readonly [string, string, string, string];
+/** Follows the app theme: the same preset renders on a light or a dark base. */
+export type WallpaperAppearance = 'light' | 'dark';
 
-export interface WallpaperPattern {
-  id: WallpaperPatternId;
-  /** Colour of the pattern lines, blended across the same anchors as the base. */
-  ink: WallpaperPalette;
-  opacity: number;
+interface LightBase {
+  /** Centre, as fractions of the surface width and height. */
+  x: number;
+  y: number;
+  /** Fraction of the longer side of the surface. */
+  radius: number;
+  color: string;
+  strength: number;
 }
+
+/**
+ * The colour of a wallpaper is composed from a few soft light shapes: a glow, an aurora
+ * ribbon (a glow stretched along `angle`), or a halo, a ring of light seen at `tilt`.
+ */
+export type WallpaperLight =
+  | (LightBase & { kind: 'glow' })
+  | (LightBase & { kind: 'ribbon'; stretch: number; angle: number })
+  | (LightBase & { kind: 'halo'; tilt: number; angle: number });
 
 export interface WallpaperPreset {
   id: string;
   name: string;
-  /** Dark wallpapers get light service labels and more opaque incoming bubbles. */
-  tone: 'light' | 'dark';
-  colors: WallpaperPalette;
-  pattern: WallpaperPattern | null;
-  /** Own bubble gradient, from its tail corner towards the opposite one. */
+  lights: readonly WallpaperLight[];
+  pattern: WallpaperPatternId | null;
+  /** Own bubble gradient: the deeper tone at the tail, a close lighter one opposite. */
   accent: readonly [string, string];
-  /** Deep tone behind date pills and service labels on light wallpapers. */
-  service: string;
 }

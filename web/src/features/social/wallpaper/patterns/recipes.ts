@@ -14,36 +14,19 @@ function sizes(...tiers: [size: number, count: number][]): number[] {
 
 // Few large glyphs, more medium and small ones: the size rhythm of a hand-laid doodle
 // wallpaper, kept sparse so the gradient stays the main surface.
-const ACADEMIC_SIZES = sizes([74, 2], [50, 4], [32, 8], [22, 6]);
+const ICONS = {
+  glyphSizes: sizes([74, 2], [50, 4], [32, 8], [22, 6]),
+  networkSpacing: 0,
+  orbits: 0,
+  constellations: 0,
+  particles: 70,
+  sparkles: 7,
+};
 
 const recipes: Record<WallpaperPatternId, PatternRecipe> = {
-  network: {
-    glyphs: null,
-    glyphSizes: [],
-    networkSpacing: 78,
-    orbits: 0,
-    constellations: 0,
-    particles: 90,
-    sparkles: 6,
-  },
-  university: {
-    glyphs: () => import('./university'),
-    glyphSizes: ACADEMIC_SIZES,
-    networkSpacing: 0,
-    orbits: 0,
-    constellations: 0,
-    particles: 70,
-    sparkles: 7,
-  },
-  school: {
-    glyphs: () => import('./school'),
-    glyphSizes: ACADEMIC_SIZES,
-    networkSpacing: 0,
-    orbits: 0,
-    constellations: 0,
-    particles: 70,
-    sparkles: 7,
-  },
+  courses: { ...ICONS, glyphs: () => import('./courses') },
+  university: { ...ICONS, glyphs: () => import('./university') },
+  school: { ...ICONS, glyphs: () => import('./school') },
   space: {
     glyphs: () => import('./space'),
     glyphSizes: sizes([86, 1], [44, 2], [26, 3]),
@@ -52,6 +35,15 @@ const recipes: Record<WallpaperPatternId, PatternRecipe> = {
     constellations: 2,
     particles: 280,
     sparkles: 14,
+  },
+  network: {
+    glyphs: null,
+    glyphSizes: [],
+    networkSpacing: 78,
+    orbits: 0,
+    constellations: 0,
+    particles: 90,
+    sparkles: 6,
   },
   stardust: {
     glyphs: null,

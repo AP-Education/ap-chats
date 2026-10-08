@@ -18,8 +18,8 @@ const useStyles = createStyles(({ token, css }) => ({
     padding: 0 2px;
     border: 0;
     border-radius: 2px;
-    background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    background: var(--mention-bg, ${token.colorPrimaryBg});
+    color: var(--mention-color, ${token.colorPrimary});
     font: inherit;
     font-weight: 500;
   `,
@@ -28,7 +28,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
     &:hover,
     &:focus-visible {
-      background: ${token.colorPrimaryBgHover};
+      background: var(--mention-bg-hover, ${token.colorPrimaryBgHover});
     }
   `,
   // A mention of you specifically reads differently from a mention of
