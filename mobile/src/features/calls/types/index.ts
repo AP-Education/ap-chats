@@ -28,3 +28,16 @@ export interface NativeCallConnectPayload {
   calleeAvatarPath?: string | null;
   grant: CallJoinGrant;
 }
+
+export type AudioOutputKind = 'speaker' | 'earpiece' | 'wired' | 'bluetooth';
+
+export interface AudioOutput {
+  kind: AudioOutputKind;
+  name: string;
+}
+
+export interface CallAudioRoute {
+  current?: AudioOutput;
+  /** Where a "not speaker" choice lands; undefined until the OS has reported one. */
+  private?: AudioOutput;
+}

@@ -1,6 +1,8 @@
 import type { CallParticipant } from 'expo-callkit-telecom';
 import { create } from 'zustand';
 
+import type { CallAudioRoute } from '../types';
+
 export type NativeCallStatus = 'ringing' | 'connecting' | 'connected';
 
 export interface NativeCallState {
@@ -17,6 +19,8 @@ export interface NativeCallState {
   remoteMuted?: boolean;
   remoteSpeaking?: boolean;
   remoteAudioLevel?: number;
+  /** The real output route, per call, so a new call never inherits the last one's speaker. */
+  audioRoute?: CallAudioRoute;
 }
 
 interface NativeCallStoreState {
