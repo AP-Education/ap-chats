@@ -1,6 +1,5 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
-import { callsRoutes } from '../pages/calls/route';
 import { channelsRoutes } from '../pages/channels/route';
 import { directRoutes } from '../pages/direct/route';
 import { overviewRoute } from '../pages/overview/route';
@@ -12,13 +11,7 @@ const router = createBrowserRouter([
   { path: 'auth/callback', lazy: () => import('../pages/auth/CallbackPage') },
   {
     Component: ProtectedLayout,
-    children: [
-      overviewRoute,
-      ...channelsRoutes,
-      ...directRoutes,
-      ...callsRoutes,
-      ...placeholderRoutes,
-    ],
+    children: [overviewRoute, ...channelsRoutes, ...directRoutes, ...placeholderRoutes],
   },
 ]);
 

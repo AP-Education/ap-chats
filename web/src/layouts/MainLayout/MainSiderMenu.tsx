@@ -5,6 +5,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 import { AuthStatus } from '../../features/auth/components/AuthStatus';
+import { CallHistoryList } from '../../features/calls/components/CallHistoryList/CallHistoryList';
 import { ChannelsSidebar } from '../../features/communities/components/ChannelsSidebar';
 import { PushSettings } from '../../features/notifications/components/PushSettings';
 import { DirectMessageList } from '../../features/social/direct-messages/components/DirectMessageList/DirectMessageList';
@@ -15,34 +16,75 @@ import { ChannelsNavBadge } from './ChannelsNavBadge';
 import { DirectMessagesNavBadge } from './DirectMessagesNavBadge';
 import { useMainLayoutStyles } from './useMainLayoutStyles';
 
-type NavKey = '/' | '/channels' | '/direct' | '/calls';
+type SidebarSection = 'channels' | 'direct' | 'calls';
 
-const navItems: { key: NavKey; icon: typeof HouseIcon; label: string }[] = [
-  { key: '/', icon: HouseIcon, label: 'Головна' },
-  { key: '/channels', icon: ChatsIcon, label: 'Чати' },
-  { key: '/direct', icon: ChatTextIcon, label: 'Особисті' },
-  { key: '/calls', icon: PhoneIcon, label: 'Дзвінки' },
+const sectionItems: {
+  section: SidebarSection;
+  path?: '/channels' | '/direct';
+  icon: typeof HouseIcon;
+  label: string;
+}[] = [
+  { section: 'channels', path: '/channels', icon: ChatsIcon, label: 'Чати' },
+  { section: 'direct', path: '/direct', icon: ChatTextIcon, label: 'Особисті' },
+  { section: 'calls', icon: PhoneIcon, label: 'Дзвінки' },
 ];
 
-type ConversationSection = 'channels' | 'direct';
+function isWithin(pathname: string, path: string) {
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
+
+function NavItemLabel({
+  icon: Icon,
+  label,
+  active,
+}: {
+  icon: typeof HouseIcon;
+  label: string;
+  active: boolean;
+}) {
+  const { styles } = useMainLayoutStyles();
+  const isMobile = useIsMobile();
+
+  return (
+    <>
+      <Icon size={isMobile ? 22 : 20} weight={active ? 'fill' : 'regular'} />
+      <span className={styles.navLabel}>{label}</span>
+    </>
+  );
+}
+
+function DesktopSectionList({ section }: { section: SidebarSection | null }) {
+  const { workspace } = useActiveWorkspace();
+
+  if (workspace && section === 'direct') return <DirectMessageList workspaceId={workspace.id} />;
+  if (workspace && section === 'calls') return <CallHistoryList workspaceId={workspace.id} />;
+  return <ChannelsSidebar />;
+}
 
 export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
   const { styles, cx } = useMainLayoutStyles();
   const { pathname, key: locationKey } = useLocation();
   const { workspace } = useActiveWorkspace();
   const isMobile = useIsMobile();
-  const [selection, setSelection] = useState<{
+  const [chosen, setChosen] = useState<{
     locationKey: string;
-    section: ConversationSection;
+    section: SidebarSection;
   } | null>(null);
-  const routeSection = pathname.startsWith('/direct')
-    ? 'direct'
-    : pathname.startsWith('/channels')
-      ? 'channels'
+  const routeSection =
+    sectionItems.find(({ path }) => path && isWithin(pathname, path))?.section ?? null;
+  // Calls have no route to reflect them, so picking calls survives navigation until another section is picked.
+  const chosenSection =
+    chosen && (chosen.section === 'calls' || chosen.locationKey === locationKey)
+      ? chosen.section
       : null;
-  const hasSelection = selection?.locationKey === locationKey;
-  const activeSection = hasSelection ? selection.section : routeSection;
+  const activeSection = chosenSection ?? routeSection;
   const listSection = activeSection ?? 'channels';
+  const homeActive = !chosenSection && pathname === '/';
+
+  function followRoute() {
+    setChosen(null);
+    onNavigate?.();
+  }
 
   return (
     <div className={styles.sidebarStack}>
@@ -50,46 +92,46 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
         <WorkspaceSwitcher />
       </div>
       <nav className={styles.nav}>
-        {navItems.map(({ key, icon: Icon, label }) => {
-          const section = key === '/channels' ? 'channels' : key === '/direct' ? 'direct' : null;
-          const routeActive = pathname === key || (key !== '/' && pathname.startsWith(`${key}/`));
-          const active = isMobile
-            ? section
-              ? activeSection === section
-              : !hasSelection && routeActive
-            : routeActive;
+        <Link
+          to="/"
+          onClick={followRoute}
+          className={cx(styles.navItem, homeActive && styles.navItemActive)}
+        >
+          <NavItemLabel icon={HouseIcon} label="Головна" active={homeActive} />
+        </Link>
+        {sectionItems.map(({ section, path, icon, label }) => {
+          const active = activeSection === section;
           const content = (
             <>
-              <Icon size={isMobile ? 22 : 20} weight={active ? 'fill' : 'regular'} />
-              <span className={styles.navLabel}>{label}</span>
-              {workspace && key === '/channels' && <ChannelsNavBadge />}
-              {workspace && key === '/direct' && <DirectMessagesNavBadge />}
+              <NavItemLabel icon={icon} label={label} active={active} />
+              {workspace && section === 'channels' && <ChannelsNavBadge />}
+              {workspace && section === 'direct' && <DirectMessagesNavBadge />}
             </>
           );
 
-          if (isMobile && section) {
+          if (path && !isMobile) {
             return (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setSelection({ locationKey, section })}
+              <Link
+                key={section}
+                to={path}
+                onClick={followRoute}
                 className={cx(styles.navItem, active && styles.navItemActive)}
               >
                 {content}
-              </button>
+              </Link>
             );
           }
 
           return (
-            <Link
-              key={key}
-              to={key}
-              onClick={onNavigate}
+            <button
+              key={section}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setChosen({ locationKey, section })}
               className={cx(styles.navItem, active && styles.navItemActive)}
             >
               {content}
-            </Link>
+            </button>
           );
         })}
       </nav>
@@ -117,14 +159,15 @@ export function MainSiderMenu({ onNavigate }: { onNavigate?: () => void }) {
               <DirectMessageList workspaceId={workspace.id} onNavigate={onNavigate} />
             </div>
           )}
+          {workspace && listSection === 'calls' && (
+            <div className={styles.channelSection}>
+              <CallHistoryList workspaceId={workspace.id} onNavigate={onNavigate} />
+            </div>
+          )}
         </>
       ) : (
         <div className={styles.channelSection}>
-          {pathname.startsWith('/direct') && workspace ? (
-            <DirectMessageList workspaceId={workspace.id} onNavigate={onNavigate} />
-          ) : (
-            <ChannelsSidebar onNavigate={onNavigate} />
-          )}
+          <DesktopSectionList section={activeSection} />
         </div>
       )}
       <div className={styles.sidebarProfile}>
