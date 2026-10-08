@@ -25,11 +25,6 @@ const useStyles = createStyles(({ token, css }) => ({
     @media (prefers-reduced-transparency: reduce) {
       background: ${token.colorBgContainer};
     }
-
-    // A pill beside the round attach and send buttons, all one 44px touch height.
-    @media (max-width: ${token.screenMD}px) {
-      border-radius: 22px;
-    }
   `,
   context: css`
     padding: 10px 12px 0;

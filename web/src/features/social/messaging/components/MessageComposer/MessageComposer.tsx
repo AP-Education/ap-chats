@@ -114,20 +114,20 @@ const useStyles = createStyles(({ token, css }) => ({
       display: none;
     }
   `,
-  mobileOnly: css`
+  // One element, so its focus ring and hover take the same shape as the control itself:
+  // the composer's radius, like the send button and the input beside it.
+  mobileAttach: css`
     display: none;
 
     @media (max-width: ${token.screenMD}px) {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      flex-shrink: 0;
-      border-radius: 50%;
-      background: var(--glass, rgba(255, 255, 255, 0.86));
-      backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
-      box-shadow: 0 1px 2px rgba(23, 46, 42, 0.12);
+      && {
+        display: inline-flex;
+        flex-shrink: 0;
+        border-radius: ${token.borderRadiusLG}px;
+        background: var(--glass, rgba(255, 255, 255, 0.86));
+        backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
+        box-shadow: 0 1px 2px rgba(23, 46, 42, 0.12);
+      }
     }
   `,
   toolbarRight: css`
@@ -501,17 +501,15 @@ export function MessageComposer({
             event.target.value = '';
           }}
         />
-        <span className={styles.mobileOnly}>
-          <IconButton
-            size={36}
-            className={styles.toolbarButton}
-            aria-label="Додати файл"
-            disabled={!uploads.policy}
-            onClick={() => fileInput.current?.click()}
-          >
-            <PaperclipIcon size={22} />
-          </IconButton>
-        </span>
+        <IconButton
+          size={44}
+          className={cx(styles.toolbarButton, styles.mobileAttach)}
+          aria-label="Додати файл"
+          disabled={!uploads.policy}
+          onClick={() => fileInput.current?.click()}
+        >
+          <PaperclipIcon size={22} />
+        </IconButton>
         <MessageInputSurface
           context={
             (intent || uploads.drafts.length > 0 || uploads.policyError) && (

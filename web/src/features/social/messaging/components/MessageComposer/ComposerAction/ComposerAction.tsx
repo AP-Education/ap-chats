@@ -29,7 +29,6 @@ const useStyles = createStyles(({ token, css }) => ({
     @media (max-width: ${token.screenMD}px) {
       width: 44px;
       height: 44px;
-      border-radius: 50%;
     }
   `,
   ready: css`
