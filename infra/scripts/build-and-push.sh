@@ -39,6 +39,7 @@ docker build \
   --build-arg VITE_OIDC_AUDIENCE="${VITE_OIDC_AUDIENCE:-}" \
   --build-arg VITE_IMAGES_URL="${VITE_IMAGES_URL:-}" \
   --build-arg VITE_TENOR_API_KEY="${VITE_TENOR_API_KEY:-}" \
+  --build-arg VITE_APP_ORIGIN="${VITE_APP_ORIGIN:-}" \
   -t "${REGISTRY}/ap-connect-web:${TAG}" \
   "$REPO_ROOT"
 
