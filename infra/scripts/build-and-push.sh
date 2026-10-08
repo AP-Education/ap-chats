@@ -64,6 +64,7 @@ echo "==> Building ${REGISTRY}/ap-connect-api:${TAG}"
 docker build \
   --platform "$BUILD_PLATFORM" \
   -f "$REPO_ROOT/infra/docker/Dockerfile.api" \
+  --secret id=npm_token,env=GITHUB_TOKEN \
   -t "${REGISTRY}/ap-connect-api:${TAG}" \
   "$REPO_ROOT"
 
