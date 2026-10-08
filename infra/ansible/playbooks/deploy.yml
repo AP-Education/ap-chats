@@ -1,0 +1,6 @@
+---
+- name: Deploy the ap-connect application stack
+  hosts: all
+  become: true
+  roles:
+    - ap_education.connect_deploy.compose_runtime

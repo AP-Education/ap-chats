@@ -4,7 +4,7 @@ import { createStyles } from 'antd-style';
 import type { NotificationLevel } from '../../types';
 
 const levels: Array<{ value: NotificationLevel; title: string; description?: string }> = [
-  { value: 'default', title: 'За замовчуванням', description: 'Лише згадки' },
+  { value: 'default', title: 'За замовчуванням', description: 'Усі повідомлення' },
   { value: 'all', title: 'Усі повідомлення' },
   { value: 'mentions', title: 'Лише згадки' },
   { value: 'none', title: 'Жодних' },

@@ -32,7 +32,14 @@
   font-size: 12px;
 }
 
-.signOut {
+.actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.actions > button {
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -46,12 +53,12 @@
   cursor: pointer;
 }
 
-.signOut:hover {
+.actions > button:hover:not(:disabled) {
   background: var(--ant-color-fill-tertiary);
   color: var(--ant-color-text);
 }
 
-.signOut:focus-visible {
+.actions > button:focus-visible {
   outline: 2px solid var(--ant-color-primary);
   outline-offset: 2px;
 }
@@ -72,7 +79,7 @@
     margin-top: 2px;
   }
 
-  .signOut {
+  .actions > button {
     width: 44px;
     height: 44px;
     border-radius: 10px;

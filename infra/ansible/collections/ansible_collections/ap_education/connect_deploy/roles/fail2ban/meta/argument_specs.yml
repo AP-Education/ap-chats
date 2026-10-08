@@ -1,0 +1,16 @@
+argument_specs:
+  main:
+    short_description: Ban repeat SSH offenders.
+    options:
+      fail2ban_bantime:
+        type: str
+        default: 1h
+        description: Ban duration.
+      fail2ban_findtime:
+        type: str
+        default: 10m
+        description: Window over which maxretry is counted.
+      fail2ban_maxretry:
+        type: int
+        default: 5
+        description: Failed attempts before a ban.

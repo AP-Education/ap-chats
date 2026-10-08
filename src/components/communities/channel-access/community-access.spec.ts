@@ -5,8 +5,8 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
+import type { Channel } from '../channels';
 import type { ChannelsRepository } from '../channels/repository';
-import type { Channel } from '../channels/types';
 import type { ChannelMembershipsRepository } from '../memberships/repository';
 import { CommunityAccessService } from './community-access.service';
 

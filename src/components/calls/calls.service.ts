@@ -9,11 +9,12 @@ import {
 } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
+import { ChannelAccessFacade } from '@/components/communities/channel-access';
 import type { ChannelAccessSnapshot } from '@/components/communities/channels/types/channel-access.types';
 import { EntriesFacade } from '@/components/social/entries/entries.facade';
 import type { ChannelEntry } from '@/components/social/entries/types/entry.types';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
+import { EventOutbox } from '@/globals/publisher/event-outbox';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
 import { RealtimePublisher } from '@/globals/realtime';
 
@@ -62,6 +63,7 @@ export class CallsService {
     private readonly provider: CallProvider,
     private readonly realtime: RealtimePublisher,
     private readonly events: EventPublisher,
+    private readonly outbox: EventOutbox,
   ) {}
 
   async start(member: WorkspaceMember, channelId: string, accessToken: string) {
@@ -181,7 +183,18 @@ export class CallsService {
 
     const entry = await this.entries.appendCall(member.workspaceId, channel.id, call.id);
 
-    // Last, so a refusal here rolls back the call before anyone is rung.
+    const pushRecipients = await this.calls.ringRecipients(channel.id, member.id);
+    await this.outbox.record(
+      CALL_SIGNAL_EVENT,
+      new CallSignalEvent(
+        'call:incoming',
+        this.signalPayload(member, channel, call),
+        pushRecipients,
+      ),
+      { expireInSeconds: RING_TTL_SECONDS, priority: 1 },
+    );
+
+    // Last, so a refusal here rolls back the call and its push before anyone is rung.
     const participantIds = await this.calls.ringRecipients(channel.id, null);
     await this.provider.create(call, { participantIds, group: channel.kind !== 'dm' }, accessToken);
 
@@ -249,7 +262,16 @@ export class CallsService {
     const includeActor = options?.includeActor ?? true;
     const recipients = await this.calls.ringRecipients(channel.id, includeActor ? null : actor.id);
 
-    const payload = {
+    const payload = this.signalPayload(actor, channel, call);
+
+    for (const oidcUserId of recipients) {
+      this.realtime.toUser(oidcUserId, event, payload);
+    }
+    this.events.publish(CALL_SIGNAL_EVENT, new CallSignalEvent(event, payload, recipients));
+  }
+
+  private signalPayload(actor: WorkspaceMember, channel: ChannelAccessSnapshot, call: CallRecord) {
+    return {
       workspaceId: channel.workspaceId,
       channelId: channel.id,
       channelKind: channel.kind,
@@ -259,11 +281,6 @@ export class CallsService {
       startedByDisplayName: actor.profile.displayName,
       startedByAvatarPath: actor.profile.avatarPath,
     };
-
-    for (const oidcUserId of recipients) {
-      this.realtime.toUser(oidcUserId, event, payload);
-    }
-    this.events.publish(CALL_SIGNAL_EVENT, new CallSignalEvent(event, payload, recipients));
   }
 
   private toView(call: CallRecord) {

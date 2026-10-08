@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "AP App",
-    "slug": "ap-chats",
-    "version": "0.0.0",
+    "slug": "ap-connect",
+    "version": "0.2.0",
     "scheme": "apchats",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,7 +10,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.apeducation.native",
-      "buildNumber": "9"
+      "buildNumber": "11",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.apeducation.native",

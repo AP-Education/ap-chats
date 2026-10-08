@@ -37,6 +37,8 @@ async function bootstrap(): Promise<void> {
   app.enableCors({ origin: config.get('WEB_ORIGIN') });
   app.useWebSocketAdapter(new RealtimeSocketIoAdapter(app, config));
   app.setGlobalPrefix('api');
+  // On SIGTERM, modules close their queues, sockets and pool instead of dying mid-job.
+  app.enableShutdownHooks();
   await app.listen(config.get('API_PORT'), '0.0.0.0');
 }
 

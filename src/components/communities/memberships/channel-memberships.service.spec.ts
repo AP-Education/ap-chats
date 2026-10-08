@@ -6,9 +6,9 @@ import { ForbiddenException } from '@nestjs/common';
 import type { WorkspaceMembersRepository } from '@/components/workspaces/members/repository';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { CommunityAccessService } from '../channel-access/community-access.service';
+import { CommunityAccessService } from '../channel-access';
+import type { Channel } from '../channels';
 import type { ChannelsRepository } from '../channels/repository';
-import type { Channel } from '../channels/types';
 import { ChannelMembershipsService } from './channel-memberships.service';
 import type { ChannelMembershipsRepository } from './repository';
 

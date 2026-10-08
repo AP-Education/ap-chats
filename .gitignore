@@ -14,10 +14,35 @@ web/playwright-report/
 .env
 .env.*
 !.env.example
+!.env.production.example
+!mobile/.env.production
 *.log
 .DS_Store
 mobile/android/
 mobile/ios/
+
+# Infra: Terraform workspace/state
+infra/terraform/**/.terraform/
+infra/terraform/**/*.tfstate
+infra/terraform/**/*.tfstate.*
+infra/terraform/**/*.tfplan
+infra/terraform/tenants/backend.*.tfbackend
+!infra/terraform/tenants/backend.sample.tfbackend
+
+# Infra: Ansible Vault secrets
+infra/ansible/inventory/group_vars/*/vault.yml
+!infra/ansible/inventory/group_vars/*/vault.yml.example
+infra/ansible/.vault-pass
+
+# Infra: collections installed by `ansible-galaxy collection install -r
+# requirements.yml` — keep only our own vendored ap_education collection.
+infra/ansible/collections/ansible_collections/*
+!infra/ansible/collections/ansible_collections/ap_education/
+infra/ansible/**/__pycache__/
+
+# SSH private keys someone drops at repo root for local deploy use
+keys/
 brag
 brag-output
 brag-output-*
+keys/
