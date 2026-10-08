@@ -22,7 +22,7 @@ export function MainLayout() {
   const unread = useContext(WorkspaceUnreadContext);
   const { pathname, key: locationKey } = useLocation();
   const isChatPage = pathname.startsWith('/channels') || pathname.startsWith('/direct');
-  const isEdgeToEdge = isChatPage || pathname.startsWith('/calls') || pathname === '/';
+  const isEdgeToEdge = isChatPage || pathname === '/';
   const isNavigationPage = pathname === '/channels' || pathname === '/direct';
   const [menuOverride, setMenuOverride] = useState<{ locationKey: string; open: boolean } | null>(
     null,
