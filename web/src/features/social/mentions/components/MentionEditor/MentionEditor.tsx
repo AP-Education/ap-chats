@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createStyles } from 'antd-style';
-import { useImperativeHandle, useRef, useState } from 'react';
+import { type ComponentProps, useImperativeHandle, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation/store';
@@ -36,9 +37,9 @@ const useStyles = createStyles(({ token, css }) => ({
   chip: css`
     display: inline;
     padding: 0 2px;
-    border-radius: 2px;
+    border-radius: ${token.borderRadiusXS}px;
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    color: ${token.colorPrimaryTextActive};
     font-weight: 500;
   `,
 }));
@@ -57,6 +58,7 @@ export function MentionEditor() {
     onEscape,
     onPasteFiles,
     editorRef,
+    suggestionsHost,
   } = useMessageEditorSlot();
   const { styles, cx } = useStyles();
   const { workspaceId, channelId } = useConversationScope();
@@ -77,6 +79,8 @@ export function MentionEditor() {
       ),
     enabled: Boolean(token && query !== null),
     staleTime: 30_000,
+    // Typing narrows the list in place instead of closing it between keystrokes.
+    placeholderData: keepPreviousData,
   });
 
   function currentMarkdown() {
@@ -101,8 +105,10 @@ export function MentionEditor() {
     }
     const before = (selection.anchorNode.textContent ?? '').slice(0, selection.anchorOffset);
     const match = before.match(MENTION_QUERY_PATTERN);
-    setQuery(match ? match[1]! : null);
-    setActive(0);
+    const nextQuery = match ? match[1]! : null;
+    // Key-ups land here too; only a new query resets the highlight, not the arrow that moved it.
+    if (nextQuery !== query) setActive(0);
+    setQuery(nextQuery);
   }
 
   function pick(candidate: MentionCandidate) {
@@ -195,8 +201,25 @@ export function MentionEditor() {
         onPasteFiles={onPasteFiles}
       />
       {query !== null && candidates.data && candidates.data.length > 0 && (
-        <MentionCandidateList candidates={candidates.data} active={active} onPick={pick} />
+        <MentionSuggestions
+          host={suggestionsHost}
+          candidates={candidates.data}
+          query={query}
+          active={active}
+          onActivate={setActive}
+          onPick={pick}
+        />
       )}
     </div>
   );
+}
+
+type MentionSuggestionsProps = Omit<ComponentProps<typeof MentionCandidateList>, 'placement'> & {
+  host: HTMLElement | null | undefined;
+};
+
+/** Docks in the composer's strip when there is one; an inline editor gets a floating list. */
+function MentionSuggestions({ host, ...list }: MentionSuggestionsProps) {
+  if (!host) return <MentionCandidateList placement="floating" {...list} />;
+  return createPortal(<MentionCandidateList placement="docked" {...list} />, host);
 }

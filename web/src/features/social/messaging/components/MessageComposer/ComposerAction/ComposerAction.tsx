@@ -10,8 +10,8 @@ const useStyles = createStyles(({ token, css }) => ({
     height: 52px;
     flex-shrink: 0;
     border: 0;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.88);
+    border-radius: ${token.borderRadiusLG}px;
+    background: var(--glass, rgba(255, 255, 255, 0.86));
     backdrop-filter: blur(20px) saturate(1.7);
     box-shadow: 0 1px 2px rgba(23, 46, 42, 0.12);
     color: ${token.colorTextQuaternary};
@@ -29,7 +29,6 @@ const useStyles = createStyles(({ token, css }) => ({
     @media (max-width: ${token.screenMD}px) {
       width: 46px;
       height: 46px;
-      border-radius: 14px;
     }
   `,
   ready: css`

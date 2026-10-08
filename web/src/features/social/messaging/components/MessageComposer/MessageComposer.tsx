@@ -62,6 +62,14 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     flex-direction: column;
   `,
+  suggestions: css`
+    position: relative;
+    margin: 0 12px;
+
+    @media (max-width: ${token.screenMD}px) {
+      margin: 0 6px;
+    }
+  `,
   // Floats over the wallpaper and the messages scrolling beneath it; only its controls
   // take pointer input, the transparent gaps between them pass it through.
   shell: css`
@@ -117,8 +125,8 @@ const useStyles = createStyles(({ token, css }) => ({
       width: 46px;
       height: 46px;
       flex-shrink: 0;
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.88);
+      border-radius: ${token.borderRadiusLG}px;
+      background: var(--glass, rgba(255, 255, 255, 0.86));
       backdrop-filter: blur(20px) saturate(1.7);
       box-shadow: 0 1px 2px rgba(23, 46, 42, 0.12);
     }
@@ -151,7 +159,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
     &::-webkit-scrollbar-thumb {
       background: ${token.colorBorder};
-      border-radius: 3px;
+      border-radius: ${token.borderRadiusXS}px;
     }
 
     &::-webkit-scrollbar-track {
@@ -180,18 +188,29 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   toolbarButtonActive: css`
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    color: ${token.colorPrimaryTextActive};
   `,
   reply: css`
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     min-width: 0;
-    padding: 4px 4px 4px 11px;
-    border-radius: 8px;
+    padding: ${token.paddingXXS}px ${token.paddingXXS}px ${token.paddingXXS}px ${token.padding}px;
+    border-radius: ${token.borderRadius}px;
     background: ${token.colorPrimaryBg};
-    box-shadow: inset 3px 0 0 ${token.colorPrimary};
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 6px;
+      bottom: 6px;
+      left: 6px;
+      width: 4px;
+      border-radius: ${token.borderRadiusXS}px;
+      background: ${token.colorPrimary};
+    }
   `,
 }));
 
@@ -236,6 +255,7 @@ export function MessageComposer({
     sync: syncHasContent,
     clear: clearDraft,
   } = useComposerDraft(draftKey);
+  const [suggestionsHost, setSuggestionsHost] = useState<HTMLDivElement | null>(null);
   const [webActiveTab, setActiveTab] = useState<PickerTab | null>(null);
   const [lastActiveTab, setLastActiveTab] = useState<PickerTab>(readLastPickerTab);
   const keyboardHeight = useBrowserKeyboardHeight();
@@ -448,6 +468,7 @@ export function MessageComposer({
       onSubmit: handleSend,
       onEscape,
       onPasteFiles: uploads.addFiles,
+      suggestionsHost,
     }),
     [
       draftKey,
@@ -459,11 +480,13 @@ export function MessageComposer({
       handleSend,
       onEscape,
       uploads.addFiles,
+      suggestionsHost,
     ],
   );
 
   return (
     <div className={styles.root}>
+      <div ref={setSuggestionsHost} className={styles.suggestions} />
       <div className={styles.shell} ref={bindTarget}>
         {overlay}
         <input
