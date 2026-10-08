@@ -2,6 +2,7 @@ import { Drawer } from 'antd';
 import { createStyles } from 'antd-style';
 import type { PropsWithChildren, ReactNode } from 'react';
 
+import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -50,6 +51,7 @@ export function ChatLayout({
 }: PropsWithChildren<ChatLayoutProps>) {
   const { styles } = useStyles();
   const isNarrowLayout = useIsNarrowLayout();
+  const isMobile = useIsMobile();
 
   return (
     <div className={styles.shell}>
@@ -60,7 +62,7 @@ export function ChatLayout({
           open={asideOpen}
           onClose={onCloseAside}
           placement="right"
-          width={320}
+          size={isMobile ? '100%' : 320}
           closable={false}
           className={styles.drawer}
         >
