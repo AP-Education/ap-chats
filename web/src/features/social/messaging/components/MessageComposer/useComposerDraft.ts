@@ -2,17 +2,25 @@ import { useCallback, useMemo, useState } from 'react';
 
 import type { ComposerDraft } from '../../types';
 
+const EMPTY_DRAFT: ComposerDraft = { markdown: '', labels: {} };
+
+// A draft of nothing but line breaks is no draft: restoring it would fill the field with
+// invisible text and hide the placeholder.
+function hasText(markdown: string): boolean {
+  return markdown.trim().length > 0;
+}
+
 function readDraft(key: string): ComposerDraft {
   const stored = localStorage.getItem(key);
-  if (!stored) return { markdown: '', labels: {} };
+  if (!stored) return EMPTY_DRAFT;
   try {
     const value = JSON.parse(stored) as { markdown?: string; labels?: Record<string, string> };
-    if (typeof value.markdown === 'string')
+    if (typeof value.markdown === 'string' && hasText(value.markdown))
       return { markdown: value.markdown, labels: value.labels ?? {} };
   } catch {
-    return { markdown: stored, labels: {} };
+    if (hasText(stored)) return { markdown: stored, labels: {} };
   }
-  return { markdown: '', labels: {} };
+  return EMPTY_DRAFT;
 }
 
 /**
@@ -26,18 +34,19 @@ export function useComposerDraft(draftKey: string) {
   const initialDraft = useMemo(() => readDraft(draftKey), [draftKey]);
   const [contentState, setContentState] = useState(() => ({
     draftKey,
-    hasContent: Boolean(initialDraft.markdown.trim()),
+    hasContent: hasText(initialDraft.markdown),
   }));
   const hasContent =
     contentState.draftKey === draftKey
       ? contentState.hasContent
-      : Boolean(readDraft(draftKey).markdown.trim());
+      : hasText(readDraft(draftKey).markdown);
 
   const sync = useCallback(
     ({ markdown, labels }: ComposerDraft) => {
-      if (markdown) localStorage.setItem(draftKey, JSON.stringify({ markdown, labels }));
+      const hasContent = hasText(markdown);
+      if (hasContent) localStorage.setItem(draftKey, JSON.stringify({ markdown, labels }));
       else localStorage.removeItem(draftKey);
-      setContentState({ draftKey, hasContent: markdown.trim().length > 0 });
+      setContentState({ draftKey, hasContent });
     },
     [draftKey],
   );

@@ -189,7 +189,11 @@ export function ComposerEditor({
       aria-multiline="true"
       aria-label={ariaLabel}
       data-placeholder={placeholder}
-      onInput={() => onChange?.()}
+      onInput={() => {
+        // Deleting everything leaves a stray line break behind, which would hide the placeholder.
+        if (root.current && !root.current.textContent) root.current.replaceChildren();
+        onChange?.();
+      }}
       onBlur={captureSelection}
       onClick={() => onChange?.()}
       onKeyUp={() => onChange?.()}
