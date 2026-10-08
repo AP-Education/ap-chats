@@ -13,7 +13,7 @@ const useStyles = createStyles(({ token, css }) => ({
     gap: 10px;
     width: 100%;
     min-width: 0;
-    height: 52px;
+    align-self: stretch;
     padding: 0 16px;
     border-radius: 0;
     border: none;
@@ -63,7 +63,7 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     width: 100%;
-    height: 52px;
+    align-self: stretch;
     padding: 0 16px;
   `,
 }));
