@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useOptimistic, useState, useTransition } from 'react';
+import { useMemo, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { confirmDirectMessage } from '@/features/social/direct-messages/cache';
@@ -17,13 +17,14 @@ import { messagingQueryKeys } from '../queryKeys';
 import type {
   DisplayItem,
   HistoryItem,
+  Message,
   MessageAuthor,
   MessageHistoryItem,
   PendingAttachmentCommit,
   SendMessageCommand,
 } from '../types';
 import { isMessageItem } from '../types';
-import { usePendingOutbox } from './usePendingOutbox';
+import { useOutbox } from './useOutbox';
 import { useUploadingSends } from './useUploadingSends';
 
 // Matches the `confirmed` keyframe duration in MessageRow.tsx: long enough for
@@ -34,6 +35,7 @@ function outboxKey(identity: string | undefined, workspaceId: string, channelId:
   return `ap-chats:outbox:${identity}:${workspaceId}:${channelId}`;
 }
 
+// An unsent row goes by its nonce until the server gives the message an id.
 function synthesize(
   input: SendMessageCommand,
   createdAt: string,
@@ -76,13 +78,19 @@ function synthesize(
   };
 }
 
+function findMessage(messages: readonly MessageHistoryItem[], messageId: string | undefined) {
+  return messages.find((item) => item.message.id === messageId);
+}
+
+function byCreatedAt(a: DisplayItem, b: DisplayItem) {
+  return a.item.createdAt.localeCompare(b.item.createdAt);
+}
+
 /**
- * Owns sending: an optimistic bubble shows immediately and quietly becomes the
- * real message once the server confirms it (React drops the optimistic overlay
- * on its own once `items` includes it — no polling, no manual bookkeeping to
- * take it back out). A send that never reaches the server persists across
- * reloads so it can be retried (usePendingOutbox), and one with attachments
- * still uploading shows live until they're ready (useUploadingSends).
+ * Owns sending. Every message the server hasn't acknowledged lives in the outbox (useOutbox)
+ * and shows from there at once, as sending or failed; once history holds it, it is a
+ * real message and the outbox lets it go. Sends with attachments still uploading show
+ * live until they are ready to enter the outbox (useUploadingSends).
  */
 export function useMessageOperations(
   workspaceId: string,
@@ -92,26 +100,15 @@ export function useMessageOperations(
 ) {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
-  const [, startTransition] = useTransition();
-  const outbox = usePendingOutbox(outboxKey(identity, workspaceId, channelId));
   const [confirmedFlash, setConfirmedFlash] = useState<ReadonlySet<string>>(() => new Set());
 
   const messages = useMemo(() => items.filter(isMessageItem), [items]);
-  const confirmedNonces = useMemo(
+  const delivered = useMemo(
     () =>
       new Set(messages.map((item) => item.message.clientNonce).filter((nonce) => nonce !== null)),
     [messages],
   );
-
-  const [optimisticItems, addOptimisticItem] = useOptimistic<HistoryItem[], MessageHistoryItem>(
-    items,
-    (state, incoming) =>
-      state.some(
-        (item) => isMessageItem(item) && item.message.clientNonce === incoming.message.clientNonce,
-      )
-        ? state
-        : [...state, incoming],
-  );
+  const outbox = useOutbox(outboxKey(identity, workspaceId, channelId), delivered);
 
   function flashConfirmed(id: string) {
     setConfirmedFlash((current) => new Set(current).add(id));
@@ -131,23 +128,9 @@ export function useMessageOperations(
     });
   }
 
-  async function deliver(input: SendMessageCommand) {
-    if (!token) {
-      outbox.markFailed(input.clientNonce);
-      return;
-    }
-    let message;
-    try {
-      message = await sendMessage(token, workspaceId, channelId, input);
-    } catch {
-      outbox.markFailed(input.clientNonce);
-      return;
-    }
-
-    // Reached the server: nothing left to recover on reload, regardless of
-    // whether the local cache-sync below succeeds.
-    outbox.remove(input.clientNonce);
-    confirmDirectMessage(queryClient, identity, workspaceId, channelId, message);
+  // Brings an acknowledged message into the loaded history, so its row turns from
+  // pending into the real message in place.
+  async function mergeSent(sessionToken: string, message: Message) {
     const historyKey = messagingQueryKeys.history(identity, workspaceId, channelId);
     try {
       let item: MessageHistoryItem;
@@ -158,7 +141,7 @@ export function useMessageOperations(
             'item',
             message.id,
           ],
-          queryFn: () => getMessage(token, workspaceId, channelId, message.id),
+          queryFn: () => getMessage(sessionToken, workspaceId, channelId, message.id),
           staleTime: 30_000,
         });
       } catch {
@@ -181,25 +164,38 @@ export function useMessageOperations(
         channelId,
         historyKey,
         item.seq,
-        (cursor) => historyPage(token, workspaceId, channelId, 'after', cursor),
+        (cursor) => historyPage(sessionToken, workspaceId, channelId, 'after', cursor),
       );
       mergeHistoryItem(queryClient, identity, workspaceId, channelId, item);
       flashConfirmed(item.id);
     } catch {
-      // Sent, just not locally merged: fall back to a full refetch rather
-      // than retrying the send.
+      // Sent, just not locally merged: a full refetch brings it in instead.
       void queryClient.invalidateQueries({ queryKey: historyKey, exact: true });
     }
   }
 
+  async function deliver(input: SendMessageCommand) {
+    if (!token) {
+      outbox.fail(input.clientNonce);
+      return;
+    }
+
+    let message: Message;
+    try {
+      message = await sendMessage(token, workspaceId, channelId, input);
+    } catch {
+      outbox.fail(input.clientNonce);
+      return;
+    }
+
+    confirmDirectMessage(queryClient, identity, workspaceId, channelId, message);
+    await mergeSent(token, message);
+    outbox.settle(input.clientNonce);
+  }
+
   function dispatch(input: SendMessageCommand, createdAt: string) {
-    const replyTarget = messages.find((item) => item.message.id === input.replyToMessageId);
-    const optimistic = synthesize(input, createdAt, author, replyTarget);
-    outbox.markSending(input, createdAt);
-    startTransition(async () => {
-      addOptimisticItem(optimistic);
-      await deliver(input);
-    });
+    outbox.enqueue(input, createdAt);
+    void deliver(input);
   }
 
   const { uploadingSends, start: startUploadingSend } = useUploadingSends(dispatch);
@@ -215,8 +211,8 @@ export function useMessageOperations(
     startUploadingSend(input, pending);
   }
 
-  function retry(nonce: string) {
-    const entry = outbox.pendingSends.find((item) => item.input.clientNonce === nonce);
+  function retry(rowId: string) {
+    const entry = outbox.unsent.find((candidate) => candidate.input.clientNonce === rowId);
     if (!entry) return;
     dispatch(entry.input, entry.createdAt);
   }
@@ -235,58 +231,37 @@ export function useMessageOperations(
   }
 
   const displayItems = useMemo<DisplayItem[]>(() => {
-    const sending: DisplayItem[] = optimisticItems.map((item) => {
-      const isPending =
-        isMessageItem(item) &&
-        item.message.clientNonce !== null &&
-        !confirmedNonces.has(item.message.clientNonce);
-      return {
-        item,
-        nonce: null,
-        delivery: isPending ? 'sending' : confirmedFlash.has(item.id) ? 'confirmed' : undefined,
-      };
-    });
-    const failed: DisplayItem[] = outbox.pendingSends
-      .filter((entry) => entry.status === 'failed')
-      .map((entry) => {
-        const replyTarget = messages.find(
-          (item) => item.message.id === entry.input.replyToMessageId,
-        );
-        return {
-          item: synthesize(entry.input, entry.createdAt, author, replyTarget),
-          nonce: entry.input.clientNonce,
-          delivery: 'failed',
-        };
-      });
-    const uploading: DisplayItem[] = [...uploadingSends.entries()].map(([nonce, entry]) => {
-      const replyTarget = messages.find((item) => item.message.id === entry.replyToMessageId);
-      return {
-        item: synthesize(
-          {
-            markdown: entry.markdown,
-            clientNonce: nonce,
-            replyToMessageId: entry.replyToMessageId,
-            quoteText: entry.quoteText,
-          },
-          entry.createdAt,
-          author,
-          replyTarget,
-        ),
-        nonce: null,
-        delivery: 'uploading',
-        pendingAttachments: entry.drafts,
-      };
-    });
-    return [...sending, ...uploading, ...failed];
-  }, [
-    optimisticItems,
-    confirmedNonces,
-    confirmedFlash,
-    outbox.pendingSends,
-    uploadingSends,
-    messages,
-    author,
-  ]);
+    const history: DisplayItem[] = items.map((item) => ({
+      item,
+      delivery: confirmedFlash.has(item.id) ? 'confirmed' : undefined,
+    }));
+    const queued: DisplayItem[] = outbox.unsent.map((entry) => ({
+      item: synthesize(
+        entry.input,
+        entry.createdAt,
+        author,
+        findMessage(messages, entry.input.replyToMessageId),
+      ),
+      delivery: entry.status,
+    }));
+    const uploading: DisplayItem[] = [...uploadingSends.entries()].map(([nonce, entry]) => ({
+      item: synthesize(
+        {
+          markdown: entry.markdown,
+          clientNonce: nonce,
+          replyToMessageId: entry.replyToMessageId,
+          quoteText: entry.quoteText,
+        },
+        entry.createdAt,
+        author,
+        findMessage(messages, entry.replyToMessageId),
+      ),
+      delivery: 'uploading',
+      pendingAttachments: entry.drafts,
+    }));
+    // Unsent rows sit below the history, in the order they were written.
+    return [...history, ...[...queued, ...uploading].sort(byCreatedAt)];
+  }, [items, confirmedFlash, outbox.unsent, uploadingSends, author, messages]);
 
   return { displayItems, send, retry, edit, remove };
 }
