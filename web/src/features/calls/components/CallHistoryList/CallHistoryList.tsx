@@ -2,6 +2,7 @@ import { Button, Empty } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { useCallHistory } from '../../hooks/useCallHistory';
+import type { CallHistoryFilter } from '../../types';
 import { CallHistoryListSkeleton } from './CallHistoryListSkeleton';
 import { CallHistoryRow } from './CallHistoryRow';
 import { groupCallsByDay } from './groupCallsByDay';
@@ -26,8 +27,6 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-export type CallHistoryFilter = 'all' | 'missed';
-
 export function CallHistoryList({
   workspaceId,
   filter,
@@ -36,7 +35,7 @@ export function CallHistoryList({
   filter: CallHistoryFilter;
 }) {
   const { styles } = useStyles();
-  const history = useCallHistory(workspaceId);
+  const history = useCallHistory(workspaceId, filter);
 
   if (history.isPending) return <CallHistoryListSkeleton />;
   if (history.isError && !history.data)
@@ -50,11 +49,7 @@ export function CallHistoryList({
     );
 
   const items = history.data.pages.flatMap((page) => page.items);
-  const visible =
-    filter === 'missed'
-      ? items.filter((item) => item.status === 'missed' || item.status === 'declined')
-      : items;
-  const groups = groupCallsByDay(visible);
+  const groups = groupCallsByDay(items);
 
   if (groups.length === 0)
     return (
