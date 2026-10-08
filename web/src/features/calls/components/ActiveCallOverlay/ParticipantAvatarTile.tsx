@@ -9,26 +9,26 @@ import { createStyles } from 'antd-style';
 
 import { Avatar } from '@/shared/ui/Avatar/Avatar';
 
-const useStyles = createStyles(({ css }) => ({
+const useStyles = createStyles(({ token, css }) => ({
   tile: css`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    max-width: 160px;
+    gap: 14px;
+    max-width: 180px;
   `,
   ring: css`
     display: flex;
     border-radius: 50%;
-    padding: 3px;
+    padding: ${token.paddingXXS}px;
     transition: box-shadow 0.08s ease-out;
   `,
   name: css`
     display: flex;
     align-items: center;
     max-width: 100%;
-    color: rgba(255, 255, 255, 0.92);
-    font-size: 18px;
+    color: ${token.colorText};
+    font-size: ${token.fontSizeLG}px;
     font-weight: 600;
   `,
   nameText: css`
@@ -45,8 +45,8 @@ const useStyles = createStyles(({ css }) => ({
     margin-left: 6px;
     flex-shrink: 0;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.14);
-    color: rgba(255, 255, 255, 0.75);
+    background: ${token.colorFillSecondary};
+    color: ${token.colorTextSecondary};
   `,
 }));
 
@@ -76,7 +76,7 @@ export function ParticipantAvatarTile({
         className={styles.ring}
         style={
           glow > 0.5
-            ? { boxShadow: `0 0 0 ${glow}px rgba(12, 125, 119, ${0.15 + volume * 0.4})` }
+            ? { boxShadow: `0 0 0 ${glow}px rgba(9, 198, 204, ${0.12 + volume * 0.36})` }
             : undefined
         }
       >

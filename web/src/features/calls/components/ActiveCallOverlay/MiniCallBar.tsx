@@ -1,11 +1,8 @@
-import { useDisconnectButton, useTrackToggle } from '@livekit/components-react';
-import { MicrophoneIcon, MicrophoneSlashIcon, VideoCameraIcon } from '@phosphor-icons/react';
 import { createStyles, keyframes } from 'antd-style';
-import { Track } from 'livekit-client';
 
-import { EndCallIcon } from '../../callIcons';
-import { CALL_SURFACE_GRADIENT } from '../../callTheme';
-import { CallActionButton } from './CallActionButton';
+import { CALL_PALETTE } from '../../callTheme';
+import { LeaveCallControl } from './controls/LeaveCallControl';
+import { CameraControl, MicrophoneControl } from './controls/MediaControls';
 
 const pulse = keyframes`
   0%, 100% { opacity: 1; }
@@ -15,17 +12,18 @@ const pulse = keyframes`
 const useStyles = createStyles(({ token, css }) => ({
   bar: css`
     display: flex;
-    align-items: stretch;
-    gap: 12px;
-    min-height: 56px;
-    padding: 4px 16px;
-    background: ${CALL_SURFACE_GRADIENT};
-    color: ${token.colorWhite};
-
-    @media (max-width: ${token.screenSM}px) {
-      min-height: 48px;
-      padding: 3px 10px;
-    }
+    align-items: center;
+    gap: ${token.paddingXS}px;
+    height: 48px;
+    padding: 0 10px 0 6px;
+    background:
+      linear-gradient(
+        100deg,
+        color-mix(in srgb, ${CALL_PALETTE.teal} 42%, transparent),
+        color-mix(in srgb, ${CALL_PALETTE.indigo} 30%, transparent)
+      ),
+      ${token.colorBgLayout};
+    color: ${token.colorText};
   `,
   // The clickable "return to call" area matters more than any other control
   // here — it takes almost the full bar height rather than losing most of
@@ -35,17 +33,24 @@ const useStyles = createStyles(({ token, css }) => ({
     align-items: center;
     gap: 10px;
     flex: 1;
+    align-self: stretch;
     min-width: 0;
+    margin: 6px 0;
     padding: 0 10px;
     border: none;
-    border-radius: ${token.borderRadius}px;
+    border-radius: ${token.borderRadiusLG}px;
     background: transparent;
     color: inherit;
     text-align: left;
     cursor: pointer;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: ${token.colorFillTertiary};
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${token.colorText};
+      outline-offset: -2px;
     }
   `,
   dot: css`
@@ -53,13 +58,14 @@ const useStyles = createStyles(({ token, css }) => ({
     height: 8px;
     flex-shrink: 0;
     border-radius: 50%;
-    background: #4ade80;
+    background: ${CALL_PALETTE.live};
+    box-shadow: 0 0 10px ${CALL_PALETTE.live};
     animation: ${pulse} 1.6s ease-in-out infinite;
   `,
   info: css`
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: ${token.paddingXS}px;
     min-width: 0;
   `,
   // Named to match CallScreen's own title/duration: restoring or minimizing
@@ -69,24 +75,26 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 14px;
+    font-size: ${token.fontSizeSM}px;
     font-weight: 600;
     view-transition-name: active-call-title;
   `,
   duration: css`
     flex-shrink: 0;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.72);
+    font-size: ${token.fontSizeSM}px;
+    color: ${token.colorTextSecondary};
     font-variant-numeric: tabular-nums;
     view-transition-name: active-call-duration;
   `,
   actions: css`
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: ${token.paddingXS}px;
     flex-shrink: 0;
   `,
 }));
+
+const CONTROL = { size: 34, iconSize: 18 };
 
 interface MiniCallBarProps {
   title: string;
@@ -97,9 +105,6 @@ interface MiniCallBarProps {
 /** The app-level "return to call" strip: the room stays connected, only the stage collapses. */
 export function MiniCallBar({ title, duration, onExpand }: MiniCallBarProps) {
   const { styles } = useStyles();
-  const mic = useTrackToggle({ source: Track.Source.Microphone });
-  const camera = useTrackToggle({ source: Track.Source.Camera });
-  const leave = useDisconnectButton({});
 
   return (
     <div className={styles.bar} role="status">
@@ -116,31 +121,9 @@ export function MiniCallBar({ title, duration, onExpand }: MiniCallBarProps) {
         </span>
       </button>
       <div className={styles.actions}>
-        <CallActionButton
-          size={40}
-          variant={mic.enabled ? 'default' : 'off'}
-          aria-label={mic.enabled ? 'Вимкнути мікрофон' : 'Увімкнути мікрофон'}
-          onClick={mic.buttonProps.onClick}
-        >
-          {mic.enabled ? <MicrophoneIcon size={20} /> : <MicrophoneSlashIcon size={20} />}
-        </CallActionButton>
-        {camera.enabled && (
-          <CallActionButton
-            size={40}
-            aria-label="Вимкнути камеру"
-            onClick={camera.buttonProps.onClick}
-          >
-            <VideoCameraIcon size={20} />
-          </CallActionButton>
-        )}
-        <CallActionButton
-          size={40}
-          variant="leave"
-          aria-label="Завершити дзвінок"
-          onClick={leave.buttonProps.onClick}
-        >
-          <EndCallIcon size={20} weight="fill" />
-        </CallActionButton>
+        <MicrophoneControl {...CONTROL} />
+        <CameraControl {...CONTROL} hiddenWhenOff />
+        <LeaveCallControl {...CONTROL} />
       </div>
     </div>
   );

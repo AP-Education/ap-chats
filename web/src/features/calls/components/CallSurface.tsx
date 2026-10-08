@@ -1,10 +1,11 @@
 import { lazy, Suspense } from 'react';
 
+import { AppearanceScope } from '@/features/appearance/components/AppearanceScope/AppearanceScope';
 import { getAppShell } from '@/lib/app-shell';
 
 import { useCallSignalListener } from '../hooks/useCallSignalListener';
 import { useCallStore } from '../store/call-store';
-import { IncomingCallCard } from './IncomingCallCard';
+import { IncomingCallCard } from './IncomingCallCard/IncomingCallCard';
 
 // LiveKit pulls in a heavy media/UI bundle; most sessions never join a call,
 // so it's only fetched once one actually starts.
@@ -27,14 +28,15 @@ export function CallSurface() {
   // NativeCallConnectPayload. NativeInCallScreen is the in-app screen on mobile.
   if (getAppShell().kind === 'mobile') return null;
 
+  // A call reads as its own dark space in either theme, the way native call screens do.
   return (
-    <>
+    <AppearanceScope appearance="dark">
       {incoming && !active && <IncomingCallCard signal={incoming} />}
       {active && (
         <Suspense fallback={null}>
           <ActiveCallOverlay session={active} />
         </Suspense>
       )}
-    </>
+    </AppearanceScope>
   );
 }

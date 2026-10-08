@@ -1,8 +1,20 @@
-// The dark, in-call surface deliberately breaks from the light app chrome, but
-// stays on-brand: the design system's emerald/teal gradient (#0f645b -> #09c6cc),
-// darkened with a scrim so it reads as a call, not a marketing panel.
-export const CALL_SURFACE_GRADIENT =
-  'linear-gradient(rgba(4, 14, 13, 0.72), rgba(4, 14, 13, 0.72)), radial-gradient(circle at 50% 0%, #09c6cc, #0f645b 55%, #082e2a 100%)';
+// The call surface's brand colours. Calls render inside AppearanceScope('dark'), so
+// glass, text and the base come from the dark theme's tokens; only the aurora and the
+// answer colours are the calls' own. mobile/src/features/calls/callTheme.ts mirrors them.
+export const CALL_PALETTE = {
+  teal: '#0f8a83',
+  cyan: '#09c6cc',
+  indigo: '#3c34c9',
+  danger: '#e5484d',
+  dangerHover: '#ec5d5e',
+  accept: '#2f9e6b',
+  acceptHover: '#35b277',
+  live: '#4ade80',
+} as const;
 
-export const CALL_SURFACE_ACCENT = '#0f645b';
-export const CALL_SURFACE_HIGHLIGHT = '#09c6cc';
+export const CALL_AURORA = [
+  'radial-gradient(55% 45% at 20% 14%, rgba(15, 138, 131, 0.55), transparent 72%)',
+  'radial-gradient(40% 36% at 84% 22%, rgba(9, 198, 204, 0.2), transparent 72%)',
+  'radial-gradient(65% 55% at 78% 92%, rgba(60, 52, 201, 0.34), transparent 72%)',
+  'radial-gradient(45% 45% at 8% 88%, rgba(15, 138, 131, 0.22), transparent 72%)',
+].join(', ');

@@ -7,7 +7,7 @@ import { useCallStore } from '../store/call-store';
 import { useDeclineIncomingCall } from './useDeclineIncomingCall';
 import { useJoinCall } from './useJoinCall';
 
-interface IncomingCallActionPresentation {
+export interface IncomingCallActionPresentation {
   ariaLabel: string;
   actionLabel: string;
   pending: boolean;
