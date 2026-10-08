@@ -1,6 +1,6 @@
 import { Button, Empty, Segmented } from 'antd';
 import { createStyles } from 'antd-style';
-import { useState } from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 import { matchPath, useLocation } from 'react-router-dom';
 
 import { useCallHistory } from '../../hooks/useCallHistory';
@@ -43,8 +43,8 @@ const useStyles = createStyles(({ token, css }) => ({
   empty: css`
     padding: 24px 12px;
   `,
-  more: css`
-    padding: 8px 12px 12px;
+  sentinel: css`
+    height: 1px;
   `,
 }));
 
@@ -57,6 +57,7 @@ export function CallHistoryList({
 }) {
   const { styles } = useStyles();
   const [filter, setFilter] = useState<CallHistoryFilter>('all');
+  const listRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className={styles.root}>
@@ -72,8 +73,13 @@ export function CallHistoryList({
           ]}
         />
       </div>
-      <div className={styles.list}>
-        <CallHistoryResults workspaceId={workspaceId} filter={filter} onNavigate={onNavigate} />
+      <div ref={listRef} className={styles.list}>
+        <CallHistoryResults
+          workspaceId={workspaceId}
+          filter={filter}
+          scrollRoot={listRef}
+          onNavigate={onNavigate}
+        />
       </div>
     </div>
   );
@@ -82,10 +88,12 @@ export function CallHistoryList({
 function CallHistoryResults({
   workspaceId,
   filter,
+  scrollRoot,
   onNavigate,
 }: {
   workspaceId: string;
   filter: CallHistoryFilter;
+  scrollRoot: RefObject<HTMLDivElement | null>;
   onNavigate?: () => void;
 }) {
   const { styles } = useStyles();
@@ -131,16 +139,57 @@ function CallHistoryResults({
         />
       ))}
       {history.hasNextPage && (
-        <div className={styles.more}>
-          <Button
-            block
-            loading={history.isFetchingNextPage}
-            onClick={() => void history.fetchNextPage()}
-          >
-            Показати ще
-          </Button>
-        </div>
+        <NextPageLoader
+          scrollRoot={scrollRoot}
+          loading={history.isFetchingNextPage}
+          failed={history.isFetchNextPageError}
+          onLoad={() => void history.fetchNextPage({ cancelRefetch: false })}
+        />
       )}
     </>
   );
+}
+
+function NextPageLoader({
+  scrollRoot,
+  loading,
+  failed,
+  onLoad,
+}: {
+  scrollRoot: RefObject<HTMLDivElement | null>;
+  loading: boolean;
+  failed: boolean;
+  onLoad: () => void;
+}) {
+  const { styles } = useStyles();
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  // A failed page waits for an explicit retry instead of refiring every time it scrolls into view.
+  const paused = loading || failed;
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || paused) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) onLoad();
+      },
+      { root: scrollRoot.current, rootMargin: '0px 0px 320px 0px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [scrollRoot, paused, onLoad]);
+
+  if (loading) return <CallHistoryListSkeleton rows={2} />;
+  if (failed)
+    return (
+      <div role="alert" className={styles.error}>
+        Не вдалося завантажити дзвінки.{' '}
+        <Button type="link" onClick={onLoad}>
+          Повторити
+        </Button>
+      </div>
+    );
+
+  return <div ref={sentinelRef} className={styles.sentinel} />;
 }

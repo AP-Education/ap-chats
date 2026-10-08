@@ -25,13 +25,13 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-export function CallHistoryListSkeleton() {
+export function CallHistoryListSkeleton({ rows = 5 }: { rows?: number }) {
   const { styles } = useStyles();
   const isMobile = useIsMobile();
 
   return (
     <div aria-label="Завантажуємо дзвінки" role="status">
-      {[0, 1, 2, 3, 4].map((row) => (
+      {Array.from({ length: rows }, (_, row) => (
         <div key={row} className={styles.row}>
           <Skeleton.Avatar active size={isMobile ? 44 : 36} shape="circle" />
           <span className={styles.body}>
