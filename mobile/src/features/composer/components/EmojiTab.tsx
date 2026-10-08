@@ -3,7 +3,8 @@ import { ClockCounterClockwise, MagnifyingGlass } from 'phosphor-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { colors, radius, spacing } from '../../../shell/theme';
+import { radius, spacing } from '../../../shell/theme';
+import { type ShellPalette, useShellPalette, useThemedStyles } from '../../appearance';
 import { readFrequentEmojis, recordFrequentEmoji } from '../store/frequent-emojis';
 import type { EmojiCategory, EmojiItem } from '../types';
 import { EMOJI_CATEGORIES, FREQUENT_CATEGORY_ID, searchEmojis } from '../utils/emoji-data';
@@ -61,6 +62,8 @@ interface EmojiTabProps {
 }
 
 export function EmojiTab({ onPick, onSearchFocus }: EmojiTabProps) {
+  const palette = useShellPalette();
+  const styles = useThemedStyles(themedStyles);
   const [query, setQuery] = useState('');
   const [frequent, setFrequent] = useState<EmojiItem[]>([]);
   const listRef = useRef<FlashListRef<Row>>(null);
@@ -110,11 +113,11 @@ export function EmojiTab({ onPick, onSearchFocus }: EmojiTabProps) {
   return (
     <View style={styles.root}>
       <View style={styles.searchRow}>
-        <MagnifyingGlass size={16} color={colors.textSecondary} />
+        <MagnifyingGlass size={16} color={palette.textSecondary} />
         <TextInput
           style={styles.searchInput}
           placeholder="Пошук емодзі"
-          placeholderTextColor={colors.textSecondary}
+          placeholderTextColor={palette.textSecondary}
           value={query}
           onChangeText={setQuery}
           onFocus={onSearchFocus}
@@ -129,7 +132,7 @@ export function EmojiTab({ onPick, onSearchFocus }: EmojiTabProps) {
               style={styles.navButton}
               onPress={() => jumpToCategory(category.id)}
             >
-              <category.icon size={18} color={colors.textSecondary} />
+              <category.icon size={18} color={palette.textSecondary} />
             </Pressable>
           ))}
         </View>
@@ -170,41 +173,42 @@ export function EmojiTab({ onPick, onSearchFocus }: EmojiTabProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, gap: spacing.xs },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    height: 36,
-    borderRadius: radius.sm,
-    backgroundColor: colors.primaryBg,
-  },
-  searchInput: { flex: 1, fontSize: 15, color: colors.text, padding: 0 },
-  nav: { flexDirection: 'row', gap: 2 },
-  navButton: {
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.sm,
-  },
-  sectionHeader: {
-    paddingVertical: 4,
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-  },
-  row: { flexDirection: 'row' },
-  emojiButton: {
-    flex: 1,
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emojiText: { fontSize: EMOJI_FONT_SIZE },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { color: colors.textSecondary, fontSize: 13 },
-});
+const themedStyles = (palette: ShellPalette) =>
+  StyleSheet.create({
+    root: { flex: 1, gap: spacing.xs },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      paddingHorizontal: spacing.sm,
+      height: 36,
+      borderRadius: radius.sm,
+      backgroundColor: palette.primaryBg,
+    },
+    searchInput: { flex: 1, fontSize: 15, color: palette.text, padding: 0 },
+    nav: { flexDirection: 'row', gap: 2 },
+    navButton: {
+      width: 30,
+      height: 30,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: radius.sm,
+    },
+    sectionHeader: {
+      paddingVertical: 4,
+      fontSize: 12,
+      fontWeight: '600',
+      color: palette.textSecondary,
+      textTransform: 'uppercase',
+    },
+    row: { flexDirection: 'row' },
+    emojiButton: {
+      flex: 1,
+      aspectRatio: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    emojiText: { fontSize: EMOJI_FONT_SIZE },
+    empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    emptyText: { color: palette.textSecondary, fontSize: 13 },
+  });

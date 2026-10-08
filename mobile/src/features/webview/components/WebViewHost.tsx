@@ -11,6 +11,7 @@ import type {
   WebViewTerminatedEvent,
 } from 'react-native-webview/lib/WebViewTypes';
 
+import { useAppearanceStore, useShellPalette } from '../../appearance';
 import { useAuthStore } from '../../auth/index';
 import { connectBridgedCall, useIsMiniCallBarVisible } from '../../calls';
 import {
@@ -38,6 +39,9 @@ export function WebViewHost() {
   const pendingNotification = useNotificationStore((state) => state.pending);
   const webReady = useNotificationStore((state) => state.webReady);
   const miniCallBarVisible = useIsMiniCallBarVisible();
+  const palette = useShellPalette();
+  // The status bar sits on the page's own surface, or on the dark call strip above it.
+  const statusBarOnDark = palette.appearance === 'dark' || miniCallBarVisible;
   // injectJavaScript silently drops calls made before the page has actually finished
   // loading (no JS context to run in yet) — this counts WebView loads (initial + any
   // reload) so the effect below only fires once there's a page to inject into, and
@@ -114,6 +118,8 @@ export function WebViewHost() {
       void useAuthStore.getState().refreshNow();
     } else if (message.type === 'calls/connect') {
       void connectBridgedCall(message.payload);
+    } else if (message.type === 'appearance/changed') {
+      useAppearanceStore.getState().setPalette(message.payload);
     } else if (message.type === 'haptics/selection') {
       void selectionAsync().catch(() => undefined);
     } else if (message.type === 'notifications/message-sound') {
@@ -159,7 +165,7 @@ export function WebViewHost() {
     // itself when it's showing above this (see useIsMiniCallBarVisible) — reserving
     // it here too would double it, leaving a gap between the bar and this view.
     <SafeAreaView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: palette.surface }]}
       edges={miniCallBarVisible ? [] : ['top']}
       onLayout={(event) => setContainerHeight(event.nativeEvent.layout.height)}
     >
@@ -217,13 +223,13 @@ export function WebViewHost() {
         onPickEmoji={handlePickEmoji}
         onPickGif={handlePickGif}
       />
-      <StatusBar style="dark" />
+      <StatusBar style={statusBarOnDark ? 'light' : 'dark'} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
   webviewWrapper: { flex: 1 },
   webview: { flex: 1 },
 });

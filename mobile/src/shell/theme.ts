@@ -1,4 +1,5 @@
-// Mirrors web/src/app/providers/ThemeProvider.tsx's antd token values.
+// Mirrors the light palette in web/src/features/appearance/theme.ts. Screens beside the
+// page follow the person's theme through features/appearance instead.
 export const colors = {
   primary: '#0c7d77',
   primaryBg: '#e6f4f3',

@@ -27,3 +27,8 @@ export function loadCallKitModule(): Promise<typeof CallKitModule | null> {
   }
   return modulePromise;
 }
+
+/** Fire-and-forget a CallKit action; a runtime without CallKit simply skips it. */
+export function withCallKit(action: (CallKit: typeof CallKitModule) => unknown): void {
+  void loadCallKitModule().then((CallKit) => CallKit && action(CallKit));
+}

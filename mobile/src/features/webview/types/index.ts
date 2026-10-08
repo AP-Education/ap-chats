@@ -1,3 +1,4 @@
+import type { ShellPalette } from '../../appearance';
 import type { NativeCallConnectPayload } from '../../calls/types';
 import type { ComposerInputRequest, ComposerInputState } from '../../composer';
 import type { NotificationIntent } from '../../push/utils/notification-intent';
@@ -23,6 +24,8 @@ export type WebToNativeMessage =
   | { type: 'auth/sign-out' }
   | { type: 'auth/refresh-request' }
   | { type: 'calls/connect'; payload: NativeCallConnectPayload }
+  /** The theme the page resolved, for everything native draws around it. */
+  | { type: 'appearance/changed'; payload: ShellPalette }
   | { type: 'haptics/selection' }
   | { type: 'notifications/message-sound' }
   /** The page can route a tapped notification now; sent on every mount of its handler. */
