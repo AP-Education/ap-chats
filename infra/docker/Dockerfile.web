@@ -17,11 +17,13 @@ ARG VITE_OIDC_CLIENT_ID
 ARG VITE_OIDC_AUDIENCE
 ARG VITE_IMAGES_URL
 ARG VITE_TENOR_API_KEY
+ARG VITE_APP_ORIGIN
 ENV VITE_OIDC_ISSUER=${VITE_OIDC_ISSUER} \
     VITE_OIDC_CLIENT_ID=${VITE_OIDC_CLIENT_ID} \
     VITE_OIDC_AUDIENCE=${VITE_OIDC_AUDIENCE} \
     VITE_IMAGES_URL=${VITE_IMAGES_URL} \
-    VITE_TENOR_API_KEY=${VITE_TENOR_API_KEY}
+    VITE_TENOR_API_KEY=${VITE_TENOR_API_KEY} \
+    VITE_APP_ORIGIN=${VITE_APP_ORIGIN}
 # The root .dockerignore excludes node_modules and dist, preserving installed
 # dependencies while including public assets (including future push-sw.js).
 COPY web ./web
