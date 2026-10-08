@@ -23,7 +23,14 @@ export async function setCallMuted(
     const room = getTrackedSession(event.id)?.room;
     const micIsLive = room && CallKit.getAudioSession().isActive;
     if (micIsLive) await room.localParticipant.setMicrophoneEnabled(!event.isMuted);
+  } catch (error) {
+    // The mic kept its state, so the screen must not claim it changed.
+    useNativeCallStore.getState().updateCall({ isMuted: call.isMuted });
+    if (__DEV__) console.warn('[calls] mute failed', error);
+    return;
+  }
 
+  try {
     await CallKit.setMuted(event.id, event.isMuted);
     (event.isMuted ? playMuteChime : playUnmuteChime)();
   } catch (error) {
