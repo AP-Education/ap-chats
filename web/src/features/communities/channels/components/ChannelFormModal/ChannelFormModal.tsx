@@ -2,7 +2,7 @@ import { HashIcon, TrashIcon } from '@phosphor-icons/react';
 import { Button, Form, Input, message, Modal, Popconfirm, Select, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useMatch, useNavigate } from 'react-router-dom';
 
 import { ApiError } from '@/shared/api/http';
 
@@ -96,7 +96,8 @@ export function ChannelFormModal({
   const { query: categoriesQuery } = useChannelCategories(workspaceId);
   const { create, update, remove } = useChannelActions(workspaceId);
   const navigate = useNavigate();
-  const { channelId: routedChannelId } = useParams<{ channelId?: string }>();
+  // Opened from the sidebar too, which sits outside the route tree, so read the URL.
+  const routedChannelId = useMatch('/channels/:channelId')?.params.channelId;
   const [nameError, setNameError] = useState<string>();
 
   const isPending = create.isPending || update.isPending;
