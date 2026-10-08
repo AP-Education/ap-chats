@@ -9,7 +9,7 @@ REGISTRY="ghcr.io/ap-education"
 BUILD_PLATFORM="${DOCKER_BUILD_PLATFORM:-linux/amd64}"
 
 # The shell ships with Chats: this ap-app commit is the one each Chats release is built and tested with.
-AP_APP_REF="${AP_APP_REF:-ee0a4f2b9e2c3f5e88dd2bcfb6b0a8198eb715f1}"
+AP_APP_REF="${AP_APP_REF:-5d2682160f7fc7558bb4e91bcb5c9b7ccc825ab2}"
 VITE_MFE_AI_URL="${VITE_MFE_AI_URL:-https://ai.ap-platform.online/embedded}"
 
 WEB_BUILD_ENV="${WEB_BUILD_ENV:-$REPO_ROOT/web/.env.production}"
