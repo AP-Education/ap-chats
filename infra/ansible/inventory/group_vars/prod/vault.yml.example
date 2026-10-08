@@ -15,9 +15,9 @@ acme_email: ops@ap-platform.online
 oidc_issuer: https://api.ap-platform.online/accounts
 oidc_audience: https://chats.ap-platform.online
 
-# Calls: set all three or leave all empty. Use an existing LiveKit Cloud or
-# self-hosted server; this stack does not provision LiveKit. The wss:// URL
-# must be reachable by browsers and mobile clients, not just the API container.
+# Direct LiveKit for calls, only when vars.yml has no ai_native_url. Prod calls
+# go through ai-native, so leave these empty. Otherwise set all three; the
+# wss:// URL must be reachable by browsers and mobile clients.
 livekit_url: ''
 livekit_api_key: ''
 livekit_api_secret: ''
@@ -44,8 +44,8 @@ apns_voip_topic: ''
 fcm_project_id: ''
 fcm_service_account_json: ''
 
-# Prepared for feat/chat-push-notifications (not present in origin/main yet).
-# Ordinary native notifications use Expo; APNS/FCM above handle incoming calls.
+# Chat push (push_enabled in vars.yml). Native notifications go through Expo;
+# APNS/FCM above only wake the app for incoming calls.
 # Optional: set this if enhanced Expo push security is enabled in EAS.
 expo_access_token: ''
 # One persistent VAPID key pair for browser push. Set all three or none.
@@ -55,18 +55,13 @@ web_push_public_key: ''
 web_push_private_key: ''
 web_push_subject: ''
 
-# ap-connect's own two Spaces buckets (not shared with backend-LMS, and not
-# shared with each other — chat attachments are private, avatar objects are
-# public-read, backups are always private, and live in separate buckets rather than two
-# prefixes in one). Both are created by infra/terraform/prod. These two keys
-# are the exact same spaces_access_key_id / spaces_secret_access_key values
-# you passed to `terraform apply` — one key pair, account-wide, used to
-# provision both buckets and for the app/backup script to read and write
-# objects in them.
+# ap-connect's own Spaces buckets from infra/terraform/prod: attachments
+# (private uploads, public-read avatars) and backups (always private). The
+# key pair is the same spaces_access_key_id / spaces_secret_access_key passed
+# to `terraform apply`.
 #
 # do_spaces_endpoint = `terraform output -raw spaces_region_endpoint`
-#   (the bare region endpoint, NOT a bucket-qualified domain — the backup
-#   script's `aws s3 cp --endpoint-url` breaks on one of those)
+#   (bare region endpoint; a bucket-qualified domain breaks the backup script)
 # do_spaces_bucket   = `terraform output -raw attachments_bucket_name`
 # do_backups_bucket  = `terraform output -raw backups_bucket_name`
 do_spaces_endpoint: https://fra1.digitaloceanspaces.com
