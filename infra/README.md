@@ -149,7 +149,7 @@ and build the images under the same tag.
 # 1. Build and push both images from the repo root
 cp web/.env.production.example web/.env.production  # once, then fill in
 docker login ghcr.io -u <your-gh-username>
-./infra/scripts/build-and-push.sh v0.3.0
+PREVIOUS_TAG=v0.3.1 ./infra/scripts/build-and-push.sh v0.4.0
 
 # 2. Point the host at the new tag and redeploy — app_tag isn't a secret
 # and changes every release, so it stays an explicit flag rather than
@@ -170,6 +170,13 @@ a dump taken minutes earlier rather than last night's. The one-shot `migrate`
 service then applies pending migrations, and the API starts only after it
 succeeds. Pending migrations apply in one transaction, so a failed run leaves
 the schema as it was and the previous tag can simply be redeployed. Locally, `pnpm dev` runs `pnpm db:migrate` first.
+
+The web image serves the AP shell at the root, built from the ap-app commit
+pinned in the build script as `AP_APP_REF`, and Chats as its remote under
+`/remotes/chats/`; AI is the shell's app at `/`, loaded from `VITE_MFE_AI_URL`. `PREVIOUS_TAG` is the web tag
+that is live now: its assets are carried into the new image, so pages opened
+before the deploy keep loading their chunks. The script uses the gh CLI token
+for the private ap-app repository and GitHub Packages.
 
 The build script targets `linux/amd64` for the default DigitalOcean droplet,
 including builds from ARM Macs. Set `DOCKER_BUILD_PLATFORM` only when deploying

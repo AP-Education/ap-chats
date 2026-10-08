@@ -2,6 +2,14 @@
 	email {$ACME_EMAIL}
 }
 
+(static_files) {
+	# Hashed bundles never change; everything else is revalidated on every load.
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	@mutable not path /assets/*
+	header @mutable Cache-Control "no-cache"
+}
+
 {$CHATS_DOMAIN} {
 	encode zstd gzip
 
@@ -19,16 +27,49 @@
 		}
 	}
 
+	# Chats links from before the shell, e.g. in sent notifications and bookmarks.
+	@chatsBeforeShell path /channels /channels/* /direct /direct/*
+	handle @chatsBeforeShell {
+		redir * /c{uri} 308
+	}
+	# Push workers registered before the shell open a tap at the root, which is now AI's.
+	@tapBeforeShell {
+		path /
+		query notification=*
+	}
+	handle @tapBeforeShell {
+		redir * /c{uri} 308
+	}
+	@callsBeforeShell path /calls /calls/*
+	handle @callsBeforeShell {
+		redir * /c 308
+	}
+
+	# Chats as the shell's remote: remoteEntry.js and its chunks, no page fallback.
+	handle_path /remotes/chats/* {
+		root * /srv/remotes/chats
+		import static_files
+		file_server
+	}
+
+	# Chats' push worker and the icons its notifications show must sit at the origin root.
+	@chatsRootFiles path /push-sw.js /pwa-192x192.png /pwa-512x512.png /maskable-icon-512x512.png
+	handle @chatsRootFiles {
+		root * /srv/remotes/chats
+		header Cache-Control "no-cache"
+		file_server
+	}
+
+	# A missing chunk is a real 404, so the shell can reload instead of parsing HTML as JS.
+	handle /assets/* {
+		root * /srv/host
+		import static_files
+		file_server
+	}
+
 	handle {
-		root * /srv/web
-
-		# Hashed bundles never change; everything else (index.html, push-sw.js, the manifest)
-		# is revalidated, so a release never serves an old page that points at deleted bundles.
-		@hashed path /assets/*
-		header @hashed Cache-Control "public, max-age=31536000, immutable"
-		@mutable not path /assets/*
-		header @mutable Cache-Control "no-cache"
-
+		root * /srv/host
+		import static_files
 		try_files {path} /index.html
 		file_server
 	}
