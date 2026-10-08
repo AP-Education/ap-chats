@@ -24,7 +24,9 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 9px 12px;
+    margin: 1px 8px;
+    padding: 8px;
+    border-radius: ${token.borderRadius}px;
     text-decoration: none;
 
     &,
@@ -48,7 +50,7 @@ const useStyles = createStyles(({ token, css }) => ({
     @media (max-width: ${token.screenMD}px) {
       min-height: 64px;
       gap: 12px;
-      padding: 6px 12px;
+      padding: 6px 8px;
     }
   `,
   active: css`

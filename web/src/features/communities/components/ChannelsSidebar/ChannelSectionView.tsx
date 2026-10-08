@@ -9,7 +9,8 @@ import { type ChannelSectionData, UNCATEGORIZED } from './useChannelSections';
 
 const useStyles = createStyles(({ token, css }) => ({
   section: css`
-    margin: 2px 8px 8px;
+    /* With the 1px drop-target border, rows start 8px in, like the nav items above. */
+    margin: 2px 7px 8px;
     padding: 2px 0 4px;
     border: 1px solid transparent;
     border-radius: ${token.borderRadiusLG}px;

@@ -19,8 +19,8 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 0;
-    margin: 1px 4px;
-    min-height: 32px;
+    margin: 1px 0;
+    min-height: 34px;
     border-radius: ${token.borderRadius}px;
     color: ${token.colorTextSecondary};
     font-weight: 500;
@@ -36,7 +36,6 @@ const useStyles = createStyles(({ token, css }) => ({
     }
 
     @media (max-width: ${token.screenMD}px) {
-      margin-inline: 4px;
       min-height: 36px;
       touch-action: pan-y;
       user-select: none;
@@ -90,7 +89,7 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 8px;
-    min-height: 32px;
+    min-height: 34px;
     padding: 0 8px;
     text-decoration: none;
 

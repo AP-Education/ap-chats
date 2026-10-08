@@ -13,7 +13,7 @@ import { useOpenDirectMessage } from '../../hooks/useOpenDirectMessage';
 
 const useStyles = createStyles(({ token, css }) => ({
   heading: css`
-    padding: 12px 12px 4px;
+    padding: 12px 16px 4px;
     color: ${token.colorTextSecondary};
     font-size: 12px;
     font-weight: 600;
@@ -22,10 +22,12 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 10px;
-    width: 100%;
+    width: calc(100% - 16px);
     min-height: 54px;
-    padding: 8px 12px;
+    margin: 1px 8px;
+    padding: 8px;
     border: 0;
+    border-radius: ${token.borderRadius}px;
     background: transparent;
     color: ${token.colorText};
     text-align: left;
@@ -36,14 +38,14 @@ const useStyles = createStyles(({ token, css }) => ({
     }
 
     &:focus-visible {
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: -2px;
+      outline: none;
+      box-shadow: inset 0 0 0 2px ${token.colorPrimaryBorder};
     }
 
     @media (max-width: ${token.screenMD}px) {
       min-height: 64px;
       gap: 12px;
-      padding: 6px 12px;
+      padding: 6px 8px;
     }
   `,
   name: css`
@@ -62,7 +64,7 @@ const useStyles = createStyles(({ token, css }) => ({
     color: ${token.colorTextTertiary};
   `,
   error: css`
-    padding: 12px;
+    padding: 12px 16px;
   `,
 }));
 
