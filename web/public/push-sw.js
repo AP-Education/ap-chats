@@ -6,16 +6,13 @@ self.addEventListener('push', (event) => {
     data = null;
   }
   event.waitUntil(
-    self.registration.showNotification(
-      typeof data?.title === 'string' ? data.title : 'AP Connect',
-      {
-        body: typeof data?.body === 'string' ? data.body : 'Нове повідомлення',
-        icon: '/push-icon.png',
-        tag: typeof data?.collapseKey === 'string' ? data.collapseKey : 'ap-connect',
-        renotify: true,
-        data: { userId: data?.userId, target: data?.target },
-      },
-    ),
+    self.registration.showNotification(typeof data?.title === 'string' ? data.title : 'AP Chats', {
+      body: typeof data?.body === 'string' ? data.body : 'Нове повідомлення',
+      icon: '/pwa-192x192.png',
+      tag: typeof data?.collapseKey === 'string' ? data.collapseKey : 'ap-connect',
+      renotify: true,
+      data: { userId: data?.userId, target: data?.target },
+    }),
   );
 });
 
