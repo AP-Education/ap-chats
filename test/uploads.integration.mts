@@ -33,6 +33,9 @@ Object.assign(process.env, {
 // tsc build output rather than a transpile-only run against src.
 const require = createRequire(import.meta.url);
 const { AppModule } = require('../dist/app.module.js') as { AppModule: Type };
+const { migrateDatabase } = require('../dist/database/drizzle/migrate-database.js') as {
+  migrateDatabase: (connectionString: string) => Promise<void>;
+};
 const { AccountsTokenVerifier } =
   require('../dist/components/auth/accounts-token-verifier.service.js') as {
     AccountsTokenVerifier: Type<{
@@ -60,6 +63,7 @@ try {
   const name = error instanceof Error ? error.name : undefined;
   if (!name || !['BucketAlreadyOwnedByYou', 'BucketAlreadyExists'].includes(name)) throw error;
 }
+await migrateDatabase(process.env.DATABASE_URL!);
 const app = await NestFactory.create(AppModule, new FastifyAdapter(), { logger: false });
 app.useGlobalPipes(
   new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),

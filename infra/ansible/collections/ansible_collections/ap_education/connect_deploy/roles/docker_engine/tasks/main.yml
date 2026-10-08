@@ -1,0 +1,67 @@
+---
+# deb822_repository (ansible-core 2.15+) replaces the old
+# curl|gpg --dearmor + apt_repository pair: apt_key and apt_repository are
+# both deprecated upstream (removal scheduled for ansible-core 2.25), and
+# this module downloads and manages the signing key itself — no separate
+# command/get_url task needed for it.
+- name: Ensure python3-debian is installed (required by deb822_repository)
+  ansible.builtin.apt:
+    name: python3-debian
+    state: present
+    update_cache: true
+  become: true
+
+- name: Configure Docker apt repository
+  ansible.builtin.deb822_repository:
+    name: docker
+    types: deb
+    uris: https://download.docker.com/linux/ubuntu
+    suites: '{{ ansible_facts.lsb.codename }}'
+    components: stable
+    architectures: "{{ 'amd64' if ansible_architecture == 'x86_64' else ansible_architecture }}"
+    signed_by: https://download.docker.com/linux/ubuntu/gpg
+  become: true
+
+- name: Install Docker packages
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+      - python3-docker
+    update_cache: true
+    state: present
+  become: true
+
+- name: Ensure docker service is enabled and running
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+  become: true
+
+- name: Add {{ ansible_user }} to the docker group
+  ansible.builtin.user:
+    name: '{{ ansible_user }}'
+    groups: docker
+    append: true
+  become: true
+
+# Group membership is read at login time, not re-checked mid-session — the
+# persistent SSH connection this play already opened as {{ ansible_user }}
+# still has the old group list. Without this, every later task that talks
+# to the docker socket as that user (not root) fails with "permission
+# denied" even though the user list clearly has them in the group.
+- name: Reset the connection so the new docker group membership takes effect
+  ansible.builtin.meta: reset_connection
+
+- name: Ensure docker config directory exists
+  ansible.builtin.file:
+    path: '/home/{{ ansible_user }}/.docker'
+    state: directory
+    owner: '{{ ansible_user }}'
+    group: '{{ ansible_user }}'
+    mode: '0700'
+  become: true

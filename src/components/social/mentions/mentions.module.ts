@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
-import { ChannelAccessModule } from '@/components/communities/channel-access/channel-access.module';
+import { ChannelAccessModule } from '@/components/communities/channel-access';
 import { WorkspacesModule } from '@/components/workspaces';
 
 import { MentionsController } from './mentions.controller';

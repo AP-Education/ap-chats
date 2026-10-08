@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '../../../shared/api/fetch-with-timeout';
 import type { RegisterDevicePayload } from '../types';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
@@ -16,7 +17,7 @@ export async function registerDevice(
   payload: RegisterDevicePayload,
 ): Promise<void> {
   if (!apiUrl) return;
-  const response = await fetch(`${apiUrl}/api/devices`, {
+  const response = await fetchWithTimeout(`${apiUrl}/api/devices`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify(payload),
@@ -28,10 +29,13 @@ export async function registerDevice(
 
 export async function unregisterDevice(accessToken: string, installationId: string): Promise<void> {
   if (!apiUrl) return;
-  const response = await fetch(`${apiUrl}/api/devices/${encodeURIComponent(installationId)}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  const response = await fetchWithTimeout(
+    `${apiUrl}/api/devices/${encodeURIComponent(installationId)}`,
+    {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  );
   if (!response.ok) {
     throw new DevicesApiError(response.status, `DELETE /devices failed: ${response.status}`);
   }

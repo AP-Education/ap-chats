@@ -1,0 +1,13 @@
+---
+- name: Provision an ap-connect droplet
+  hosts: all
+  become: true
+  roles:
+    - ap_education.connect_deploy.base
+    - ap_education.connect_deploy.sshd_hardening
+    - ap_education.connect_deploy.ufw
+    - ap_education.connect_deploy.fail2ban
+    - ap_education.connect_deploy.data_volume
+    - ap_education.connect_deploy.docker_engine
+    - ap_education.connect_deploy.compose_runtime
+    - ap_education.connect_deploy.postgres_backup

@@ -10,10 +10,7 @@ export type NativeToWebMessage =
   { type: 'auth/token'; payload: NativeAuthTokenPayload } | { type: 'auth/unavailable' };
 
 export type WebToNativeMessage =
-  | { type: 'auth/sign-out' }
-  | { type: 'auth/refresh-request' }
-  | { type: 'haptics/selection' }
-  | { type: 'notifications/message-sound' };
+  { type: 'auth/sign-out' } | { type: 'auth/refresh-request' } | { type: 'haptics/selection' };
 
 export interface CurrentUserProfile {
   name?: string;

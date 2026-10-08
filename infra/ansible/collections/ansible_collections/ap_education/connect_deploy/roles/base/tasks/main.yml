@@ -1,0 +1,19 @@
+---
+- name: Ensure common packages are present
+  ansible.builtin.apt:
+    name:
+      - curl
+      - gnupg
+      - ca-certificates
+      - unattended-upgrades
+    update_cache: true
+  become: true
+
+- name: Create application directory
+  ansible.builtin.file:
+    path: '/opt/{{ project_name }}'
+    state: directory
+    owner: '{{ ansible_user }}'
+    group: '{{ ansible_user }}'
+    mode: '0755'
+  become: true

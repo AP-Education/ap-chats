@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
-import { ChannelAccessModule } from '@/components/communities/channel-access/channel-access.module';
-import { ChannelAudienceModule } from '@/components/communities/channel-audience/channel-audience.module';
+import { ChannelAccessModule } from '@/components/communities/channel-access';
+import { ChannelAudienceModule } from '@/components/communities/channel-audience';
 import { DirectMessagesModule } from '@/components/direct-messages/direct-messages.module';
 import { WorkspacesModule } from '@/components/workspaces';
 
-import { MessagesModule } from '../messages/messages.module';
+import { MessagesModule } from '../messages';
 import { ForwardingController } from './forwarding.controller';
 import { ForwardingFacade } from './forwarding.facade';
 import { ForwardingGateway } from './forwarding.gateway';

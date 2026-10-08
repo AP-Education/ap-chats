@@ -17,6 +17,6 @@ export const useAuthStore = createAuthStore(
 // App-lifecycle concern, not component-lifecycle — runs once when this module first
 // loads, rather than from a component's useEffect (which would need to guard against
 // firing again on every remount/Strict Mode double-invoke).
-void useAuthStore.getState().restore();
+export const authRestored = useAuthStore.getState().restore();
 
 export type { AuthState, TokenSet } from './types';

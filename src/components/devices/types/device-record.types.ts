@@ -5,6 +5,7 @@ export interface DeviceRecord {
   userId: string;
   installationId: string;
   platform: Platform;
-  pushToken: string;
+  pushToken: string | null;
   voipToken: string | null;
+  apnsEnvironment: 'sandbox' | 'production';
 }

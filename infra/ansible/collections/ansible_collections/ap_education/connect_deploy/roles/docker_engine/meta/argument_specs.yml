@@ -1,0 +1,4 @@
+argument_specs:
+  main:
+    short_description: Install Docker CE and the Compose plugin from the upstream apt repo.
+    options: {}

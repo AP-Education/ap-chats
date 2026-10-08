@@ -1,34 +1,29 @@
 import http2 from 'node:http2';
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { importPKCS8, SignJWT } from 'jose';
 
 import type { CallSignalPayload } from '@/components/calls/events/call-signal.event';
 import type { DeviceRecord } from '@/components/devices';
 import { AppConfigService } from '@/globals/config';
-import { Logger } from '@/globals/logger';
 
 import type { CallPushProvider } from './call-push-provider.types';
-import { buildIncomingCallEvent } from './incoming-call-event';
+import { buildIncomingCallEvent, type IncomingCallEventWire } from './incoming-call-event';
+import { PushProviderError } from './push-provider-error';
 
-// Apple's unified endpoint routes both dev and prod builds for token-based auth —
-// no separate sandbox host to pick between.
-const APNS_HOST = 'api.push.apple.com';
 // Apple asks providers to reuse a provider token rather than mint one per push.
 const TOKEN_TTL_MS = 50 * 60 * 1000;
 
 @Injectable()
-export class ApnsVoipPushProvider implements CallPushProvider {
+export class ApnsVoipPushProvider implements CallPushProvider, OnModuleDestroy {
+  private readonly sessions = new Map<string, http2.ClientHttp2Session>();
   private readonly keyId: string | undefined;
   private readonly teamId: string | undefined;
   private readonly privateKeyPem: string | undefined;
   private readonly topic: string | undefined;
   private cachedToken: { jwt: string; issuedAt: number } | undefined;
 
-  constructor(
-    config: AppConfigService,
-    private readonly logger: Logger,
-  ) {
+  constructor(config: AppConfigService) {
     this.keyId = config.get('APNS_KEY_ID');
     this.teamId = config.get('APNS_TEAM_ID');
     this.privateKeyPem = config.get('APNS_PRIVATE_KEY');
@@ -43,7 +38,7 @@ export class ApnsVoipPushProvider implements CallPushProvider {
     if (!this.isConfigured || !device.voipToken) return;
     const bearer = await this.authToken();
     const event = buildIncomingCallEvent(payload);
-    await this.post(device.voipToken, bearer, { incomingCall: event });
+    await this.post(device, bearer, { incomingCall: event });
   }
 
   private async authToken(): Promise<string> {
@@ -60,27 +55,45 @@ export class ApnsVoipPushProvider implements CallPushProvider {
     return jwt;
   }
 
-  private post(voipToken: string, bearer: string, body: unknown): Promise<void> {
-    return new Promise((resolve) => {
-      const session = http2.connect(`https://${APNS_HOST}`);
-      session.on('error', (error) => {
-        this.logger.warn({ error }, '[voip-push] apns session error');
-        resolve();
-      });
+  onModuleDestroy(): void {
+    for (const session of this.sessions.values()) session.destroy();
+    this.sessions.clear();
+  }
 
-      const req = session.request({
+  private post(
+    device: DeviceRecord,
+    bearer: string,
+    body: { incomingCall: IncomingCallEventWire },
+  ): Promise<void> {
+    const host =
+      device.apnsEnvironment === 'sandbox' ? 'api.sandbox.push.apple.com' : 'api.push.apple.com';
+    let session = this.sessions.get(host);
+    if (!session || session.closed || session.destroyed) {
+      session = http2.connect(`https://${host}`);
+      session.on('error', () => {
+        session?.destroy();
+      });
+      this.sessions.set(host, session);
+    }
+    const connection = session;
+    return new Promise((resolve, reject) => {
+      const req = connection.request({
         ':method': 'POST',
-        ':path': `/3/device/${voipToken}`,
+        ':path': `/3/device/${device.voipToken}`,
         authorization: `bearer ${bearer}`,
         'apns-topic': this.topic,
         'apns-push-type': 'voip',
         'apns-priority': '10',
         'apns-expiration': '0',
+        'apns-id': body.incomingCall.eventId,
       });
+      const timer = setTimeout(() => {
+        req.close();
+        reject(new Error('APNs request timed out'));
+      }, 10000);
       req.setEncoding('utf8');
-
       let responseBody = '';
-      let status: number | undefined;
+      let status = 0;
       req.on('response', (headers) => {
         status = Number(headers[':status']);
       });
@@ -88,16 +101,32 @@ export class ApnsVoipPushProvider implements CallPushProvider {
         responseBody += chunk;
       });
       req.on('end', () => {
-        if (status && status >= 400) {
-          this.logger.warn({ status, body: responseBody }, '[voip-push] apns rejected push');
+        clearTimeout(timer);
+        if (status === 200) {
+          resolve();
+          return;
         }
-        session.close();
-        resolve();
+        let reason = 'unknown';
+        try {
+          reason = (JSON.parse(responseBody) as { reason: string }).reason;
+        } catch {
+          /* non-JSON upstream response */
+        }
+        if (reason === 'ExpiredProviderToken') this.cachedToken = undefined;
+        reject(
+          new PushProviderError(
+            `APNs rejected push: ${status} ${reason}`,
+            ['BadDeviceToken', 'Unregistered', 'DeviceTokenNotForTopic'].includes(reason),
+          ),
+        );
       });
       req.on('error', (error) => {
-        this.logger.warn({ error }, '[voip-push] apns request error');
-        session.close();
-        resolve();
+        clearTimeout(timer);
+        reject(error);
+      });
+      req.on('close', () => {
+        clearTimeout(timer);
+        reject(new Error('APNs connection closed'));
       });
       req.end(JSON.stringify(body));
     });
