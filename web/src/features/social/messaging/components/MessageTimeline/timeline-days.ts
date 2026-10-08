@@ -1,24 +1,29 @@
-import type { DisplayItem, HistoryItem } from '../../types';
+import type { DisplayItem, HistoryItem, MessageAuthor } from '../../types';
 import { isMessageItem } from '../../types';
 
 export interface TimelineEntry {
   key: string;
   display: DisplayItem;
+}
+
+/** Consecutive items from one author, drawn together: one avatar, joined bubbles. */
+export interface TimelineRun {
+  key: string;
+  /** Who wrote the messages or placed the calls in it. */
+  author: MessageAuthor;
   unreadBefore: boolean;
-  groupStart: boolean;
-  groupEnd: boolean;
+  entries: TimelineEntry[];
 }
 
 export interface TimelineDay {
   key: string;
   date: Date;
-  entries: TimelineEntry[];
+  runs: TimelineRun[];
 }
 
-const GROUP_WINDOW_MS = 5 * 60_000;
+const RUN_WINDOW_MS = 5 * 60_000;
 
-// Splits the history into calendar days and marks author runs inside each day, so a
-// bubble knows whether it opens a run (author name) and whether it closes it (tail, avatar).
+// Splits the history into calendar days, and each day into author runs.
 export function buildTimelineDays(
   items: DisplayItem[],
   firstUnreadSeq: string | null,
@@ -30,41 +35,55 @@ export function buildTimelineDays(
     const date = new Date(item.createdAt);
     const dayKey = date.toDateString();
     let day = days.at(-1);
-    if (day?.key !== dayKey) {
-      day = { key: dayKey, date, entries: [] };
+    // Unsent messages stay at the bottom, in the latest day, however old their draft
+    // time is; reopening an earlier day would also repeat its section key.
+    const joinsLatest = display.delivery !== undefined && day !== undefined && date < day.date;
+    if (!day || (day.key !== dayKey && !joinsLatest)) {
+      day = { key: dayKey, date, runs: [] };
       days.push(day);
     }
 
-    const previous = day.entries.at(-1);
+    const entry = { key: entryKey(display), display };
+    const run = day.runs.at(-1);
     const unreadBefore = item.seq === firstUnreadSeq;
-    const continuesRun = Boolean(
-      previous && !unreadBefore && continuesAuthorRun(previous.display.item, item),
-    );
-    if (previous && continuesRun) previous.groupEnd = false;
+    const previous = run?.entries.at(-1)?.display.item;
+    if (run && previous && !unreadBefore && continuesRun(previous, item)) {
+      run.entries.push(entry);
+      continue;
+    }
 
-    day.entries.push({
-      key: entryKey(display),
-      display,
-      unreadBefore,
-      groupStart: !continuesRun,
-      groupEnd: true,
-    });
+    day.runs.push({ key: entry.key, author: authorOf(item), unreadBefore, entries: [entry] });
   }
 
   return days;
 }
 
-function continuesAuthorRun(previous: HistoryItem, item: HistoryItem) {
-  if (!isMessageItem(previous) || !isMessageItem(item)) return false;
-
-  const sameAuthor = previous.message.authorMemberId === item.message.authorMemberId;
-  const gap = Date.parse(item.createdAt) - Date.parse(previous.createdAt);
-  return sameAuthor && gap < GROUP_WINDOW_MS;
+/** Incoming runs show their author's face; the viewer's own runs need none. */
+export function runAvatar(
+  run: TimelineRun,
+  viewerMemberId: string | undefined,
+): MessageAuthor | null {
+  if (run.author.memberId === viewerMemberId) return null;
+  return run.author;
 }
 
-function entryKey({ item, nonce }: DisplayItem) {
+// A call belongs to whoever placed it, the same way a message belongs to its writer.
+function authorOf(item: HistoryItem): MessageAuthor {
+  if (isMessageItem(item)) return item.author;
+  return item.startedBy;
+}
+
+function continuesRun(previous: HistoryItem, item: HistoryItem) {
+  const sameAuthor = authorOf(previous).memberId === authorOf(item).memberId;
+  const gap = Date.parse(item.createdAt) - Date.parse(previous.createdAt);
+  return sameAuthor && gap < RUN_WINDOW_MS;
+}
+
+// Own messages keep their nonce as the key, so an unsent row turns into the sent
+// message in place.
+function entryKey({ item }: DisplayItem) {
   if (!isMessageItem(item)) return item.id;
-  return nonce ?? item.message.clientNonce ?? item.id;
+  return item.message.clientNonce ?? item.id;
 }
 
 const dayMonth = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'long' });

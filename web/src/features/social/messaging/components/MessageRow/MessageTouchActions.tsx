@@ -55,7 +55,7 @@ const useStyles = createStyles(({ token, css }) => ({
     height: 36px;
     border-radius: 50%;
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    color: ${token.colorPrimaryTextActive};
     opacity: var(--message-reply-progress, 0);
     transform: translateY(-50%);
     scale: 0.85;

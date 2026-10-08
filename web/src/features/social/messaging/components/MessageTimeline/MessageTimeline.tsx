@@ -1,7 +1,7 @@
 import { ArrowDownIcon, ArrowUpIcon, ChatsCircleIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
-import { useMemo, useRef } from 'react';
+import { Fragment, useMemo, useRef } from 'react';
 
 import type {
   ActionContext,
@@ -14,7 +14,8 @@ import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import type { DisplayItem, HistoryPage, MessageHistoryItem } from '../../types';
 import { isMessageItem } from '../../types';
 import { HistoryItemRow } from '../HistoryItemRow/HistoryItemRow';
-import { buildTimelineDays, formatDayLabel } from './timeline-days';
+import { HistoryRun } from '../HistoryRun/HistoryRun';
+import { buildTimelineDays, formatDayLabel, runAvatar } from './timeline-days';
 import { useMobileMessageSelection } from './useMobileMessageSelection';
 import { useScrollAnchoring } from './useScrollAnchoring';
 
@@ -46,65 +47,61 @@ const useStyles = createStyles(({ token, css }) => ({
     justify-content: flex-end;
     min-height: 100%;
     // The pinned bar and the composer float over the history (see useOverlayInsets).
-    padding: calc(var(--chat-inset-top, 0px) + 8px) 0 calc(var(--chat-inset-bottom, 0px) + 10px);
+    padding: calc(var(--chat-inset-top, 0px) + ${token.paddingXS}px) 0
+      calc(var(--chat-inset-bottom, 0px) + ${token.paddingXS}px);
   `,
   day: css`
     display: flex;
     flex-direction: column;
   `,
-  entry: css`
-    & + &[data-group-start] {
-      margin-top: 8px;
-    }
-  `,
   dateBar: css`
     position: sticky;
-    top: calc(var(--chat-inset-top, 0px) + 8px);
+    top: calc(var(--chat-inset-top, 0px) + ${token.paddingXS}px);
     z-index: 2;
     display: flex;
     justify-content: center;
-    margin: 8px 0 10px;
+    margin-block: ${token.marginXS}px;
     pointer-events: none;
   `,
   pill: css`
-    padding: 3px 11px;
-    border-radius: 13px;
+    padding: ${token.paddingXXS}px ${token.paddingSM}px;
+    border-radius: 999px;
     background: var(--chat-service-bg, rgba(0, 0, 0, 0.32));
     backdrop-filter: blur(12px) saturate(1.4);
     color: ${token.colorWhite};
-    font-size: 13px;
-    line-height: 20px;
+    font-size: ${token.fontSizeSM}px;
+    line-height: ${token.lineHeight};
     font-weight: 600;
     white-space: nowrap;
   `,
   load: css`
     align-self: center;
-    margin: 4px 0 12px;
+    margin: ${token.marginXXS}px 0 ${token.marginSM}px;
   `,
   unread: css`
-    margin: 10px 0 12px;
-    padding: 3px 0;
+    margin: ${token.marginXS}px 0 ${token.marginSM}px;
+    padding: ${token.paddingXXS}px 0;
     background: var(--chat-service-bg, rgba(0, 0, 0, 0.32));
     backdrop-filter: blur(12px) saturate(1.4);
     color: ${token.colorWhite};
-    font-size: 13px;
-    line-height: 20px;
+    font-size: ${token.fontSizeSM}px;
+    line-height: ${token.lineHeight};
     font-weight: 650;
     text-align: center;
   `,
   bottom: css`
     position: absolute;
-    right: 16px;
-    bottom: calc(var(--chat-inset-bottom, 0px) + 12px);
+    right: ${token.padding}px;
+    bottom: calc(var(--chat-inset-bottom, 0px) + ${token.paddingSM}px);
     z-index: 3;
     display: grid;
     place-items: center;
-    width: 44px;
-    height: 44px;
+    width: ${token.controlHeightLG}px;
+    height: ${token.controlHeightLG}px;
     padding: 0;
     border: 0;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.86);
+    background: var(--glass, rgba(255, 255, 255, 0.86));
     backdrop-filter: blur(16px) saturate(1.6);
     box-shadow: 0 1px 4px rgba(23, 46, 42, 0.18);
     color: ${token.colorTextSecondary};
@@ -118,7 +115,7 @@ const useStyles = createStyles(({ token, css }) => ({
     }
 
     @media (max-width: ${token.screenMD}px) {
-      right: 12px;
+      right: ${token.paddingSM}px;
     }
   `,
   // Away-from-bottom while there's something new to catch up on reads differently from
@@ -135,15 +132,15 @@ const useStyles = createStyles(({ token, css }) => ({
     display: grid;
     place-content: center;
     flex: 1;
-    padding: 30px;
+    padding: ${token.paddingXL}px;
   `,
   emptyCard: css`
     display: grid;
     justify-items: center;
-    gap: 8px;
+    gap: ${token.paddingXS}px;
     max-width: 260px;
-    padding: 18px 22px;
-    border-radius: 18px;
+    padding: ${token.paddingMD}px ${token.paddingLG}px;
+    border-radius: ${token.borderRadiusLG}px;
     background: var(--chat-service-bg, rgba(0, 0, 0, 0.32));
     backdrop-filter: blur(12px) saturate(1.4);
     color: ${token.colorWhite};
@@ -160,7 +157,7 @@ interface MessageTimelineProps {
   onAction: (action: ConversationAction, target: ActionTarget) => void;
   onJump: (messageId: string) => void;
   onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
-  onRetry: (nonce: string) => void;
+  onRetry: (rowId: string) => void;
   hasOlder: boolean;
   hasNewer: boolean;
   loadingOlder: boolean;
@@ -207,7 +204,7 @@ export function MessageTimeline({
     [displayItems, firstUnreadSeq],
   );
 
-  const { scrollRef, awayFromBottom, lastScrollAt, onScroll, older, goDown } = useScrollAnchoring({
+  const { scrollRef, awayFromBottom, onScroll, older, goDown } = useScrollAnchoring({
     pages,
     items,
     displayItems,
@@ -248,11 +245,6 @@ export function MessageTimeline({
             requestComposerBlur();
           }
         }}
-        onPointerMove={(event) => {
-          if (performance.now() - lastScrollAt.current > 120)
-            delete event.currentTarget.dataset.hoverSuppressed;
-        }}
-        onPointerLeave={(event) => delete event.currentTarget.dataset.hoverSuppressed}
         role="log"
         aria-label="Повідомлення каналу"
         aria-live="off"
@@ -282,31 +274,27 @@ export function MessageTimeline({
               <div className={styles.dateBar}>
                 <span className={styles.pill}>{formatDayLabel(day.date)}</span>
               </div>
-              {day.entries.map(({ key, display, unreadBefore, groupStart, groupEnd }) => {
-                const { item, delivery, nonce, pendingAttachments } = display;
-                return (
-                  <div
-                    key={key}
-                    className={styles.entry}
-                    data-group-start={groupStart || undefined}
-                  >
-                    {unreadBefore && <div className={styles.unread}>Нові повідомлення</div>}
-                    <HistoryItemRow
-                      item={item}
-                      groupStart={groupStart}
-                      groupEnd={groupEnd}
-                      actionContext={actionContext}
-                      actions={actions}
-                      onAction={onAction}
-                      onJump={onJump}
-                      onEdit={onEdit}
-                      delivery={delivery}
-                      pendingAttachments={pendingAttachments}
-                      onRetry={nonce ? () => onRetry(nonce) : undefined}
-                    />
-                  </div>
-                );
-              })}
+              {day.runs.map((run) => (
+                <Fragment key={run.key}>
+                  {run.unreadBefore && <div className={styles.unread}>Нові повідомлення</div>}
+                  <HistoryRun avatar={runAvatar(run, actionContext.memberId)}>
+                    {run.entries.map(({ key, display }) => (
+                      <HistoryItemRow
+                        key={key}
+                        item={display.item}
+                        actionContext={actionContext}
+                        actions={actions}
+                        onAction={onAction}
+                        onJump={onJump}
+                        onEdit={onEdit}
+                        delivery={display.delivery}
+                        pendingAttachments={display.pendingAttachments}
+                        onRetry={onRetry}
+                      />
+                    ))}
+                  </HistoryRun>
+                </Fragment>
+              ))}
             </section>
           ))}
           {hasNewer && (

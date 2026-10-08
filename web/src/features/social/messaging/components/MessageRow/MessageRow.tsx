@@ -6,37 +6,36 @@ import type {
   ActionTarget,
   ConversationAction,
 } from '@/features/social/conversation/actions';
-import { useConversation, useConversationScope } from '@/features/social/conversation/store';
-import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { useConversation } from '@/features/social/conversation/store';
 
 import type { AttachmentDraft } from '../../attachments/types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';
 import { Bubble } from '../Bubble/Bubble';
 import { bubbleLayout } from './bubbleLayout';
-import { MessageActions, MessageToolbar } from './MessageActions';
+import { MessageActions } from './MessageActions';
 import { MessageActionProvider } from './MessageActionScope';
 import { MessageBody } from './MessageBody';
 import { MessageHeader } from './MessageHeader';
-
-const AVATAR_SIZE = 40;
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
     position: relative;
     display: flex;
     align-items: flex-end;
-    gap: 2px;
+    gap: ${token.paddingXS}px;
     min-width: 0;
-    padding: 1px 6px;
     color: ${token.colorText};
 
     &[data-own] {
       justify-content: flex-end;
     }
+    // Keyboard focus rings the bubble, not the whole row.
     &:focus-visible {
+      outline: none;
+    }
+    &:focus-visible [data-variant] {
       outline: 2px solid ${token.colorPrimary};
-      outline-offset: -2px;
+      outline-offset: 2px;
     }
     &[data-flash] {
       animation: flash 0.85s ease-out;
@@ -48,16 +47,6 @@ const useStyles = createStyles(({ token, css }) => ({
       100% {
         background: transparent;
       }
-    }
-    &:hover [data-message-actions],
-    &:focus-visible [data-message-actions],
-    &:not(:focus):focus-within [data-message-actions] {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    [data-hover-suppressed] &:hover:not(:focus-within) [data-message-actions] {
-      opacity: 0;
-      pointer-events: none;
     }
   `,
   selected: css`
@@ -85,25 +74,6 @@ const useStyles = createStyles(({ token, css }) => ({
       100% {
         background: transparent;
       }
-    }
-  `,
-  avatar: css`
-    display: flex;
-    flex: 0 0 ${AVATAR_SIZE}px;
-    align-self: flex-end;
-    width: ${AVATAR_SIZE}px;
-  `,
-  avatarTrigger: css`
-    display: inline-flex;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: transparent;
-    cursor: pointer;
-
-    &:focus-visible {
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: 2px;
     }
   `,
   retry: css`
@@ -143,8 +113,6 @@ const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '
 
 interface MessageRowProps {
   item: MessageHistoryItem;
-  groupStart: boolean;
-  groupEnd: boolean;
   actionContext: ActionContext;
   actions: ConversationAction[];
   onAction: (action: ConversationAction, target: ActionTarget) => void;
@@ -152,13 +120,11 @@ interface MessageRowProps {
   onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
   delivery?: DeliveryStatus;
   pendingAttachments?: AttachmentDraft[];
-  onRetry?: () => void;
+  onRetry: (rowId: string) => void;
 }
 
 export const MessageRow = memo(function MessageRow({
   item,
-  groupStart,
-  groupEnd,
   actionContext,
   actions,
   onAction,
@@ -169,10 +135,8 @@ export const MessageRow = memo(function MessageRow({
   onRetry,
 }: MessageRowProps) {
   const { styles, cx } = useStyles();
-  const { kind } = useConversationScope();
   const authorName = item.author.displayName ?? 'Ім’я недоступне';
   const isOwnMessage = item.message.authorMemberId === actionContext.memberId;
-  const showsAuthors = kind === 'channel' && !isOwnMessage;
   const mentionsMe =
     !isOwnMessage &&
     (item.mentions?.some((mention) => mention.memberId === actionContext.memberId) ?? false);
@@ -254,40 +218,8 @@ export const MessageRow = memo(function MessageRow({
             onChange={() => toggleSelected(item.message.id)}
           />
         )}
-        {showsAuthors && (
-          <div className={styles.avatar}>
-            {groupEnd && (
-              <MemberPopover member={item.author}>
-                <button
-                  type="button"
-                  className={styles.avatarTrigger}
-                  aria-label={`Профіль ${authorName}`}
-                >
-                  <Avatar
-                    path={item.author.avatarPath}
-                    alt={authorName}
-                    size={AVATAR_SIZE}
-                    shape="circle"
-                  />
-                </button>
-              </MemberPopover>
-            )}
-          </div>
-        )}
-        <Bubble
-          own={isOwnMessage}
-          groupStart={groupStart}
-          groupEnd={groupEnd}
-          variant={layout.variant}
-          tone={tone}
-          wide={editing}
-          aside={<MessageToolbar />}
-        >
-          <MessageHeader
-            own={isOwnMessage}
-            showAuthor={showsAuthors && groupStart}
-            onJump={onJump}
-          />
+        <Bubble own={isOwnMessage} variant={layout.variant} tone={tone} wide={editing}>
+          <MessageHeader onJump={onJump} />
           <MessageBody
             layout={layout}
             contentRef={contentRef}
@@ -298,7 +230,7 @@ export const MessageRow = memo(function MessageRow({
           {delivery === 'failed' && (
             <div className={styles.retry}>
               Не надіслано
-              <button type="button" className={styles.retryButton} onClick={onRetry}>
+              <button type="button" className={styles.retryButton} onClick={() => onRetry(item.id)}>
                 Повторити
               </button>
             </div>

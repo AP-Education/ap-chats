@@ -15,7 +15,7 @@ const useStyles = createStyles(({ token, css }) => ({
     width: 420px;
     max-width: 100%;
     overflow: hidden;
-    border-radius: 12px;
+    border-radius: calc(var(--bubble-radius, ${token.borderRadius * 2}px) - ${token.paddingXXS}px);
   `,
   tile: css`
     position: relative;
@@ -31,7 +31,7 @@ const useStyles = createStyles(({ token, css }) => ({
     cursor: zoom-in;
     &:focus-visible {
       outline: 2px solid ${token.colorPrimary};
-      outline-offset: -3px;
+      outline-offset: -2px;
     }
     &:disabled {
       cursor: default;
@@ -53,13 +53,13 @@ const useStyles = createStyles(({ token, css }) => ({
     padding: 0;
     overflow: hidden;
     border: 0;
-    border-radius: 12px;
+    border-radius: calc(var(--bubble-radius, ${token.borderRadius * 2}px) - ${token.paddingXXS}px);
     background: ${token.colorFillSecondary};
     color: ${token.colorTextSecondary};
     cursor: zoom-in;
     &:focus-visible {
       outline: 2px solid ${token.colorPrimary};
-      outline-offset: -3px;
+      outline-offset: -2px;
     }
     &:disabled {
       cursor: default;
@@ -74,14 +74,14 @@ const useStyles = createStyles(({ token, css }) => ({
   unsized: css`
     width: 420px;
     max-width: 100%;
-    border-radius: 12px;
+    border-radius: calc(var(--bubble-radius, ${token.borderRadius * 2}px) - ${token.paddingXXS}px);
   `,
   alt: css`
     position: absolute;
     bottom: 6px;
     left: 6px;
-    padding: 2px 5px;
-    border-radius: 4px;
+    padding: 2px ${token.paddingXXS}px;
+    border-radius: ${token.borderRadiusXS}px;
     background: ${token.colorBgContainer};
     color: ${token.colorText};
     font-size: 10px;

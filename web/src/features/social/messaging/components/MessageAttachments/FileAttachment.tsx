@@ -16,7 +16,7 @@ import { fileExtension, formatFileSize } from '../../attachments/file-presentati
 import type { Attachment } from '../../attachments/types';
 import { useAttachmentDownload, useAttachmentUrl } from './useAttachmentAccess';
 
-const useStyles = createStyles(({ css }) => ({
+const useStyles = createStyles(({ token, css }) => ({
   shell: css`
     min-width: min(240px, 100%);
     max-width: 420px;
@@ -53,7 +53,7 @@ const useStyles = createStyles(({ css }) => ({
     text-overflow: ellipsis;
     white-space: nowrap;
     font: inherit;
-    font-size: 15px;
+    font-size: ${token.fontSizeSM}px;
     font-weight: 550;
     cursor: pointer;
     &:hover:not(:disabled) {
@@ -63,7 +63,7 @@ const useStyles = createStyles(({ css }) => ({
   meta: css`
     margin-top: 2px;
     color: var(--bubble-meta);
-    font-size: 13px;
+    font-size: 12px;
   `,
   actions: css`
     display: flex;
@@ -81,7 +81,7 @@ const useStyles = createStyles(({ css }) => ({
   player: css`
     margin-top: 6px;
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: ${token.borderRadiusLG}px;
     video {
       display: block;
       width: 100%;

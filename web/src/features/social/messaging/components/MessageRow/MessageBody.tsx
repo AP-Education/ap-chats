@@ -28,7 +28,9 @@ export function MessageBody({
   onCloseEdit,
 }: MessageBodyProps) {
   const { editing, item, delivery, pendingAttachments } = useMessageActionScope();
-  const inlineMeta = layout.meta === 'inline' && <MessageMeta placement="inline" />;
+  const textMeta = (layout.meta === 'inline' || layout.meta === 'emoji') && (
+    <MessageMeta placement={layout.meta} />
+  );
 
   return (
     <>
@@ -47,9 +49,15 @@ export function MessageBody({
         </MessageEditor>
       )}
       {!editing && layout.hasText && (
-        <MessageReadContent contentRef={contentRef} meta={inlineMeta} />
+        <MessageReadContent
+          contentRef={contentRef}
+          jumboEmoji={layout.jumboEmoji}
+          meta={textMeta}
+        />
       )}
-      {layout.meta && layout.meta !== 'inline' && <MessageMeta placement={layout.meta} />}
+      {(layout.meta === 'block' || layout.meta === 'overlay') && (
+        <MessageMeta placement={layout.meta} />
+      )}
     </>
   );
 }

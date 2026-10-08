@@ -21,11 +21,13 @@ const useStyles = createStyles(({ token, css }) => ({
     --bubble-shadow: 0 1px 1.5px rgba(23, 46, 42, 0.12);
     --bubble-text: ${token.colorText};
     --bubble-muted: ${token.colorTextSecondary};
-    --bubble-meta: ${token.colorTextTertiary};
-    --bubble-accent: ${token.colorPrimary};
+    // Times and edit marks are text too: the secondary tone keeps them at AA contrast.
+    --bubble-meta: ${token.colorTextSecondary};
+    // The accent's text tone, not the raw primary: links and labels stay AA on either base.
+    --bubble-accent: ${token.colorPrimaryTextActive};
     --bubble-on-accent: ${token.colorWhite};
-    --bubble-link: ${token.colorPrimary};
-    --bubble-fill: rgba(31, 47, 45, 0.06);
+    --bubble-link: ${token.colorPrimaryTextActive};
+    --bubble-fill: ${token.colorFillTertiary};
     position: relative;
     display: flex;
     flex-direction: column;
@@ -33,35 +35,64 @@ const useStyles = createStyles(({ token, css }) => ({
     min-width: 0;
     max-width: min(560px, 85%);
 
+    html[data-theme='dark'] &[data-side='incoming'] {
+      --bubble-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
     // Room for the tail between the bubble and the avatar or the screen edge.
     &[data-side='incoming'] {
       margin-left: 8px;
     }
 
-    // Two close tones fading downwards into the tail, frosted like the incoming bubbles,
-    // with a faint top edge of light: a run of own messages reads as one calm column.
+    // Two close tones fading downwards into the tail: a run of own messages reads as one
+    // calm column. Opaque on light, where a pale page showing through would wash white
+    // text below AA; dark pages only deepen it, so the frost stays there. No edge
+    // highlights: an inset line follows the rounded corners and reads as a stray border.
     &[data-side='own'] {
       --own-from: var(--chat-own-from, ${token.colorPrimary});
-      --bubble-bg: linear-gradient(175deg, var(--chat-own-to, var(--own-from)), var(--own-from));
+      --own-to: var(--chat-own-to, ${token.colorPrimary});
+      --bubble-bg: linear-gradient(175deg, var(--own-to), var(--own-from));
       --bubble-tail: var(--own-from);
       --bubble-blur: blur(20px) saturate(1.5);
-      --bubble-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 2px rgba(18, 22, 60, 0.16);
+      --bubble-shadow: 0 1px 2px rgba(18, 22, 60, 0.16);
+      // Secondary text stays white and steps back by size; times sit on the deeper end.
+      // Nested blocks darken the fill rather than lighten it, so white keeps its contrast.
       --bubble-text: ${token.colorWhite};
-      --bubble-muted: rgba(255, 255, 255, 0.8);
-      --bubble-meta: rgba(255, 255, 255, 0.72);
+      --bubble-muted: ${token.colorWhite};
+      --bubble-meta: rgba(255, 255, 255, 0.9);
       --bubble-accent: ${token.colorWhite};
       --bubble-on-accent: var(--own-from);
       --bubble-link: ${token.colorWhite};
-      --bubble-fill: rgba(255, 255, 255, 0.16);
-      --mention-bg: rgba(255, 255, 255, 0.2);
-      --mention-bg-hover: rgba(255, 255, 255, 0.3);
+      --bubble-fill: rgba(0, 0, 0, 0.14);
+      --excerpt-bg: rgba(0, 0, 0, 0.14);
+      --excerpt-bg-hover: rgba(0, 0, 0, 0.2);
+      --mention-bg: rgba(0, 0, 0, 0.14);
+      --mention-bg-hover: rgba(0, 0, 0, 0.2);
       --mention-color: ${token.colorWhite};
+      --mention-me-bg: var(--mention-bg);
+      --mention-me-bg-hover: var(--mention-bg-hover);
+      --mention-me-color: var(--mention-color);
       align-items: flex-end;
       margin-right: 8px;
     }
+    html[data-theme='dark'] &[data-side='own'] {
+      --own-from: color-mix(in srgb, var(--chat-own-from, ${token.colorPrimary}) 90%, transparent);
+      --own-to: color-mix(in srgb, var(--chat-own-to, ${token.colorPrimary}) 84%, transparent);
+    }
 
+    // A warm touch on the usual bubble rather than antd's warning fill, which turns
+    // into a muddy olive block on dark. Dark keeps it faint: amber over blue-grey drifts
+    // to olive, so the amber mention chip carries the signal there.
     &[data-tone='attention'] {
-      --bubble-bg: rgba(255, 247, 226, 0.92);
+      --attention-share: 14%;
+      --bubble-bg: color-mix(
+        in srgb,
+        ${token.colorWarning} var(--attention-share),
+        var(--chat-incoming-bg, rgba(255, 255, 255, 0.8))
+      );
+    }
+    html[data-theme='dark'] &[data-tone='attention'] {
+      --attention-share: 7%;
     }
 
     &[data-tone='failed'] {
@@ -69,29 +100,21 @@ const useStyles = createStyles(({ token, css }) => ({
       --bubble-tail: ${token.colorErrorBg};
       --bubble-text: ${token.colorText};
       --bubble-muted: ${token.colorTextSecondary};
-      --bubble-meta: ${token.colorErrorText};
-      --bubble-accent: ${token.colorError};
+      // Pulled towards the body text: the stock error red on its own tint falls below AA.
+      --bubble-meta: color-mix(in srgb, ${token.colorError}, ${token.colorText} 40%);
+      --bubble-accent: color-mix(in srgb, ${token.colorError}, ${token.colorText} 40%);
       --bubble-on-accent: ${token.colorWhite};
-      --bubble-link: ${token.colorError};
-      --bubble-fill: rgba(31, 47, 45, 0.06);
+      --bubble-link: color-mix(in srgb, ${token.colorError}, ${token.colorText} 40%);
+      --bubble-fill: ${token.colorFillTertiary};
     }
 
     &[data-wide] {
       width: min(560px, 85%);
     }
 
-    // Wider screens keep room beside the bubble for the hover toolbar.
-    @media (min-width: ${token.screenMD + 1}px) {
-      max-width: min(560px, calc(100% - 120px));
-
-      &[data-wide] {
-        width: min(560px, calc(100% - 120px));
-      }
-    }
-
     @supports not (backdrop-filter: blur(1px)) {
       &[data-side='incoming']:not([data-tone]) {
-        --bubble-bg: rgba(255, 255, 255, 0.94);
+        --bubble-bg: ${token.colorBgElevated};
       }
     }
 
@@ -106,8 +129,9 @@ const useStyles = createStyles(({ token, css }) => ({
     position: relative;
     min-width: 0;
     max-width: 100%;
-    padding: 6px 12px 7px;
-    border-radius: 16px;
+    --bubble-radius: ${token.borderRadius * 2}px;
+    padding: 6px ${token.paddingSM}px ${token.paddingXS}px;
+    border-radius: var(--bubble-radius);
     background: var(--bubble-bg);
     backdrop-filter: var(--bubble-blur);
     box-shadow: var(--bubble-shadow);
@@ -118,23 +142,15 @@ const useStyles = createStyles(({ token, css }) => ({
       margin-top: 4px;
     }
 
-    [data-side='incoming'] > &:not([data-group-start]) {
-      border-top-left-radius: 6px;
+    // The corners on the author's side follow the run (HistoryRun): joints round less,
+    // and the closing corner meets the tail. On its own a bubble opens and closes a run.
+    [data-side='incoming'] > & {
+      border-top-left-radius: var(--run-top-radius, var(--bubble-radius));
+      border-bottom-left-radius: var(--run-bottom-radius, 0);
     }
-    [data-side='incoming'] > &:not([data-group-end]) {
-      border-bottom-left-radius: 6px;
-    }
-    [data-side='incoming'] > &[data-group-end] {
-      border-bottom-left-radius: 0;
-    }
-    [data-side='own'] > &:not([data-group-start]) {
-      border-top-right-radius: 6px;
-    }
-    [data-side='own'] > &:not([data-group-end]) {
-      border-bottom-right-radius: 6px;
-    }
-    [data-side='own'] > &[data-group-end] {
-      border-bottom-right-radius: 0;
+    [data-side='own'] > & {
+      border-top-right-radius: var(--run-top-radius, var(--bubble-radius));
+      border-bottom-right-radius: var(--run-bottom-radius, 0);
     }
 
     [data-wide] > & {
@@ -152,7 +168,7 @@ const useStyles = createStyles(({ token, css }) => ({
       margin-top: 2px;
     }
     &[data-variant='media'] > :last-child:not([data-attachment-media]) {
-      margin-bottom: 3px;
+      margin-bottom: ${token.marginXXS}px;
     }
 
     &[data-variant='emoji'] {
@@ -163,6 +179,7 @@ const useStyles = createStyles(({ token, css }) => ({
     }
   `,
   tail: css`
+    display: var(--run-tail, block);
     position: absolute;
     bottom: 0;
     left: -8px;
@@ -183,28 +200,15 @@ export type BubbleVariant = 'text' | 'media' | 'emoji';
 
 interface BubbleProps {
   own: boolean;
-  groupStart: boolean;
-  groupEnd: boolean;
   variant?: BubbleVariant;
   tone?: 'attention' | 'failed';
   wide?: boolean;
-  /** Floating controls anchored to the bubble's outer edge, like the desktop toolbar. */
-  aside?: ReactNode;
   children: ReactNode;
 }
 
-export function Bubble({
-  own,
-  groupStart,
-  groupEnd,
-  variant = 'text',
-  tone,
-  wide,
-  aside,
-  children,
-}: BubbleProps) {
+export function Bubble({ own, variant = 'text', tone, wide, children }: BubbleProps) {
   const { styles } = useStyles();
-  const hasTail = groupEnd && variant !== 'emoji';
+  const hasTail = variant !== 'emoji';
 
   return (
     <div
@@ -213,16 +217,10 @@ export function Bubble({
       data-tone={tone}
       data-wide={wide || undefined}
     >
-      <div
-        className={styles.bubble}
-        data-variant={variant}
-        data-group-start={groupStart || undefined}
-        data-group-end={hasTail || undefined}
-      >
+      <div className={styles.bubble} data-variant={variant}>
         {children}
       </div>
       {hasTail && <span className={styles.tail} aria-hidden />}
-      {aside}
     </div>
   );
 }

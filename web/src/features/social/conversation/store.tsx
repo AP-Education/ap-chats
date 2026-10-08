@@ -22,8 +22,6 @@ const ConversationContext = createContext<StoreApi<ConversationState> | null>(nu
 export interface ConversationScope {
   workspaceId: string;
   channelId: string;
-  /** A direct conversation has one other person, so its messages need no author names or avatars. */
-  kind: 'channel' | 'direct';
   /** The channel name or DM participant's name: the one display title shared by the composer, the call header and the timeline's call card. */
   title: string;
   /** The DM participant's avatar; omitted for channels, which have no single person to show. */

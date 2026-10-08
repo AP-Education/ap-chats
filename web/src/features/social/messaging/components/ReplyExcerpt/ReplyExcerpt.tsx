@@ -15,7 +15,7 @@ const useStyles = createStyles(({ token, css }) => ({
     white-space: nowrap;
     color: var(--excerpt-accent, ${token.colorPrimary});
     font-size: 14px;
-    line-height: 18px;
+    line-height: 1.3;
     font-weight: 600;
   `,
   preview: css`
@@ -25,7 +25,7 @@ const useStyles = createStyles(({ token, css }) => ({
     min-width: 0;
     color: var(--excerpt-muted, ${token.colorTextSecondary});
     font-size: 14px;
-    line-height: 18px;
+    line-height: 1.3;
   `,
   icon: css`
     flex: 0 0 auto;

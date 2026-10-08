@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import type { CallHistoryItem, DisplayItem, MessageHistoryItem } from '../../types';
-import { buildTimelineDays, formatDayLabel } from './timeline-days.ts';
+import { buildTimelineDays, formatDayLabel, runAvatar } from './timeline-days.ts';
 
 function message(seq: string, author: string, createdAt: string): DisplayItem {
   const item: MessageHistoryItem = {
@@ -31,7 +31,7 @@ function message(seq: string, author: string, createdAt: string): DisplayItem {
     forwardedFrom: null,
     pin: null,
   };
-  return { item, delivery: undefined, nonce: null };
+  return { item, delivery: undefined };
 }
 
 function call(seq: string, createdAt: string): DisplayItem {
@@ -49,16 +49,13 @@ function call(seq: string, createdAt: string): DisplayItem {
     },
     startedBy: { memberId: 'olena', displayName: 'Olena', avatarPath: null },
   };
-  return { item, delivery: undefined, nonce: null };
+  return { item, delivery: undefined };
 }
 
+// Days as runs of seqs: the shape the timeline draws.
 function runs(items: DisplayItem[], firstUnreadSeq: string | null = null) {
   return buildTimelineDays(items, firstUnreadSeq).map((day) =>
-    day.entries.map(({ display, groupStart, groupEnd }) => [
-      display.item.seq,
-      groupStart,
-      groupEnd,
-    ]),
+    day.runs.map((run) => run.entries.map((entry) => entry.display.item.seq)),
   );
 }
 
@@ -70,47 +67,93 @@ test('consecutive messages from one author within five minutes form one run', ()
     message('4', 'taras', '2026-10-07T09:05:00'),
   ]);
 
-  assert.deepEqual(days, [
-    [
-      ['1', true, false],
-      ['2', false, false],
-      ['3', false, true],
-      ['4', true, true],
-    ],
-  ]);
+  assert.deepEqual(days, [[['1', '2', '3'], ['4']]]);
 });
 
-test('a long pause, a call or the unread divider starts a new run', () => {
-  const days = runs(
+test('a long pause, another author or the unread divider starts a new run', () => {
+  const days = buildTimelineDays(
     [
       message('1', 'olena', '2026-10-07T09:00:00'),
       message('2', 'olena', '2026-10-07T09:10:00'),
-      call('3', '2026-10-07T09:11:00'),
+      message('3', 'taras', '2026-10-07T09:11:00'),
       message('4', 'olena', '2026-10-07T09:12:00'),
       message('5', 'olena', '2026-10-07T09:13:00'),
     ],
     '5',
   );
 
-  assert.deepEqual(days, [
+  assert.deepEqual(
+    days[0]!.runs.map((run) => [
+      run.entries.map((entry) => entry.display.item.seq),
+      run.unreadBefore,
+    ]),
     [
-      ['1', true, true],
-      ['2', true, true],
-      ['3', true, true],
-      ['4', true, true],
-      ['5', true, true],
+      [['1'], false],
+      [['2'], false],
+      [['3'], false],
+      [['4'], false],
+      [['5'], true],
     ],
-  ]);
+  );
 });
 
-test('runs never cross midnight', () => {
-  const days = buildTimelineDays(
-    [message('1', 'olena', '2026-10-06T23:59:00'), message('2', 'olena', '2026-10-07T00:01:00')],
+test('a call joins the run of whoever placed it', () => {
+  const [day] = buildTimelineDays(
+    [
+      message('1', 'olena', '2026-10-07T09:00:00'),
+      call('2', '2026-10-07T09:01:00'),
+      message('3', 'olena', '2026-10-07T09:02:00'),
+    ],
     null,
   );
 
-  assert.equal(days.length, 2);
-  assert.equal(days[1]!.entries[0]!.groupStart, true);
+  assert.deepEqual(
+    day!.runs.map((run) => [
+      run.author.memberId,
+      run.entries.map((entry) => entry.display.item.seq),
+    ]),
+    [['olena', ['1', '2', '3']]],
+  );
+});
+
+test('runs never cross midnight', () => {
+  const days = runs([
+    message('1', 'olena', '2026-10-06T23:59:00'),
+    message('2', 'olena', '2026-10-07T00:01:00'),
+  ]);
+
+  assert.deepEqual(days, [[['1']], [['2']]]);
+});
+
+test('an unsent message from an earlier day stays in the latest day instead of reopening its own', () => {
+  const failed: DisplayItem = {
+    ...message('0', 'me', '2026-10-06T09:00:00'),
+    delivery: 'failed',
+  };
+  const days = buildTimelineDays(
+    [
+      message('1', 'olena', '2026-10-06T10:00:00'),
+      message('2', 'olena', '2026-10-08T10:00:00'),
+      failed,
+    ],
+    null,
+  );
+
+  assert.deepEqual(
+    days.map((day) => day.runs.map((run) => run.entries.map((entry) => entry.display.item.seq))),
+    [[['1']], [['2'], ['0']]],
+  );
+  assert.equal(new Set(days.map((day) => day.key)).size, days.length);
+});
+
+test('only incoming runs show an avatar', () => {
+  const [day] = buildTimelineDays(
+    [message('1', 'olena', '2026-10-07T09:00:00'), message('2', 'me', '2026-10-07T09:20:00')],
+    null,
+  );
+
+  assert.equal(runAvatar(day!.runs[0]!, 'me')?.memberId, 'olena');
+  assert.equal(runAvatar(day!.runs[1]!, 'me'), null);
 });
 
 test('day labels read as today, yesterday, or a date with the year only when it differs', () => {

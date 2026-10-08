@@ -18,7 +18,7 @@ const useStyles = createStyles(({ token, css }) => ({
     margin-bottom: 4px;
     padding: 8px 10px;
     border: 0;
-    border-radius: 7px;
+    border-radius: ${token.borderRadiusSM}px;
     background: transparent;
     color: ${token.colorText};
     text-align: left;

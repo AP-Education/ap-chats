@@ -7,8 +7,6 @@ export const messageEntryStrategy: HistoryItemStrategy = {
     return (
       <MessageRow
         item={item}
-        groupStart={context.groupStart}
-        groupEnd={context.groupEnd}
         actionContext={context.actionContext}
         actions={context.actions}
         onAction={context.onAction}

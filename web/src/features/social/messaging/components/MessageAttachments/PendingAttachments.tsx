@@ -4,7 +4,7 @@ import { createStyles } from 'antd-style';
 import { fileExtension, formatFileSize } from '../../attachments/file-presentation';
 import type { AttachmentDraft } from '../../attachments/types';
 
-const useStyles = createStyles(({ css }) => ({
+const useStyles = createStyles(({ token, css }) => ({
   stack: css`
     display: flex;
     flex-direction: column;
@@ -28,7 +28,7 @@ const useStyles = createStyles(({ css }) => ({
     flex: 0 0 44px;
     height: 44px;
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: ${token.borderRadiusLG}px;
     background: var(--bubble-accent);
     color: var(--bubble-on-accent, #fff);
     img {
@@ -45,20 +45,20 @@ const useStyles = createStyles(({ css }) => ({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 15px;
+    font-size: ${token.fontSizeSM}px;
     font-weight: 550;
     color: var(--bubble-text);
   `,
   meta: css`
     margin-top: 2px;
     color: var(--bubble-meta);
-    font-size: 13px;
+    font-size: 12px;
   `,
   progress: css`
-    height: 3px;
+    height: 4px;
     margin-top: 6px;
     overflow: hidden;
-    border-radius: 2px;
+    border-radius: ${token.borderRadiusXS}px;
     background: var(--bubble-fill);
 
     span {

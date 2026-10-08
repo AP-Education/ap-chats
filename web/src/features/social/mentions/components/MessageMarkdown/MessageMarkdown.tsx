@@ -14,14 +14,20 @@ export interface MentionLabel {
 }
 
 const useStyles = createStyles(({ token, css }) => ({
+  // Hugs the glyphs instead of filling the line: a button would otherwise stretch its
+  // tint to the full line box and read as a block in the middle of the sentence.
   mention: css`
-    padding: 0 2px;
+    display: inline;
+    padding: 1px 4px;
     border: 0;
-    border-radius: 2px;
+    border-radius: ${token.borderRadiusSM}px;
     background: var(--mention-bg, ${token.colorPrimaryBg});
-    color: var(--mention-color, ${token.colorPrimary});
+    color: var(--mention-color, ${token.colorPrimaryTextActive});
     font: inherit;
-    font-weight: 500;
+    font-weight: 600;
+    line-height: 1.2;
+    vertical-align: baseline;
+    box-decoration-break: clone;
   `,
   mentionTrigger: css`
     cursor: pointer;
@@ -35,14 +41,21 @@ const useStyles = createStyles(({ token, css }) => ({
   // anyone else — Discord's amber "this is about you" tag. The same accent
   // as the row highlight, deliberately not antd's stock warning tokens,
   // which read as a random clash against this app's teal palette.
+  // Own bubbles override these with their usual mention ink: naming yourself in your
+  // own message is no news to you, and amber on the accent fill reads as mud.
   mentionMe: css`
-    background: rgba(250, 173, 20, 0.18);
-    color: #874d00;
+    background: var(--mention-me-bg, rgba(250, 173, 20, 0.18));
+    color: var(--mention-me-color, #874d00);
+
+    html[data-theme='dark'] & {
+      background: var(--mention-me-bg, rgba(250, 173, 20, 0.22));
+      color: var(--mention-me-color, #ffd591);
+    }
   `,
   mentionMeTrigger: css`
     &:hover,
     &:focus-visible {
-      background: rgba(250, 173, 20, 0.28);
+      background: var(--mention-me-bg-hover, rgba(250, 173, 20, 0.28));
     }
   `,
 }));
