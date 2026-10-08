@@ -37,8 +37,15 @@ export class ApnsVoipPushProvider implements CallPushProvider, OnModuleDestroy {
   async sendIncomingCall(device: DeviceRecord, payload: CallSignalPayload): Promise<void> {
     if (!this.isConfigured || !device.voipToken) return;
     const bearer = await this.authToken();
-    const event = buildIncomingCallEvent(payload);
-    await this.post(device, bearer, { incomingCall: event });
+    const body = { incomingCall: buildIncomingCallEvent(payload) };
+    try {
+      await this.post(device.apnsEnvironment, device, bearer, body);
+    } catch (error) {
+      // A build can register under the wrong environment; its token then works only on the other host.
+      if (!(error instanceof PushProviderError) || error.reason !== 'BadDeviceToken') throw error;
+      const other = device.apnsEnvironment === 'sandbox' ? 'production' : 'sandbox';
+      await this.post(other, device, bearer, body);
+    }
   }
 
   private async authToken(): Promise<string> {
@@ -61,12 +68,12 @@ export class ApnsVoipPushProvider implements CallPushProvider, OnModuleDestroy {
   }
 
   private post(
+    environment: DeviceRecord['apnsEnvironment'],
     device: DeviceRecord,
     bearer: string,
     body: { incomingCall: IncomingCallEventWire },
   ): Promise<void> {
-    const host =
-      device.apnsEnvironment === 'sandbox' ? 'api.sandbox.push.apple.com' : 'api.push.apple.com';
+    const host = environment === 'sandbox' ? 'api.sandbox.push.apple.com' : 'api.push.apple.com';
     let session = this.sessions.get(host);
     if (!session || session.closed || session.destroyed) {
       session = http2.connect(`https://${host}`);
@@ -117,6 +124,7 @@ export class ApnsVoipPushProvider implements CallPushProvider, OnModuleDestroy {
           new PushProviderError(
             `APNs rejected push: ${status} ${reason}`,
             ['BadDeviceToken', 'Unregistered', 'DeviceTokenNotForTopic'].includes(reason),
+            reason,
           ),
         );
       });
