@@ -3,6 +3,7 @@ import type { CallParticipant } from 'expo-callkit-telecom';
 import { leaveCall } from '../api/calls-api';
 import { useNativeCallStore } from '../store/native-call-store';
 import type { NativeCallConnectPayload } from '../types';
+import { syncCurrentAudioRoute } from './audio-route';
 import { playJoinChime } from './call-chimes';
 import { loadCallKitModule } from './callkit-module';
 import { endCallSession } from './end-call';
@@ -79,6 +80,7 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
         useNativeCallStore.getState().updateCall(update),
       );
       await waitForAudioSessionActive(CallKit, signal);
+      syncCurrentAudioRoute(CallKit);
       await room.localParticipant.setMicrophoneEnabled(
         !useNativeCallStore.getState().call?.isMuted,
       );

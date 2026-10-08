@@ -38,10 +38,17 @@ function page({ native = false, search = '' } = {}) {
       useEffect: (effect: () => void) => effect(),
       useEffectEvent: (handler: unknown) => handler,
     },
+    'react/jsx-runtime': { jsx: () => 'loading' },
     'react-router-dom': {
       useLocation: () => ({ pathname: '/', search }),
       useNavigate: () => (to: string, options?: { replace?: boolean }) =>
         navigated.push({ to, replace: Boolean(options?.replace) }),
+    },
+    '@/features/workspaces/hooks/useActiveWorkspace': {
+      useActiveWorkspace: () => ({ workspaces: [{ id: workspaceId }] }),
+    },
+    '@/features/workspaces/stores/active-workspace-context': {
+      useActiveWorkspaceId: () => ({ setActiveWorkspaceId: (id: string) => workspaces.push(id) }),
     },
     '@ap-education/shell-sdk': {
       useCurrentUser: () => ({ status: 'signed-in', queryIdentity: 'reader' }),
@@ -51,12 +58,6 @@ function page({ native = false, search = '' } = {}) {
         return () => undefined;
       },
       postToNative: (message: unknown) => toNative.push(message),
-    },
-    '@/features/workspaces/hooks/useActiveWorkspace': {
-      useActiveWorkspace: () => ({ workspaces: [{ id: workspaceId }] }),
-    },
-    '@/features/workspaces/stores/active-workspace-context': {
-      useActiveWorkspaceId: () => ({ setActiveWorkspaceId: (id: string) => workspaces.push(id) }),
     },
     '../notification-route': route,
   };
@@ -114,7 +115,7 @@ test('a native tap is routed once the page says it is ready, and acknowledged', 
   assert.deepEqual(p.toNative().at(-1), { type: 'notifications/ack', eventId: 'event' });
 });
 
-test('an app started by a tap waits, then replaces its launch URL with the conversation', () => {
+test('an app started by a tap shows nothing, then replaces its launch URL with the conversation', () => {
   const launch = encodeURIComponent(JSON.stringify({ userId: 'reader', target }));
   const p = page({ search: `?notification=${launch}` });
 

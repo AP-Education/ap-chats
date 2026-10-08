@@ -127,7 +127,7 @@ test('message sound is routed to native instead of Web Audio in the RN shell', (
         },
       },
       '@/shared/audio/tone': {},
-      '@/shared/lib/nativeBridge': {
+      '@ap-education/shell-sdk': {
         isNativeShell: () => true,
         postToNative: (message: unknown) => messages.push(message),
       },
@@ -154,7 +154,7 @@ test('browser keeps the same two-note message sound', () => {
           options: { frequency: number; startTime: number },
         ) => notes.push(options),
       },
-      '@/shared/lib/nativeBridge': { isNativeShell: () => false, postToNative: () => {} },
+      '@ap-education/shell-sdk': { isNativeShell: () => false, postToNative: () => {} },
     },
     { setTimeout: () => {} },
   );

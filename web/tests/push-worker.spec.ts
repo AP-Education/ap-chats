@@ -23,7 +23,7 @@ function serviceWorker() {
   runInNewContext(readFileSync(new URL('../public/push-sw.js', import.meta.url), 'utf8'), {
     URL,
     self: {
-      location: { origin },
+      location: { origin, href: `${origin}/push-sw.js?launch=%2Fc%2F` },
       addEventListener: (name: string, handler: (event: unknown) => void) =>
         listeners.set(name, handler),
       skipWaiting: async () => steps.push('skip-waiting'),
@@ -121,7 +121,7 @@ test('a click focuses the open app first, then hands it the tap to route in-app'
   ]);
 });
 
-test('without an open app a click starts the app at home with the tap', async () => {
+test('without an open app a click starts Chats where the shell mounts it, with the tap', async () => {
   const worker = serviceWorker();
 
   await worker.emit('notificationclick', {
@@ -129,7 +129,7 @@ test('without an open app a click starts the app at home with the tap', async ()
   });
 
   const opened = new URL(worker.opened[0]!, origin);
-  assert.equal(opened.pathname, '/');
+  assert.equal(opened.pathname, '/c/');
   assert.deepEqual(JSON.parse(opened.searchParams.get('notification')!), {
     userId: 'reader',
     target,

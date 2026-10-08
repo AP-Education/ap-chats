@@ -1,7 +1,8 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 export default function appConfig({ config }: ConfigContext): ExpoConfig {
-  const apnsEnvironment = process.env.EXPO_PUBLIC_APNS_ENVIRONMENT ?? 'sandbox';
+  // Release builds are the ones that must ring; a local Xcode run sets sandbox explicitly.
+  const apnsEnvironment = process.env.EXPO_PUBLIC_APNS_ENVIRONMENT ?? 'production';
   if (apnsEnvironment !== 'sandbox' && apnsEnvironment !== 'production')
     throw new Error('EXPO_PUBLIC_APNS_ENVIRONMENT must be sandbox or production');
   return {

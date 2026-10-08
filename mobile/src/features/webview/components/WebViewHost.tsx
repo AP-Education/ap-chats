@@ -21,7 +21,9 @@ import {
   isComposerInputRequest,
   useComposerInput,
 } from '../../composer';
+import { changePushPermission } from '../../push/api/change-push-permission';
 import { dismissPresentedNotifications } from '../../push/api/presented-notifications';
+import { getPushPermissionStatus } from '../../push/api/push-token';
 import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
 import { useNotificationStore } from '../../push/store/notification-store';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
@@ -91,6 +93,22 @@ export function WebViewHost() {
 
   useEffect(() => () => useNotificationStore.getState().setWebReady(false), []);
 
+  // Settings changes the permission outside the app, so it is re-read on every return.
+  useEffect(() => {
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') sendPushPermission();
+    });
+    return () => appState.remove();
+  }, []);
+
+  function sendPushPermission() {
+    void getPushPermissionStatus().then((status) =>
+      webViewRef.current?.injectJavaScript(
+        buildBridgeScript({ type: 'notifications/permission', status }),
+      ),
+    );
+  }
+
   function handleMessage(event: WebViewMessageEvent) {
     let message: WebToNativeMessage;
     try {
@@ -110,6 +128,10 @@ export function WebViewHost() {
       void dismissPresentedNotifications(message.collapseKey);
     } else if (message.type === 'notifications/context') {
       useNotificationStore.getState().setWebAttending(message.payload.attending);
+    } else if (message.type === 'notifications/permission-check') {
+      sendPushPermission();
+    } else if (message.type === 'notifications/settings') {
+      void changePushPermission().then(sendPushPermission);
     } else if (message.type === 'auth/sign-out') {
       // PushRegistration unregisters the device on any way out of the session.
       void useAuthStore.getState().signOut();

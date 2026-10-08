@@ -3,10 +3,8 @@ import {
   Microphone,
   MicrophoneSlash,
   PhoneX,
-  SpeakerHigh,
   VideoCameraSlash,
 } from 'phosphor-react-native';
-import { useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { CALL_GLASS } from '../callTheme';
@@ -23,11 +21,6 @@ interface ControlState {
 const MICROPHONE: Record<'live' | 'muted', ControlState> = {
   live: { icon: Microphone, tone: 'glass', accessibilityLabel: 'Вимкнути мікрофон' },
   muted: { icon: MicrophoneSlash, tone: 'pressed', accessibilityLabel: 'Увімкнути мікрофон' },
-};
-
-const SPEAKER: Record<'earpiece' | 'speaker', ControlState> = {
-  earpiece: { icon: SpeakerHigh, tone: 'glass', accessibilityLabel: 'Увімкнути динамік' },
-  speaker: { icon: SpeakerHigh, tone: 'pressed', accessibilityLabel: 'Вимкнути динамік' },
 };
 
 interface ControlProps {
@@ -51,19 +44,6 @@ function toggleMute() {
 export function MuteControl(props: ControlProps) {
   const state = useMuted() ? MICROPHONE.muted : MICROPHONE.live;
   return <CallControlButton {...state} {...props} onPress={toggleMute} />;
-}
-
-export function SpeakerControl(props: ControlProps) {
-  const [speakerOn, setSpeakerOn] = useState(false);
-  const state = speakerOn ? SPEAKER.speaker : SPEAKER.earpiece;
-
-  function toggleSpeaker() {
-    const next = !speakerOn;
-    setSpeakerOn(next);
-    withCallKit((CallKit) => CallKit.setAudioSessionPortOverride(next));
-  }
-
-  return <CallControlButton {...state} {...props} onPress={toggleSpeaker} />;
 }
 
 /** No video in the native layer yet: shown disabled rather than omitted, so the

@@ -95,6 +95,7 @@ function sessionFixture(
       },
       '../store/native-call-store': {},
       '../utils/answer-call': {},
+      '../utils/audio-route': {},
       '../utils/call-metadata': {},
       '../utils/callkit-module': { loadCallKitModule: () => callkit },
       '../utils/end-call': {},
@@ -217,6 +218,7 @@ test('cold bootstrap registers CallKit-owned audio before replay and handles sys
     addReportedCallEndedListener: listen('reported-ended'),
     addCallSessionRemovedListener: listen('removed'),
     addSetMutedActionListener: listen('muted'),
+    addAudioRouteChangedListener: listen('audio-route'),
   };
   const f = sessionFixture(
     Promise.resolve(CallKit),

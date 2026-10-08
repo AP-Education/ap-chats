@@ -8,6 +8,7 @@ import {
 import { NativePushTargetsStrategy } from '@/components/devices';
 import { AppConfigService } from '@/globals/config';
 import { JobQueue } from '@/globals/jobs/job-queue';
+import { Logger } from '@/globals/logger';
 import { IntegrationEvents } from '@/globals/publisher/integration-events';
 
 import { CallPushProviderRegistry } from './provider';
@@ -31,10 +32,14 @@ export class CallPushWorker implements OnModuleInit {
     private readonly providers: CallPushProviderRegistry,
     private readonly calls: CallPushRepository,
     private readonly config: AppConfigService,
+    private readonly logger: Logger,
   ) {}
 
   onModuleInit(): void {
     if (!this.config.runsPushWorkers()) return;
+    if (!this.providers.isAnyConfigured) {
+      this.logger.warn('VoIP push is off: neither APNs nor FCM credentials are set');
+    }
     this.events.subscribe<CallSignalEvent>(CALL_SIGNAL_EVENT, 'voip-push', (event) =>
       this.fanout(event),
     );
@@ -89,6 +94,10 @@ export class CallPushWorker implements OnModuleInit {
       await this.providers.resolve(device.platform).sendIncomingCall(device, job.payload);
     } catch (error) {
       if (error instanceof PushProviderError && error.invalidToken) {
+        this.logger.warn(
+          { deviceId: device.id, platform: device.platform, reason: error.reason },
+          'VoIP token rejected and cleared',
+        );
         await this.targets.invalidateTokenIfCurrent(device, 'voip');
         return;
       }

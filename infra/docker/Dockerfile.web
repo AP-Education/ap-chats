@@ -1,33 +1,36 @@
 # syntax=docker/dockerfile:1
+# The web edge: the AP shell at the root and Chats as its remote under /remotes/chats/.
+# build-and-push.sh passes the shell as the `host` build context, built from a pinned
+# ap-app ref, and the previous release's assets as `previous`.
+FROM scratch AS previous
+
 FROM node:24-alpine AS build
 RUN corepack enable
 WORKDIR /app
 # Every workspace manifest keeps the lockfile check honest; only the web app's packages get installed.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY web/package.json ./web/
 COPY mobile/package.json ./mobile/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --frozen-lockfile --filter @ap-chats/web --store-dir /pnpm/store
+    --mount=type=secret,id=npm_token,env=NODE_AUTH_TOKEN \
+    echo '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}' > /root/.npmrc \
+    && pnpm install --frozen-lockfile --filter @ap-chats/web --store-dir /pnpm/store
 
 # Vite inlines these into the bundle at build time, so a tenant with a
-# different OIDC client or image bucket needs its own image build, not just
-# a different runtime env.
-ARG VITE_OIDC_ISSUER
-ARG VITE_OIDC_CLIENT_ID
-ARG VITE_OIDC_AUDIENCE
+# different image bucket needs its own image build, not just a different runtime env.
 ARG VITE_IMAGES_URL
 ARG VITE_TENOR_API_KEY
-ENV VITE_OIDC_ISSUER=${VITE_OIDC_ISSUER} \
-    VITE_OIDC_CLIENT_ID=${VITE_OIDC_CLIENT_ID} \
-    VITE_OIDC_AUDIENCE=${VITE_OIDC_AUDIENCE} \
-    VITE_IMAGES_URL=${VITE_IMAGES_URL} \
+ENV VITE_IMAGES_URL=${VITE_IMAGES_URL} \
     VITE_TENOR_API_KEY=${VITE_TENOR_API_KEY}
-# The root .dockerignore excludes node_modules and dist, preserving installed
-# dependencies while including public assets (including future push-sw.js).
 COPY web ./web
-RUN pnpm --filter @ap-chats/web build
+RUN pnpm --filter @ap-chats/web build --base=/remotes/chats/
 
 FROM caddy:2-alpine AS runtime
-COPY --from=build /app/web/dist /srv/web
+COPY --from=host / /srv/host
+COPY --from=build /app/web/dist /srv/remotes/chats
+# This release's own assets; the next release carries exactly these, and nothing older.
+RUN cd /srv && find host/assets remotes/chats/assets -type f > .release-assets
+# Pages opened before this deploy still load the chunks they were built against.
+COPY --from=previous / /srv/
 COPY infra/docker/Caddyfile /etc/caddy/Caddyfile
 EXPOSE 80 443

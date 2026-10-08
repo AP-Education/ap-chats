@@ -14,7 +14,7 @@ export function ChatsContent() {
   const { pathname } = useLocation();
   const routes = useRoutes(chatsRoutes);
   const isChatPage = pathname.startsWith('/channels') || pathname.startsWith('/direct');
-  const isEdgeToEdge = isChatPage || pathname.startsWith('/calls') || pathname === '/';
+  const isEdgeToEdge = isChatPage || pathname === '/';
 
   return (
     <div style={{ height: '100%', padding: isMobile || isEdgeToEdge ? 0 : token.paddingXS }}>

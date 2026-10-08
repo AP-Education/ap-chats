@@ -74,7 +74,7 @@ export function PushNavigation({ children }: PropsWithChildren) {
     };
   }, [ready]);
 
-  // The shell keeps its own frame on screen while a tapped notification is routed.
+  // The shell frame stays up while the tap is routed.
   if (launch) return null;
   return children;
 }

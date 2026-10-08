@@ -58,6 +58,8 @@ const schema = z
       .min(1)
       .max(50_000_000_000)
       .default(4_000_000_000),
+    // Routes calls through ai-native (recording, transcription) instead of LIVEKIT_* directly.
+    AI_NATIVE_URL: z.preprocess((value) => value || undefined, z.url().optional()),
     // Calls are off (CallsModule stays unregistered) until all three are set.
     LIVEKIT_URL: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
     LIVEKIT_API_KEY: z.preprocess((value) => value || undefined, z.string().min(1).optional()),

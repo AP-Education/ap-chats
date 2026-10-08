@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CALL_TEXT_MUTED } from '../callTheme';
 import { type NativeCallState, useNativeCallStore } from '../store/native-call-store';
 import { useCallDuration } from '../utils/use-call-duration';
+import { AudioOutputButton } from './AudioOutputButton';
 import { CallAvatar } from './CallAvatar';
 import { CallControlButton } from './CallControlButton';
 import { CallSurfaceBackground } from './CallSurfaceBackground';
@@ -14,7 +15,6 @@ import {
   EndCallControl,
   MuteControl,
   MutedMicrophoneHint,
-  SpeakerControl,
 } from './NativeCallControls';
 
 /**
@@ -69,7 +69,7 @@ export function NativeInCallScreen() {
           <View style={styles.actions}>
             <MuteControl size={64} label="Мікрофон" />
             <CameraPlaceholderControl size={64} label="Камера" />
-            <SpeakerControl size={64} label="Динамік" />
+            <AudioOutputButton route={call.audioRoute} size={64} />
             <EndCallControl size={64} label="Завершити" />
           </View>
         </View>

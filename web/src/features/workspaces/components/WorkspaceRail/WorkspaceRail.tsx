@@ -1,5 +1,5 @@
 import { useIsAppActive, useOpenApp } from '@ap-education/shell-sdk';
-import { NavAddTile, NavTile } from '@ap-education/ui';
+import { NavAddTile, NavTile, useIsMobile } from '@ap-education/ui';
 import { ArrowClockwiseIcon } from '@phosphor-icons/react';
 import { Skeleton } from 'antd';
 import { useState } from 'react';
@@ -19,6 +19,7 @@ export function WorkspaceRail() {
   const openApp = useOpenApp();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const isMobile = useIsMobile();
   const [creating, setCreating] = useState(false);
 
   function handleSelect(workspaceId: string) {
@@ -60,7 +61,13 @@ export function WorkspaceRail() {
           active={chatsActive && item.id === workspace?.id}
           onClick={() => handleSelect(item.id)}
         >
-          <Avatar path={item.avatarPath} alt={item.name} size={40} shape="square" lazy={false} />
+          <Avatar
+            path={item.avatarPath}
+            alt={item.name}
+            size={isMobile ? 44 : 40}
+            shape="square"
+            lazy={false}
+          />
         </NavTile>
       ))}
       <NavAddTile label="Створити робочий простір" onClick={() => setCreating(true)} />

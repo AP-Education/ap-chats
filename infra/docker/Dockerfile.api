@@ -3,20 +3,25 @@ FROM node:24-alpine AS workspace
 RUN corepack enable
 WORKDIR /app
 # Every workspace manifest keeps the lockfile check honest; only the API's own packages get installed.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY web/package.json ./web/
 COPY mobile/package.json ./mobile/
 
+# The lockfile check covers web's GitHub Packages too, so installs need the token even here.
 FROM workspace AS build
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --frozen-lockfile --filter @ap-chats/api --store-dir /pnpm/store
+    --mount=type=secret,id=npm_token,env=NODE_AUTH_TOKEN \
+    echo '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}' > /root/.npmrc \
+    && pnpm install --frozen-lockfile --filter @ap-chats/api --store-dir /pnpm/store
 COPY tsconfig.json tsconfig.base.json tsconfig.build.json nest-cli.json ./
 COPY src ./src
 RUN pnpm run build
 
 FROM workspace AS prod-deps
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --frozen-lockfile --prod --ignore-scripts --filter @ap-chats/api --store-dir /pnpm/store
+    --mount=type=secret,id=npm_token,env=NODE_AUTH_TOKEN \
+    echo '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}' > /root/.npmrc \
+    && pnpm install --frozen-lockfile --prod --ignore-scripts --filter @ap-chats/api --store-dir /pnpm/store
 
 FROM node:24-alpine AS runtime
 ENV NODE_ENV=production

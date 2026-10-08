@@ -130,7 +130,12 @@ export function createGestureFixture() {
     },
   );
 
-  const haptics = load('../../src/shared/lib/haptics.ts', {});
+  const haptics = load('../../src/shared/lib/haptics.ts', {
+    '@ap-education/shell-sdk': {
+      postToNative: (message: unknown) =>
+        window.ReactNativeWebView?.postMessage(JSON.stringify(message)),
+    },
+  });
   const { useMessageReplySwipe } = load<typeof ReplySwipeModule>(
     '../../src/features/social/messaging/components/MessageRow/useMessageReplySwipe.ts',
     {

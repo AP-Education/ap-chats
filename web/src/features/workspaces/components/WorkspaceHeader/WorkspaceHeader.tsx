@@ -40,6 +40,10 @@ const useStyles = createStyles(({ token, css }) => ({
     white-space: nowrap;
     font-weight: 600;
     font-size: 15px;
+
+    @media (max-width: ${token.screenMD}px) {
+      font-size: 17px;
+    }
   `,
   caret: css`
     flex-shrink: 0;

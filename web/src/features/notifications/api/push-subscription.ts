@@ -18,12 +18,16 @@ export function supportsPush(): boolean {
 }
 
 /** Brings this browser's subscription and its server registration in line, recreating a lost one. */
-export function synchronizePush(token: string, publicKey: string): Promise<PushRegistration> {
+export function synchronizePush(
+  token: string,
+  publicKey: string,
+  launchPath: string,
+): Promise<PushRegistration> {
   return oneAtATime(async () => {
     const permission = Notification.permission;
     if (permission !== 'granted' || isTurnedOff()) return { permission, subscriptionId: null };
 
-    const registration = await workerRegistration();
+    const registration = await workerRegistration(launchPath);
     const subscription = await subscriptionFor(registration, publicKey);
     const { id } = await registerSubscription(token, subscription);
 
@@ -31,21 +35,26 @@ export function synchronizePush(token: string, publicKey: string): Promise<PushR
   });
 }
 
-export async function enablePush(token: string, publicKey: string): Promise<PushRegistration> {
+export async function enablePush(
+  token: string,
+  publicKey: string,
+  launchPath: string,
+): Promise<PushRegistration> {
   // Asked straight from the click, before queued work, or the browser drops the prompt.
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') return { permission, subscriptionId: null };
 
   setTurnedOff(false);
-  return synchronizePush(token, publicKey);
+  return synchronizePush(token, publicKey, launchPath);
 }
 
 export function disablePush(
   token: string,
   subscriptionId: string | null,
+  launchPath: string,
 ): Promise<PushRegistration> {
   return oneAtATime(async () => {
-    const registration = await workerRegistration();
+    const registration = await workerRegistration(launchPath);
     await dismissNotifications();
 
     const subscription = await registration.pushManager.getSubscription();
@@ -66,8 +75,10 @@ export function releasePush(token: string, subscriptionId: string): Promise<void
   });
 }
 
-async function workerRegistration(): Promise<ServiceWorkerRegistration> {
-  await navigator.serviceWorker.register('/push-sw.js', { scope: '/' });
+// The worker opens a tapped notification at `launchPath`, where the shell mounts Chats.
+async function workerRegistration(launchPath: string): Promise<ServiceWorkerRegistration> {
+  const script = `/push-sw.js?launch=${encodeURIComponent(launchPath)}`;
+  await navigator.serviceWorker.register(script, { scope: '/' });
   return navigator.serviceWorker.ready;
 }
 

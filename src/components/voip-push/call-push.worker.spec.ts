@@ -60,6 +60,7 @@ function fixture() {
     registry,
     { ringingForRecipient: async () => (ringing ? { startedAt: new Date() } : null) } as never,
     {} as never,
+    { warn: () => undefined } as never,
   );
   return {
     worker,

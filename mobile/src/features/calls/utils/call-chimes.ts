@@ -18,7 +18,8 @@ const sources = {
 /** A fresh player per call: these are one-shot and gone well under a second
  * later, so there's no lifecycle to hold onto past that. */
 function play(key: keyof typeof sources): void {
-  const player = createAudioPlayer(sources[key]);
+  // A finishing chime must not deactivate the call's audio session.
+  const player = createAudioPlayer(sources[key], { keepAudioSessionActive: true });
   player.play();
   player.addListener('playbackStatusUpdate', (status) => {
     if (status.didJustFinish) player.remove();

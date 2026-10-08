@@ -1,37 +1,36 @@
 import { IconButton, useIsMobile } from '@ap-education/ui';
-import { BellIcon } from '@phosphor-icons/react';
+import { BellIcon, BellSlashIcon } from '@phosphor-icons/react';
 import { Spin, Tooltip } from 'antd';
 
-import { usePush } from '../hooks/usePush';
-import { usePushToggle } from '../hooks/usePushToggle';
+import { usePushControl } from '../hooks/usePushControl';
+import type { PushControl } from '../types';
 
 export function PushSettings() {
-  const push = usePush();
-  const toggle = usePushToggle();
+  const push = usePushControl();
   const isMobile = useIsMobile();
-  if (!push.available) return null;
+  if (!push) return null;
 
-  const label = push.enabled ? 'Вимкнути сповіщення' : 'Увімкнути сповіщення';
-  const help =
-    toggle.error ??
-    (push.permission === 'default' ? 'Натисніть, щоб браузер запитав дозвіл на сповіщення' : label);
+  const iconSize = isMobile ? 24 : 20;
 
   return (
-    <Tooltip title={help}>
+    <Tooltip title={push.hint}>
       <IconButton
         size={isMobile ? 44 : 36}
-        aria-label={label}
-        aria-pressed={push.enabled}
-        aria-busy={toggle.busy}
-        disabled={toggle.busy}
-        onClick={toggle.toggle}
+        aria-label="Сповіщення"
+        aria-description={push.hint}
+        aria-pressed={push.status === 'on'}
+        aria-busy={push.busy}
+        disabled={push.busy}
+        onClick={push.change}
       >
-        {toggle.busy ? (
-          <Spin size="small" />
-        ) : (
-          <BellIcon size={isMobile ? 24 : 20} weight={push.enabled ? 'fill' : 'regular'} />
-        )}
+        {push.busy ? <Spin size="small" /> : <PushIcon status={push.status} size={iconSize} />}
       </IconButton>
     </Tooltip>
   );
+}
+
+function PushIcon({ status, size }: { status: PushControl['status']; size: number }) {
+  if (status === 'blocked') return <BellSlashIcon size={size} />;
+
+  return <BellIcon size={size} weight={status === 'on' ? 'fill' : 'regular'} />;
 }

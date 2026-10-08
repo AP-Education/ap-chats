@@ -1,11 +1,16 @@
+import { useBeforeSignOut } from '@ap-education/shell-sdk';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { onSignOut } from '@/features/auth/stores/sign-out-tasks';
 
 import { releasePush } from '../api/push-subscription';
-import { pushRegistrationKey, pushRegistrationQuery, usePush } from '../hooks/usePush';
+import {
+  pushRegistrationKey,
+  pushRegistrationQuery,
+  usePush,
+  usePushLaunchPath,
+} from '../hooks/usePush';
 
 const RESYNC_INTERVAL_MS = 300000;
 
@@ -17,7 +22,7 @@ export function PushSubscriptionSync() {
 
   // Visibility, not every window focus: TanStack's focus manager only listens to visibilitychange.
   useQuery({
-    ...pushRegistrationQuery(identity, token, publicKey),
+    ...pushRegistrationQuery(identity, token, publicKey, usePushLaunchPath()),
     refetchOnWindowFocus: 'always',
     refetchOnReconnect: 'always',
     refetchInterval: RESYNC_INTERVAL_MS,
@@ -44,14 +49,13 @@ export function PushSubscriptionSync() {
     return () => controller.abort();
   }, [queryClient, identity, publicKey]);
 
-  useEffect(() => {
+  const release = useCallback(async () => {
     if (!token || !subscriptionId) return;
 
-    return onSignOut(async () => {
-      await releasePush(token, subscriptionId);
-      queryClient.removeQueries({ queryKey: pushRegistrationKey(identity) });
-    });
+    await releasePush(token, subscriptionId);
+    queryClient.removeQueries({ queryKey: pushRegistrationKey(identity) });
   }, [queryClient, identity, token, subscriptionId]);
+  useBeforeSignOut(release);
 
   return null;
 }

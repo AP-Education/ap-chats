@@ -8,8 +8,8 @@
 
 ```text
 src/       NestJS API (REST + Socket.IO)
-web/       Chats як remote shell-а AP: React, Vite, Ant Design (порт 5557)
-mobile/    Expo-оболонка над shell: вхід, push, нативні дзвінки
+web/       Chats як remote shell-а AP (ap-app)
+mobile/    Expo-оболонка над web: вхід, push, нативні дзвінки
 infra/     локальні сервіси та production-деплой
 docs/      рішення й архітектура
 ```
@@ -29,11 +29,11 @@ pnpm config set //npm.pkg.github.com/:_authToken "$(gh auth token)"   # раз; 
 pnpm install --frozen-lockfile
 pnpm infra:up                            # Postgres, Valkey, LiveKit
 pnpm dev                                 # міграції, потім API на :3211
-pnpm dev:web                             # remote chats :5557, відкривати через host з ap-app (:5556)
+pnpm dev:web                             # remote Chats на :5557, відкривати через host з ap-app
 pnpm --filter @ap-chats/mobile start
 ```
 
-Вхід працює через OIDC-клієнти Chats, зареєстровані в AP Accounts (`backend-LMS`); issuer, audience і client ID задаються в `.env` файлах. Веб-вхід веде host з ap-app, тому redirect URI веб-клієнта `http://localhost:5556/auth/callback`, а його `VITE_OIDC_CLIENT_ID` лежить у `host/.env` репозиторію ap-app.
+Вхід працює через OIDC-клієнти Chats, зареєстровані в AP Accounts (`backend-LMS`); issuer, audience і client ID задаються в `.env` файлах.
 
 ## Перевірки
 
@@ -48,6 +48,4 @@ pnpm test      # API, web, mobile
 - Push-сповіщення: [docs/push-notifications.md](docs/push-notifications.md)
 - Вкладення: [docs/chat-uploads.md](docs/chat-uploads.md)
 
-## Мікрофронтенди
-
-Shell володіє документом, входом, темою, роутером і спільним sider; Chats та інші застосунки є Module Federation remote-ами. Shell (host) і пакети `@ap-education/shell-sdk`, `@ap-education/ui`, `@ap-education/federation` живуть в окремому репозиторії `ap-app`, там же архітектура, контракт і ADR. `web/` бере їх з GitHub Packages (`npm.pkg.github.com`), тому `pnpm install` потребує токена з `read:packages` у конфігурації користувача; у GitHub Actions це `secrets.GITHUB_TOKEN` з `permissions: packages: read`.
+Chats — Module Federation remote shell-а AP. Shell (host) і пакети `@ap-education/*` живуть у репозиторії `ap-app`; `web/` бере пакети з GitHub Packages, тож `pnpm install` потребує токена з `read:packages`.
