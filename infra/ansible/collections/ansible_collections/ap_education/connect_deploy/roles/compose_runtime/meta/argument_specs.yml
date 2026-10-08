@@ -119,10 +119,14 @@ argument_specs:
       do_spaces_bucket:
         type: str
         required: true
+      ai_native_url:
+        type: str
+        default: ''
+        description: ai-native tenant URL. When set, calls go through its Call API and the LiveKit values are unused.
       livekit_url:
         type: str
         default: ''
-        description: Public wss:// LiveKit endpoint reachable by browsers and mobile clients. Set all three LiveKit values or none.
+        description: Public wss:// LiveKit endpoint reachable by browsers and mobile clients. Set all three LiveKit values or none. Only used when ai_native_url is empty.
       livekit_api_key:
         type: str
         default: ''

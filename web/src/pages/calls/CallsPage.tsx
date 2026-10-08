@@ -3,8 +3,8 @@ import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import { ConversationPane } from '@/domain/conversation/ConversationPane';
-import type { CallHistoryFilter } from '@/features/calls/components/CallHistoryList/CallHistoryList';
 import { CallHistoryList } from '@/features/calls/components/CallHistoryList/CallHistoryList';
+import type { CallHistoryFilter } from '@/features/calls/types';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/MainLayout/MobileMenuButton';
 

@@ -11,7 +11,7 @@ import { CallsController } from './calls.controller';
 import { CallsGateway } from './calls.gateway';
 import { CallsService } from './calls.service';
 import { CallsHistoryController } from './calls-history.controller';
-import { CallProvider, LiveKitCallProvider } from './provider';
+import { AiNativeCallProvider, CallProvider, LiveKitCallProvider } from './provider';
 import { CallsRepository, DrizzleCallsRepository } from './repository';
 
 @Module({
@@ -27,7 +27,14 @@ import { CallsRepository, DrizzleCallsRepository } from './repository';
   providers: [
     CallsService,
     CallsGateway,
-    { provide: CallProvider, useClass: LiveKitCallProvider },
+    AiNativeCallProvider,
+    LiveKitCallProvider,
+    {
+      provide: CallProvider,
+      inject: [AiNativeCallProvider, LiveKitCallProvider],
+      useFactory: (aiNative: AiNativeCallProvider, livekit: LiveKitCallProvider) =>
+        aiNative.isConfigured ? aiNative : livekit,
+    },
     { provide: CallsRepository, useClass: DrizzleCallsRepository },
   ],
   exports: [CallsService],

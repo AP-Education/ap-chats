@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 
 import { UseAuthGuards } from '@/components/auth';
 import { CurrentWorkspaceMember } from '@/components/workspaces/members/decorators';
@@ -13,7 +13,15 @@ export class CallsHistoryController {
   constructor(private readonly calls: CallsService) {}
 
   @Get()
-  list(@CurrentWorkspaceMember() member: WorkspaceMember, @Query('before') before?: string) {
-    return this.calls.list(member, before);
+  list(
+    @CurrentWorkspaceMember() member: WorkspaceMember,
+    @Query('filter') filter?: string,
+    @Query('before') before?: string,
+  ) {
+    if (filter && filter !== 'all' && filter !== 'missed') {
+      throw new BadRequestException('Invalid calls filter');
+    }
+
+    return this.calls.list(member, filter === 'missed' ? 'missed' : 'all', before);
   }
 }

@@ -27,7 +27,6 @@ chat_upload_max_files: 10
 chat_upload_max_pending_files: 20
 chat_upload_max_pending_bytes: 4000000000
 
-# Prepared for feat/chat-push-notifications; origin/main does not consume these yet.
 push_enabled: false
 valkey_url: redis://valkey:6379/0
 push_coalesce_seconds: 3
@@ -42,6 +41,7 @@ web_push_subject: ''
 # checking, but role argument validation doesn't inject that default into
 # the task namespace — it only enforces it on an explicit value. The actual
 # default has to live here too for the template to see it when unset.
+ai_native_url: ''
 livekit_url: ''
 livekit_api_key: ''
 livekit_api_secret: ''

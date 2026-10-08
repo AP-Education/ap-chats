@@ -61,7 +61,7 @@ function micRefFor(
 export function useCallStageParticipants(workspaceId: string, callee?: Callee): StageView {
   const allParticipants = useParticipants();
   const { localParticipant } = useLocalParticipant();
-  const { byId } = useWorkspaceMemberLabels(workspaceId);
+  const { bySub } = useWorkspaceMemberLabels(workspaceId);
   const micTracks = useTracks([Track.Source.Microphone]);
   const allVideoTracks = useTracks([Track.Source.Camera, Track.Source.ScreenShare], {
     onlySubscribed: true,
@@ -81,7 +81,7 @@ export function useCallStageParticipants(workspaceId: string, callee?: Callee): 
     : allVideoTracks.filter((ref) => ref.participant.identity !== localParticipant.identity);
 
   function labelFor(identity: string, fallback: string | undefined) {
-    const member = byId.get(identity)?.member;
+    const member = bySub.get(identity)?.member;
     return {
       name: member?.profile.displayName ?? fallback ?? 'Учасник',
       avatarPath: member?.profile.avatarPath ?? null,

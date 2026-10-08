@@ -48,8 +48,7 @@ infra/
    ansible-vault encrypt infra/ansible/inventory/group_vars/prod/vault.yml
    ```
    Edit later with `ansible-vault edit infra/ansible/inventory/group_vars/prod/vault.yml`.
-   Fill the optional LiveKit and mobile VoIP push groups as described below
-   before deploying calls.
+   Fill the mobile VoIP push groups as described below before deploying calls.
 5. **Ansible collections**:
    ```bash
    ansible-galaxy collection install -r infra/ansible/requirements.yml -p infra/ansible/collections
@@ -226,12 +225,16 @@ use HTTPS. Proxy scheme handling belongs to the Accounts deployment.
 
 ## Calls and mobile VoIP push
 
-Calls are implemented. The production stack needs an existing LiveKit Cloud
-or self-hosted server; it does not create one. In the encrypted vault, set
-`livekit_url` to that server's public `wss://` URL, plus `livekit_api_key`
-and `livekit_api_secret`. The URL is returned in join grants, so browsers
-and mobile clients must be able to reach it directly. Set all three values
-or leave all empty; with no credentials, starting a call returns 503.
+Production calls go through ai-native's Call API (`ai_native_url` in
+`vars.yml`), which adds recording and transcription on top of its tenant
+LiveKit. The API forwards each user's own Chats bearer, so ai-native's OIDC
+guard must accept tokens for the `oidc_audience` above.
+
+Without `ai_native_url`, calls use LiveKit directly: set `livekit_url` (a
+public `wss://` URL browsers and mobile clients can reach), `livekit_api_key`
+and `livekit_api_secret` in the vault. Local development uses the `livekit`
+service from `infra/docker-compose.yml`. With neither configured, starting a
+call returns 503.
 
 To wake a backgrounded mobile app for incoming calls, configure the
 platform's provider independently:
@@ -382,10 +385,10 @@ LMS's existing ops host later if/when this needs the same treatment.
   Balancer to terminate TLS), and it serves the SPA's static build directly
   in addition to reverse-proxying `/api` and `/socket.io` — no third
   "static file server" container needed.
-- **LiveKit is external to this stack.** Calls use the optional vault
-  credentials described above. Self-hosting on this droplet would also
-  require a LiveKit service, public TLS endpoint and media/TURN ports in
-  both firewall layers; setting env vars alone does not provision those.
+- **Call media is external to this stack.** Prod uses ai-native's tenant
+  LiveKit. Self-hosting LiveKit on this droplet would also require a public
+  TLS endpoint and media/TURN ports in both firewall layers; setting env vars
+  alone does not provision those.
 - **Secrets via Ansible Vault**, not Doppler — this is a small, single-env
   side app; a vault-encrypted vars file avoids a third-party dependency and
   keeps deploys fully offline-capable. Revisit if this grows enough tenants
