@@ -1,7 +1,12 @@
-import { useIsMobile } from '@ap-education/ui';
-import { ChatTextIcon } from '@phosphor-icons/react';
+import {
+  ContentState,
+  ContentStateDescription,
+  ContentStateIcon,
+  useIsMobile,
+} from '@ap-education/ui';
+import { ChatTextIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Empty, message as toast, Skeleton } from 'antd';
+import { Button, message as toast, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
@@ -134,7 +139,14 @@ export function PeopleSearchResults({
 
   if (visible.length === 0) {
     if (!showEmpty) return null;
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Нічого не знайдено" />;
+    return (
+      <ContentState compact>
+        <ContentStateIcon>
+          <MagnifyingGlassIcon />
+        </ContentStateIcon>
+        <ContentStateDescription>Нічого не знайдено</ContentStateDescription>
+      </ContentState>
+    );
   }
 
   return (

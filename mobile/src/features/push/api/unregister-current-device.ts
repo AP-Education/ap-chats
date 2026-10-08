@@ -1,14 +1,11 @@
-import { useAuthStore } from '../../auth';
 import { queueDeviceRegistration } from '../utils/device-registration-queue';
 import { unregisterDevice } from './devices-api';
 import { getInstallationId } from './installation-id';
 
-export async function unregisterCurrentDevice(): Promise<void> {
-  const state = useAuthStore.getState();
-  if (state.status !== 'signed-in') return;
-  // Reserve cleanup before logout changes auth state or another sign-in queues a POST.
+/** Takes the ending session's token, since the auth store has already dropped it by now. */
+export function unregisterCurrentDevice(accessToken: string): Promise<void> {
   return queueDeviceRegistration(async () => {
     const installationId = await getInstallationId();
-    await unregisterDevice(state.tokens.accessToken, installationId).catch(() => {});
+    await unregisterDevice(accessToken, installationId).catch(() => {});
   });
 }

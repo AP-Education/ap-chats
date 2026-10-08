@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
-import type { ChannelAudienceFacade } from '@/components/communities/channel-audience/channel-audience.facade';
+import type { ChannelAccessFacade } from '@/components/communities/channel-access';
+import type { ChannelAudienceFacade } from '@/components/communities/channel-audience';
 import type { WorkspaceMembersRepository } from '@/components/workspaces/members/repository';
 import type { Logger } from '@/globals/logger';
 

@@ -1,5 +1,6 @@
-import { UserMinusIcon } from '@phosphor-icons/react';
-import { Button, Empty, Popconfirm, Skeleton } from 'antd';
+import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-education/ui';
+import { UserMinusIcon, UsersIcon } from '@phosphor-icons/react';
+import { Button, Popconfirm, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
@@ -112,7 +113,12 @@ export function ChannelMembersContent({
   if (memberships.length === 0) {
     return (
       <div className={styles.body}>
-        <Empty description="Учасників ще немає" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        <ContentState compact>
+          <ContentStateIcon>
+            <UsersIcon />
+          </ContentStateIcon>
+          <ContentStateDescription>Учасників ще немає</ContentStateDescription>
+        </ContentState>
       </div>
     );
   }

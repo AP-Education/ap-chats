@@ -1,13 +1,19 @@
 import {
+  ContentState,
+  ContentStateActions,
+  ContentStateIcon,
+  ContentStateTitle,
   Page,
   PageActions,
   PageAside,
   PageBody,
   PageHeader,
   PageTitle,
+  StatePage,
   useIsMobile,
 } from '@ap-education/ui';
-import { Button, Empty, Result } from 'antd';
+import { ChatTextIcon, ProhibitIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import { useParams } from 'react-router-dom';
 
@@ -31,18 +37,36 @@ const useStyles = createStyles(({ css }) => ({
     text-overflow: ellipsis;
     white-space: nowrap;
   `,
-  center: css`
-    display: grid;
-    place-content: center;
-    height: 100%;
-  `,
 }));
+
+/** On mobile the page keeps its header, so the menu with the conversations stays one tap away. */
+function NoConversationSelected() {
+  const isMobile = useIsMobile();
+
+  return (
+    <Page>
+      {isMobile && (
+        <PageHeader>
+          <MobileMenuButton />
+          <PageTitle>Особисті</PageTitle>
+        </PageHeader>
+      )}
+      <PageBody>
+        <ContentState>
+          <ContentStateIcon>
+            <ChatTextIcon />
+          </ContentStateIcon>
+          <ContentStateTitle>Оберіть розмову або напишіть колезі</ContentStateTitle>
+        </ContentState>
+      </PageBody>
+    </Page>
+  );
+}
 
 export default function DirectMessagePage() {
   const { styles } = useStyles();
   const { id: workspaceId } = useRequiredWorkspace();
   const { channelId } = useParams<{ channelId: string }>();
-  const isMobile = useIsMobile();
   const conversation = useDirectMessage(workspaceId, channelId);
   const unavailable = useTrackConversation(
     'direct',
@@ -53,43 +77,31 @@ export default function DirectMessagePage() {
   );
   const { byId, currentMember } = useWorkspaceMemberLabels(workspaceId);
 
-  if (!channelId && isMobile) {
-    return (
-      <Page>
-        <PageHeader>
-          <MobileMenuButton />
-          <PageTitle>Особисті</PageTitle>
-        </PageHeader>
-        <PageBody>
-          <div className={styles.center}>
-            <Empty description="Оберіть розмову або напишіть колезі" />
-          </div>
-        </PageBody>
-      </Page>
-    );
-  }
-  if (!channelId) {
-    return (
-      <div className={styles.center}>
-        <Empty description="Оберіть розмову або напишіть колезі" />
-      </div>
-    );
-  }
+  if (!channelId) return <NoConversationSelected />;
   if (conversation.isPending) return <ChatLoading />;
+
   if (unavailable) {
     return (
-      <div className={styles.center}>
-        <Empty description="Розмова недоступна" />
-      </div>
+      <StatePage>
+        <ContentStateIcon>
+          <ProhibitIcon />
+        </ContentStateIcon>
+        <ContentStateTitle>Розмова недоступна</ContentStateTitle>
+      </StatePage>
     );
   }
+
   if (conversation.isError || !conversation.data) {
     return (
-      <Result
-        status="error"
-        title="Не вдалося відкрити розмову"
-        extra={<Button onClick={() => void conversation.refetch()}>Повторити</Button>}
-      />
+      <StatePage role="alert">
+        <ContentStateIcon tone="danger">
+          <WarningCircleIcon />
+        </ContentStateIcon>
+        <ContentStateTitle>Не вдалося відкрити розмову</ContentStateTitle>
+        <ContentStateActions>
+          <Button onClick={() => void conversation.refetch()}>Повторити</Button>
+        </ContentStateActions>
+      </StatePage>
     );
   }
 
@@ -122,7 +134,7 @@ export default function DirectMessagePage() {
             <DirectMessageActions workspaceId={workspaceId} conversation={conversation.data} />
           </PageActions>
         </PageHeader>
-        <PageBody>
+        <PageBody transparent>
           <ConversationView
             canPost={participant.active}
             canManage={false}

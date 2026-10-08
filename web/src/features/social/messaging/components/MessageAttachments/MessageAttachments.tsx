@@ -8,20 +8,14 @@ import { FileAttachment } from './FileAttachment';
 import { useAttachmentUrl, useVisibleAttachment } from './useAttachmentAccess';
 
 const useStyles = createStyles(({ token, css }) => ({
-  stack: css`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 6px;
-    min-width: 0;
-  `,
   mosaic: css`
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px;
-    width: min(420px, 100%);
+    gap: 2px;
+    width: 420px;
+    max-width: 100%;
     overflow: hidden;
-    border-radius: ${token.borderRadiusLG}px;
+    border-radius: calc(var(--bubble-radius, ${token.borderRadius * 2}px) - ${token.paddingXXS}px);
   `,
   tile: css`
     position: relative;
@@ -37,7 +31,7 @@ const useStyles = createStyles(({ token, css }) => ({
     cursor: zoom-in;
     &:focus-visible {
       outline: 2px solid ${token.colorPrimary};
-      outline-offset: -3px;
+      outline-offset: -2px;
     }
     &:disabled {
       cursor: default;
@@ -55,17 +49,17 @@ const useStyles = createStyles(({ token, css }) => ({
     position: relative;
     display: grid;
     place-items: center;
-    max-width: min(420px, 100%);
+    max-width: 100%;
     padding: 0;
     overflow: hidden;
     border: 0;
-    border-radius: ${token.borderRadiusLG}px;
+    border-radius: calc(var(--bubble-radius, ${token.borderRadius * 2}px) - ${token.paddingXXS}px);
     background: ${token.colorFillSecondary};
     color: ${token.colorTextSecondary};
     cursor: zoom-in;
     &:focus-visible {
       outline: 2px solid ${token.colorPrimary};
-      outline-offset: -3px;
+      outline-offset: -2px;
     }
     &:disabled {
       cursor: default;
@@ -77,12 +71,17 @@ const useStyles = createStyles(({ token, css }) => ({
       object-fit: contain;
     }
   `,
+  unsized: css`
+    width: 420px;
+    max-width: 100%;
+    border-radius: calc(var(--bubble-radius, ${token.borderRadius * 2}px) - ${token.paddingXXS}px);
+  `,
   alt: css`
     position: absolute;
     bottom: 6px;
     left: 6px;
-    padding: 2px 5px;
-    border-radius: 4px;
+    padding: 2px ${token.paddingXXS}px;
+    border-radius: ${token.borderRadiusXS}px;
     background: ${token.colorBgContainer};
     color: ${token.colorText};
     font-size: 10px;
@@ -106,7 +105,7 @@ export function MessageAttachments({
   const current = selected === null ? undefined : images[selected];
   if (!attachments.length) return null;
   return (
-    <div className={styles.stack}>
+    <>
       {images.length === 1 && (
         <ImageAttachment
           attachment={images[0]!}
@@ -117,7 +116,7 @@ export function MessageAttachments({
         />
       )}
       {images.length > 1 && (
-        <div className={styles.mosaic}>
+        <div className={styles.mosaic} data-attachment-media>
           {images.map((image, index) => (
             <ImageAttachment
               key={image.id}
@@ -149,7 +148,7 @@ export function MessageAttachments({
           onClose={() => setSelected(null)}
         />
       )}
-    </div>
+    </>
   );
 }
 
@@ -182,7 +181,7 @@ function ImageAttachment({
   natural?: boolean;
   onOpen: () => void;
 }) {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
   const { observeElement, visible } = useVisibleAttachment();
   const access = useAttachmentUrl(messageId, attachment.id, 'thumbnail', available && visible);
   const [failed, setFailed] = useState(false);
@@ -192,8 +191,9 @@ function ImageAttachment({
     <button
       ref={observeElement}
       type="button"
-      className={box ? styles.single : styles.tile}
+      className={box ? styles.single : cx(styles.tile, natural && styles.unsized)}
       style={box}
+      data-attachment-media={natural || undefined}
       disabled={!available}
       aria-label={`${broken ? 'Повторити перегляд' : 'Переглянути'} ${attachment.name}`}
       title={attachment.description || attachment.name}

@@ -12,6 +12,7 @@ const useStyles = createStyles(({ token, css }) => ({
     padding: 7px 20px;
     border-top: 1px solid ${token.colorBorderSecondary};
     background: ${token.colorPrimaryBg};
+    pointer-events: auto;
   `,
   selectionCount: css`
     flex: 1;

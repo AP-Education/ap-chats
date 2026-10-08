@@ -17,37 +17,37 @@ const useStyles = createStyles(({ token, css }) => ({
   composer: css`
     display: flex;
     align-items: flex-end;
-    gap: 10px;
-    padding: 0 ${token.paddingLG}px ${token.paddingSM}px;
+    gap: 8px;
     flex-shrink: 0;
+    padding: 0 12px 12px;
 
     @media (max-width: ${token.screenMD}px) {
-      gap: 8px;
-      padding: 0 16px calc(8px + env(safe-area-inset-bottom, 0px));
+      gap: 6px;
+      padding: 4px 6px calc(6px + env(safe-area-inset-bottom, 0px));
     }
   `,
   input: css`
     flex: 1;
     min-width: 0;
-    height: 56px;
+    height: 52px;
     border-radius: 12px;
     background: ${token.colorFillTertiary};
 
     @media (max-width: ${token.screenMD}px) {
-      height: 52px;
+      height: 46px;
       border-radius: 14px;
     }
   `,
   action: css`
-    width: 54px;
-    height: 54px;
+    width: 52px;
+    height: 52px;
     flex-shrink: 0;
     border-radius: 12px;
     background: ${token.colorFillSecondary};
 
     @media (max-width: ${token.screenMD}px) {
-      width: 52px;
-      height: 52px;
+      width: 46px;
+      height: 46px;
       border-radius: 14px;
     }
   `,
@@ -56,9 +56,11 @@ const useStyles = createStyles(({ token, css }) => ({
 
     @media (max-width: ${token.screenMD}px) {
       display: block;
-      width: 44px;
-      height: 52px;
+      width: 46px;
+      height: 46px;
       flex-shrink: 0;
+      border-radius: 14px;
+      background: ${token.colorFillTertiary};
     }
   `,
   members: css`
@@ -78,7 +80,7 @@ export function ChatLoading() {
       <PageHeader>
         <Skeleton.Input active size="small" style={{ width: 180 }} />
       </PageHeader>
-      <PageBody>
+      <PageBody transparent>
         <div className={styles.body}>
           <div className={styles.content}>
             <Skeleton.Avatar active size={56} shape="square" />

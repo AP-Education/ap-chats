@@ -1,4 +1,10 @@
-import { Empty, Typography } from 'antd';
+import {
+  ContentStateDescription,
+  ContentStateIcon,
+  ContentStateTitle,
+  StatePage,
+} from '@ap-education/ui';
+import { CompassIcon } from '@phosphor-icons/react';
 
 export default function PlaceholderPage({
   title,
@@ -8,9 +14,12 @@ export default function PlaceholderPage({
   description: string;
 }) {
   return (
-    <section className="page">
-      <Typography.Title level={2}>{title}</Typography.Title>
-      <Empty description={description} />
-    </section>
+    <StatePage>
+      <ContentStateIcon>
+        <CompassIcon />
+      </ContentStateIcon>
+      <ContentStateTitle>{title}</ContentStateTitle>
+      <ContentStateDescription>{description}</ContentStateDescription>
+    </StatePage>
   );
 }

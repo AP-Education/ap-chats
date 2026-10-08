@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
+import type { ChannelAccessFacade } from '@/components/communities/channel-access';
 import type { EventPublisher } from '@/globals/publisher/event-publisher';
 
 import { ReadStateFacade } from './read-state.facade';

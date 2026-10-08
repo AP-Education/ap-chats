@@ -1,0 +1,17 @@
+namespace: ap_education
+name: connect_deploy
+version: 0.1.0
+readme: README.md
+authors:
+  - AP Education
+description: Roles to provision and deploy the AP Chats (ap-connect) single-instance stack.
+license:
+  - MIT
+tags:
+  - deployment
+  - docker
+  - digitalocean
+repository: https://github.com/AP-Education/ap-connect
+issues: https://github.com/AP-Education/ap-connect/issues
+build_ignore:
+  - '*.tfstate'

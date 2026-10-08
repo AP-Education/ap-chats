@@ -4,10 +4,10 @@ import { importPKCS8, SignJWT } from 'jose';
 import type { CallSignalPayload } from '@/components/calls/events/call-signal.event';
 import type { DeviceRecord } from '@/components/devices';
 import { AppConfigService } from '@/globals/config';
-import { Logger } from '@/globals/logger';
 
 import type { CallPushProvider } from './call-push-provider.types';
 import { buildIncomingCallEvent } from './incoming-call-event';
+import { PushProviderError } from './push-provider-error';
 
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const SCOPE = 'https://www.googleapis.com/auth/firebase.messaging';
@@ -23,10 +23,7 @@ export class FcmPushProvider implements CallPushProvider {
   private readonly account: ServiceAccount | undefined;
   private cachedToken: { accessToken: string; expiresAt: number } | undefined;
 
-  constructor(
-    config: AppConfigService,
-    private readonly logger: Logger,
-  ) {
+  constructor(config: AppConfigService) {
     this.projectId = config.get('FCM_PROJECT_ID');
     const raw = config.get('FCM_SERVICE_ACCOUNT_JSON');
     this.account = raw ? (JSON.parse(raw) as ServiceAccount) : undefined;
@@ -48,20 +45,24 @@ export class FcmPushProvider implements CallPushProvider {
       `https://fcm.googleapis.com/v1/projects/${this.projectId}/messages:send`,
       {
         method: 'POST',
+        signal: AbortSignal.timeout(10000),
         headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
         body: JSON.stringify({
           message: {
             token: device.voipToken,
             data: { messageType: 'incomingCall', incomingCall: JSON.stringify(event) },
-            android: { priority: 'high' },
+            android: { priority: 'high', ttl: '45s', collapse_key: payload.callId },
           },
         }),
       },
     );
     if (!response.ok) {
-      this.logger.warn(
-        { status: response.status, body: await response.text() },
-        '[voip-push] fcm rejected push',
+      const body = (await response.json()) as { error?: { details?: { errorCode?: string }[] } };
+      const code = body.error?.details?.find((detail) => detail.errorCode)?.errorCode;
+      if (response.status === 401) this.cachedToken = undefined;
+      throw new PushProviderError(
+        `FCM rejected push: ${response.status} ${code ?? 'unknown'}`,
+        code === 'UNREGISTERED',
       );
     }
   }
@@ -84,6 +85,7 @@ export class FcmPushProvider implements CallPushProvider {
 
     const response = await fetch(TOKEN_URL, {
       method: 'POST',
+      signal: AbortSignal.timeout(10000),
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
@@ -91,6 +93,8 @@ export class FcmPushProvider implements CallPushProvider {
       }),
     });
     const body = (await response.json()) as { access_token: string; expires_in: number };
+    if (!response.ok || !body.access_token || !Number.isFinite(body.expires_in))
+      throw new Error(`FCM authorization failed: ${response.status}`);
     this.cachedToken = {
       accessToken: body.access_token,
       expiresAt: Date.now() + (body.expires_in - 60) * 1000,

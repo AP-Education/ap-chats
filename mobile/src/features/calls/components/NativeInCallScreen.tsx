@@ -1,131 +1,76 @@
-import {
-  CaretDown,
-  Microphone,
-  MicrophoneSlash,
-  PhoneX,
-  SpeakerHigh,
-  VideoCameraSlash,
-} from 'phosphor-react-native';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { CaretDown, MicrophoneSlash } from 'phosphor-react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useNativeCallStore } from '../store/native-call-store';
-import { loadCallKitModule } from '../utils/callkit-module';
+import { CALL_TEXT_MUTED } from '../callTheme';
+import { type NativeCallState, useNativeCallStore } from '../store/native-call-store';
 import { useCallDuration } from '../utils/use-call-duration';
+import { CallAvatar } from './CallAvatar';
+import { CallControlButton } from './CallControlButton';
 import { CallSurfaceBackground } from './CallSurfaceBackground';
+import {
+  CameraPlaceholderControl,
+  EndCallControl,
+  MuteControl,
+  MutedMicrophoneHint,
+  SpeakerControl,
+} from './NativeCallControls';
 
 /**
  * The connected in-call surface — rendered alongside <WebViewHost/>, not inside
- * it. Mute/end round-trip through expo-callkit-telecom rather than touching
- * local state directly: the same SetMutedActionEvent listener that drives the
- * system UI's mute button is what updates isMuted here (see
- * CallSessionController.onSetMuted). NativeIncomingCallScreen owns the
- * pre-answer "ringing" state, and NativeMiniCallBar the minimized one — this
- * only ever renders the full-screen, connecting/connected, not-minimized case.
- * Mirrors web/'s CallScreen, icon-for-icon (phosphor-react-native, the same
- * set web/'s @phosphor-icons/react uses).
+ * it. NativeIncomingCallScreen owns the pre-answer "ringing" state, and
+ * NativeMiniCallBar the minimized one — this only ever renders the full-screen,
+ * connecting/connected, not-minimized case. Mirrors web/'s CallScreen,
+ * icon-for-icon (phosphor-react-native, the same set web/'s @phosphor-icons/react uses).
  */
 export function NativeInCallScreen() {
   const call = useNativeCallStore((state) => state.call);
   const minimized = useNativeCallStore((state) => state.minimized);
   const minimize = useNativeCallStore((state) => state.minimize);
-  const [speakerOn, setSpeakerOn] = useState(false);
-  const duration = useCallDuration(call?.connectedAt);
 
   if (!call || call.status === 'ringing' || minimized) return null;
 
-  function toggleMute() {
-    if (!call) return;
-    void loadCallKitModule().then((CallKit) => CallKit?.setMuted(call.sessionId, !call.isMuted));
-  }
-
-  function endCall() {
-    if (!call) return;
-    void loadCallKitModule().then((CallKit) => CallKit?.endCall(call.sessionId));
-  }
-
-  function toggleSpeaker() {
-    const next = !speakerOn;
-    setSpeakerOn(next);
-    void loadCallKitModule().then((CallKit) => CallKit?.setAudioSessionPortOverride(next));
-  }
-
   const title = call.caller.displayName ?? 'Дзвінок';
-  // Web's ParticipantAvatarTile glows with the *other* person's live mic
-  // volume, 0-1 scaled the same way (min(volume*26, 16)) into a shadow radius
-  // — this is that, via a platform shadow instead of a CSS box-shadow.
-  const glowRadius = Math.min((call.remoteAudioLevel ?? 0) * 26, 16);
 
   return (
     <View style={styles.fill}>
       <CallSurfaceBackground />
+      <StatusBar style="light" />
       <SafeAreaView style={styles.content}>
         <View style={styles.header}>
-          <Pressable style={styles.minimizeButton} onPress={minimize}>
-            <CaretDown size={20} color="rgba(255, 255, 255, 0.7)" />
-          </Pressable>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.duration}>
-            {call.status === 'connecting' ? "З'єднання" : duration}
+          <View style={styles.minimize}>
+            <CallControlButton
+              icon={CaretDown}
+              accessibilityLabel="Згорнути дзвінок"
+              size={40}
+              iconSize={20}
+              onPress={minimize}
+            />
+          </View>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
           </Text>
+          <CallStatusLine call={call} />
         </View>
 
         <View style={styles.stage}>
-          <View
-            style={[
-              styles.avatarRing,
-              call.remoteSpeaking && {
-                shadowRadius: glowRadius,
-                shadowOpacity: 0.15 + (call.remoteAudioLevel ?? 0) * 0.4,
-              },
-            ]}
-          >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarInitial}>{title.charAt(0).toUpperCase()}</Text>
-            </View>
-          </View>
+          <CallAvatar name={title} size={132} level={speakingLevel(call)} />
           <View style={styles.nameRow}>
-            <Text style={styles.name}>{title}</Text>
-            {call.remoteMuted && <MicrophoneSlash size={16} color="rgba(255, 255, 255, 0.7)" />}
+            <Text style={styles.name} numberOfLines={1}>
+              {title}
+            </Text>
+            {call.remoteMuted && <MicrophoneSlash size={18} color={CALL_TEXT_MUTED} />}
           </View>
         </View>
 
         <View style={styles.controlsArea}>
-          <View style={styles.actionsWrapper}>
-            {call.isMuted && (
-              <Pressable style={styles.mutedBadge} onPress={toggleMute}>
-                <MicrophoneSlash size={14} color="#fff" />
-                <Text style={styles.mutedBadgeText}>Ваш мікрофон вимкнено</Text>
-              </Pressable>
-            )}
-            <View style={styles.actions}>
-              <Pressable
-                style={[styles.circleButton, call.isMuted && styles.circleButtonActive]}
-                onPress={toggleMute}
-              >
-                {call.isMuted ? (
-                  <MicrophoneSlash size={26} color="#0f645b" />
-                ) : (
-                  <Microphone size={26} color="#fff" />
-                )}
-              </Pressable>
-              {/* No video in the native layer yet — shown disabled rather than
-                  omitted, so the control row doesn't visibly change shape the
-                  day video does land. */}
-              <View style={[styles.circleButton, styles.circleButtonDisabled]}>
-                <VideoCameraSlash size={26} color="rgba(255, 255, 255, 0.4)" />
-              </View>
-              <Pressable
-                style={[styles.circleButton, speakerOn && styles.circleButtonActive]}
-                onPress={toggleSpeaker}
-              >
-                <SpeakerHigh size={26} color={speakerOn ? '#0f645b' : '#fff'} />
-              </Pressable>
-              <Pressable style={[styles.circleButton, styles.endButton]} onPress={endCall}>
-                <PhoneX size={26} color="#fff" weight="fill" />
-              </Pressable>
-            </View>
+          <MutedMicrophoneHint />
+          <View style={styles.actions}>
+            <MuteControl size={64} label="Мікрофон" />
+            <CameraPlaceholderControl size={64} label="Камера" />
+            <SpeakerControl size={64} label="Динамік" />
+            <EndCallControl size={64} label="Завершити" />
           </View>
         </View>
       </SafeAreaView>
@@ -133,74 +78,35 @@ export function NativeInCallScreen() {
   );
 }
 
+/** The other person's live mic level drives the avatar glow, like web's ParticipantAvatarTile. */
+function speakingLevel(call: NativeCallState): number {
+  if (!call.remoteSpeaking) return 0;
+  return call.remoteAudioLevel ?? 0;
+}
+
+function CallStatusLine({ call }: { call: NativeCallState }) {
+  const duration = useCallDuration(call.connectedAt);
+
+  if (call.status === 'connecting') return <Text style={styles.duration}>З'єднання</Text>;
+  return <Text style={styles.duration}>{duration}</Text>;
+}
+
 const styles = StyleSheet.create({
   fill: { ...StyleSheet.absoluteFill, zIndex: 20 },
   content: { flex: 1 },
-  header: { alignItems: 'center', paddingTop: 8 },
-  minimizeButton: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
+  header: { alignItems: 'center', paddingTop: 12, paddingHorizontal: 72 },
+  minimize: { position: 'absolute', top: 8, left: 16 },
+  title: { color: '#fff', fontSize: 17, fontWeight: '600' },
+  duration: {
+    marginTop: 2,
+    minHeight: 18,
+    color: CALL_TEXT_MUTED,
+    fontSize: 13,
+    fontVariant: ['tabular-nums'],
   },
-  title: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  duration: { fontSize: 13, color: 'rgba(255, 255, 255, 0.55)', marginTop: 2, minHeight: 18 },
-  stage: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  // shadowColor/Opacity/Radius here (iOS) stand in for web's animated
-  // box-shadow ring — set conditionally above as the live glow.
-  avatarRing: {
-    borderRadius: 66,
-    shadowColor: '#0c7d77',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-  },
-  avatar: {
-    width: 124,
-    height: 124,
-    borderRadius: 62,
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  avatarInitial: { fontSize: 44, fontWeight: '700', color: '#fff' },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  name: { fontSize: 20, fontWeight: '700', color: '#fff' },
-  controlsArea: { alignItems: 'center', paddingBottom: 28 },
-  // position:'relative' so mutedBadge can anchor to this row's own top edge —
-  // it must never push the actions row down when it appears, same as web/'s
-  // absolutely positioned version. A fixed `bottom` (circleButton height + the
-  // gap below), not a percentage: Yoga doesn't reliably resolve percentage
-  // insets against an auto-sized (content-driven) containing block.
-  actionsWrapper: { position: 'relative', alignItems: 'center' },
-  mutedBadge: {
-    position: 'absolute',
-    bottom: 76,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
-  },
-  mutedBadgeText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  stage: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 28 },
+  name: { flexShrink: 1, color: '#fff', fontSize: 26, fontWeight: '600' },
+  controlsArea: { alignItems: 'center', gap: 20, paddingBottom: 32 },
   actions: { flexDirection: 'row', gap: 20 },
-  circleButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  circleButtonActive: { backgroundColor: '#fff' },
-  circleButtonDisabled: { opacity: 0.5 },
-  endButton: { backgroundColor: '#d92d20' },
 });

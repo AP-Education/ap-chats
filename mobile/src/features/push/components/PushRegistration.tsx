@@ -1,43 +1,66 @@
-import { useEffect } from 'react';
+import * as Notifications from 'expo-notifications';
+import { useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 
 import { useAuthStore } from '../../auth';
 import { loadCallKitModule } from '../../calls/utils/callkit-module';
+import { dismissPresentedNotifications } from '../api/presented-notifications';
 import { registerCurrentDeviceForPush } from '../api/register-current-device';
+import { unregisterCurrentDevice } from '../api/unregister-current-device';
 
-function tryRegister(): void {
-  void registerCurrentDeviceForPush().catch((error: unknown) => {
-    if (__DEV__) console.warn('[push] registerDevice failed', error);
-  });
-}
-
-// Tries once per sign-in — a no-op if permission was never granted (see
-// PushPrimingGate for the only place that actually requests it).
 export function PushRegistration() {
   const status = useAuthStore((state) => state.status);
+  const accessToken = useAuthStore((state) =>
+    state.status === 'signed-in' ? state.tokens.accessToken : null,
+  );
+  const sessionToken = useRef<string | null>(null);
 
+  // A logout and a failed refresh both end the session; either way this phone stops getting pushes.
+  useEffect(() => {
+    const endedToken = accessToken ? null : sessionToken.current;
+    sessionToken.current = accessToken;
+
+    if (!endedToken) return;
+
+    void unregisterCurrentDevice(endedToken);
+    // The previous account's previews must not stay on screen for whoever uses the phone next.
+    void dismissPresentedNotifications();
+  }, [accessToken]);
+
+  // Registration calls are already serialized; a failure simply retries the next time the app opens.
   useEffect(() => {
     if (status !== 'signed-in') return;
-    tryRegister();
-  }, [status]);
 
-  // Independent of sign-in: the native VoIP token can arrive (or rotate) at any
-  // time and each arrival needs re-sending, while registerCurrentDeviceForPush
-  // itself already no-ops if we're not signed in yet.
-  useEffect(() => {
     let cancelled = false;
-    let subscription: { remove(): void } | undefined;
+    let voipSubscription: { remove(): void } | undefined;
+    const register = () => {
+      if (cancelled) return;
 
+      void registerCurrentDeviceForPush().catch((error: unknown) => {
+        if (__DEV__) console.warn('[push] registration retries on next foreground', error);
+      });
+    };
+
+    register();
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') register();
+    });
+    const pushToken = Notifications.addPushTokenListener(register);
     void loadCallKitModule().then((CallKit) => {
       if (!CallKit || cancelled) return;
+
+      voipSubscription = CallKit.addVoIPPushTokenUpdatedListener(register);
       CallKit.registerVoIPPush();
-      subscription = CallKit.addVoIPPushTokenUpdatedListener(tryRegister);
+      register();
     });
 
     return () => {
       cancelled = true;
-      subscription?.remove();
+      appState.remove();
+      pushToken.remove();
+      voipSubscription?.remove();
     };
-  }, []);
+  }, [status]);
 
   return null;
 }

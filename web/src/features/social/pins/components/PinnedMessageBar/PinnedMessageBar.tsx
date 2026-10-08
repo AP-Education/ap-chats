@@ -18,6 +18,8 @@ const useStyles = createStyles(({ token, css }) => ({
     min-height: 52px;
     padding: 0 20px;
     border-bottom: 1px solid ${token.colorBorderSecondary};
+    background: var(--app-surface, rgba(255, 255, 255, 0.92));
+    backdrop-filter: var(--app-surface-blur, blur(48px) saturate(1.2));
 
     @media (max-width: ${token.screenMD}px) {
       gap: 6px;
@@ -32,7 +34,7 @@ const useStyles = createStyles(({ token, css }) => ({
     color: ${token.colorPrimary};
   `,
   count: css`
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 650;
   `,
   body: css`

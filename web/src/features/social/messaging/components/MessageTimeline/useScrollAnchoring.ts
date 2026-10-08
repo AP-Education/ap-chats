@@ -43,7 +43,6 @@ export function useScrollAnchoring({
   const atBottom = useRef(true);
   const jumpAfterNext = useRef(false);
   const suppressOlderUntil = useRef(0);
-  const lastScrollAt = useRef(0);
   const lastSeq = useRef<string | undefined>(undefined);
   const lastFlashedTarget = useRef<string | null>(null);
   const [awayFromBottom, setAwayFromBottom] = useState(false);
@@ -55,13 +54,16 @@ export function useScrollAnchoring({
       if (atBottom.current) container.scrollTop = container.scrollHeight;
     });
     observer.observe(container);
+    // The feed too: a growing composer overlay or a late-loading image changes the
+    // content height without resizing the viewport.
+    if (container.firstElementChild) observer.observe(container.firstElementChild);
     return () => observer.disconnect();
   }, []);
 
   useLayoutEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
-    const currentLastSeq = displayItems.at(-1)?.nonce ?? items.at(-1)?.seq;
+    const currentLastSeq = displayItems.at(-1)?.item.id;
     if (prepend.current) {
       container.scrollTop = prepend.current.top + container.scrollHeight - prepend.current.height;
       prepend.current = null;
@@ -134,8 +136,6 @@ export function useScrollAnchoring({
   function onScroll() {
     const container = scrollRef.current;
     if (!container) return;
-    lastScrollAt.current = performance.now();
-    container.dataset.hoverSuppressed = 'true';
     const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 110;
     atBottom.current = nearBottom;
     setAwayFromBottom(!nearBottom);
@@ -156,5 +156,5 @@ export function useScrollAnchoring({
     } else scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }
 
-  return { scrollRef, awayFromBottom, lastScrollAt, onScroll, older, goDown };
+  return { scrollRef, awayFromBottom, onScroll, older, goDown };
 }

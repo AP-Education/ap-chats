@@ -12,11 +12,13 @@ import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface'
 const useStyles = createStyles(({ token, css }) => ({
   editor: css`
     width: 100%;
+    min-height: 40px;
     max-height: 240px;
     overflow-y: auto;
     padding: 8px 2px;
     color: ${token.colorText};
     font: inherit;
+    font-size: var(--app-text-size, 16px);
   `,
   actions: css`
     display: flex;

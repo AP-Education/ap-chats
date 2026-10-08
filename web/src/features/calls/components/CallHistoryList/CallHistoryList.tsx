@@ -1,4 +1,6 @@
-import { Button, Empty } from 'antd';
+import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-education/ui';
+import { PhoneIcon } from '@phosphor-icons/react';
+import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { useCallHistory } from '../../hooks/useCallHistory';
@@ -59,10 +61,14 @@ export function CallHistoryList({
   if (groups.length === 0)
     return (
       <div className={styles.empty}>
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={filter === 'missed' ? 'Пропущених дзвінків немає' : 'Дзвінків поки немає'}
-        />
+        <ContentState compact>
+          <ContentStateIcon>
+            <PhoneIcon />
+          </ContentStateIcon>
+          <ContentStateDescription>
+            {filter === 'missed' ? 'Пропущених дзвінків немає' : 'Дзвінків поки немає'}
+          </ContentStateDescription>
+        </ContentState>
       </div>
     );
 

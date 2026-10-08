@@ -12,7 +12,6 @@ import type { DeliveryStatus, HistoryItem, MessageHistoryItem } from '../../type
 // Everything a strategy might need, regardless of which fields its own kind
 // actually uses (a call entry ignores onEdit/actions/delivery, for instance).
 export interface HistoryItemRenderContext {
-  grouped: boolean;
   actionContext: ActionContext;
   actions: ConversationAction[];
   onAction: (action: ConversationAction, target: ActionTarget) => void;
@@ -20,7 +19,8 @@ export interface HistoryItemRenderContext {
   onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
   delivery: DeliveryStatus | undefined;
   pendingAttachments: AttachmentDraft[] | undefined;
-  onRetry: (() => void) | undefined;
+  /** Sends an unsent row again, by the id it carries until the server confirms it. */
+  onRetry: (rowId: string) => void;
 }
 
 // One strategy per HistoryItem kind. `item` stays the full union here — the

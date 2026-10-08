@@ -47,6 +47,14 @@ const useStyles = createStyles(({ token, css }) => ({
     &:hover {
       background: ${token.colorFillTertiary};
     }
+
+    // Beside the 16px title on a phone the stock 22px glyph reads too slight.
+    @media (max-width: ${token.screenMD}px) {
+      & > svg:first-child {
+        width: 26px;
+        height: 26px;
+      }
+    }
   `,
   name: css`
     overflow: hidden;
@@ -72,6 +80,7 @@ const useStyles = createStyles(({ token, css }) => ({
     border-radius: 12px;
     background: ${token.colorPrimaryBg};
     color: ${token.colorTextSecondary};
+    pointer-events: auto;
 
     @media (max-width: ${token.screenMD}px) {
       gap: 8px;
@@ -299,7 +308,7 @@ export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailPr
           </PageAsideTrigger>
         </PageActions>
       </PageHeader>
-      <PageBody>
+      <PageBody transparent>
         {sizeNoticeVisible && !call.inCall && !call.joinable && (
           <LargeChannelCallNotice
             memberCount={memberCount}

@@ -11,7 +11,8 @@ import {
   View,
 } from 'react-native';
 
-import { colors, radius, spacing } from '../../../shell/theme';
+import { radius, spacing } from '../../../shell/theme';
+import { type ShellPalette, useShellPalette, useThemedStyles } from '../../appearance';
 import { isGifSearchConfigured, searchGifs } from '../api/gif-provider';
 import type { GifResult } from '../types';
 
@@ -24,6 +25,8 @@ interface GifTabProps {
 }
 
 export function GifTab({ onPick, onSearchFocus }: GifTabProps) {
+  const palette = useShellPalette();
+  const styles = useThemedStyles(themedStyles);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<GifResult[]>([]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -63,11 +66,11 @@ export function GifTab({ onPick, onSearchFocus }: GifTabProps) {
   return (
     <View style={styles.root}>
       <View style={styles.searchRow}>
-        <MagnifyingGlass size={16} color={colors.textSecondary} />
+        <MagnifyingGlass size={16} color={palette.textSecondary} />
         <TextInput
           style={styles.searchInput}
           placeholder="Пошук GIF"
-          placeholderTextColor={colors.textSecondary}
+          placeholderTextColor={palette.textSecondary}
           value={query}
           onChangeText={setQuery}
           onFocus={onSearchFocus}
@@ -76,7 +79,7 @@ export function GifTab({ onPick, onSearchFocus }: GifTabProps) {
       </View>
       {status === 'loading' && results.length === 0 ? (
         <View style={styles.state}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={palette.primary} />
         </View>
       ) : status === 'error' ? (
         <View style={styles.state}>
@@ -109,27 +112,28 @@ export function GifTab({ onPick, onSearchFocus }: GifTabProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, gap: spacing.xs },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    height: 36,
-    borderRadius: radius.sm,
-    backgroundColor: colors.primaryBg,
-  },
-  searchInput: { flex: 1, fontSize: 15, color: colors.text, padding: 0 },
-  tile: {
-    flex: 1,
-    aspectRatio: 1,
-    margin: 3,
-    borderRadius: radius.sm,
-    overflow: 'hidden',
-    backgroundColor: colors.primaryBg,
-  },
-  tileImage: { width: '100%', height: '100%' },
-  state: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md },
-  stateText: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
-});
+const themedStyles = (palette: ShellPalette) =>
+  StyleSheet.create({
+    root: { flex: 1, gap: spacing.xs },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+      paddingHorizontal: spacing.sm,
+      height: 36,
+      borderRadius: radius.sm,
+      backgroundColor: palette.primaryBg,
+    },
+    searchInput: { flex: 1, fontSize: 15, color: palette.text, padding: 0 },
+    tile: {
+      flex: 1,
+      aspectRatio: 1,
+      margin: 3,
+      borderRadius: radius.sm,
+      overflow: 'hidden',
+      backgroundColor: palette.primaryBg,
+    },
+    tileImage: { width: '100%', height: '100%' },
+    state: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md },
+    stateText: { color: palette.textSecondary, fontSize: 13, textAlign: 'center' },
+  });

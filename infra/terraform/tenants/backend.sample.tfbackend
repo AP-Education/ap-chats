@@ -1,0 +1,27 @@
+# Backblaze B2 (S3-compatible) remote state backend — the same bucket
+# backend-LMS actually uses for its own tfstate (ap-lms), just a different
+# key prefix. Deliberate choice: one ecosystem/one set of credentials to
+# manage instead of a dedicated bucket per project, traded off against
+# weaker isolation (whoever holds this key can reach LMS's state too) —
+# acceptable here, revisit if that stops being true.
+#
+# Copy this file to backend.<tenant>.tfbackend (gitignored) and adjust the
+# key. Credentials come from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env
+# vars (a Backblaze B2 application key, not an AWS one — same one
+# backend-LMS uses, or your own scoped to this bucket/prefix), never from
+# this file.
+#
+# Usage:
+#   terraform -chdir=infra/terraform/prod init \
+#     -backend-config=../tenants/backend.<tenant>.tfbackend \
+#     -reconfigure
+
+endpoints                    = { s3 = "https://s3.eu-central-003.backblazeb2.com" }
+bucket                       = "ap-lms"
+key                          = "chats/<tenant>/terraform.tfstate"
+region                       = "eu-central-1" # required placeholder, B2 doesn't use AWS regions
+skip_credentials_validation  = true
+skip_metadata_api_check      = true
+skip_region_validation       = true
+skip_requesting_account_id   = true
+use_path_style               = true

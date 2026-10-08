@@ -1,76 +1,96 @@
 import { createStyles } from 'antd-style';
-import type { RefObject } from 'react';
+import type { ReactNode, RefObject } from 'react';
 
 import { MessageMarkdown } from '@/features/social/mentions/components/MessageMarkdown/MessageMarkdown';
 
 import { useMessageActionScope } from './MessageActionScope';
 
-// One grapheme only — a pictographic run joined by ZWJ (so a family/profession
-// emoji still counts as one) or a flag's pair of regional indicators. Two
-// separate emoji side by side, or any other text, fails this.
-const SINGLE_EMOJI_PATTERN = new RegExp(
-  '^(?:\\p{Extended_Pictographic}\\uFE0F?\\p{Emoji_Modifier}?' +
-    '(?:\\u200D\\p{Extended_Pictographic}\\uFE0F?\\p{Emoji_Modifier}?)*' +
-    '|\\p{Regional_Indicator}\\p{Regional_Indicator})$',
-  'u',
-);
-
 const useStyles = createStyles(({ token, css }) => ({
+  // The size the person picked in the shell, at the composer's own leading, so a message keeps
+  // its shape once sent. Unitless, so the spacing follows any text size or WCAG override.
   markdown: css`
-    font-size: ${token.fontSize}px;
-    line-height: 1.5;
+    display: flow-root;
+    font-size: var(--app-text-size, 16px);
+    line-height: 1.45;
+    text-wrap: pretty;
     user-select: text;
     p {
-      margin: 0 0 5px;
+      margin: 0 0 0.6em;
     }
-    p:last-child {
-      margin-bottom: 0;
+    // The last paragraph flows inline so the floated time can share its last line.
+    & > p:nth-last-child(2) {
+      display: inline;
     }
     pre {
+      margin: 0.4em 0;
       white-space: pre-wrap;
       overflow-wrap: anywhere;
-      padding: 9px 11px;
-      border-radius: 7px;
-      background: ${token.colorFillTertiary};
+      padding: ${token.paddingXS}px 10px;
+      border-radius: ${token.borderRadius}px;
+      background: var(--bubble-fill);
+      line-height: 1.5;
+      tab-size: 2;
     }
     code {
-      padding: 1px 3px;
-      border-radius: 3px;
-      background: ${token.colorFillTertiary};
-      font-size: 0.92em;
+      padding: 0.1em 0.3em;
+      border-radius: ${token.borderRadiusSM}px;
+      background: var(--bubble-fill);
+      font-family: ${token.fontFamilyCode};
+      font-size: 0.875em;
     }
     pre code {
       padding: 0;
       background: transparent;
     }
     blockquote {
-      margin: 5px 0;
-      padding-left: 9px;
-      border-left: 3px solid ${token.colorBorder};
-      color: ${token.colorTextSecondary};
+      margin: 0.4em 0;
+      padding-left: 10px;
+      border-left: 4px solid var(--bubble-accent);
+      color: var(--bubble-muted);
     }
     ul,
     ol {
-      margin: 5px 0;
-      padding-left: 21px;
+      margin: 0.4em 0;
+      padding-left: 1.4em;
+    }
+    li + li {
+      margin-top: 0.15em;
     }
     a {
-      color: ${token.colorLink};
+      color: var(--bubble-link);
+      text-decoration: underline;
+      text-decoration-thickness: from-font;
+      text-underline-offset: 0.15em;
     }
   `,
+  // One emoji largest, two or three a step smaller, like the big emoji of messengers.
   jumboEmoji: css`
-    font-size: 48px;
-    line-height: 1.2;
+    position: relative;
+    display: inline-block;
+    padding-bottom: 6px;
+    font-size: 108px;
+    line-height: 1.1;
+    letter-spacing: 0.03em;
     p {
       margin: 0;
+    }
+    &[data-jumbo='2'] {
+      font-size: 90px;
+    }
+    &[data-jumbo='3'] {
+      font-size: 75px;
     }
   `,
 }));
 
 export function MessageReadContent({
   contentRef,
+  jumboEmoji,
+  meta,
 }: {
   contentRef: RefObject<HTMLDivElement | null>;
+  jumboEmoji: number;
+  meta: ReactNode;
 }) {
   const { styles, cx } = useStyles();
   const { item, context } = useMessageActionScope();
@@ -79,12 +99,11 @@ export function MessageReadContent({
     return null;
   }
 
-  const isSingleEmoji = SINGLE_EMOJI_PATTERN.test(item.message.markdown.trim());
-
   return (
     <div
       ref={contentRef}
-      className={cx(styles.markdown, isSingleEmoji && styles.jumboEmoji)}
+      className={cx(styles.markdown, jumboEmoji > 0 && styles.jumboEmoji)}
+      data-jumbo={jumboEmoji || undefined}
       data-message-text
     >
       <MessageMarkdown
@@ -92,6 +111,7 @@ export function MessageReadContent({
         mentions={item.mentions}
         viewerMemberId={context.memberId}
       />
+      {meta}
     </div>
   );
 }

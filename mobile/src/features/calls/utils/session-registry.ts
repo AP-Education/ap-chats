@@ -15,6 +15,8 @@ export interface TrackedSession {
   serverCallId: string;
   metadata: TrackedSessionMetadata;
   caller: CallParticipant;
+  abortController: AbortController;
+  answerRequestId?: string;
   room?: Room;
   /** Unsubscribes trackRemoteParticipant's room listeners — called once, from
    * endCallSession, alongside the room disconnect itself. */
@@ -25,8 +27,13 @@ export interface TrackedSession {
 // expo-callkit-telecom lifecycle event carries.
 const sessions = new Map<string, TrackedSession>();
 
-export function trackSession(sessionId: string, session: TrackedSession): void {
-  sessions.set(sessionId, session);
+export function trackSession(
+  sessionId: string,
+  session: Omit<TrackedSession, 'abortController'>,
+): TrackedSession {
+  const tracked = { ...session, abortController: new AbortController() };
+  sessions.set(sessionId, tracked);
+  return tracked;
 }
 
 export function getTrackedSession(sessionId: string): TrackedSession | undefined {
@@ -36,6 +43,7 @@ export function getTrackedSession(sessionId: string): TrackedSession | undefined
 export function untrackSession(sessionId: string): TrackedSession | undefined {
   const session = sessions.get(sessionId);
   sessions.delete(sessionId);
+  session?.abortController.abort();
   return session;
 }
 

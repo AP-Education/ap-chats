@@ -209,6 +209,7 @@ function Fixture() {
           scope={{
             workspaceId: 'workspace',
             channelId,
+            kind: 'channel',
             title: 'Дизайн і продукт',
             composer: { ariaLabel: 'Повідомлення', placeholder: 'Написати повідомлення…' },
           }}
@@ -220,7 +221,8 @@ function Fixture() {
                   <MessageRow
                     key={message.id}
                     item={message}
-                    grouped={false}
+                    groupStart
+                    groupEnd
                     actionContext={{
                       memberId: 'member',
                       canManage: true,
@@ -239,7 +241,8 @@ function Fixture() {
                     item={entry.item}
                     delivery="uploading"
                     pendingAttachments={entry.drafts}
-                    grouped={false}
+                    groupStart
+                    groupEnd
                     actionContext={{
                       memberId: 'member',
                       canManage: true,

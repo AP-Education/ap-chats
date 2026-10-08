@@ -43,6 +43,12 @@ export default defineConfig(
     },
   },
   {
+    files: ['web/public/push-sw.js'],
+    languageOptions: {
+      globals: { ...globals.serviceworker, ...globals.es2023 },
+    },
+  },
+  {
     files: ['web/**/*.{ts,tsx}', 'mobile/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks },
     rules: reactHooks.configs.flat.recommended.rules,

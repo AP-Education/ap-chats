@@ -1,107 +1,57 @@
 import { useIsMobile } from '@ap-education/ui';
-import {
-  useDisconnectButton,
-  useLocalParticipant,
-  useTrackToggle,
-} from '@livekit/components-react';
-import {
-  ArrowsClockwiseIcon,
-  MicrophoneIcon,
-  MicrophoneSlashIcon,
-  ScreencastIcon,
-  VideoCameraIcon,
-  VideoCameraSlashIcon,
-} from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
-import { Track } from 'livekit-client';
-import { type MouseEvent, useState } from 'react';
 
-import { EndCallIcon } from '../../callIcons';
-import { playMuteChime, playUnmuteChime } from '../../sound/callChimes';
-import { CallActionButton } from './CallActionButton';
+import { LeaveCallControl } from './controls/LeaveCallControl';
+import {
+  CameraControl,
+  FlipCameraControl,
+  MicrophoneControl,
+  ScreenShareControl,
+} from './controls/MediaControls';
 
-const useStyles = createStyles(({ css }) => ({
+const useStyles = createStyles(({ token, css }) => ({
   bar: css`
     position: relative;
     display: flex;
-    align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    gap: 14px;
-    padding: 20px 10px calc(20px + env(safe-area-inset-bottom, 0px));
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  `,
+  dock: css`
+    display: flex;
+    align-items: center;
+    gap: ${token.paddingSM}px;
+    padding: 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, ${token.colorBgLayout} 46%, transparent);
+    backdrop-filter: blur(24px) saturate(1.4);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.32);
 
-    @media (max-width: 480px) {
-      gap: 8px;
+    @media (max-width: ${token.screenSM}px) {
+      gap: ${token.paddingXS}px;
+      padding: ${token.paddingXS}px;
     }
   `,
 }));
 
+// Touch targets grow on phones; the icons keep the call-button size from the icon guidelines.
+const CONTROL_SIZE = { desktop: { size: 48, iconSize: 24 }, mobile: { size: 52, iconSize: 24 } };
+
+/** The full screen's floating dock: every control owns its own track or room state. */
 export function CallControls() {
   const { styles } = useStyles();
   const isMobile = useIsMobile();
-  const mic = useTrackToggle({ source: Track.Source.Microphone });
-  const camera = useTrackToggle({ source: Track.Source.Camera });
-  const screenShare = useTrackToggle({ source: Track.Source.ScreenShare });
-  const leave = useDisconnectButton({});
-  const { localParticipant } = useLocalParticipant();
-  // Phones publish the front camera first; there's no reliable cross-browser
-  // way to read a track's current facing side back out, so this just tracks
-  // which one this button last asked for.
-  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
-
-  async function flipCamera() {
-    const track = localParticipant.getTrackPublication(Track.Source.Camera)?.videoTrack;
-    if (!track) return;
-    const next = facingMode === 'user' ? 'environment' : 'user';
-    await track.restartTrack({ facingMode: next });
-    setFacingMode(next);
-  }
-
-  function handleMicClick(event: MouseEvent<HTMLButtonElement>) {
-    (mic.enabled ? playMuteChime : playUnmuteChime)();
-    mic.buttonProps.onClick?.(event);
-  }
+  const control = CONTROL_SIZE[isMobile ? 'mobile' : 'desktop'];
 
   return (
     <div className={styles.bar}>
-      <CallActionButton
-        size={52}
-        variant={mic.enabled ? 'default' : 'off'}
-        {...mic.buttonProps}
-        onClick={handleMicClick}
-        aria-label={mic.enabled ? 'Вимкнути мікрофон' : 'Увімкнути мікрофон'}
-      >
-        {mic.enabled ? <MicrophoneIcon size={22} /> : <MicrophoneSlashIcon size={22} />}
-      </CallActionButton>
-      <CallActionButton
-        size={52}
-        variant={camera.enabled ? 'default' : 'off'}
-        {...camera.buttonProps}
-        aria-label={camera.enabled ? 'Вимкнути камеру' : 'Увімкнути камеру'}
-      >
-        {camera.enabled ? <VideoCameraIcon size={22} /> : <VideoCameraSlashIcon size={22} />}
-      </CallActionButton>
-      {isMobile && camera.enabled && (
-        <CallActionButton size={52} aria-label="Змінити камеру" onClick={() => void flipCamera()}>
-          <ArrowsClockwiseIcon size={22} />
-        </CallActionButton>
-      )}
-      <CallActionButton
-        size={52}
-        variant={screenShare.enabled ? 'off' : 'default'}
-        {...screenShare.buttonProps}
-        aria-label={screenShare.enabled ? 'Зупинити демонстрацію екрана' : 'Демонструвати екран'}
-      >
-        <ScreencastIcon size={22} />
-      </CallActionButton>
-      <CallActionButton
-        size={52}
-        variant="leave"
-        {...leave.buttonProps}
-        aria-label="Завершити дзвінок"
-      >
-        <EndCallIcon size={22} weight="fill" />
-      </CallActionButton>
+      <div className={styles.dock}>
+        <MicrophoneControl {...control} />
+        <CameraControl {...control} />
+        <FlipCameraControl {...control} />
+        <ScreenShareControl {...control} />
+        <LeaveCallControl {...control} />
+      </div>
     </div>
   );
 }

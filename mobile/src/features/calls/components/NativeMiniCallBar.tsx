@@ -1,11 +1,11 @@
-import { Microphone, MicrophoneSlash, PhoneX } from 'phosphor-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CALL_TEXT_MUTED } from '../callTheme';
 import { useIsMiniCallBarVisible, useNativeCallStore } from '../store/native-call-store';
-import { loadCallKitModule } from '../utils/callkit-module';
 import { useCallDuration } from '../utils/use-call-duration';
 import { CallSurfaceBackground } from './CallSurfaceBackground';
+import { EndCallControl, MuteControl } from './NativeCallControls';
 
 /**
  * The app-level "return to call" strip — mirrors web/'s MiniCallBar. A normal
@@ -24,38 +24,25 @@ export function NativeMiniCallBar() {
 
   const title = call.caller.displayName ?? 'Дзвінок';
 
-  function toggleMute() {
-    if (!call) return;
-    void loadCallKitModule().then((CallKit) => CallKit?.setMuted(call.sessionId, !call.isMuted));
-  }
-
-  function endCall() {
-    if (!call) return;
-    void loadCallKitModule().then((CallKit) => CallKit?.endCall(call.sessionId));
-  }
-
   return (
     <View style={styles.wrapper}>
       <CallSurfaceBackground />
       <SafeAreaView edges={['top']}>
-        <Pressable style={styles.bar} onPress={restore}>
-          <View style={styles.info}>
+        <View style={styles.bar}>
+          <Pressable
+            style={styles.info}
+            accessibilityRole="button"
+            accessibilityLabel={`Повернутися до дзвінка: ${title}`}
+            onPress={restore}
+          >
             <Text style={styles.title} numberOfLines={1}>
               {title}
             </Text>
             <Text style={styles.duration}>{duration}</Text>
-          </View>
-          <Pressable style={styles.iconButton} onPress={toggleMute}>
-            {call.isMuted ? (
-              <MicrophoneSlash size={18} color="#fff" />
-            ) : (
-              <Microphone size={18} color="#fff" />
-            )}
           </Pressable>
-          <Pressable style={[styles.iconButton, styles.endButton]} onPress={endCall}>
-            <PhoneX size={18} color="#fff" weight="fill" />
-          </Pressable>
-        </Pressable>
+          <MuteControl size={34} iconSize={18} />
+          <EndCallControl size={34} iconSize={18} wide />
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -66,24 +53,16 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    minHeight: 40,
-    paddingVertical: 4,
-    paddingHorizontal: 14,
+    gap: 8,
+    minHeight: 48,
+    paddingVertical: 6,
+    paddingLeft: 16,
+    paddingRight: 10,
   },
   // No dot here — the system already shows its own "call in progress"
   // indicator (the Dynamic Island pill) above this whenever an active CallKit
   // call isn't being shown full-screen; a second one here just doubled up.
   info: { flex: 1, flexDirection: 'row', alignItems: 'baseline', gap: 8, minWidth: 0 },
-  title: { color: '#fff', fontSize: 14, fontWeight: '600', flexShrink: 1 },
-  duration: { color: 'rgba(255, 255, 255, 0.72)', fontSize: 13, fontVariant: ['tabular-nums'] },
-  iconButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
-  },
-  endButton: { backgroundColor: '#d92d20' },
+  title: { color: '#fff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
+  duration: { color: CALL_TEXT_MUTED, fontSize: 13, fontVariant: ['tabular-nums'] },
 });

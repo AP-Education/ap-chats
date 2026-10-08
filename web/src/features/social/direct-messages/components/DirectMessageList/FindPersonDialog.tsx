@@ -1,5 +1,7 @@
+import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-education/ui';
+import { MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Empty, Input, message as toast, Modal, Skeleton } from 'antd';
+import { Button, Input, message as toast, Modal, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -91,7 +93,12 @@ export function FindPersonDialog({
       />
       <div className={styles.people}>
         {!hasQuery && (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Почніть вводити ім’я" />
+          <ContentState compact>
+            <ContentStateIcon>
+              <MagnifyingGlassIcon />
+            </ContentStateIcon>
+            <ContentStateDescription>Почніть вводити ім’я</ContentStateDescription>
+          </ContentState>
         )}
         {hasQuery &&
           searching &&
@@ -110,7 +117,12 @@ export function FindPersonDialog({
           </div>
         )}
         {showEmpty && (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Нікого не знайдено" />
+          <ContentState compact>
+            <ContentStateIcon>
+              <MagnifyingGlassIcon />
+            </ContentStateIcon>
+            <ContentStateDescription>Нікого не знайдено</ContentStateDescription>
+          </ContentState>
         )}
         {hasQuery &&
           !searching &&

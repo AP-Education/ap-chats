@@ -20,7 +20,9 @@ export function ChatsContent() {
     <div style={{ height: '100%', padding: isMobile || isEdgeToEdge ? 0 : token.paddingXS }}>
       <PageSection
         maxWidth={isEdgeToEdge ? 'none' : 1920}
-        style={isEdgeToEdge ? { padding: 0, borderRadius: 0 } : undefined}
+        style={
+          isEdgeToEdge ? { padding: 0, borderRadius: 0, background: 'transparent' } : undefined
+        }
       >
         <Suspense
           fallback={

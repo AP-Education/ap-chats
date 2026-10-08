@@ -1,0 +1,8 @@
+---
+project_name: ap-connect
+deploy_project_path: '/opt/{{ project_name }}'
+postgres_user: ap_chats
+postgres_db: ap_chats
+
+postgres_backup_schedule: '*-*-* 03:30:00'
+postgres_backup_bin: '/opt/{{ project_name }}/bin/postgres-backup.sh'

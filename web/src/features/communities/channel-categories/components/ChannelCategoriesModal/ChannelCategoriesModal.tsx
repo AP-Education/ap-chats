@@ -1,5 +1,6 @@
-import { PlusIcon, TrashIcon } from '@phosphor-icons/react';
-import { Button, Empty, Input, List, message, Modal, Popconfirm, Spin, Typography } from 'antd';
+import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-education/ui';
+import { FoldersIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
+import { Button, Input, List, message, Modal, Popconfirm, Spin, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -82,7 +83,12 @@ export function ChannelCategoriesModal({
           dataSource={query.data ?? []}
           locale={{
             emptyText: (
-              <Empty description="Категорій ще немає" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              <ContentState compact>
+                <ContentStateIcon>
+                  <FoldersIcon />
+                </ContentStateIcon>
+                <ContentStateDescription>Категорій ще немає</ContentStateDescription>
+              </ContentState>
             ),
           }}
           renderItem={(category) => (

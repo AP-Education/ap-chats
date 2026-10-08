@@ -84,7 +84,7 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   navButtonActive: css`
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    color: ${token.colorPrimaryTextActive};
   `,
   scroller: css`
     flex: 1;

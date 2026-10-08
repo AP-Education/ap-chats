@@ -10,12 +10,11 @@ const fadeIn = keyframes`
   to { opacity: 1; transform: scale(1); }
 `;
 
-// The floating control bar's own footprint (CallControls.tsx: 52px buttons
-// plus their padding) — the thumbnail strip docks just above it rather than
-// under it, since both float over the same edge-to-edge video.
-const CONTROLS_CLEARANCE = 104;
+// The floating control dock's own footprint (CallControls.tsx: the dock plus its
+// bar padding), so the thumbnail strip docks just above it instead of under it.
+const CONTROLS_CLEARANCE = 112;
 
-const useStyles = createStyles(({ css }) => ({
+const useStyles = createStyles(({ token, css }) => ({
   stage: css`
     position: relative;
     flex: 1;
@@ -36,11 +35,12 @@ const useStyles = createStyles(({ css }) => ({
     left: 14px;
     top: 14px;
     z-index: 1;
-    padding: 3px 12px;
+    padding: ${token.paddingXXS}px ${token.paddingSM}px;
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.5);
-    color: #fff;
-    font-size: 13px;
+    background: rgba(7, 17, 19, 0.5);
+    backdrop-filter: blur(16px);
+    color: ${token.colorText};
+    font-size: ${token.fontSizeSM}px;
     font-weight: 550;
   `,
   thumbStrip: css`
@@ -50,7 +50,7 @@ const useStyles = createStyles(({ css }) => ({
     bottom: ${CONTROLS_CLEARANCE}px;
     z-index: 1;
     display: flex;
-    gap: 8px;
+    gap: ${token.paddingXS}px;
     padding: 0 16px;
     overflow-x: auto;
   `,
@@ -60,7 +60,7 @@ const useStyles = createStyles(({ css }) => ({
     overflow: hidden;
     width: 96px;
     height: 64px;
-    border-radius: 10px;
+    border-radius: ${token.borderRadiusLG}px;
     background: #000;
 
     video {
@@ -78,7 +78,7 @@ const useStyles = createStyles(({ css }) => ({
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
+    background: ${token.colorFillSecondary};
   `,
 }));
 

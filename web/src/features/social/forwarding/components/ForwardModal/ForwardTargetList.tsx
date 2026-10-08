@@ -1,5 +1,6 @@
-import { CheckIcon } from '@phosphor-icons/react';
-import { Button, Empty, Skeleton } from 'antd';
+import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-education/ui';
+import { ChatsIcon, CheckIcon } from '@phosphor-icons/react';
+import { Button, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 
 import {
@@ -64,7 +65,7 @@ const useStyles = createStyles(({ token, css }) => ({
     flex: 0 0 40px;
     border-radius: 50%;
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    color: ${token.colorPrimaryTextActive};
   `,
   body: css`
     flex: 1;
@@ -197,10 +198,14 @@ export function ForwardTargetList({
       )}
       {!isSearching && !groups.length && !hasError && (
         <div className={styles.state}>
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={searched ? 'Нікого не знайдено' : 'Немає доступних розмов'}
-          />
+          <ContentState compact>
+            <ContentStateIcon>
+              <ChatsIcon />
+            </ContentStateIcon>
+            <ContentStateDescription>
+              {searched ? 'Нікого не знайдено' : 'Немає доступних розмов'}
+            </ContentStateDescription>
+          </ContentState>
         </div>
       )}
       {hasError && (

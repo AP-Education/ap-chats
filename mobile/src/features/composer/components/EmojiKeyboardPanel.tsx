@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import Reanimated, { type SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 
-import { colors } from '../../../shell/theme';
+import { type ShellPalette, useThemedStyles } from '../../appearance';
 import type { GifResult, PickerTab } from '../types';
 import { inputAreaHeight, type InputMode } from '../utils/input-state';
 import { PickerPanel } from './PickerPanel';
@@ -35,6 +35,7 @@ export function EmojiKeyboardPanel({
   onPickGif,
   onSearchFocus,
 }: EmojiKeyboardPanelProps) {
+  const styles = useThemedStyles(themedStyles);
   const animatedStyle = useAnimatedStyle(() => ({
     height: inputAreaHeight(
       mode.value,
@@ -77,9 +78,10 @@ export function EmojiKeyboardPanel({
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    overflow: 'hidden',
-    backgroundColor: colors.surface,
-  },
-});
+const themedStyles = (palette: ShellPalette) =>
+  StyleSheet.create({
+    root: {
+      overflow: 'hidden',
+      backgroundColor: palette.surface,
+    },
+  });

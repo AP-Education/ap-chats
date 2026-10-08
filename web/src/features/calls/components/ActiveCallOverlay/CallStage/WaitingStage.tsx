@@ -1,8 +1,7 @@
-import { PhoneOutgoingIcon, UserIcon } from '@phosphor-icons/react';
+import { PhoneOutgoingIcon, UsersThreeIcon } from '@phosphor-icons/react';
 import { createStyles, keyframes } from 'antd-style';
 
-import { Avatar } from '@/shared/ui/Avatar';
-
+import { RingingAvatar } from '../../RingingAvatar/RingingAvatar';
 import type { Callee } from './useCallStageParticipants';
 
 const fadeIn = keyframes`
@@ -10,57 +9,49 @@ const fadeIn = keyframes`
   to { opacity: 1; transform: scale(1); }
 `;
 
-const breathe = keyframes`
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-`;
-
-const useStyles = createStyles(({ css }) => ({
+const useStyles = createStyles(({ token, css }) => ({
   stage: css`
     display: flex;
     flex: 1;
     align-items: center;
     justify-content: center;
     min-height: 0;
-    padding: 24px;
+    padding: ${token.paddingLG}px;
   `,
   waiting: css`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    color: rgba(255, 255, 255, 0.55);
+    gap: ${token.paddingXS}px;
+    text-align: center;
     animation: ${fadeIn} 0.25s ease-out;
   `,
-  ring: css`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 160px;
-    height: 160px;
-    border: 2px dashed rgba(255, 255, 255, 0.22);
-    border-radius: 50%;
-    animation: ${breathe} 2.2s ease-in-out infinite;
-  `,
-  label: css`
-    font-size: 14px;
-  `,
-  calleeName: css`
-    font-size: 24px;
+  name: css`
+    margin-top: ${token.marginLG}px;
+    color: ${token.colorText};
+    font-size: ${token.fontSizeHeading3}px;
     font-weight: 650;
-    color: rgba(255, 255, 255, 0.95);
   `,
-  calleeStatus: css`
+  status: css`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-top: 2px;
-    padding: 5px 14px;
+    padding: ${token.paddingXXS}px ${token.paddingSM}px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 13px;
+    background: ${token.colorFillSecondary};
+    backdrop-filter: blur(16px);
+    color: ${token.colorTextSecondary};
+    font-size: ${token.fontSizeSM}px;
     font-weight: 550;
+  `,
+  placeholder: css`
+    display: grid;
+    place-items: center;
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    background: ${token.colorFillSecondary};
+    color: ${token.colorTextSecondary};
   `,
 }));
 
@@ -79,11 +70,9 @@ export function WaitingStage({ callee }: WaitingStageProps) {
     return (
       <div className={styles.stage}>
         <div className={styles.waiting}>
-          <span className={styles.ring}>
-            <Avatar path={callee.avatarPath} alt={callee.name} size={128} shape="circle" />
-          </span>
-          <span className={styles.calleeName}>{callee.name}</span>
-          <span className={styles.calleeStatus}>
+          <RingingAvatar path={callee.avatarPath} alt={callee.name} size={128} />
+          <span className={styles.name}>{callee.name}</span>
+          <span className={styles.status}>
             <PhoneOutgoingIcon size={14} weight="fill" />
             Дзвонимо
           </span>
@@ -94,10 +83,10 @@ export function WaitingStage({ callee }: WaitingStageProps) {
   return (
     <div className={styles.stage}>
       <div className={styles.waiting}>
-        <span className={styles.ring}>
-          <UserIcon size={56} weight="light" />
+        <span className={styles.placeholder}>
+          <UsersThreeIcon size={56} weight="light" />
         </span>
-        <span className={styles.label}>Очікуємо на учасника</span>
+        <span className={styles.status}>Очікуємо на учасників</span>
       </div>
     </div>
   );

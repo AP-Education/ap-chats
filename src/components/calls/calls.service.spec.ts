@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
+import { ChannelAccessFacade } from '@/components/communities/channel-access';
 import { ChannelAccessRepository } from '@/components/communities/channel-access/repository/channel-access.repository';
 import type { ChannelAccessSnapshot } from '@/components/communities/channels/types/channel-access.types';
 import { EntriesFacade } from '@/components/social/entries/entries.facade';
@@ -304,6 +304,7 @@ beforeEach(() => {
     provider,
     realtime,
     new FakeEventPublisher(),
+    { record: async () => {} },
   );
 });
 

@@ -1,4 +1,11 @@
-import { Button, Empty } from 'antd';
+import {
+  ContentState,
+  ContentStateActions,
+  ContentStateDescription,
+  ContentStateIcon,
+} from '@ap-education/ui';
+import { ChatTextIcon } from '@phosphor-icons/react';
+import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { useWorkspaceUnreadStore } from '@/features/social/read-state/workspace-unread-context';
@@ -52,12 +59,17 @@ export function DirectMessageResults({
   );
   if (visible.length === 0 && !filter.trim()) {
     return (
-      <Empty
-        image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description={filter ? 'Розмову не знайдено' : 'Поки немає розмов'}
-      >
-        <Button onClick={onCompose}>Написати колезі</Button>
-      </Empty>
+      <ContentState compact>
+        <ContentStateIcon>
+          <ChatTextIcon />
+        </ContentStateIcon>
+        <ContentStateDescription>
+          {filter ? 'Розмову не знайдено' : 'Поки немає розмов'}
+        </ContentStateDescription>
+        <ContentStateActions>
+          <Button onClick={onCompose}>Написати колезі</Button>
+        </ContentStateActions>
+      </ContentState>
     );
   }
   return (

@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '../../../shared/api/fetch-with-timeout';
 import type { CallJoinGrant } from '../types';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
@@ -17,7 +18,7 @@ function basePath(workspaceId: string, channelId: string): string {
 
 async function post<T>(accessToken: string, path: string): Promise<T> {
   if (!apiUrl) throw new CallsApiError(0, 'EXPO_PUBLIC_API_URL is not set');
-  const response = await fetch(`${apiUrl}${path}`, {
+  const response = await fetchWithTimeout(`${apiUrl}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
     body: '{}',
@@ -54,4 +55,18 @@ export function leaveCall(
   callId: string,
 ): Promise<{ ok: true }> {
   return post(accessToken, `${basePath(workspaceId, channelId)}/${callId}/leave`);
+}
+
+export async function activeCall(
+  accessToken: string,
+  workspaceId: string,
+  channelId: string,
+): Promise<{ id: string; status: string } | null> {
+  if (!apiUrl) throw new CallsApiError(0, 'EXPO_PUBLIC_API_URL is not set');
+  const response = await fetchWithTimeout(`${apiUrl}${basePath(workspaceId, channelId)}/active`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok)
+    throw new CallsApiError(response.status, `GET active call failed: ${response.status}`);
+  return response.json() as Promise<{ id: string; status: string } | null>;
 }

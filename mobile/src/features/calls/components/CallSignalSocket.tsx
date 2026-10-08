@@ -1,16 +1,20 @@
+import type { CallEndedReason } from 'expo-callkit-telecom';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { io, type Socket } from 'socket.io-client';
 
 import { useAuthStore } from '../../auth';
 import { useNativeCallStore } from '../store/native-call-store';
 import { loadCallKitModule } from '../utils/callkit-module';
+import { requireAccessToken } from '../utils/require-access-token';
 import { findTrackedSessionIdByServerCallId } from '../utils/session-registry';
+import { synchronizeCallSession } from '../utils/synchronize-call-session';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
 /**
  * Closes the gap VoIP push can't: the backend only ever pushes `call:incoming`
- * (see call-push.listener.ts — there's no supported push shape to remotely
+ * (see call-push.worker.ts — there's no supported push shape to remotely
  * cancel an already-shown ring), so a decline/hangup/timeout on the other end
  * never reaches a device that's already ringing or connected. Mirrors web/'s
  * useCallSignalListener over the same realtime socket, just to dismiss the
@@ -27,22 +31,14 @@ export function CallSignalSocket() {
       // not just once here, so a refreshed token is picked up without
       // tearing this socket down and recreating it.
       auth: (callback) => {
-        const current = useAuthStore.getState();
-        callback({ token: current.status === 'signed-in' ? current.tokens.accessToken : '' });
+        void requireAccessToken().then(
+          (token) => callback({ token }),
+          () => callback({ token: '' }),
+        );
       },
     });
 
-    function dismiss(payload: unknown) {
-      const callId = (payload as { callId?: unknown } | null)?.callId;
-      if (typeof callId !== 'string') return;
-      const sessionId = findTrackedSessionIdByServerCallId(callId);
-      if (!sessionId) return;
-      void loadCallKitModule().then((CallKit) =>
-        CallKit?.endCall(sessionId).catch(() => undefined),
-      );
-    }
-
-    function dismissIfStillRinging(payload: unknown) {
+    function dismiss(payload: unknown, reason: CallEndedReason) {
       const callId = (payload as { callId?: unknown } | null)?.callId;
       if (typeof callId !== 'string') return;
       const sessionId = findTrackedSessionIdByServerCallId(callId);
@@ -52,18 +48,43 @@ export function CallSignalSocket() {
       // so this is that device hearing an echo of its own accept, not a
       // signal to hang up the call it just connected.
       const call = useNativeCallStore.getState().call;
-      if (call?.sessionId === sessionId && call.status !== 'ringing') return;
+      if (
+        reason === 'answeredElsewhere' &&
+        call?.sessionId === sessionId &&
+        call.status !== 'ringing'
+      )
+        return;
       void loadCallKitModule().then((CallKit) =>
-        CallKit?.endCall(sessionId).catch(() => undefined),
+        CallKit?.reportCallEnded(sessionId, reason).catch(() => undefined),
       );
     }
 
-    socket.on('call:accepted', dismissIfStillRinging);
-    socket.on('call:declined', dismiss);
-    socket.on('call:ended', dismiss);
-    socket.on('call:missed', dismiss);
+    const synchronize = () => {
+      void loadCallKitModule()
+        .then((CallKit) => CallKit && synchronizeCallSession(CallKit))
+        .catch(() => undefined);
+    };
+    socket.on('connect', synchronize);
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        socket.connect();
+        synchronize();
+      }
+    });
+    socket.on('connect_error', (error: Error & { data?: { code?: string } }) => {
+      if (error.data?.code === 'AUTH_TOKEN_EXPIRED')
+        void useAuthStore
+          .getState()
+          .refreshNow()
+          .then(() => socket.connect());
+    });
+    socket.on('call:accepted', (payload: unknown) => dismiss(payload, 'answeredElsewhere'));
+    socket.on('call:declined', (payload: unknown) => dismiss(payload, 'declinedElsewhere'));
+    socket.on('call:ended', (payload: unknown) => dismiss(payload, 'remoteEnded'));
+    socket.on('call:missed', (payload: unknown) => dismiss(payload, 'unanswered'));
 
     return () => {
+      appState.remove();
       socket.disconnect();
     };
   }, [status]);

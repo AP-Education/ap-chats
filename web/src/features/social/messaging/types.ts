@@ -109,7 +109,6 @@ export type DeliveryStatus = 'uploading' | 'sending' | 'failed' | 'confirmed';
 export interface DisplayItem {
   item: HistoryItem;
   delivery: DeliveryStatus | undefined;
-  nonce: string | null;
   /** Only set while `delivery === 'uploading'`: live attachment progress to render instead of `item.message.attachments`. */
   pendingAttachments?: AttachmentDraft[];
 }
@@ -165,4 +164,6 @@ export interface ComposerEditorSlotProps {
   onSubmit?: () => void;
   onEscape?: () => void;
   onPasteFiles?: (files: File[]) => void;
+  /** The strip above the composer where suggestion lists dock; an inline editor has none. */
+  suggestionsHost?: HTMLElement | null;
 }

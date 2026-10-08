@@ -14,7 +14,7 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   triggerActive: css`
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    color: ${token.colorPrimaryTextActive};
   `,
   menu: css`
     width: 220px;

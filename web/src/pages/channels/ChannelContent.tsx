@@ -1,6 +1,19 @@
-import { Page, PageAside, PageBody, PageHeader, PageTitle, useIsMobile } from '@ap-education/ui';
-import { Button, Empty, Result } from 'antd';
-import { createStyles } from 'antd-style';
+import {
+  ContentState,
+  ContentStateActions,
+  ContentStateDescription,
+  ContentStateIcon,
+  ContentStateTitle,
+  Page,
+  PageAside,
+  PageBody,
+  PageHeader,
+  PageTitle,
+  StatePage,
+  useIsMobile,
+} from '@ap-education/ui';
+import { ChatsIcon, ProhibitIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import { Button } from 'antd';
 import { useParams } from 'react-router-dom';
 
 import { ChatLoading } from '@/domain/conversation/ChatLoading';
@@ -13,76 +26,70 @@ import { WorkspaceChannelPresence } from '@/features/social/read-state/Workspace
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 
-const useStyles = createStyles(({ token, css }) => ({
-  centered: css`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    padding: ${token.paddingLG}px;
-  `,
-}));
+/** On mobile the page keeps its header, so the menu with the channel list stays one tap away. */
+function NoChannelSelected() {
+  const isMobile = useIsMobile();
+
+  return (
+    <Page>
+      {isMobile && (
+        <PageHeader>
+          <MobileMenuButton />
+          <PageTitle>Чати</PageTitle>
+        </PageHeader>
+      )}
+      <PageBody>
+        <ContentState>
+          <ContentStateIcon>
+            <ChatsIcon />
+          </ContentStateIcon>
+          <ContentStateTitle>Оберіть канал зі списку</ContentStateTitle>
+        </ContentState>
+      </PageBody>
+    </Page>
+  );
+}
+
+function ChannelUnavailable() {
+  return (
+    <StatePage>
+      <ContentStateIcon>
+        <ProhibitIcon />
+      </ContentStateIcon>
+      <ContentStateTitle>Канал недоступний</ContentStateTitle>
+      <ContentStateDescription>
+        Його видалили або у вас більше немає до нього доступу.
+      </ContentStateDescription>
+    </StatePage>
+  );
+}
 
 export default function ChannelContent() {
-  const { styles } = useStyles();
   const { id: workspaceId } = useRequiredWorkspace();
   const { channelId } = useParams<{ channelId?: string }>();
   const query = useChannel(workspaceId, channelId);
   const unavailable = useTrackConversation('channels', workspaceId, channelId, query, '/channels');
-  const isMobile = useIsMobile();
 
-  if (!channelId) {
-    if (isMobile) {
-      return (
-        <Page>
-          <PageHeader>
-            <MobileMenuButton />
-            <PageTitle>Чати</PageTitle>
-          </PageHeader>
-          <PageBody>
-            <div className={styles.centered}>
-              <Empty description="Оберіть канал зі списку" />
-            </div>
-          </PageBody>
-        </Page>
-      );
-    }
-
-    return (
-      <div className={styles.centered}>
-        <Empty description="Оберіть канал зі списку" />
-      </div>
-    );
-  }
-
+  if (!channelId) return <NoChannelSelected />;
   if (query.isPending) return <ChatLoading />;
-
-  if (unavailable) {
-    return (
-      <div className={styles.centered}>
-        <Empty description="Канал недоступний або більше не існує" />
-      </div>
-    );
-  }
+  if (unavailable) return <ChannelUnavailable />;
 
   if (query.isError && !query.data) {
     return (
-      <Result
-        status="error"
-        title="Не вдалося завантажити канал"
-        extra={<Button onClick={() => void query.refetch()}>Спробувати ще раз</Button>}
-      />
+      <StatePage role="alert">
+        <ContentStateIcon tone="danger">
+          <WarningCircleIcon />
+        </ContentStateIcon>
+        <ContentStateTitle>Не вдалося завантажити канал</ContentStateTitle>
+        <ContentStateActions>
+          <Button onClick={() => void query.refetch()}>Спробувати ще раз</Button>
+        </ContentStateActions>
+      </StatePage>
     );
   }
 
   const channel = query.data;
-  if (!channel) {
-    return (
-      <div className={styles.centered}>
-        <Empty description="Канал недоступний або більше не існує" />
-      </div>
-    );
-  }
+  if (!channel) return <ChannelUnavailable />;
 
   return (
     <Page>

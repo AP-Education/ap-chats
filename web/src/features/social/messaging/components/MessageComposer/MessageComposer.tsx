@@ -61,21 +61,33 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     flex-direction: column;
   `,
+  suggestions: css`
+    position: relative;
+    margin: 0 12px;
+
+    @media (max-width: ${token.screenMD}px) {
+      margin: 0 6px;
+    }
+  `,
+  // Floats over the wallpaper and the messages scrolling beneath it; only its controls
+  // take pointer input, the transparent gaps between them pass it through.
   shell: css`
     flex-shrink: 0;
     display: flex;
     align-items: flex-end;
-    gap: 10px;
-    padding: 0 ${token.paddingLG}px ${token.paddingSM}px;
+    gap: 8px;
+    padding: 0 12px 12px;
+
+    & > * {
+      pointer-events: auto;
+    }
 
     @media (max-width: ${token.screenMD}px) {
-      gap: 4px;
-      padding: 4px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+      gap: 8px;
+      padding: 4px 8px calc(8px + env(safe-area-inset-bottom, 0px));
       html[data-native-shell='true'] & {
         padding-bottom: 8px;
       }
-      border-top: 1px solid ${token.colorBorderSecondary};
-      background: ${token.colorBgContainer};
     }
   `,
   desktopPanel: css`
@@ -85,6 +97,7 @@ const useStyles = createStyles(({ token, css }) => ({
   mobileSheet: css`
     flex-shrink: 0;
     overflow: hidden;
+    pointer-events: auto;
     padding: 8px 10px;
     border-top: 1px solid ${token.colorBorderSecondary};
     background: ${token.colorBgContainer};
@@ -108,9 +121,13 @@ const useStyles = createStyles(({ token, css }) => ({
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
-      height: 46px;
+      width: 44px;
+      height: 44px;
       flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--glass, rgba(255, 255, 255, 0.86));
+      backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
+      box-shadow: 0 1px 2px rgba(23, 46, 42, 0.12);
     }
   `,
   toolbarRight: css`
@@ -127,7 +144,7 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow-y: auto;
     padding: 8px 4px;
     line-height: 1.45;
-    font-size: 16px;
+    font-size: var(--app-text-size, 16px);
     color: ${token.colorText};
     white-space: pre-wrap;
     word-break: break-word;
@@ -141,7 +158,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
     &::-webkit-scrollbar-thumb {
       background: ${token.colorBorder};
-      border-radius: 3px;
+      border-radius: ${token.borderRadiusXS}px;
     }
 
     &::-webkit-scrollbar-track {
@@ -159,10 +176,13 @@ const useStyles = createStyles(({ token, css }) => ({
       pointer-events: none;
     }
 
+    // With the 4px around it this makes a 44px line, the text centred in it. iOS zooms the
+    // page into any field set below 16px, so smaller picks stop there on phones.
     @media (max-width: ${token.screenMD}px) {
-      min-height: 40px;
+      min-height: 36px;
       max-height: 160px;
-      padding: 8px 0;
+      padding: 6px 0;
+      font-size: max(16px, var(--app-text-size, 16px));
     }
   `,
   toolbarButton: css`
@@ -170,18 +190,29 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   toolbarButtonActive: css`
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    color: ${token.colorPrimaryTextActive};
   `,
   reply: css`
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     min-width: 0;
-    padding: 6px 8px;
-    border-left: 3px solid ${token.colorPrimary};
-    border-radius: 2px;
+    padding: ${token.paddingXXS}px ${token.paddingXXS}px ${token.paddingXXS}px ${token.padding}px;
+    border-radius: ${token.borderRadius}px;
     background: ${token.colorPrimaryBg};
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 6px;
+      bottom: 6px;
+      left: 6px;
+      width: 4px;
+      border-radius: ${token.borderRadiusXS}px;
+      background: ${token.colorPrimary};
+    }
   `,
 }));
 
@@ -226,6 +257,7 @@ export function MessageComposer({
     sync: syncHasContent,
     clear: clearDraft,
   } = useComposerDraft(draftKey);
+  const [suggestionsHost, setSuggestionsHost] = useState<HTMLDivElement | null>(null);
   const [webActiveTab, setActiveTab] = useState<PickerTab | null>(null);
   const [lastActiveTab, setLastActiveTab] = useState<PickerTab>(readLastPickerTab);
   const keyboardHeight = useBrowserKeyboardHeight();
@@ -438,6 +470,7 @@ export function MessageComposer({
       onSubmit: handleSend,
       onEscape,
       onPasteFiles: uploads.addFiles,
+      suggestionsHost,
     }),
     [
       draftKey,
@@ -449,11 +482,13 @@ export function MessageComposer({
       handleSend,
       onEscape,
       uploads.addFiles,
+      suggestionsHost,
     ],
   );
 
   return (
     <div className={styles.root}>
+      <div ref={setSuggestionsHost} className={styles.suggestions} />
       <div className={styles.shell} ref={bindTarget}>
         {overlay}
         <input

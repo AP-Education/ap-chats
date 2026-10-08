@@ -16,7 +16,7 @@ const useStyles = createStyles(({ token, css }) => ({
     border: 2px dashed ${token.colorPrimary};
     border-radius: ${token.borderRadiusLG}px;
     background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    color: ${token.colorPrimaryTextActive};
     font-weight: 600;
     pointer-events: none;
   `,

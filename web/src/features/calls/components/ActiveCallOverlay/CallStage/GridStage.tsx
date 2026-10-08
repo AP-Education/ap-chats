@@ -9,7 +9,7 @@ const fadeIn = keyframes`
   to { opacity: 1; transform: scale(1); }
 `;
 
-const useStyles = createStyles(({ css }) => ({
+const useStyles = createStyles(({ token, css }) => ({
   stage: css`
     display: flex;
     flex: 1;
@@ -18,14 +18,14 @@ const useStyles = createStyles(({ css }) => ({
     justify-content: center;
     gap: 28px;
     min-height: 0;
-    padding: 24px;
+    padding: ${token.paddingLG}px;
   `,
   grid: css`
     display: grid;
     flex: 1;
     align-content: center;
     justify-content: center;
-    gap: 12px;
+    gap: ${token.paddingSM}px;
     width: 100%;
     max-width: 1100px;
     min-height: 0;
@@ -35,7 +35,7 @@ const useStyles = createStyles(({ css }) => ({
     overflow: hidden;
     aspect-ratio: 16 / 10;
     max-height: 62vh;
-    border-radius: 16px;
+    border-radius: ${token.borderRadiusLG * 2}px;
     background: #000;
     animation: ${fadeIn} 0.25s ease-out;
 
@@ -50,18 +50,19 @@ const useStyles = createStyles(({ css }) => ({
     position: absolute;
     left: 10px;
     bottom: 8px;
-    padding: 2px 10px;
+    padding: 2px ${token.paddingXS}px;
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.5);
-    color: #fff;
-    font-size: 13px;
+    background: rgba(7, 17, 19, 0.5);
+    backdrop-filter: blur(16px);
+    color: ${token.colorText};
+    font-size: ${token.fontSizeSM}px;
     font-weight: 550;
   `,
   strip: css`
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 24px;
+    gap: ${token.paddingLG}px;
     padding-bottom: 8px;
   `,
   avatarTile: css`

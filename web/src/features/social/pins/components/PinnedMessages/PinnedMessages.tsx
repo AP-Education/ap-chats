@@ -1,4 +1,6 @@
-import { Button, Empty, Spin } from 'antd';
+import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-education/ui';
+import { PushPinIcon } from '@phosphor-icons/react';
+import { Button, Spin } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { useConversationScope } from '@/features/social/conversation/store';
@@ -18,7 +20,7 @@ const useStyles = createStyles(({ token, css }) => ({
     margin-bottom: 4px;
     padding: 8px 10px;
     border: 0;
-    border-radius: 7px;
+    border-radius: ${token.borderRadiusSM}px;
     background: transparent;
     color: ${token.colorText};
     text-align: left;
@@ -68,10 +70,12 @@ export function PinnedMessages({ onJump }: PinnedMessagesProps) {
   if (!query.data?.length)
     return (
       <div className={styles.list}>
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="Закріплених повідомлень поки немає"
-        />
+        <ContentState compact>
+          <ContentStateIcon>
+            <PushPinIcon />
+          </ContentStateIcon>
+          <ContentStateDescription>Закріплених повідомлень поки немає</ContentStateDescription>
+        </ContentState>
       </div>
     );
 

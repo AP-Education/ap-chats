@@ -1,3 +1,5 @@
+import { isNativeShell, postToNative } from '@ap-education/shell-sdk';
+
 import { getSharedAudioContext } from '@/shared/audio/audio-context';
 import { scheduleBell } from '@/shared/audio/tone';
 
@@ -8,8 +10,8 @@ const NOTE_GAIN = 0.16;
 const NOTE_DECAY_SECONDS = 0.4;
 
 export function playMessageBloop(): void {
-  if (window.ReactNativeWebView) {
-    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'notifications/message-sound' }));
+  if (isNativeShell()) {
+    postToNative({ type: 'notifications/message-sound' });
     return;
   }
   const context = getSharedAudioContext();

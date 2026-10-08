@@ -2,35 +2,46 @@ import { createStyles } from 'antd-style';
 import type { PropsWithChildren, ReactNode } from 'react';
 
 const useStyles = createStyles(({ token, css }) => ({
+  // Frosted over the chat wallpaper, the same material as the bubbles above it.
   surface: css`
     flex: 1;
     min-width: 0;
-    border: 1px solid ${token.colorBorder};
-    border-radius: 12px;
-    background: ${token.colorBgContainer};
-    box-shadow: 0 2px 8px ${token.colorFillQuaternary};
+    border-radius: ${token.borderRadiusLG}px;
+    background: var(--glass, rgba(255, 255, 255, 0.86));
+    backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
+    box-shadow:
+      0 1px 2px rgba(23, 46, 42, 0.12),
+      0 6px 20px rgba(23, 46, 42, 0.06);
+    transition: box-shadow 0.15s ease;
+
+    // Focus lifts the surface instead of outlining it: a ring around the rounded corners
+    // reads as a stray border, and the caret already shows where typing goes.
     &:focus-within {
-      border-color: ${token.colorPrimaryBorder};
+      box-shadow:
+        0 1px 2px rgba(23, 46, 42, 0.14),
+        0 8px 24px rgba(23, 46, 42, 0.12);
     }
+
+    @media (prefers-reduced-transparency: reduce) {
+      background: ${token.colorBgContainer};
+    }
+
+    // A pill beside the round attach and send buttons, all one 44px touch height.
     @media (max-width: ${token.screenMD}px) {
-      border-color: ${token.colorBorderSecondary};
-      border-radius: 14px;
-      background: ${token.colorFillQuaternary};
-      box-shadow: none;
+      border-radius: 22px;
     }
   `,
   context: css`
-    padding: 8px 12px 0;
+    padding: 10px 12px 0;
   `,
   line: css`
     display: flex;
     align-items: flex-end;
-    gap: 5px;
+    gap: 4px;
     min-width: 0;
-    padding: 7px 12px;
+    padding: 6px 8px;
     @media (max-width: ${token.screenMD}px) {
-      gap: 4px;
-      padding: 2px 4px 2px 6px;
+      padding: ${token.paddingXXS}px ${token.paddingXXS}px ${token.paddingXXS}px ${token.padding}px;
     }
   `,
   body: css`
@@ -38,11 +49,15 @@ const useStyles = createStyles(({ token, css }) => ({
     min-width: 0;
   `,
   compact: css`
-    border-radius: 6px;
+    border: 1px solid ${token.colorBorder};
+    border-radius: ${token.borderRadiusLG}px;
+    background: ${token.colorBgContainer};
+    backdrop-filter: none;
     box-shadow: none;
 
-    @media (max-width: ${token.screenMD}px) {
-      background: ${token.colorBgContainer};
+    &:focus-within {
+      border-color: ${token.colorPrimaryBorder};
+      box-shadow: none;
     }
   `,
   compactLine: css`

@@ -1,5 +1,4 @@
 import { FileIcon } from '@phosphor-icons/react';
-import { Progress } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { fileExtension, formatFileSize } from '../../attachments/file-presentation';
@@ -9,34 +8,29 @@ const useStyles = createStyles(({ token, css }) => ({
   stack: css`
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-top: 6px;
+    gap: 6px;
     min-width: 0;
   `,
   shell: css`
-    width: min(420px, 100%);
-    overflow: hidden;
-    border: 1px solid ${token.colorBorderSecondary};
-    border-radius: ${token.borderRadiusLG}px;
-    background: ${token.colorBgContainer};
+    min-width: min(240px, 100%);
+    max-width: 420px;
   `,
   card: css`
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
-    padding: 10px 12px;
+    padding: 2px 0;
   `,
   thumb: css`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 40px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
     height: 44px;
     overflow: hidden;
-    border-radius: ${token.borderRadius}px;
-    background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+    border-radius: ${token.borderRadiusLG}px;
+    background: var(--bubble-accent);
+    color: var(--bubble-on-accent, #fff);
     img {
       width: 100%;
       height: 100%;
@@ -53,12 +47,27 @@ const useStyles = createStyles(({ token, css }) => ({
     white-space: nowrap;
     font-size: ${token.fontSizeSM}px;
     font-weight: 550;
-    color: ${token.colorText};
+    color: var(--bubble-text);
   `,
   meta: css`
-    margin-top: 3px;
-    color: ${token.colorTextSecondary};
+    margin-top: 2px;
+    color: var(--bubble-meta);
     font-size: 12px;
+  `,
+  progress: css`
+    height: 4px;
+    margin-top: 6px;
+    overflow: hidden;
+    border-radius: ${token.borderRadiusXS}px;
+    background: var(--bubble-fill);
+
+    span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--bubble-accent);
+      transition: width 0.2s ease;
+    }
   `,
 }));
 
@@ -83,7 +92,7 @@ export function PendingAttachments({ drafts }: { drafts: AttachmentDraft[] }) {
               {draft.previewUrl ? (
                 <img src={draft.previewUrl} alt="" />
               ) : (
-                <FileIcon size={24} weight="duotone" aria-hidden />
+                <FileIcon size={22} weight="fill" aria-hidden />
               )}
             </div>
             <div className={styles.details}>
@@ -95,7 +104,9 @@ export function PendingAttachments({ drafts }: { drafts: AttachmentDraft[] }) {
                   : (STATUS_LABEL[draft.status] ?? STATUS_LABEL.queued)}
               </div>
               {draft.status === 'uploading' && (
-                <Progress percent={draft.progress} showInfo={false} size="small" />
+                <div className={styles.progress} role="progressbar" aria-valuenow={draft.progress}>
+                  <span style={{ width: `${draft.progress}%` }} />
+                </div>
               )}
             </div>
           </div>
