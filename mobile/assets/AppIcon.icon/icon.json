@@ -1,0 +1,97 @@
+{
+  "fill": {
+    "linear-gradient": [
+      "srgb:0.00000,0.60392,0.47059,1.00000",
+      "srgb:0.00392,0.22745,0.18824,1.00000"
+    ]
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.05882,0.70980,0.55686,1.00000"
+              }
+            }
+          ],
+          "glass": true,
+          "image-name": "star.svg",
+          "name": "star"
+        }
+      ],
+      "name": "Star",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": true,
+        "value": 0.4
+      },
+      "translucency-specializations": [
+        {
+          "appearance": "dark",
+          "value": {
+            "enabled": false,
+            "value": 0
+          }
+        }
+      ]
+    },
+    {
+      "layers": [
+        {
+          "blend-mode": "normal",
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.05882,0.70980,0.55686,1.00000"
+              }
+            }
+          ],
+          "glass": true,
+          "hidden": false,
+          "image-name": "letters.svg",
+          "name": "letters"
+        }
+      ],
+      "name": "Letters",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "specular": true,
+      "translucency": {
+        "enabled": true,
+        "value": 0.4
+      },
+      "translucency-specializations": [
+        {
+          "appearance": "dark",
+          "value": {
+            "enabled": false,
+            "value": 0
+          }
+        }
+      ]
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}
