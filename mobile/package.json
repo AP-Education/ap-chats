@@ -23,6 +23,7 @@
     "expo-modules-core": "~57.0.18",
     "expo-notifications": "~57.0.21",
     "expo-secure-store": "~57.0.4",
+    "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
     "expo-web-browser": "~57.0.3",
     "livekit-client": "^2.22.3",
@@ -35,12 +36,14 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-svg": "15.15.4",
     "react-native-webview": "13.16.1",
+    "react-native-worklets": "0.10.4",
     "socket.io-client": "^4.8.3",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@types/node": "24.13.6",
     "@types/react": "~19.2.2",
+    "babel-preset-expo": "57.0.12",
     "tsx": "4.23.15",
     "typescript": "~6.0.3"
   },

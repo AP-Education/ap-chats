@@ -1,4 +1,5 @@
 import { selectionAsync } from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
@@ -19,8 +20,11 @@ import {
   isComposerInputRequest,
   useComposerInput,
 } from '../../composer';
-import { unregisterCurrentDevice } from '../../push/api/unregister-current-device';
+import { changePushPermission } from '../../push/api/change-push-permission';
+import { dismissPresentedNotifications } from '../../push/api/presented-notifications';
+import { getPushPermissionStatus } from '../../push/api/push-token';
 import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
+import { useNotificationStore } from '../../push/store/notification-store';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
 import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
 import { buildBridgeScript } from '../utils/inject-bridge';
@@ -33,6 +37,8 @@ const webUrl = process.env.EXPO_PUBLIC_WEB_URL;
 export function WebViewHost() {
   const webViewRef = useRef<WebView>(null);
   const auth = useAuthStore();
+  const pendingNotification = useNotificationStore((state) => state.pending);
+  const webReady = useNotificationStore((state) => state.webReady);
   const miniCallBarVisible = useIsMiniCallBarVisible();
   // injectJavaScript silently drops calls made before the page has actually finished
   // loading (no JS context to run in yet) — this counts WebView loads (initial + any
@@ -72,6 +78,33 @@ export function WebViewHost() {
     webViewRef.current?.injectJavaScript(buildBridgeScript(message));
   }, [auth, loadCount]);
 
+  // Routed only once the page says it can; it acknowledges, and the tap stays pending until then.
+  useEffect(() => {
+    if (auth.status !== 'signed-in' || !webReady || !pendingNotification || loadCount === 0) return;
+
+    webViewRef.current?.injectJavaScript(
+      buildBridgeScript({ type: 'notifications/open', payload: pendingNotification }),
+    );
+  }, [auth.status, webReady, pendingNotification, loadCount]);
+
+  useEffect(() => () => useNotificationStore.getState().setWebReady(false), []);
+
+  // Settings changes the permission outside the app, so it is re-read on every return.
+  useEffect(() => {
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') sendPushPermission();
+    });
+    return () => appState.remove();
+  }, []);
+
+  function sendPushPermission() {
+    void getPushPermissionStatus().then((status) =>
+      webViewRef.current?.injectJavaScript(
+        buildBridgeScript({ type: 'notifications/permission', status }),
+      ),
+    );
+  }
+
   function handleMessage(event: WebViewMessageEvent) {
     let message: WebToNativeMessage;
     try {
@@ -81,10 +114,23 @@ export function WebViewHost() {
     }
     if (isComposerInputRequest(message)) {
       input.request(message);
+    } else if (message.type === 'notifications/ready') {
+      useNotificationStore.getState().setWebReady(true);
+    } else if (message.type === 'notifications/ack') {
+      const routed = useNotificationStore.getState().pending?.eventId === message.eventId;
+      useNotificationStore.getState().acknowledge(message.eventId);
+      if (routed) void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
+    } else if (message.type === 'notifications/dismiss') {
+      void dismissPresentedNotifications(message.collapseKey);
+    } else if (message.type === 'notifications/context') {
+      useNotificationStore.getState().setWebAttending(message.payload.attending);
+    } else if (message.type === 'notifications/permission-check') {
+      sendPushPermission();
+    } else if (message.type === 'notifications/settings') {
+      void changePushPermission().then(sendPushPermission);
     } else if (message.type === 'auth/sign-out') {
-      // Capture the current access token before signOut hides the WebView. Push
-      // cleanup must not block logout when the device API is unreachable.
-      void Promise.allSettled([unregisterCurrentDevice(), useAuthStore.getState().signOut()]);
+      // PushRegistration unregisters the device on any way out of the session.
+      void useAuthStore.getState().signOut();
     } else if (message.type === 'auth/refresh-request') {
       // Updates the store; the effect above picks up the new token and re-injects it.
       void useAuthStore.getState().refreshNow();
@@ -151,7 +197,10 @@ export function WebViewHost() {
           contentInsetAdjustmentBehavior="never"
           scrollEnabled={false}
           bounces={false}
-          onLoadStart={input.close}
+          onLoadStart={() => {
+            input.close();
+            useNotificationStore.getState().setWebReady(false);
+          }}
           applicationNameForUserAgent={APP_SHELL_USER_AGENT}
           onMessage={handleMessage}
           onLoadEnd={() => {

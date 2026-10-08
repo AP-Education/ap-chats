@@ -3,7 +3,19 @@ import path from 'node:path';
 import { sharedSingletons } from '@ap-education/federation';
 import { federation } from '@module-federation/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
+
+// Link previews only load absolute image URLs, so release builds pass the public origin; elsewhere it stays relative.
+const appOrigin: Plugin = {
+  name: 'app-origin',
+  config: (_, { mode }) => ({
+    define: {
+      'import.meta.env.VITE_APP_ORIGIN': JSON.stringify(
+        loadEnv(mode, import.meta.dirname).VITE_APP_ORIGIN ?? '',
+      ),
+    },
+  }),
+};
 
 import pkg from './package.json' with { type: 'json' };
 
@@ -14,6 +26,7 @@ export default defineConfig({
   define: { __BUILD_ID__: JSON.stringify(Date.now().toString(36)) },
   plugins: [
     react(),
+    appOrigin,
     federation({
       name: 'chats',
       filename: 'remoteEntry.js',

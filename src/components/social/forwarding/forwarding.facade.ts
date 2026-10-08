@@ -8,13 +8,14 @@ import {
 } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
+import { ChannelAccessFacade } from '@/components/communities/channel-access';
 import { DirectMessagesService } from '@/components/direct-messages/direct-messages.service';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
+import { EventOutbox } from '@/globals/publisher/event-outbox';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
 
+import { MessagesFacade } from '../messages';
 import { messageView } from '../messages/message-view';
-import { MessagesFacade } from '../messages/messages.facade';
 import type { ForwardMessagesDto } from './dto/forward-messages.dto';
 import {
   FORWARD_BATCH_CREATED_EVENT,
@@ -30,6 +31,7 @@ export class ForwardingFacade {
     private readonly messages: MessagesFacade,
     private readonly repository: ForwardingRepository,
     private readonly events: EventPublisher,
+    private readonly outbox: EventOutbox,
   ) {}
 
   async forward(member: WorkspaceMember, dto: ForwardMessagesDto) {
@@ -56,19 +58,7 @@ export class ForwardingFacade {
       .digest('hex');
     const nonces = dto.messageIds.map((_, index) => this.nonce(dto.batchNonce, index));
     const result = await this.forwardTransaction(member, targetChannelId, dto, digest, nonces);
-    if (result.created)
-      this.events.publish(
-        FORWARD_BATCH_CREATED_EVENT,
-        new ForwardBatchCreatedEvent(
-          member.workspaceId,
-          targetChannelId,
-          result.views.map(({ id }) => id),
-          result.views[0]!.seq,
-          result.views.at(-1)!.seq,
-          member.id,
-          result.views.map(({ seq }) => seq),
-        ),
-      );
+    if (result.event) this.events.publish(FORWARD_BATCH_CREATED_EVENT, result.event);
     return { messages: result.views, conversation };
   }
 
@@ -100,7 +90,7 @@ export class ForwardingFacade {
           if (!view) throw new ConflictException('Incomplete forward batch');
           return view;
         }),
-        created: false,
+        event: null,
       };
     }
     const sources = await this.messages.findMany(dto.sourceChannelId, dto.messageIds);
@@ -124,7 +114,17 @@ export class ForwardingFacade {
       forwardRecords,
       digest,
     );
-    return { views, created: true };
+    const event = new ForwardBatchCreatedEvent(
+      member.workspaceId,
+      targetChannelId,
+      views.map(({ id }) => id),
+      views[0]!.seq,
+      views.at(-1)!.seq,
+      member.id,
+      views.map(({ seq }) => seq),
+    );
+    await this.outbox.record(FORWARD_BATCH_CREATED_EVENT, event);
+    return { views, event };
   }
 
   private nonce(batchNonce: string, index: number) {

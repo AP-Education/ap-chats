@@ -64,6 +64,21 @@ function validateTree(node: MarkdownNode, mentioned: Set<string>, plain: string[
   if (['paragraph', 'blockquote', 'listItem'].includes(node.type)) plain.push('\n');
 }
 
+async function markdownProcessor() {
+  const [{ remark }, { default: remarkDirective }] = await Promise.all([
+    import('remark'),
+    import('remark-directive'),
+  ]);
+  return remark().use(remarkDirective);
+}
+
+export async function messagePlainText(markdown: string): Promise<string> {
+  const processor = await markdownProcessor();
+  const plain: string[] = [];
+  validateTree(processor.parse(markdown) as MarkdownNode, new Set(), plain);
+  return plain.join('');
+}
+
 @Injectable()
 export class MessageMarkdownService {
   async normalize(source: string, allowBlank = false): Promise<NormalizedMessageContent> {
@@ -74,11 +89,7 @@ export class MessageMarkdownService {
     if (/[\u0000-\u0008\u000B-\u001F\u007F]/u.test(normalizedSource))
       throw new BadRequestException('Message contains control characters');
 
-    const [{ remark }, { default: remarkDirective }] = await Promise.all([
-      import('remark'),
-      import('remark-directive'),
-    ]);
-    const processor = remark().use(remarkDirective);
+    const processor = await markdownProcessor();
     const tree = processor.parse(normalizedSource);
     const mentioned = new Set<string>();
     const plain: string[] = [];

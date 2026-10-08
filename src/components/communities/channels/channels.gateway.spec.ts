@@ -6,7 +6,7 @@ import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import type { Logger } from '@/globals/logger';
 import type { RealtimePublisher } from '@/globals/realtime';
 
-import type { ChannelAudienceFacade } from '../channel-audience/channel-audience.facade';
+import type { ChannelAudienceFacade } from '../channel-audience';
 import { ChannelsGateway } from './channels.gateway';
 import { ChannelCreatedEvent } from './events/channel-created.event';
 

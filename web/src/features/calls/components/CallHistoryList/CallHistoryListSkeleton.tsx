@@ -1,62 +1,43 @@
+import { useIsMobile } from '@ap-education/ui';
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 
 const useStyles = createStyles(({ token, css }) => ({
-  group: css`
-    margin-top: 20px;
-    padding: 0 0 8px;
-    color: ${token.colorTextTertiary};
-  `,
   row: css`
     display: flex;
     align-items: center;
-    gap: 12px;
-    height: 64px;
-    padding: 10px 0;
+    gap: 10px;
+    height: 56px;
+    padding: 9px 12px;
+
+    @media (max-width: ${token.screenMD}px) {
+      height: 64px;
+      gap: 12px;
+      padding: 6px 12px;
+    }
   `,
   body: css`
     display: flex;
     flex: 1;
-    min-width: 0;
     flex-direction: column;
     gap: 6px;
   `,
-  nameLine: css`
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-  `,
-  name: css`
-    flex: 1;
-    min-width: 0;
-    max-width: 140px;
-  `,
 }));
 
-export function CallHistoryListSkeleton() {
+export function CallHistoryListSkeleton({ rows = 5 }: { rows?: number }) {
   const { styles } = useStyles();
+  const isMobile = useIsMobile();
 
   return (
     <div aria-label="Завантажуємо дзвінки" role="status">
-      <div className={styles.group}>
-        <Skeleton.Input active size="small" style={{ width: 72, minWidth: 0, height: 12 }} />
-      </div>
-      {[0, 1, 2, 3, 4].map((row) => (
+      {Array.from({ length: rows }, (_, row) => (
         <div key={row} className={styles.row}>
-          <Skeleton.Avatar active size={40} shape="circle" />
+          <Skeleton.Avatar active size={isMobile ? 44 : 36} shape="circle" />
           <span className={styles.body}>
-            <span className={styles.nameLine}>
-              <Skeleton.Input
-                active
-                size="small"
-                className={styles.name}
-                style={{ width: '100%', minWidth: 0, height: 14 }}
-              />
-              <Skeleton.Input active size="small" style={{ width: 32, minWidth: 0, height: 10 }} />
-            </span>
-            <Skeleton.Input active size="small" style={{ width: 100, minWidth: 0, height: 12 }} />
+            <Skeleton.Input active size="small" style={{ width: 120, minWidth: 0, height: 14 }} />
+            <Skeleton.Input active size="small" style={{ width: 88, minWidth: 0, height: 12 }} />
           </span>
-          <Skeleton.Avatar active size={44} shape="circle" />
+          <Skeleton.Input active size="small" style={{ width: 32, minWidth: 0, height: 10 }} />
         </div>
       ))}
     </div>

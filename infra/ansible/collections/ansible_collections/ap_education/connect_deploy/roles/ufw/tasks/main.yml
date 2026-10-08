@@ -1,0 +1,34 @@
+---
+- name: Ensure ufw is installed
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+  become: true
+
+- name: Configure UFW defaults
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming
+  become: true
+
+- name: Allow SSH via UFW
+  community.general.ufw:
+    rule: allow
+    port: '22'
+    proto: tcp
+  become: true
+
+- name: Allow HTTP via UFW
+  community.general.ufw:
+    rule: allow
+    port: '80'
+    proto: tcp
+  become: true
+
+- name: Allow HTTPS via UFW
+  community.general.ufw:
+    rule: allow
+    port: '443'
+    proto: tcp
+  become: true

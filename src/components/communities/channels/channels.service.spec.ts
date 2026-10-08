@@ -6,7 +6,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import type { EventPublisher } from '@/globals/publisher/event-publisher';
 
-import { CommunityAccessService } from '../channel-access/community-access.service';
+import { CommunityAccessService } from '../channel-access';
 import type { ChannelCategoriesRepository } from '../channel-categories/repository';
 import type { ChannelMembershipsRepository } from '../memberships/repository';
 import { ChannelsService } from './channels.service';

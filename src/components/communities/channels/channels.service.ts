@@ -8,7 +8,7 @@ import {
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
 
-import { CommunityAccessService } from '../channel-access/community-access.service';
+import { CommunityAccessService } from '../channel-access';
 import { ChannelCategoriesRepository } from '../channel-categories/repository';
 import type { CreateChannelDto } from './dto/create-channel.dto';
 import type { UpdateChannelDto } from './dto/update-channel.dto';

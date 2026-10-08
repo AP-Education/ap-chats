@@ -1,0 +1,22 @@
+---
+# Shared across roles in this play — kept here rather than in a single
+# role's defaults so compose_runtime and postgres_backup agree on them
+# without depending on Ansible's role-defaults-leak-into-the-play behavior.
+project_name: ap-connect
+deploy_project_path: /opt/ap-connect
+data_path: /mnt/ap-connect-data
+postgres_backup_bin: /opt/ap-connect/bin/postgres-backup.sh
+postgres_user: ap_chats
+postgres_db: ap_chats
+
+app_tag: prod
+chats_domain: chats.ap-platform.online
+
+# Calls through ai-native's Call API (recording, transcription). Its OIDC
+# guard must accept Chats tokens; the vault's livekit_* then stays empty.
+ai_native_url: https://ai.ap-platform.online
+
+# Needs the web_push_* (and, for calls, apns_*) values in the vault.
+# The service's Valkey URL is redis://valkey:6379/0, never localhost:6380.
+push_enabled: true
+push_worker_enabled: true

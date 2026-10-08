@@ -1,8 +1,11 @@
+export type PushPermission = 'granted' | 'denied' | 'undetermined';
+
 export type DevicePlatform = 'ios' | 'android';
 
 export interface RegisterDevicePayload {
   installationId: string;
   platform: DevicePlatform;
-  pushToken: string;
+  pushToken?: string | null;
+  apnsEnvironment: 'sandbox' | 'production';
   voipToken?: string;
 }

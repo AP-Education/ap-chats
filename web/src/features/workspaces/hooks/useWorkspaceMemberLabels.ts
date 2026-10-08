@@ -12,6 +12,7 @@ export interface WorkspaceMemberLabel {
 
 interface WorkspaceMemberLabelsResult {
   byId: Map<string, WorkspaceMemberLabel>;
+  bySub: Map<string, WorkspaceMemberLabel>;
   /** The signed-in user's own workspace_members row, for permission checks. */
   currentMember: WorkspaceMember | undefined;
   isLoading: boolean;
@@ -26,20 +27,24 @@ export function useWorkspaceMemberLabels(
   const sub = user.status === 'signed-in' ? user.profile?.sub : undefined;
   const { data: members, isLoading, isError, refetch } = useWorkspaceMembers(workspaceId);
 
-  const byId = useMemo(() => {
-    const map = new Map<string, WorkspaceMemberLabel>();
+  const { byId, bySub } = useMemo(() => {
+    const byId = new Map<string, WorkspaceMemberLabel>();
+    const bySub = new Map<string, WorkspaceMemberLabel>();
     for (const member of members ?? []) {
       const isSelf = member.profile.oidcUserId === sub;
       const label = member.profile.displayName ?? 'Ім’я недоступне';
-      map.set(member.id, { member, isSelf, label });
+      const entry = { member, isSelf, label };
+      byId.set(member.id, entry);
+      bySub.set(member.profile.oidcUserId, entry);
     }
-    return map;
+    return { byId, bySub };
   }, [members, sub]);
 
   const currentMember = members?.find((candidate) => candidate.profile.oidcUserId === sub);
 
   return {
     byId,
+    bySub,
     currentMember,
     isLoading,
     isError: isError && !members,

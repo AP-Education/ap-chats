@@ -1,0 +1,9 @@
+[Unit]
+Description=Run ap-connect Postgres backup nightly
+
+[Timer]
+OnCalendar={{ postgres_backup_schedule }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

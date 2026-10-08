@@ -1,0 +1,18 @@
+#cloud-config
+hostname: ${project_name}-${environment}
+manage_etc_hosts: true
+users:
+  - name: ${runner_user}
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    lock_passwd: true
+%{ if length(ssh_authorized_keys) == 0 ~}
+    ssh_authorized_keys: []
+%{ else ~}
+    ssh_authorized_keys:
+%{   for key in ssh_authorized_keys ~}
+      - ${key}
+%{   endfor ~}
+%{ endif ~}
+  - default

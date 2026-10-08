@@ -7,7 +7,9 @@ import {
   NativeInCallScreen,
   NativeIncomingCallScreen,
   NativeMiniCallBar,
+  ProximityMonitor,
 } from './features/calls';
+import { NotificationResponses } from './features/push/components/NotificationResponses';
 import { PushPrimingGate } from './features/push/components/PushPrimingGate';
 import { PushRegistration } from './features/push/components/PushRegistration';
 import { WebViewHost } from './features/webview';
@@ -17,6 +19,9 @@ import { ErrorBoundary } from './shell/ErrorBoundary';
 export default function App() {
   return (
     <AppProviders>
+      <ErrorBoundary label="notification-responses">
+        <NotificationResponses />
+      </ErrorBoundary>
       <ErrorBoundary label="push-registration">
         <PushRegistration />
       </ErrorBoundary>
@@ -25,6 +30,9 @@ export default function App() {
       </ErrorBoundary>
       <ErrorBoundary label="call-signal-socket">
         <CallSignalSocket />
+      </ErrorBoundary>
+      <ErrorBoundary label="proximity-monitor">
+        <ProximityMonitor />
       </ErrorBoundary>
       {/* A normal flex column, not a Fragment: NativeMiniCallBar is a regular
           sibling here (not an absolute overlay) so the WebView actually

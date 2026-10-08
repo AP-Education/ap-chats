@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
+import { ConflictException } from '@nestjs/common';
+
+import { ChannelAccessFacade } from '@/components/communities/channel-access';
 import { ChannelAccessRepository } from '@/components/communities/channel-access/repository/channel-access.repository';
 import type { ChannelAccessSnapshot } from '@/components/communities/channels/types/channel-access.types';
 import { EntriesFacade } from '@/components/social/entries/entries.facade';
@@ -111,6 +113,9 @@ class FakeEntriesRepository extends EntriesRepository {
 class FakeCallProvider extends CallProvider {
   readonly isConfigured = true;
   participants = 0;
+  ended: string[] = [];
+
+  async create() {}
 
   async mintJoinToken() {
     return {
@@ -122,6 +127,10 @@ class FakeCallProvider extends CallProvider {
 
   async countParticipants() {
     return this.participants;
+  }
+
+  async end(call: { id: string }) {
+    this.ended.push(call.id);
   }
 }
 
@@ -148,7 +157,9 @@ class FakeCallsRepository extends CallsRepository {
     roomName: string;
     startedByMemberId: string;
   }): Promise<CallRecord> {
-    if (this.record && ACTIVE_STATUSES.has(this.record.status)) return this.record;
+    if (this.record && ACTIVE_STATUSES.has(this.record.status)) {
+      throw new ConflictException('Channel already has an ongoing call');
+    }
     this.record = { ...input, status: 'ringing', startedAt: new Date(), endedAt: null };
     return this.record;
   }
@@ -304,13 +315,14 @@ beforeEach(() => {
     provider,
     realtime,
     new FakeEventPublisher(),
+    { record: async () => {} },
   );
 });
 
 test('join: the starter joining their own ringing call answers nobody', async () => {
   repository.seed(ringingCall(dm, caller));
 
-  await calls.join(caller, dm.id, 'call-1');
+  await calls.join(caller, dm.id, 'call-1', 'test-token');
 
   assert.equal(repository.record?.status, 'ringing');
   assert.deepEqual(realtime.recipientsOf('call:accepted'), []);
@@ -319,7 +331,7 @@ test('join: the starter joining their own ringing call answers nobody', async ()
 test('join: someone else joining activates the call and reaches both sides', async () => {
   repository.seed(ringingCall(dm, caller));
 
-  await calls.join(callee, dm.id, 'call-1');
+  await calls.join(callee, dm.id, 'call-1', 'test-token');
 
   assert.equal(repository.record?.status, 'active');
   assert.deepEqual(
@@ -331,9 +343,10 @@ test('join: someone else joining activates the call and reaches both sides', asy
 test('decline: in a DM, ends the call and reaches both sides', async () => {
   repository.seed(ringingCall(dm, caller));
 
-  await calls.decline(callee, dm.id, 'call-1');
+  await calls.decline(callee, dm.id, 'call-1', 'test-token');
 
   assert.equal(repository.record?.status, 'declined');
+  assert.deepEqual(provider.ended, ['call-1']);
   assert.deepEqual(
     new Set(realtime.recipientsOf('call:declined')),
     new Set([caller.profile.oidcUserId, callee.profile.oidcUserId]),
@@ -343,9 +356,10 @@ test('decline: in a DM, ends the call and reaches both sides', async () => {
 test('decline: in a channel, is a personal no-op that never ends the call', async () => {
   repository.seed(ringingCall(group, starter));
 
-  await calls.decline(bystander, group.id, 'call-1');
+  await calls.decline(bystander, group.id, 'call-1', 'test-token');
 
   assert.equal(repository.record?.status, 'ringing', 'declining a group call must not resolve it');
+  assert.deepEqual(provider.ended, []);
   assert.deepEqual(
     realtime.recipientsOf('call:declined'),
     [],
@@ -357,9 +371,10 @@ test('leave: in a DM, ends the call immediately even if the media room still rep
   repository.seed({ ...ringingCall(dm, caller), status: 'active' });
   provider.participants = 1; // LiveKit still reports the other side connected
 
-  await calls.leave(callee, dm.id, 'call-1');
+  await calls.leave(callee, dm.id, 'call-1', 'test-token');
 
   assert.equal(repository.record?.status, 'ended');
+  assert.deepEqual(provider.ended, ['call-1']);
   assert.deepEqual(
     new Set(realtime.recipientsOf('call:ended')),
     new Set([caller.profile.oidcUserId, callee.profile.oidcUserId]),
@@ -371,12 +386,13 @@ test('leave: in a group call, waits for the media room to actually empty', async
   repository.seed({ ...ringingCall(group, starter), status: 'active' });
 
   provider.participants = 1; // others still in the room
-  await calls.leave(joiner, group.id, 'call-1');
+  await calls.leave(joiner, group.id, 'call-1', 'test-token');
   assert.equal(repository.record?.status, 'active', 'the call must survive while others remain');
   assert.deepEqual(realtime.recipientsOf('call:ended'), []);
+  assert.deepEqual(provider.ended, [], 'the media room must stay open for those still in it');
 
   provider.participants = 0; // the room is now confirmed empty
-  await calls.leave(bystander, group.id, 'call-1');
+  await calls.leave(bystander, group.id, 'call-1', 'test-token');
   assert.equal(repository.record?.status, 'ended');
   assert.ok(
     realtime.recipientsOf('call:ended').includes(starter.profile.oidcUserId),
@@ -390,7 +406,7 @@ test('a ring nobody answers is swept to missed and reaches whoever polled, inclu
 
   // The caller's own client is what happens to poll — e.g. the ringback
   // sound's periodic check — and must still hear its own call went missed.
-  await calls.active(caller, dm.id);
+  await calls.active(caller, dm.id, 'test-token');
 
   assert.equal(repository.record?.status, 'missed');
   assert.deepEqual(
@@ -398,13 +414,33 @@ test('a ring nobody answers is swept to missed and reaches whoever polled, inclu
     new Set([caller.profile.oidcUserId, callee.profile.oidcUserId]),
     "the caller's own trigger must not exclude themselves",
   );
+  assert.deepEqual(provider.ended, ['call-1'], 'a missed ring must also close its media room');
 });
 
 test('a ring within the TTL is left alone', async () => {
   repository.seed(ringingCall(dm, caller, new Date()));
 
-  await calls.active(caller, dm.id);
+  await calls.active(caller, dm.id, 'test-token');
 
   assert.equal(repository.record?.status, 'ringing');
   assert.deepEqual(realtime.recipientsOf('call:missed'), []);
+});
+
+test('start: calling into a channel with a live call returns it without ringing again', async () => {
+  repository.seed({ ...ringingCall(group, starter), status: 'active' });
+
+  const view = await calls.start(joiner, group.id, 'test-token');
+
+  assert.equal(view.id, 'call-1');
+  assert.deepEqual(realtime.recipientsOf('call:incoming'), []);
+});
+
+test('join: answering a ring past its TTL that nobody swept yet is refused and marks it missed', async () => {
+  const startedAt = new Date(Date.now() - 120_000);
+  repository.seed(ringingCall(dm, caller, startedAt));
+
+  await assert.rejects(calls.join(callee, dm.id, 'call-1', 'test-token'), /no longer available/);
+
+  assert.equal(repository.record?.status, 'missed');
+  assert.deepEqual(realtime.recipientsOf('call:accepted'), []);
 });

@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 import { useAuthStore } from '../../auth';
@@ -8,16 +9,17 @@ import { DevicesApiError, registerDevice } from './devices-api';
 import { getInstallationId } from './installation-id';
 import { getExpoPushToken } from './push-token';
 
-// Best-effort: no permission yet, no EAS project, Expo Go — all resolve to a silent no-op.
 export async function registerCurrentDeviceForPush(): Promise<void> {
   return queueDeviceRegistration(async () => {
     if (useAuthStore.getState().status !== 'signed-in') return;
 
-    const [installationId, pushToken] = await Promise.all([
+    const [installationId, tokenResult] = await Promise.all([
       getInstallationId(),
-      getExpoPushToken(),
+      getExpoPushToken().then(
+        (token) => ({ token, error: undefined as unknown }),
+        (error: unknown) => ({ token: undefined, error }),
+      ),
     ]);
-    if (!pushToken) return;
 
     const CallKit = await loadCallKitModule();
     const state = useAuthStore.getState();
@@ -25,10 +27,10 @@ export async function registerCurrentDeviceForPush(): Promise<void> {
     const payload: RegisterDevicePayload = {
       installationId,
       platform: Platform.OS === 'ios' ? 'ios' : 'android',
-      pushToken,
-      // undefined on a fresh install, before registerVoIPPush() resolves — PushRegistration
-      // retries this whole function once addVoIPPushTokenUpdatedListener fires, so it's filled
-      // in shortly after. JSON.stringify drops an undefined key, so this is safe to send as-is.
+      pushToken: tokenResult.token,
+      apnsEnvironment:
+        Constants.expoConfig?.extra?.apnsEnvironment === 'production' ? 'production' : 'sandbox',
+      // Missing on a fresh install; PushRegistration registers again when the VoIP token arrives.
       voipToken: CallKit?.getVoIPPushToken()?.token,
     };
 
@@ -44,5 +46,6 @@ export async function registerCurrentDeviceForPush(): Promise<void> {
         await registerDevice(refreshed.tokens.accessToken, payload);
       }
     }
+    if (tokenResult.error) throw tokenResult.error;
   });
 }

@@ -5,6 +5,10 @@ import { type PropsWithChildren, useContext } from 'react';
 import { UserProfileSync } from '../features/auth/components/UserProfileSync/UserProfileSync';
 import { ApiAuthSession } from '../features/auth/providers/ApiAuthSession';
 import { ChannelListRealtime } from '../features/communities/realtime/ChannelListRealtime';
+import { AttentionReporter } from '../features/notifications/components/AttentionReporter';
+import { NotificationDismissal } from '../features/notifications/components/NotificationDismissal';
+import { PushNavigation } from '../features/notifications/components/PushNavigation';
+import { PushSubscriptionSync } from '../features/notifications/components/PushSubscriptionSync';
 import { RealtimeProvider } from '../features/realtime/providers/RealtimeProvider';
 import { WorkspaceUnreadContext } from '../features/social/read-state/workspace-unread-context';
 import { ActiveWorkspaceProvider } from '../features/workspaces/providers/ActiveWorkspaceProvider';
@@ -40,7 +44,10 @@ export function ChatsProviders({ children }: PropsWithChildren) {
           <ActiveWorkspaceProvider>
             <WorkspaceUnreadScope>
               <UnreadBadge />
-              {children}
+              <PushSubscriptionSync />
+              <AttentionReporter />
+              <NotificationDismissal />
+              <PushNavigation>{children}</PushNavigation>
             </WorkspaceUnreadScope>
           </ActiveWorkspaceProvider>
         </RealtimeProvider>

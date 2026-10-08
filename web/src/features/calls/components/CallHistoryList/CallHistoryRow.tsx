@@ -5,40 +5,64 @@ import { Link } from 'react-router-dom';
 import { callActionLabel } from '@/features/calls/callActionLabel';
 import { CallIcon } from '@/features/calls/callIcons';
 import { getCallStatusIcon } from '@/features/calls/callStatusIcon';
-import { formatCallDuration } from '@/features/calls/formatCallDuration';
 import { useKnownCallAction } from '@/features/calls/hooks/useKnownCallAction';
 import { Avatar } from '@/shared/ui/Avatar';
 
-import type { CallHistoryItem } from '../../api/calls-api';
-
-const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
+import { callEntryStatus, formatCallDate } from './callHistoryLabels';
+import type { CallHistoryEntry } from './groupCallHistory';
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin: 0 -12px;
-    padding: 10px 12px;
-    border-radius: ${token.borderRadiusLG}px;
+    min-height: 56px;
+    color: ${token.colorTextSecondary};
 
     &:hover {
       background: ${token.colorFillTertiary};
     }
 
+    @media (hover: hover) {
+      &:hover [data-role='call-back'],
+      &:focus-within [data-role='call-back'] {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      &:hover [data-role='call-date'],
+      &:focus-within [data-role='call-date'] {
+        opacity: 0;
+      }
+    }
+
     @media (max-width: ${token.screenMD}px) {
-      min-height: 72px;
-      margin-inline: 0;
-      padding: 10px 0;
+      min-height: 64px;
     }
   `,
-  identity: css`
+  active: css`
+    && {
+      background: ${token.colorPrimaryBg};
+    }
+
+    &&:hover {
+      background: ${token.colorPrimaryBgHover};
+    }
+  `,
+  link: css`
     display: flex;
     flex: 1;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     min-width: 0;
+    padding: 9px 12px;
     text-decoration: none;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+    }
 
     &,
     &:link,
@@ -49,23 +73,31 @@ const useStyles = createStyles(({ token, css }) => ({
       color: inherit;
     }
 
-    &:focus-visible {
+    &:focus {
       outline: none;
-      box-shadow: inset 0 0 0 2px ${token.colorPrimaryBorder};
+    }
+
+    &:focus-visible::after {
+      outline: 2px solid ${token.colorPrimary};
+      outline-offset: -2px;
+    }
+
+    @media (max-width: ${token.screenMD}px) {
+      gap: 12px;
+      padding: 6px 12px;
     }
   `,
   body: css`
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: 2px;
     min-width: 0;
   `,
   nameLine: css`
     display: flex;
-    min-width: 0;
     align-items: baseline;
     gap: 8px;
+    min-width: 0;
   `,
   name: css`
     flex: 1;
@@ -74,12 +106,12 @@ const useStyles = createStyles(({ token, css }) => ({
     white-space: nowrap;
     text-overflow: ellipsis;
     color: ${token.colorText};
-    font-weight: 600;
-    line-height: 1.3;
+    font-weight: 500;
 
     @media (max-width: ${token.screenMD}px) {
       font-size: 16px;
       line-height: 24px;
+      font-weight: 600;
     }
   `,
   nameMissed: css`
@@ -88,132 +120,155 @@ const useStyles = createStyles(({ token, css }) => ({
   status: css`
     display: flex;
     align-items: center;
-    gap: 5px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    gap: 4px;
+    min-width: 0;
     color: ${token.colorTextTertiary};
-    font-size: 13px;
-    line-height: 1.3;
+    font-size: 12px;
 
     @media (max-width: ${token.screenMD}px) {
-      color: ${token.colorTextSecondary};
       font-size: 14px;
       line-height: 20px;
     }
   `,
   statusIcon: css`
     flex-shrink: 0;
-    color: ${token.colorTextQuaternary};
+  `,
+  statusLive: css`
+    color: ${token.colorSuccess};
   `,
   statusText: css`
     min-width: 0;
     overflow: hidden;
+    white-space: nowrap;
     text-overflow: ellipsis;
   `,
-  toneLive: css`
-    color: ${token.colorSuccess};
-  `,
-  toneMissed: css`
-    color: ${token.colorError};
-  `,
-  time: css`
+  date: css`
     flex-shrink: 0;
-    color: ${token.colorTextQuaternary};
+    color: ${token.colorTextTertiary};
     font-size: 12px;
+    white-space: nowrap;
+    transition: opacity 0.15s ease;
   `,
-  callButton: css`
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: ${token.colorFillTertiary};
-    color: ${token.colorTextSecondary};
-
-    &:hover:not(:disabled) {
-      background: ${token.colorFillSecondary};
+  dateHidden: css`
+    @media (hover: hover) {
+      opacity: 0;
     }
   `,
-  callButtonActive: css`
-    background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimary};
+  callBack: css`
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    z-index: 1;
+    display: flex;
+    transform: translateY(-50%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
 
-    &:hover:not(:disabled) {
-      background: ${token.colorPrimaryBgHover};
+    @media (hover: none) {
+      position: static;
+      transform: none;
+      margin-right: 8px;
+      opacity: 1;
+      pointer-events: auto;
+    }
+  `,
+  callBackShown: css`
+    && {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  `,
+  callButton: css`
+    border-radius: 50%;
+    color: ${token.colorTextSecondary};
+  `,
+  callButtonActive: css`
+    && {
+      background: ${token.colorPrimaryBg};
+      color: ${token.colorPrimary};
     }
   `,
 }));
 
-function statusText(item: CallHistoryItem, outgoing: boolean): string {
-  if (item.status === 'ringing' || item.status === 'active') return 'Дзвінок триває';
-  if (item.status === 'declined') return 'Дзвінок відхилено';
-  if (item.status === 'missed') return outgoing ? 'Без відповіді' : 'Пропущений дзвінок';
-  if (item.status === 'ended' && item.endedAt)
-    return `${outgoing ? 'Вихідний' : 'Вхідний'} · ${formatCallDuration(item.startedAt, item.endedAt)}`;
-  return outgoing ? 'Вихідний дзвінок' : 'Вхідний дзвінок';
+/** Remembers which of several rows with the same person was clicked, so only it lights up. */
+export interface CallEntryLinkState {
+  callEntry: string;
 }
 
 interface CallHistoryRowProps {
-  item: CallHistoryItem;
+  entry: CallHistoryEntry;
   workspaceId: string;
+  active: boolean;
+  onNavigate?: () => void;
 }
 
-export function CallHistoryRow({ item, workspaceId }: CallHistoryRowProps) {
+export function CallHistoryRow({ entry, workspaceId, active, onNavigate }: CallHistoryRowProps) {
   const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
-  const name = item.participant.displayName ?? 'Колега';
-  const outgoing = item.startedByMemberId !== item.participant.memberId;
-  const { Icon, tone } = getCallStatusIcon(item.status, outgoing);
+  const { latest, count, outgoing } = entry;
+  const name = latest.participant.displayName ?? 'Колега';
+  const { Icon, live, missed } = getCallStatusIcon(latest.status, outgoing);
   const call = useKnownCallAction(
     workspaceId,
-    item.channelId,
+    latest.channelId,
     name,
-    item.participant.avatarPath,
-    item,
+    latest.participant.avatarPath,
+    latest,
   );
   const callTitle = callActionLabel(call, `Подзвонити: ${name}`);
+  const callBackShown = call.inCall || call.joinable || call.pending;
 
   return (
-    <div className={styles.row}>
+    <div className={cx(styles.row, active && styles.active)}>
       <Link
-        to={`/direct/${item.channelId}`}
-        className={styles.identity}
-        aria-label={`Відкрити розмову з ${name}`}
+        to={`/direct/${latest.channelId}`}
+        state={{ callEntry: entry.key } satisfies CallEntryLinkState}
+        onClick={onNavigate}
+        className={styles.link}
+        aria-current={active ? 'page' : undefined}
       >
         <Avatar
-          path={item.participant.avatarPath}
+          path={latest.participant.avatarPath}
           alt={name}
-          size={isMobile ? 48 : 40}
+          size={isMobile ? 44 : 36}
           shape="circle"
         />
         <span className={styles.body}>
           <span className={styles.nameLine}>
-            <span className={cx(styles.name, tone === 'missed' && styles.nameMissed)}>{name}</span>
-            <time className={styles.time} dateTime={item.startedAt}>
-              {timeFormat.format(new Date(item.startedAt))}
+            <span className={cx(styles.name, missed && !outgoing && styles.nameMissed)}>
+              {count > 1 ? `${name} (${count})` : name}
+            </span>
+            <time
+              data-role="call-date"
+              className={cx(styles.date, callBackShown && styles.dateHidden)}
+              dateTime={latest.startedAt}
+            >
+              {formatCallDate(latest.startedAt)}
             </time>
           </span>
-          <span className={styles.status}>
-            <Icon
-              size={14}
-              weight={tone !== 'neutral' ? 'fill' : 'regular'}
-              className={cx(
-                styles.statusIcon,
-                tone === 'live' && styles.toneLive,
-                tone === 'missed' && styles.toneMissed,
-              )}
-            />
-            <span className={styles.statusText}>{statusText(item, outgoing)}</span>
+          <span className={cx(styles.status, live && styles.statusLive)}>
+            <Icon size={14} weight={live ? 'fill' : 'regular'} className={styles.statusIcon} />
+            <span className={styles.statusText}>{callEntryStatus(entry)}</span>
           </span>
         </span>
       </Link>
-      <IconButton
-        size={44}
-        aria-label={callTitle}
-        disabled={call.busy || call.pending || !item.participant.active}
-        onClick={call.onClick}
-        className={cx(styles.callButton, (call.inCall || call.joinable) && styles.callButtonActive)}
-      >
-        {call.pending ? <LoadingIcon size={20} /> : <CallIcon size={22} />}
-      </IconButton>
+      {latest.participant.active && (
+        <span
+          data-role="call-back"
+          className={cx(styles.callBack, callBackShown && styles.callBackShown)}
+        >
+          <IconButton
+            size={32}
+            aria-label={callTitle}
+            disabled={call.busy || call.pending}
+            onClick={call.onClick}
+            className={cx(styles.callButton, callBackShown && styles.callButtonActive)}
+          >
+            {call.pending ? <LoadingIcon size={18} /> : <CallIcon size={18} />}
+          </IconButton>
+        </span>
+      )}
     </div>
   );
 }

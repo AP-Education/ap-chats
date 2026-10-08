@@ -9,7 +9,9 @@
     "typecheck": "tsc -b --noEmit && tsc -p tsconfig.test.json",
     "lint": "eslint src tests vite.config.ts",
     "preview": "vite preview",
-    "test": "node --import tsx --test \"src/**/*.spec.ts\" \"tests/*.spec.ts\""
+    "test": "node --import tsx --test \"src/**/*.spec.ts\" \"tests/*.spec.ts\"",
+    "test:browser": "playwright test",
+    "icons": "pnpm dlx @vite-pwa/assets-generator@2.0.0 && pnpm dlx @vite-pwa/assets-generator@2.0.0 -c pwa-assets.favicon.mjs"
   },
   "dependencies": {
     "@ap-education/shell-sdk": "^0.1.1-beta.0",

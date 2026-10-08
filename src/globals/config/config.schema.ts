@@ -12,6 +12,24 @@ const schema = z
     LOG_TARGET_TYPE: z.enum(['stdout', 'file', 'both']).default('stdout'),
     LOG_TARGET_DEST: z.string().min(1).optional(),
     DATABASE_URL: z.url(),
+    PUSH_ENABLED: z.stringbool().default(false),
+    VALKEY_URL: z
+      .url()
+      .refine((value) => {
+        const url = new URL(value);
+        return (
+          ['redis:', 'rediss:'].includes(url.protocol) &&
+          /^\/(?:[0-9]+)?$/u.test(url.pathname || '/')
+        );
+      }, 'Use redis:// or rediss:// with an integer database')
+      .default('redis://127.0.0.1:6380/0'),
+    PUSH_COALESCE_SECONDS: z.coerce.number().int().min(1).max(10).default(3),
+    PUSH_WORKER_ENABLED: z.stringbool().default(true),
+    PUSH_WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(8),
+    EXPO_ACCESS_TOKEN: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
+    WEB_PUSH_PUBLIC_KEY: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
+    WEB_PUSH_PRIVATE_KEY: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
+    WEB_PUSH_SUBJECT: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
     OIDC_ISSUER: z.preprocess((value) => value || undefined, z.url().optional()),
     OIDC_AUDIENCE: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
     DIGITAL_OCEAN_SPACES_ENDPOINT: z.string().min(1),
@@ -40,6 +58,8 @@ const schema = z
       .min(1)
       .max(50_000_000_000)
       .default(4_000_000_000),
+    // Routes calls through ai-native (recording, transcription) instead of LIVEKIT_* directly.
+    AI_NATIVE_URL: z.preprocess((value) => value || undefined, z.url().optional()),
     // Calls are off (CallsModule stays unregistered) until all three are set.
     LIVEKIT_URL: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
     LIVEKIT_API_KEY: z.preprocess((value) => value || undefined, z.string().min(1).optional()),
@@ -70,6 +90,21 @@ const schema = z
         code: 'custom',
         path: ['CHAT_UPLOAD_MAX_PENDING_BYTES'],
         message: 'Must allow at least one maximum size file to be reserved',
+      });
+    }
+    const vapid = ['WEB_PUSH_PUBLIC_KEY', 'WEB_PUSH_PRIVATE_KEY', 'WEB_PUSH_SUBJECT'] as const;
+    if (vapid.some((key) => config[key]) && !vapid.every((key) => config[key])) {
+      context.addIssue({
+        code: 'custom',
+        path: ['WEB_PUSH_PUBLIC_KEY'],
+        message: 'Set all VAPID fields or none',
+      });
+    }
+    if (config.WEB_PUSH_SUBJECT && !/^(mailto:|https:\/\/)/u.test(config.WEB_PUSH_SUBJECT)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['WEB_PUSH_SUBJECT'],
+        message: 'Use a mailto: or HTTPS contact',
       });
     }
     if (config.LOG_TARGET_TYPE !== 'stdout' && !config.LOG_TARGET_DEST) {
