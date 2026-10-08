@@ -36,6 +36,7 @@ export function useWorkspaceUnread(workspaceId: string) {
       apiRequest<ChannelUnread[]>(`/api/workspaces/${workspaceId}/read-state`, token as string),
     enabled: Boolean(token),
     refetchOnWindowFocus: true,
+    meta: { persist: true },
   });
 
   useEffect(() => {

@@ -11,7 +11,7 @@ import type {
 } from '@/features/social/conversation/actions';
 import { useConversation } from '@/features/social/conversation/store';
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { Avatar } from '@/shared/ui/Avatar';
 
 import type { AttachmentDraft } from '../../attachments/types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';

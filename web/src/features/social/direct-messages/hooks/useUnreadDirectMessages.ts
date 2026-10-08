@@ -78,5 +78,6 @@ export function useUnreadDirectMessages(workspaceId: string) {
     queryFn: () => listUnreadDirectMessages(token as string, workspaceId),
     enabled: Boolean(token),
     refetchOnWindowFocus: true,
+    meta: { persist: true },
   });
 }

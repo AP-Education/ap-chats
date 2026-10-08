@@ -1,9 +1,8 @@
+import { useCurrentUser } from '@ap-education/shell-sdk';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
 import { apiRequest, jsonInit } from '@/shared/api/http';
-
-import { useCurrentUser } from '../../stores/current-user-context';
 
 const synchronizedTokens = new Set<string>();
 

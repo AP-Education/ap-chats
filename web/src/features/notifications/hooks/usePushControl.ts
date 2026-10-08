@@ -1,4 +1,4 @@
-import { getAppShell } from '@/lib/app-shell';
+import { getAppShell } from '@ap-education/shell-sdk';
 
 import { useBrowserPushControl } from './useBrowserPushControl';
 import { useNativePushControl } from './useNativePushControl';

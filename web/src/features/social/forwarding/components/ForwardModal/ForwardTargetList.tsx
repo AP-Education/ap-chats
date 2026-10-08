@@ -6,7 +6,7 @@ import {
   PrivateChannelIcon,
   PublicChannelIcon,
 } from '@/features/communities/channels/channelIcons';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { Avatar } from '@/shared/ui/Avatar';
 
 import type { ForwardTarget, ForwardTargetGroup, ForwardTargetOption } from './forward-targets';
 

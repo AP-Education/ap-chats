@@ -1,3 +1,6 @@
+// Where Chats lives in the shell; the page passes it when it registers this worker.
+const LAUNCH_PATH = new URL(self.location.href).searchParams.get('launch') ?? '/';
+
 self.addEventListener('push', (event) => {
   let data;
   try {
@@ -33,7 +36,9 @@ self.addEventListener('notificationclick', (event) => {
       const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       const client = windows.find((client) => new URL(client.url).origin === self.location.origin);
       if (!client) {
-        await self.clients.openWindow(`/?notification=${encodeURIComponent(JSON.stringify(tap))}`);
+        await self.clients.openWindow(
+          `${LAUNCH_PATH}?notification=${encodeURIComponent(JSON.stringify(tap))}`,
+        );
         return;
       }
 

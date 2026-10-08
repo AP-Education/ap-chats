@@ -2,13 +2,12 @@ import { readFileSync } from 'node:fs';
 import { URL } from 'node:url';
 import { runInNewContext } from 'node:vm';
 
+import type * as GestureModule from '@ap-education/ui';
 import type { MouseEvent, TouchEvent } from 'react';
 import ts from 'typescript';
 
 import type * as ReplySwipeModule from '../../src/features/social/messaging/components/MessageRow/useMessageReplySwipe';
 import type * as SelectionModule from '../../src/features/social/messaging/components/MessageTimeline/useMobileMessageSelection';
-import type * as MobileNavModule from '../../src/layouts/MainLayout/useMobileNavSheet';
-import type * as GestureModule from '../../src/shared/hooks/useTouchGesture';
 
 interface HookSlot {
   current?: unknown;
@@ -120,24 +119,28 @@ export function createGestureFixture() {
   }
 
   const { useTouchGesture } = load<typeof GestureModule>(
-    '../../src/shared/hooks/useTouchGesture.ts',
+    new URL('./hooks/useTouchGesture.js', import.meta.resolve('@ap-education/ui')).href,
     { react },
   );
-  const { useMobileNavSheet } = load<typeof MobileNavModule>(
-    '../../src/layouts/MainLayout/useMobileNavSheet.ts',
+  const { useSwipeDrawer } = load<typeof GestureModule>(
+    new URL('./hooks/useSwipeDrawer.js', import.meta.resolve('@ap-education/ui')).href,
     {
       react,
-      '@/shared/hooks/useTouchGesture': { useTouchGesture },
+      './useTouchGesture': { useTouchGesture },
     },
   );
 
-  const nativeBridge = load('../../src/shared/lib/nativeBridge.ts', {});
-  const haptics = load('../../src/shared/lib/haptics.ts', { './nativeBridge': nativeBridge });
+  const haptics = load('../../src/shared/lib/haptics.ts', {
+    '@ap-education/shell-sdk': {
+      postToNative: (message: unknown) =>
+        window.ReactNativeWebView?.postMessage(JSON.stringify(message)),
+    },
+  });
   const { useMessageReplySwipe } = load<typeof ReplySwipeModule>(
     '../../src/features/social/messaging/components/MessageRow/useMessageReplySwipe.ts',
     {
       react,
-      '@/shared/hooks/useTouchGesture': { useTouchGesture },
+      '@ap-education/ui': { useTouchGesture },
       '@/shared/lib/haptics': haptics,
     },
   );
@@ -223,7 +226,7 @@ export function createGestureFixture() {
     },
     getWidth: () => 400,
   });
-  const nav = mount(useMobileNavSheet, options());
+  const nav = mount(useSwipeDrawer, options());
   return {
     nav,
     touch,

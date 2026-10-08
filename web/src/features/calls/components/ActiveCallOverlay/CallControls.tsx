@@ -1,3 +1,4 @@
+import { useIsMobile } from '@ap-education/ui';
 import {
   useDisconnectButton,
   useLocalParticipant,
@@ -14,8 +15,6 @@ import {
 import { createStyles } from 'antd-style';
 import { Track } from 'livekit-client';
 import { type MouseEvent, useState } from 'react';
-
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 import { EndCallIcon } from '../../callIcons';
 import { playMuteChime, playUnmuteChime } from '../../sound/callChimes';

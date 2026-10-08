@@ -1,11 +1,9 @@
+import { Page, PageAside, PageBody, PageHeader, PageTitle, useIsMobile } from '@ap-education/ui';
 import { Button, Empty, Result } from 'antd';
 import { createStyles } from 'antd-style';
-import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-import { ChatLayout } from '@/domain/conversation/ChatLayout';
 import { ChatLoading } from '@/domain/conversation/ChatLoading';
-import { ConversationPane } from '@/domain/conversation/ConversationPane';
 import { ChannelDetail } from '@/features/communities/channels/components/ChannelDetail';
 import { useChannel } from '@/features/communities/channels/hooks/useChannels';
 import { ChannelMembersPanel } from '@/features/communities/memberships/components/ChannelMembersPanel';
@@ -13,9 +11,7 @@ import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
 import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
-import { MobileMenuButton } from '@/layouts/MainLayout/MobileMenuButton';
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
+import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 
 const useStyles = createStyles(({ token, css }) => ({
   centered: css`
@@ -34,25 +30,21 @@ export default function ChannelContent() {
   const query = useChannel(workspaceId, channelId);
   const unavailable = useTrackConversation('channels', workspaceId, channelId, query, '/channels');
   const isMobile = useIsMobile();
-  const isNarrowLayout = useIsNarrowLayout();
-  const [membersVisible, setMembersVisible] = useState<boolean | null>(null);
-  const isMembersVisible = membersVisible ?? !isNarrowLayout;
 
   if (!channelId) {
     if (isMobile) {
       return (
-        <ConversationPane
-          title={
-            <>
-              <MobileMenuButton />
-              Чати
-            </>
-          }
-        >
-          <div className={styles.centered}>
-            <Empty description="Оберіть канал зі списку" />
-          </div>
-        </ConversationPane>
+        <Page>
+          <PageHeader>
+            <MobileMenuButton />
+            <PageTitle>Чати</PageTitle>
+          </PageHeader>
+          <PageBody>
+            <div className={styles.centered}>
+              <Empty description="Оберіть канал зі списку" />
+            </div>
+          </PageBody>
+        </Page>
       );
     }
 
@@ -63,7 +55,7 @@ export default function ChannelContent() {
     );
   }
 
-  if (query.isPending) return <ChatLoading asideOpen={isMembersVisible} />;
+  if (query.isPending) return <ChatLoading />;
 
   if (unavailable) {
     return (
@@ -93,17 +85,7 @@ export default function ChannelContent() {
   }
 
   return (
-    <ChatLayout
-      asideOpen={isMembersVisible}
-      onCloseAside={() => setMembersVisible(false)}
-      aside={
-        <ChannelMembersPanel
-          workspaceId={workspaceId}
-          channel={channel}
-          onClose={() => setMembersVisible(false)}
-        />
-      }
-    >
+    <Page>
       <ConversationProvider
         key={`${workspaceId}:${channel.id}`}
         scope={{
@@ -117,14 +99,11 @@ export default function ChannelContent() {
         }}
       >
         <WorkspaceChannelPresence channelId={channel.id} />
-        <ChannelDetail
-          workspaceId={workspaceId}
-          channel={channel}
-          membersVisible={isMembersVisible}
-          onToggleMembers={() => setMembersVisible(!isMembersVisible)}
-          leading={<MobileMenuButton />}
-        />
+        <ChannelDetail workspaceId={workspaceId} channel={channel} leading={<MobileMenuButton />} />
       </ConversationProvider>
-    </ChatLayout>
+      <PageAside>
+        <ChannelMembersPanel workspaceId={workspaceId} channel={channel} />
+      </PageAside>
+    </Page>
   );
 }

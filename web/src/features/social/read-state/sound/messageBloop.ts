@@ -1,6 +1,7 @@
+import { isNativeShell, postToNative } from '@ap-education/shell-sdk';
+
 import { getSharedAudioContext } from '@/shared/audio/audio-context';
 import { scheduleBell } from '@/shared/audio/tone';
-import { isNativeShell, postToNative } from '@/shared/lib/nativeBridge';
 
 // Same struck-bell voice as the call ringtone, one sonic identity across the app.
 const NOTES = [659.25, 987.77]; // E5 -> B5

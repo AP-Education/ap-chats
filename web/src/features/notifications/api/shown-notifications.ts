@@ -1,4 +1,4 @@
-import { isNativeShell, postToNative } from '@/shared/lib/nativeBridge';
+import { isNativeShell, postToNative } from '@ap-education/shell-sdk';
 
 import type { NotificationsToNativeMessage } from '../types';
 

@@ -1,10 +1,10 @@
+import { IconButton } from '@ap-education/ui';
 import { ListBulletsIcon, PushPinIcon, XIcon } from '@phosphor-icons/react';
 import { message as toast, Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import { ReplyExcerpt } from '@/features/social/messaging/components/ReplyExcerpt/ReplyExcerpt';
-import { IconButton } from '@/shared/ui/IconButton';
 
 import { PinnedMessages } from '../PinnedMessages/PinnedMessages';
 import { usePinnedMessageBar } from './usePinnedMessageBar';

@@ -1,8 +1,6 @@
+import { IconButton, useIsMobile } from '@ap-education/ui';
 import { BellIcon, BellSlashIcon } from '@phosphor-icons/react';
 import { Spin, Tooltip } from 'antd';
-
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { IconButton } from '@/shared/ui/IconButton';
 
 import { usePushControl } from '../hooks/usePushControl';
 import type { PushControl } from '../types';

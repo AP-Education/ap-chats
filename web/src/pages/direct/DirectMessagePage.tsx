@@ -1,11 +1,17 @@
+import {
+  Page,
+  PageActions,
+  PageAside,
+  PageBody,
+  PageHeader,
+  PageTitle,
+  useIsMobile,
+} from '@ap-education/ui';
 import { Button, Empty, Result } from 'antd';
 import { createStyles } from 'antd-style';
-import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-import { ChatLayout } from '@/domain/conversation/ChatLayout';
 import { ChatLoading } from '@/domain/conversation/ChatLoading';
-import { ConversationPane } from '@/domain/conversation/ConversationPane';
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
 import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
@@ -15,18 +21,10 @@ import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDir
 import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
-import { MobileMenuButton } from '@/layouts/MainLayout/MobileMenuButton';
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
+import { Avatar } from '@/shared/ui/Avatar';
 
 const useStyles = createStyles(({ css }) => ({
-  title: css`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-  `,
   name: css`
     min-width: 0;
     overflow: hidden;
@@ -45,9 +43,6 @@ export default function DirectMessagePage() {
   const { id: workspaceId } = useRequiredWorkspace();
   const { channelId } = useParams<{ channelId: string }>();
   const isMobile = useIsMobile();
-  const isNarrowLayout = useIsNarrowLayout();
-  const [profileVisible, setProfileVisible] = useState<boolean | null>(null);
-  const isProfileVisible = profileVisible ?? !isNarrowLayout;
   const conversation = useDirectMessage(workspaceId, channelId);
   const unavailable = useTrackConversation(
     'direct',
@@ -60,18 +55,17 @@ export default function DirectMessagePage() {
 
   if (!channelId && isMobile) {
     return (
-      <ConversationPane
-        title={
-          <>
-            <MobileMenuButton />
-            Особисті
-          </>
-        }
-      >
-        <div className={styles.center}>
-          <Empty description="Оберіть розмову або напишіть колезі" />
-        </div>
-      </ConversationPane>
+      <Page>
+        <PageHeader>
+          <MobileMenuButton />
+          <PageTitle>Особисті</PageTitle>
+        </PageHeader>
+        <PageBody>
+          <div className={styles.center}>
+            <Empty description="Оберіть розмову або напишіть колезі" />
+          </div>
+        </PageBody>
+      </Page>
     );
   }
   if (!channelId) {
@@ -102,17 +96,7 @@ export default function DirectMessagePage() {
   const { participant } = conversation.data;
   const name = participant.displayName ?? 'Ім’я недоступне';
   return (
-    <ChatLayout
-      asideOpen={isProfileVisible}
-      onCloseAside={() => setProfileVisible(false)}
-      aside={
-        <DirectProfilePanel
-          participant={participant}
-          member={byId.get(participant.memberId)?.member}
-          onClose={() => setProfileVisible(false)}
-        />
-      }
-    >
+    <Page>
       <ConversationProvider
         key={`${workspaceId}:${channelId}`}
         scope={{
@@ -128,34 +112,31 @@ export default function DirectMessagePage() {
         }}
       >
         <WorkspaceChannelPresence channelId={channelId} />
-        <ConversationPane
-          title={
-            <>
-              <MobileMenuButton />
-              <div className={styles.title}>
-                <Avatar path={participant.avatarPath} alt={name} size={40} shape="circle" />
-                <span className={styles.name}>{name}</span>
-              </div>
-            </>
-          }
-          actions={
-            <DirectMessageActions
-              workspaceId={workspaceId}
-              conversation={conversation.data}
-              profileVisible={isProfileVisible}
-              onToggleProfile={() => setProfileVisible(!isProfileVisible)}
-              compact={isMobile}
-            />
-          }
-        >
+        <PageHeader>
+          <MobileMenuButton />
+          <PageTitle>
+            <Avatar path={participant.avatarPath} alt={name} size={40} shape="circle" />
+            <span className={styles.name}>{name}</span>
+          </PageTitle>
+          <PageActions>
+            <DirectMessageActions workspaceId={workspaceId} conversation={conversation.data} />
+          </PageActions>
+        </PageHeader>
+        <PageBody>
           <ConversationView
             canPost={participant.active}
             canManage={false}
             canPin={participant.active}
             currentMember={currentMember}
           />
-        </ConversationPane>
+        </PageBody>
       </ConversationProvider>
-    </ChatLayout>
+      <PageAside>
+        <DirectProfilePanel
+          participant={participant}
+          member={byId.get(participant.memberId)?.member}
+        />
+      </PageAside>
+    </Page>
   );
 }

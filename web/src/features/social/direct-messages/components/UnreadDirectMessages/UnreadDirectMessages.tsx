@@ -18,13 +18,9 @@ const useStyles = createStyles(({ token, css }) => ({
     color: ${token.colorTextTertiary};
     font-size: 12px;
     font-weight: 600;
-
-    @media (max-width: ${token.screenMD}px) {
-      padding-inline: 12px;
-    }
   `,
   error: css`
-    padding: 8px 12px;
+    padding: 8px 16px;
     color: ${token.colorTextSecondary};
     font-size: 12px;
   `,

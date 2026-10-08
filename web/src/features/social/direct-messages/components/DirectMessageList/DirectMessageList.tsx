@@ -23,20 +23,21 @@ const useStyles = createStyles(({ token, css }) => ({
 
     @media (max-width: ${token.screenMD}px) {
       min-height: 44px;
-      padding: 6px 12px 4px;
+      padding: 6px 16px 4px;
       font-size: 16px;
     }
   `,
   search: css`
-    padding: 0 12px 10px;
+    padding: 0 8px 10px;
 
     @media (max-width: ${token.screenMD}px) {
-      padding: 0 12px 8px;
+      padding-bottom: 8px;
     }
   `,
   list: css`
     min-height: 0;
     overflow-y: auto;
+    padding-bottom: var(--shell-footer-space, 0px);
   `,
 }));
 

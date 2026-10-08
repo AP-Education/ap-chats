@@ -1,9 +1,9 @@
+import { useIsMobile } from '@ap-education/ui';
 import { BellSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useMatch } from 'react-router-dom';
 
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { Avatar } from '@/shared/ui/Avatar';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
 
@@ -24,7 +24,9 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 9px 12px;
+    margin: 1px 8px;
+    padding: 8px;
+    border-radius: ${token.borderRadius}px;
     text-decoration: none;
 
     &,
@@ -41,14 +43,14 @@ const useStyles = createStyles(({ token, css }) => ({
     }
 
     &:focus-visible {
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: -2px;
+      outline: none;
+      box-shadow: inset 0 0 0 2px ${token.colorPrimaryBorder};
     }
 
     @media (max-width: ${token.screenMD}px) {
       min-height: 64px;
       gap: 12px;
-      padding: 6px 12px;
+      padding: 6px 8px;
     }
   `,
   active: css`
@@ -161,8 +163,8 @@ export function DirectMessageRow({
 }) {
   const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
-  const { channelId } = useParams<{ channelId: string }>();
-  const isActive = channelId === item.id;
+  // The panel renders outside the route tree, so the open conversation comes from the URL.
+  const isActive = useMatch('/direct/:channelId')?.params.channelId === item.id;
   const visibleUnreadCount = isActive ? 0 : unreadCount;
   const isMuted = item.notification.isMuted;
   let preview = 'Нова розмова';

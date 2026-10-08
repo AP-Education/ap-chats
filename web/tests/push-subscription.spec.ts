@@ -109,7 +109,7 @@ test('without granted permission synchronizing touches neither the browser nor o
   for (const permission of ['default', 'denied'] as const) {
     const b = browser({ permission });
 
-    const result = await b.push.synchronizePush('token', currentKey);
+    const result = await b.push.synchronizePush('token', currentKey, '/c/');
 
     assert.equal(result.subscriptionId, null);
     assert.deepEqual([b.events, b.registrations], [[], []]);
@@ -126,7 +126,7 @@ test('synchronizing restores exactly one subscription with the current server ke
   for (const { name, subscribedWith, events } of cases) {
     const b = browser({ subscribedWith });
 
-    const result = await b.push.synchronizePush('token', currentKey);
+    const result = await b.push.synchronizePush('token', currentKey, '/c/');
 
     assert.deepEqual(b.events, events, name);
     assert.equal(b.subscribedWith(), currentKey, name);
@@ -137,11 +137,11 @@ test('synchronizing restores exactly one subscription with the current server ke
 test('enabling asks for permission first, and a dismissed prompt subscribes nothing', async () => {
   const b = browser({ permission: 'default' });
 
-  await b.push.enablePush('token', currentKey);
+  await b.push.enablePush('token', currentKey, '/c/');
   assert.deepEqual(b.events, ['ask permission']);
 
   b.answerPrompt('granted');
-  const granted = await b.push.enablePush('token', currentKey);
+  const granted = await b.push.enablePush('token', currentKey, '/c/');
 
   assert.equal(granted.subscriptionId, 'subscription');
   assert.deepEqual(b.events, ['ask permission', 'ask permission', 'subscribe']);
@@ -150,8 +150,8 @@ test('enabling asks for permission first, and a dismissed prompt subscribes noth
 test('turning push off is remembered, so synchronizing does not quietly turn it back on', async () => {
   const b = browser({ subscribedWith: currentKey });
 
-  await b.push.disablePush('token', 'subscription');
-  const result = await b.push.synchronizePush('token', currentKey);
+  await b.push.disablePush('token', 'subscription', '/c/');
+  const result = await b.push.synchronizePush('token', currentKey, '/c/');
 
   assert.deepEqual(b.removals, ['token']);
   assert.equal(result.subscriptionId, null);
@@ -172,7 +172,7 @@ test('a sign-out waits for a synchronization already in flight', async () => {
   const b = browser();
 
   await Promise.all([
-    b.push.synchronizePush('first-token', currentKey),
+    b.push.synchronizePush('first-token', currentKey, '/c/'),
     b.push.releasePush('first-token', 'subscription'),
   ]);
 

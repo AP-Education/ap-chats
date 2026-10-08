@@ -8,7 +8,7 @@
 
 ```text
 src/       NestJS API (REST + Socket.IO)
-web/       React-клієнт
+web/       Chats як remote shell-а AP (ap-app)
 mobile/    Expo-оболонка над web: вхід, push, нативні дзвінки
 infra/     локальні сервіси та production-деплой
 docs/      рішення й архітектура
@@ -25,10 +25,11 @@ cp .env.example .env
 cp web/.env.example web/.env
 cp mobile/.env.example mobile/.env
 corepack enable
+pnpm config set //npm.pkg.github.com/:_authToken "$(gh auth token)"   # раз; токен з read:packages: gh auth refresh -s read:packages
 pnpm install --frozen-lockfile
 pnpm infra:up                            # Postgres, Valkey, LiveKit
 pnpm dev                                 # міграції, потім API на :3211
-pnpm dev:web                             # web на :5555
+pnpm dev:web                             # remote Chats на :5557, відкривати через host з ap-app
 pnpm --filter @ap-chats/mobile start
 ```
 
@@ -46,3 +47,5 @@ pnpm test      # API, web, mobile
 - Деплой: [infra/README.md](infra/README.md)
 - Push-сповіщення: [docs/push-notifications.md](docs/push-notifications.md)
 - Вкладення: [docs/chat-uploads.md](docs/chat-uploads.md)
+
+Chats — Module Federation remote shell-а AP. Shell (host) і пакети `@ap-education/*` живуть у репозиторії `ap-app`; `web/` бере пакети з GitHub Packages, тож `pnpm install` потребує токена з `read:packages`.

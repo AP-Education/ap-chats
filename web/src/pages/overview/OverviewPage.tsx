@@ -1,8 +1,8 @@
+import { Page, PageBody, PageHeader, PageTitle } from '@ap-education/ui';
 import { Empty } from 'antd';
 import { createStyles } from 'antd-style';
 
-import { ConversationPane } from '@/domain/conversation/ConversationPane';
-import { MobileMenuButton } from '@/layouts/MainLayout/MobileMenuButton';
+import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 
 const useStyles = createStyles(({ css }) => ({
   body: css`
@@ -18,17 +18,16 @@ export default function OverviewPage() {
   const { styles } = useStyles();
 
   return (
-    <ConversationPane
-      title={
-        <>
-          <MobileMenuButton />
-          Головна
-        </>
-      }
-    >
-      <div className={styles.body}>
-        <Empty description="Розмов поки немає" />
-      </div>
-    </ConversationPane>
+    <Page>
+      <PageHeader>
+        <MobileMenuButton />
+        <PageTitle>Головна</PageTitle>
+      </PageHeader>
+      <PageBody>
+        <div className={styles.body}>
+          <Empty description="Розмов поки немає" />
+        </div>
+      </PageBody>
+    </Page>
   );
 }

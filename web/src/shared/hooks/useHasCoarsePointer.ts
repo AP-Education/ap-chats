@@ -1,4 +1,4 @@
-import { useMediaQuery } from './useMediaQuery';
+import { useMediaQuery } from '@ap-education/ui';
 
 const coarsePointerQuery = '(pointer: coarse)';
 

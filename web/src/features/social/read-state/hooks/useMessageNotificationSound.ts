@@ -1,10 +1,10 @@
+import { isNativeShell } from '@ap-education/shell-sdk';
 import { useEffect } from 'react';
 
 import { usePush } from '@/features/notifications/hooks/usePush';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { getSharedAudioContext } from '@/shared/audio/audio-context';
 import { isAttending, isPresent } from '@/shared/hooks/useIsAttending';
-import { isNativeShell } from '@/shared/lib/nativeBridge';
 
 import { playMessageBloop } from '../sound/messageBloop';
 

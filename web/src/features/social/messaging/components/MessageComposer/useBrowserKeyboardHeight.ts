@@ -1,6 +1,5 @@
+import { isNativeShell } from '@ap-education/shell-sdk';
 import { useEffect, useState } from 'react';
-
-import { isNativeShell } from '@/shared/lib/nativeBridge';
 
 export function useBrowserKeyboardHeight(): number {
   const [height, setHeight] = useState(300);

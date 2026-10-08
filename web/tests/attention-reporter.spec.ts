@@ -44,7 +44,7 @@ function page({ native = false } = {}) {
         react: { useEffect: (effect: () => void) => effect() },
         '@/features/realtime/stores/realtime-context': { useConnection: () => ({ socket }) },
         '@/shared/hooks/useIsAttending': { isPresent: () => state.present },
-        '@/shared/lib/nativeBridge': { isNativeShell: () => native },
+        '@ap-education/shell-sdk': { isNativeShell: () => native },
         '../api/attention': {
           reportAttention: (connection: typeof socket, attending: boolean) =>
             connection.emit('attention:update', { attending }),

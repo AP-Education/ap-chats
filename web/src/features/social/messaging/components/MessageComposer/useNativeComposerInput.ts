@@ -1,3 +1,4 @@
+import { isNativeShell, onNativeMessage, postToNative } from '@ap-education/shell-sdk';
 import {
   type RefObject,
   useCallback,
@@ -7,8 +8,6 @@ import {
   useRef,
   useState,
 } from 'react';
-
-import { isNativeShell, onNativeMessage, postToNative } from '@/shared/lib/nativeBridge';
 
 import type { ComposerEditorApi } from '../../types';
 import { createComposerSessionId, type NativeInputMode, readComposerMessage } from './native-input';

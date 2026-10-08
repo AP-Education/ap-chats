@@ -1,6 +1,5 @@
+import { getAppShell } from '@ap-education/shell-sdk';
 import { lazy, Suspense } from 'react';
-
-import { getAppShell } from '@/lib/app-shell';
 
 import { useCallSignalListener } from '../hooks/useCallSignalListener';
 import { useCallStore } from '../store/call-store';

@@ -10,10 +10,10 @@ import { PeopleSearchResults } from './PeopleSearchResults';
 
 const useStyles = createStyles(({ token, css }) => ({
   error: css`
-    padding: 12px;
+    padding: 12px 16px;
   `,
   heading: css`
-    padding: 12px 12px 4px;
+    padding: 12px 16px 4px;
     color: ${token.colorTextSecondary};
     font-size: 12px;
     font-weight: 600;

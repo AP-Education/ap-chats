@@ -1,7 +1,7 @@
+import { getAppShell, useAppBasePath } from '@ap-education/shell-sdk';
 import { queryOptions, useQuery } from '@tanstack/react-query';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { getAppShell } from '@/lib/app-shell';
 
 import { fetchPushConfiguration } from '../api/push-api';
 import { supportsPush, synchronizePush } from '../api/push-subscription';
@@ -24,10 +24,11 @@ export function pushRegistrationQuery(
   identity: string | undefined,
   token: string | undefined,
   publicKey: string | null,
+  launchPath: string,
 ) {
   return queryOptions({
     queryKey: pushRegistrationKey(identity),
-    queryFn: () => synchronizePush(token!, publicKey!),
+    queryFn: () => synchronizePush(token!, publicKey!, launchPath),
     enabled: !!identity && !!token && !!publicKey,
     staleTime: Infinity,
     retry: false,
@@ -46,7 +47,9 @@ export function usePush(): PushState {
     staleTime: Infinity,
   });
   const publicKey = (supported && configuration.data?.publicKey) || null;
-  const registration = useQuery(pushRegistrationQuery(identity, token, publicKey));
+  const registration = useQuery(
+    pushRegistrationQuery(identity, token, publicKey, usePushLaunchPath()),
+  );
 
   const subscriptionId = registration.data?.subscriptionId ?? null;
   return {
@@ -57,4 +60,9 @@ export function usePush(): PushState {
     publicKey,
     synchronizationFailed: registration.isError,
   };
+}
+
+/** Where a tapped notification opens: the app's own mount point in the shell. */
+export function usePushLaunchPath(): string {
+  return `${useAppBasePath().replace(/\/$/, '')}/`;
 }

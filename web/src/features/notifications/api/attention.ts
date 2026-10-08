@@ -1,5 +1,6 @@
+import { postToNative } from '@ap-education/shell-sdk';
+
 import type { RealtimeSocketClient } from '@/features/realtime/types';
-import { postToNative } from '@/shared/lib/nativeBridge';
 
 import type { NotificationsToNativeMessage } from '../types';
 

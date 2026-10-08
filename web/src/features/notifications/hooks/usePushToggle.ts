@@ -3,21 +3,22 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
 import { disablePush, enablePush, type PushRegistration } from '../api/push-subscription';
-import { pushRegistrationKey, usePush } from './usePush';
+import { pushRegistrationKey, usePush, usePushLaunchPath } from './usePush';
 
 export function usePushToggle() {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
   const push = usePush();
+  const launchPath = usePushLaunchPath();
 
   const save = (registration: PushRegistration) =>
     queryClient.setQueryData(pushRegistrationKey(identity), registration);
   const enable = useMutation({
-    mutationFn: () => enablePush(token!, push.publicKey!),
+    mutationFn: () => enablePush(token!, push.publicKey!, launchPath),
     onSuccess: save,
   });
   const disable = useMutation({
-    mutationFn: () => disablePush(token!, push.subscriptionId),
+    mutationFn: () => disablePush(token!, push.subscriptionId, launchPath),
     onSuccess: save,
   });
 

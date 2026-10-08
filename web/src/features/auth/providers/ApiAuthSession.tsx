@@ -1,8 +1,7 @@
+import { useCurrentUser } from '@ap-education/shell-sdk';
 import { useEffect } from 'react';
 
 import { setApiAuthSession } from '@/shared/api/http';
-
-import { useCurrentUser } from '../stores/current-user-context';
 
 export function ApiAuthSession() {
   const user = useCurrentUser();

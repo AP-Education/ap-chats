@@ -1,11 +1,9 @@
+import { IconButton, useIsMobile } from '@ap-education/ui';
 import { GearSixIcon, UserPlusIcon } from '@phosphor-icons/react';
 import { Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { IconButton } from '@/shared/ui/IconButton';
 
 import { canManageChannel } from '../../channel-permissions';
 import { PrivateChannelIcon, PublicChannelIcon } from '../../channels/channelIcons';
@@ -21,8 +19,8 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 0;
-    margin: 2px 4px;
-    min-height: 36px;
+    margin: 1px 0;
+    min-height: 34px;
     border-radius: ${token.borderRadius}px;
     color: ${token.colorTextSecondary};
     font-weight: 500;
@@ -32,8 +30,12 @@ const useStyles = createStyles(({ token, css }) => ({
       color: ${token.colorText};
     }
 
+    /* Keyboard focus only, drawn inside the row so it never reads as a click artefact. */
+    &:has(a:focus-visible) {
+      box-shadow: inset 0 0 0 2px ${token.colorPrimaryBorder};
+    }
+
     @media (max-width: ${token.screenMD}px) {
-      margin-inline: 4px;
       min-height: 36px;
       touch-action: pan-y;
       user-select: none;
@@ -70,6 +72,7 @@ const useStyles = createStyles(({ token, css }) => ({
     && {
       background: ${token.colorPrimaryBg};
       color: ${token.colorPrimaryTextActive};
+      font-weight: 600;
     }
 
     &&:hover {
@@ -86,8 +89,8 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 8px;
-    min-height: 36px;
-    padding: 2px 8px;
+    min-height: 34px;
+    padding: 0 8px;
     text-decoration: none;
 
     &::after {
@@ -109,14 +112,9 @@ const useStyles = createStyles(({ token, css }) => ({
       color: inherit;
     }
 
-    &:focus {
-      outline: none;
-    }
-
+    &:focus,
     &:focus-visible {
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: 2px;
-      border-radius: ${token.borderRadius}px;
+      outline: none;
     }
 
     @media (max-width: ${token.screenMD}px) {

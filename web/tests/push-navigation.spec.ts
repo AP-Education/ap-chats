@@ -44,16 +44,14 @@ function page({ native = false, search = '' } = {}) {
       useNavigate: () => (to: string, options?: { replace?: boolean }) =>
         navigated.push({ to, replace: Boolean(options?.replace) }),
     },
-    '@/features/auth/stores/current-user-context': {
-      useCurrentUser: () => ({ status: 'signed-in', queryIdentity: 'reader' }),
-    },
     '@/features/workspaces/hooks/useActiveWorkspace': {
       useActiveWorkspace: () => ({ workspaces: [{ id: workspaceId }] }),
     },
     '@/features/workspaces/stores/active-workspace-context': {
       useActiveWorkspaceId: () => ({ setActiveWorkspaceId: (id: string) => workspaces.push(id) }),
     },
-    '@/shared/lib/nativeBridge': {
+    '@ap-education/shell-sdk': {
+      useCurrentUser: () => ({ status: 'signed-in', queryIdentity: 'reader' }),
       isNativeShell: () => native,
       onNativeMessage: (listener: (message: unknown) => void) => {
         nativeListener = listener;
@@ -61,7 +59,6 @@ function page({ native = false, search = '' } = {}) {
       },
       postToNative: (message: unknown) => toNative.push(message),
     },
-    '@/shared/ui/AppLoading/AppLoading': { AppLoading: () => null },
     '../notification-route': route,
   };
   const exports = {} as { PushNavigation: typeof PushNavigation };
@@ -118,11 +115,11 @@ test('a native tap is routed once the page says it is ready, and acknowledged', 
   assert.deepEqual(p.toNative().at(-1), { type: 'notifications/ack', eventId: 'event' });
 });
 
-test('an app started by a tap waits, then replaces its launch URL with the conversation', () => {
+test('an app started by a tap shows nothing, then replaces its launch URL with the conversation', () => {
   const launch = encodeURIComponent(JSON.stringify({ userId: 'reader', target }));
   const p = page({ search: `?notification=${launch}` });
 
-  assert.equal(p.rendered, 'loading');
+  assert.equal(p.rendered, null);
   assert.deepEqual(p.navigated, [{ to: `/channels/${channelId}`, replace: true }]);
 });
 

@@ -1,7 +1,7 @@
 import { VideoTrack } from '@livekit/components-react';
 import { createStyles, keyframes } from 'antd-style';
 
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { Avatar } from '@/shared/ui/Avatar';
 
 import type { DominantThumbnail, StageView } from './useCallStageParticipants';
 

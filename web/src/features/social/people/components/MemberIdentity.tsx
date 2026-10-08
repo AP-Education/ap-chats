@@ -1,6 +1,6 @@
 import { createStyles } from 'antd-style';
 
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { Avatar } from '@/shared/ui/Avatar';
 
 const useStyles = createStyles(({ token, css }) => ({
   avatar: css`

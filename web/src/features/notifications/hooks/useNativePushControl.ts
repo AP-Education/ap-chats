@@ -1,6 +1,5 @@
+import { onNativeMessage, postToNative } from '@ap-education/shell-sdk';
 import { useEffect, useState } from 'react';
-
-import { onNativeMessage, postToNative } from '@/shared/lib/nativeBridge';
 
 import type {
   NativePushPermission,

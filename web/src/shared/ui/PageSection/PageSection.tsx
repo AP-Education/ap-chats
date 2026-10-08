@@ -21,10 +21,10 @@ interface PageSectionProps {
   style?: CSSProperties;
 }
 
-// The one place page width is capped, applied once by MainLayout — pages don't
+// The one place page width is capped, applied once by ChatsContent; pages don't
 // opt in individually. 1920px only kicks in on external/ultra-wide monitors,
-// leaving normal laptop windows (even maximized) unconstrained. Pages that need
-// an edge-to-edge shell (ChatLayout) override padding to 0 via `style`.
+// leaving normal laptop windows (even maximized) unconstrained. Edge-to-edge
+// pages (conversations, calls) override padding to 0 via `style`.
 export function PageSection({
   maxWidth = 1920,
   style,

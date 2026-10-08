@@ -1,20 +1,20 @@
+import { useIsMobile } from '@ap-education/ui';
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
-
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
     display: flex;
     align-items: center;
     gap: 10px;
-    height: 63px;
-    padding: 9px 12px;
+    height: 61px;
+    margin: 1px 8px;
+    padding: 8px;
 
     @media (max-width: ${token.screenMD}px) {
       height: 64px;
       gap: 12px;
-      padding: 6px 12px;
+      padding: 6px 8px;
     }
   `,
   body: css`

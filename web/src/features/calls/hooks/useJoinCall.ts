@@ -1,8 +1,8 @@
+import { getAppShell } from '@ap-education/shell-sdk';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { message as toast } from 'antd';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { getAppShell } from '@/lib/app-shell';
 
 import { joinCall } from '../api/calls-api';
 import { requestNativeCallConnect } from '../api/native-call-bridge';

@@ -1,7 +1,7 @@
+import { LoadingIcon } from '@ap-education/ui';
 import { createStyles, keyframes } from 'antd-style';
 
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
-import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
+import { Avatar } from '@/shared/ui/Avatar';
 
 import { CallIcon, EndCallIcon } from '../callIcons';
 import { CALL_SURFACE_GRADIENT, CALL_SURFACE_HIGHLIGHT } from '../callTheme';

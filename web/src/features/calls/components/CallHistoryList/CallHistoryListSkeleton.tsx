@@ -1,7 +1,6 @@
+import { useIsMobile } from '@ap-education/ui';
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
-
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`

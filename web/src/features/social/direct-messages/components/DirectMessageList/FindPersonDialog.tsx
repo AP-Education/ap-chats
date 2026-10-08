@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { Avatar } from '@/shared/ui/Avatar';
 
 import { type PersonResult, searchPeople } from '../../api/direct-messages-api';
 import { useOpenDirectMessage } from '../../hooks/useOpenDirectMessage';

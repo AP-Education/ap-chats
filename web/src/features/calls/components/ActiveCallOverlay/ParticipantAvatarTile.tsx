@@ -7,7 +7,7 @@ import {
 import { MicrophoneSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { Avatar } from '@/shared/ui/Avatar';
 
 const useStyles = createStyles(({ css }) => ({
   tile: css`

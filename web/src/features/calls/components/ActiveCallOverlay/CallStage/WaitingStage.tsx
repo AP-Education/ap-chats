@@ -1,7 +1,7 @@
 import { PhoneOutgoingIcon, UserIcon } from '@phosphor-icons/react';
 import { createStyles, keyframes } from 'antd-style';
 
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
+import { Avatar } from '@/shared/ui/Avatar';
 
 import type { Callee } from './useCallStageParticipants';
 

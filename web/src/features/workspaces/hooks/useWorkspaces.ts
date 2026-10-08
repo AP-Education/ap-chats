@@ -11,5 +11,6 @@ export function useWorkspaces(): UseQueryResult<Workspace[]> {
     queryKey: ['workspaces', identity],
     queryFn: () => listWorkspaces(token as string),
     enabled: Boolean(token),
+    meta: { persist: true },
   });
 }

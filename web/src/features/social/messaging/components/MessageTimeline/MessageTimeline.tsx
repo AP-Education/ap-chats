@@ -1,3 +1,4 @@
+import { useIsMobile } from '@ap-education/ui';
 import { ArrowDownIcon, ArrowUpIcon, HashIcon } from '@phosphor-icons/react';
 import { Button, Empty } from 'antd';
 import { createStyles } from 'antd-style';
@@ -9,7 +10,6 @@ import type {
   ConversationAction,
 } from '@/features/social/conversation/actions';
 import { useConversation } from '@/features/social/conversation/store';
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
 
 import type { DisplayItem, HistoryPage, MessageHistoryItem } from '../../types';
 import { isMessageItem } from '../../types';

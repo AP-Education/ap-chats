@@ -1,11 +1,14 @@
+import {
+  isNativeShell,
+  onNativeMessage,
+  postToNative,
+  useCurrentUser,
+} from '@ap-education/shell-sdk';
 import { type PropsWithChildren, useEffect, useEffectEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { useCurrentUser } from '@/features/auth/stores/current-user-context';
 import { useActiveWorkspace } from '@/features/workspaces/hooks/useActiveWorkspace';
 import { useActiveWorkspaceId } from '@/features/workspaces/stores/active-workspace-context';
-import { isNativeShell, onNativeMessage, postToNative } from '@/shared/lib/nativeBridge';
-import { AppLoading } from '@/shared/ui/AppLoading/AppLoading';
 
 import { notificationRoute } from '../notification-route';
 import type {
@@ -71,7 +74,8 @@ export function PushNavigation({ children }: PropsWithChildren) {
     };
   }, [ready]);
 
-  if (launch) return <AppLoading />;
+  // The shell frame stays up while the tap is routed.
+  if (launch) return null;
   return children;
 }
 

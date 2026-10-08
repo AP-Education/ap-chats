@@ -1,8 +1,8 @@
+import { isNativeShell } from '@ap-education/shell-sdk';
 import { useEffect } from 'react';
 
 import { useConnection } from '@/features/realtime/stores/realtime-context';
 import { isPresent } from '@/shared/hooks/useIsAttending';
-import { isNativeShell } from '@/shared/lib/nativeBridge';
 
 import { reportAttention, reportAttentionToShell } from '../api/attention';
 

@@ -14,6 +14,8 @@
     "icons": "pnpm dlx @vite-pwa/assets-generator@2.0.0 && pnpm dlx @vite-pwa/assets-generator@2.0.0 -c pwa-assets.favicon.mjs"
   },
   "dependencies": {
+    "@ap-education/shell-sdk": "^0.1.1-beta.0",
+    "@ap-education/ui": "^0.1.1-beta.4",
     "@emoji-mart/data": "^1.2.1",
     "@livekit/components-react": "^2.9.24",
     "@livekit/components-styles": "^1.2.0",
@@ -23,11 +25,9 @@
     "antd": "6.5.4",
     "antd-style": "4.1.0",
     "livekit-client": "^2.22.3",
-    "oidc-client-ts": "3.5.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
-    "react-oidc-context": "3.3.1",
     "react-router-dom": "6.30.1",
     "remark-breaks": "^4.0.0",
     "remark-directive": "^4.0.0",
@@ -36,6 +36,8 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@ap-education/federation": "^0.1.1-beta.1",
+    "@module-federation/vite": "^1.23.2",
     "@playwright/test": "1.63.0",
     "@types/node": "^24.13.3",
     "@types/react": "19.2.18",

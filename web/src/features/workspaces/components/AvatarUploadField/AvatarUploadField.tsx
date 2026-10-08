@@ -2,7 +2,8 @@ import { CameraIcon, PlusIcon } from '@phosphor-icons/react';
 import { message, Spin, Upload, type UploadProps } from 'antd';
 import { createStyles } from 'antd-style';
 
-import { Avatar } from '../../../../shared/ui/Avatar/Avatar';
+import { Avatar } from '@/shared/ui/Avatar';
+
 import { useUploadFile } from '../../hooks/useUploadFile';
 
 const useStyles = createStyles(({ token, css }) => ({

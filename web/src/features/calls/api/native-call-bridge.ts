@@ -1,4 +1,5 @@
-import { postToNative } from '@/shared/lib/nativeBridge';
+import { postToNative } from '@ap-education/shell-sdk';
+
 import { resolveImageUrl } from '@/shared/lib/resolve-image-url';
 
 import type { NativeCallConnectPayload } from '../types';

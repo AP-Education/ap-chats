@@ -1,3 +1,4 @@
+import { IconButton, LoadingIcon, useIsMobile } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 import { Link } from 'react-router-dom';
 
@@ -5,10 +6,7 @@ import { callActionLabel } from '@/features/calls/callActionLabel';
 import { CallIcon } from '@/features/calls/callIcons';
 import { getCallStatusIcon } from '@/features/calls/callStatusIcon';
 import { useKnownCallAction } from '@/features/calls/hooks/useKnownCallAction';
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { Avatar } from '@/shared/ui/Avatar/Avatar';
-import { IconButton } from '@/shared/ui/IconButton';
-import { LoadingIcon } from '@/shared/ui/LoadingIcon/LoadingIcon';
+import { Avatar } from '@/shared/ui/Avatar';
 
 import { callEntryStatus, formatCallDate } from './callHistoryLabels';
 import type { CallHistoryEntry } from './groupCallHistory';

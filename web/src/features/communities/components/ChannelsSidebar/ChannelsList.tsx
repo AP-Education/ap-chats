@@ -1,3 +1,4 @@
+import { IconButton, useIsMobile } from '@ap-education/ui';
 import { GearSixIcon, PlusIcon } from '@phosphor-icons/react';
 import { Button, message } from 'antd';
 import { createStyles } from 'antd-style';
@@ -7,8 +8,6 @@ import { matchPath, useLocation } from 'react-router-dom';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { getLastConversation } from '@/features/social/conversation/lastConversation';
 import { useWorkspaceUnreadStore } from '@/features/social/read-state/workspace-unread-context';
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { IconButton } from '@/shared/ui/IconButton';
 
 import { ChannelCategoriesModal } from '../../channel-categories/components/ChannelCategoriesModal';
 import { ChannelFormModal } from '../../channels/components/ChannelFormModal';

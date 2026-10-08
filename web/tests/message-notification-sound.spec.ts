@@ -67,7 +67,7 @@ function fixture({
         },
       },
       '@/shared/audio/audio-context': audio,
-      '@/shared/lib/nativeBridge': { isNativeShell: () => native },
+      '@ap-education/shell-sdk': { isNativeShell: () => native },
       '@/shared/hooks/useIsAttending': {
         isAttending: () => page.visible,
         isPresent: () => page.visible,

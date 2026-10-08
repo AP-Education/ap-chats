@@ -1,3 +1,5 @@
+import { isNativeShell } from '@ap-education/shell-sdk';
+import { IconButton, useIsMobile } from '@ap-education/ui';
 import {
   GifIcon,
   KeyboardIcon,
@@ -22,10 +24,7 @@ import {
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversation, useConversationScope } from '@/features/social/conversation/store';
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
-import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { isNativeShell } from '@/shared/lib/nativeBridge';
 import { randomId } from '@/shared/lib/random-id';
-import { IconButton } from '@/shared/ui/IconButton';
 
 import { useAttachments } from '../../attachments/useAttachments';
 import { MessageEditorSlotProvider } from '../../MessageEditorSlot';

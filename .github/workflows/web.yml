@@ -9,6 +9,7 @@ on:
       - '*.yaml'
       - '*.mjs'
       - '.nvmrc'
+      - '.npmrc'
       - '.prettier*'
       - '.github/workflows/web.yml'
   pull_request:
@@ -18,25 +19,31 @@ on:
       - '*.yaml'
       - '*.mjs'
       - '.nvmrc'
+      - '.npmrc'
       - '.prettier*'
       - '.github/workflows/web.yml'
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      # pnpm reads registry credentials only from user-level config, never from the committed .npmrc.
+      - run: echo '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}' >> ~/.npmrc
       - uses: pnpm/setup@v3
         with:
           require-lockfile: true
           cache: true
-      - run: pnpm --filter @ap-chats/web lint
-      - run: pnpm --filter @ap-chats/web typecheck
-      - run: pnpm --filter @ap-chats/web test
-      - run: pnpm --filter @ap-chats/web build
+      - run: pnpm lint:web
+      - run: pnpm typecheck:web
+      - run: pnpm test:web
+      - run: pnpm build:web
       - run: pnpm exec prettier --check web
