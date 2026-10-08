@@ -10,9 +10,27 @@ export interface NativeNotificationOpen {
   payload: NotificationTap & { eventId: string };
 }
 
+/** One notifications control for every shell; each adapter decides what `change` does there. */
+export interface PushControl {
+  status: 'on' | 'off' | 'blocked';
+  hint: string;
+  busy: boolean;
+  change: () => void;
+}
+
+/** The phone's own notification permission, which only the OS and its Settings can change. */
+export type NativePushPermission = 'granted' | 'denied' | 'undetermined';
+
+export interface NativePushPermissionMessage {
+  type: 'notifications/permission';
+  status: NativePushPermission;
+}
+
 export type NotificationsToNativeMessage =
   | { type: 'notifications/ready' }
   | { type: 'notifications/ack'; eventId: string }
   | { type: 'notifications/dismiss'; collapseKey: string }
   | { type: 'notifications/context'; payload: { attending: boolean } }
-  | { type: 'notifications/message-sound' };
+  | { type: 'notifications/message-sound' }
+  | { type: 'notifications/permission-check' }
+  | { type: 'notifications/settings' };

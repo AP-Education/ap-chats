@@ -2,6 +2,8 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import type { PushPermission } from '../types';
+
 export async function ensureMessageChannel(): Promise<void> {
   if (Platform.OS === 'android')
     await Notifications.setNotificationChannelAsync('messages', {
@@ -11,7 +13,7 @@ export async function ensureMessageChannel(): Promise<void> {
     });
 }
 
-export async function getPushPermissionStatus(): Promise<Notifications.PermissionStatus> {
+export async function getPushPermissionStatus(): Promise<PushPermission> {
   return (await Notifications.getPermissionsAsync()).status;
 }
 

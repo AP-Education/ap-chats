@@ -1,3 +1,5 @@
+export type PushPermission = 'granted' | 'denied' | 'undetermined';
+
 export type DevicePlatform = 'ios' | 'android';
 
 export interface RegisterDevicePayload {
