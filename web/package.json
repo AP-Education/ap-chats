@@ -10,7 +10,8 @@
     "lint": "eslint src tests vite.config.ts",
     "preview": "vite preview",
     "test": "node --import tsx --test \"src/**/*.spec.ts\" \"tests/*.spec.ts\"",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "icons": "pnpm dlx @vite-pwa/assets-generator@2.0.0 && pnpm dlx @vite-pwa/assets-generator@2.0.0 -c pwa-assets.favicon.mjs"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",

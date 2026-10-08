@@ -3,24 +3,37 @@ import { test } from 'node:test';
 
 import { useNotificationStore } from './notification-store';
 
-test('pending notification survives WebView loading and an old acknowledgement cannot erase a newer tap', () => {
-  const first = {
-    eventId: 'first',
-    userId: 'user',
-    workspaceId: 'workspace',
-    channelId: 'channel',
-    url: '/channels/channel',
-  };
-  const second = { ...first, eventId: 'second' };
+const tap = {
+  eventId: 'first',
+  userId: 'user',
+  target: { type: 'conversation' },
+};
+
+test('a tap stays pending through page reloads until the page routes it', () => {
   const store = useNotificationStore.getState();
-  store.open(first);
-  store.setReady(false);
+  store.open(tap);
+  store.setWebReady(false);
   assert.equal(useNotificationStore.getState().pending?.eventId, 'first');
-  store.open(second);
-  store.acknowledge(first.eventId);
+
+  store.acknowledge('first');
+  assert.equal(useNotificationStore.getState().pending, null);
+});
+
+test('a stale acknowledgement cannot drop a newer tap, and a routed tap is not reopened', () => {
+  const store = useNotificationStore.getState();
+  store.open({ ...tap, eventId: 'second' });
+  store.acknowledge('first');
   assert.equal(useNotificationStore.getState().pending?.eventId, 'second');
-  store.acknowledge(second.eventId);
+
+  store.acknowledge('second');
+  store.open({ ...tap, eventId: 'second' });
   assert.equal(useNotificationStore.getState().pending, null);
-  store.open(second);
-  assert.equal(useNotificationStore.getState().pending, null);
+});
+
+test('a page that stops being ready no longer counts as attending', () => {
+  const store = useNotificationStore.getState();
+  store.setWebReady(true);
+  store.setWebAttending(true);
+  store.setWebReady(false);
+  assert.equal(useNotificationStore.getState().webAttending, false);
 });

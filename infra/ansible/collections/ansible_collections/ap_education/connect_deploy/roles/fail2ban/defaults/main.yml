@@ -1,0 +1,8 @@
+---
+# argument_specs documents these for validation/docs, but role argument
+# validation doesn't inject its "default" into the task namespace — only
+# defaults/main.yml does that. See compose_runtime's defaults/main.yml for
+# the same note; same pitfall, same fix.
+fail2ban_bantime: 1h
+fail2ban_findtime: 10m
+fail2ban_maxretry: 5

@@ -1,1 +1,4 @@
 pnpm-lock.yaml
+
+# Terraform templatefile() input, not plain YAML — %{ ~} directives aren't valid YAML.
+infra/cloud-init/*.yaml

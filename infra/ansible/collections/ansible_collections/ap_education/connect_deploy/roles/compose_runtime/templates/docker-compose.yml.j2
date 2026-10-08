@@ -1,0 +1,109 @@
+# Up to ~1 GB of logs per service, rotated, instead of an unbounded json-file.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 100m
+    max-file: '10'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    logging: *logging
+    environment:
+      POSTGRES_USER: "{{ postgres_user }}"
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+      POSTGRES_DB: "{{ postgres_db }}"
+    volumes:
+      - {{ data_path }}/postgres:/var/lib/postgresql/data
+    networks:
+      - chats
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgres_user }} -d {{ postgres_db }}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  valkey:
+    image: valkey/valkey:8.1.9-alpine
+    restart: always
+    logging: *logging
+    command:
+      - valkey-server
+      - --appendonly
+      - 'yes'
+      - --appendfsync
+      - everysec
+      - --maxmemory-policy
+      - noeviction
+    volumes:
+      - {{ data_path }}/valkey:/data
+    networks:
+      - chats
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Applies pending migrations once per deploy; the API starts only if they succeed.
+  migrate:
+    image: "{{ app_image }}"
+    command: ["node", "dist/migrate.js"]
+    restart: "no"
+    logging: *logging
+    env_file:
+      - ./app.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - chats
+
+  api:
+    image: "{{ app_image }}"
+    restart: always
+    logging: *logging
+    # Node as PID 1 ignores SIGTERM; tini forwards it so the API drains its workers before exiting.
+    init: true
+    stop_grace_period: 30s
+    env_file:
+      - ./app.env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:{{ api_port }}/api/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    networks:
+      - chats
+
+  web:
+    image: "{{ web_image }}"
+    restart: always
+    logging: *logging
+    environment:
+      CHATS_DOMAIN: "{{ chats_domain }}"
+      ACME_EMAIL: "{{ acme_email }}"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - {{ data_path }}/caddy/data:/data
+      - {{ data_path }}/caddy/config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - chats
+
+networks:
+  chats:
+    driver: bridge

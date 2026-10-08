@@ -15,7 +15,7 @@ export interface CallSignalPayload {
 }
 
 // Mirrors call-entry-created.event.ts — CallsService publishes this ignorant of who
-// listens; CallsGateway (sockets) and CallPushNotifier (VoIP/FCM) each decide on
+// listens; CallsGateway (sockets) and CallPushWorker (VoIP/FCM) each decide on
 // their own which kinds they care about.
 export class CallSignalEvent {
   constructor(

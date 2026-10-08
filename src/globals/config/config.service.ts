@@ -10,4 +10,9 @@ export class AppConfigService {
   get<K extends keyof AppConfig>(key: K): AppConfig[K] {
     return this.config.get(key, { infer: true });
   }
+
+  /** This instance runs push work: push is on and it is not an HTTP-only instance. */
+  runsPushWorkers(): boolean {
+    return this.get('PUSH_ENABLED') && this.get('PUSH_WORKER_ENABLED');
+  }
 }

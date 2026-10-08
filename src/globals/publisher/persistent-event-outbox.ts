@@ -1,16 +1,11 @@
 import { Injectable } from '@nestjs/common';
 
-import { AppConfigService } from '@/globals/config';
-
 import { EventOutbox, type OutboxOptions } from './event-outbox';
 import { EventOutboxRepository } from './repository/event-outbox.repository';
 
 @Injectable()
 export class PersistentEventOutbox extends EventOutbox {
-  constructor(
-    private readonly repository: EventOutboxRepository,
-    private readonly config: AppConfigService,
-  ) {
+  constructor(private readonly repository: EventOutboxRepository) {
     super();
   }
 
@@ -19,9 +14,7 @@ export class PersistentEventOutbox extends EventOutbox {
     payload: T,
     options: OutboxOptions = {},
   ): Promise<void> {
-    if (!this.config.get('PUSH_ENABLED')) return;
     await this.repository.append({
-      ...(options.id ? { id: options.id } : {}),
       name,
       payload,
       priority: options.priority ?? 10,

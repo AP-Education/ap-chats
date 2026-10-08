@@ -44,6 +44,7 @@ function fixture() {
   };
   const registry = new CallPushProviderRegistry(provider as never, provider as never);
   const worker = new CallPushWorker(
+    {} as never,
     {
       enqueue: async (...args: unknown[]) => {
         queued.push(args);
@@ -70,7 +71,7 @@ function fixture() {
       payload,
       userId: 'reader',
       deviceId: device.id,
-      token: tokenFingerprint(device.voipToken),
+      tokenFingerprint: tokenFingerprint(device.voipToken),
     },
     stop: () => {
       ringing = false;

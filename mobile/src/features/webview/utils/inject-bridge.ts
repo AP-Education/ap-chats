@@ -14,10 +14,6 @@ export function buildBridgeScript(message: NativeToWebMessage): string {
   return `
     (function () {
       var message = ${JSON.stringify(message)};
-      if (message.type === 'notifications/open') {
-        window.dispatchEvent(new CustomEvent('ap:notification-open', { detail: message.payload }));
-        return;
-      }
       if (window.ApAppNative && typeof window.ApAppNative.onMessage === 'function') {
         window.ApAppNative.onMessage(message);
       } else {

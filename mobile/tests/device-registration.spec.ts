@@ -76,7 +76,7 @@ function fixture() {
     registerCurrentDeviceForPush: () => Promise<void>;
   }>('api/register-current-device.ts');
   const { unregisterCurrentDevice: unregister } = load<{
-    unregisterCurrentDevice: () => Promise<void>;
+    unregisterCurrentDevice: (accessToken: string) => Promise<void>;
   }>('api/unregister-current-device.ts');
 
   return {
@@ -110,7 +110,7 @@ test('a delayed logout DELETE finishes before a new sign-in registers the same d
     await deleting.promise;
     f.setRegistered(false);
   };
-  const logoutCleanup = f.unregister();
+  const logoutCleanup = f.unregister('old-session');
   f.setAccessToken(undefined);
   await started.promise;
   f.setAccessToken('new-session');
@@ -133,7 +133,7 @@ test('cleanup is reserved before an asynchronous installation lookup completes',
     await lookup.promise;
     return 'installation';
   };
-  const cleanup = f.unregister();
+  const cleanup = f.unregister('old-session');
   f.setAccessToken(undefined);
   f.setAccessToken('new-session');
   const registration = f.register();
@@ -157,7 +157,7 @@ test('logout cleanup follows an already pending POST so it cannot restore push a
   };
   const registration = f.register();
   await started.promise;
-  const cleanup = f.unregister();
+  const cleanup = f.unregister('old-session');
   f.setAccessToken(undefined);
   posting.resolve();
   await Promise.all([registration, cleanup]);
@@ -170,7 +170,7 @@ test('logout cleanup follows an already pending POST so it cannot restore push a
 
 test('a queued registration is skipped if logout cleared the session before it runs', async () => {
   const f = fixture();
-  const cleanup = f.unregister();
+  const cleanup = f.unregister('old-session');
   const registration = f.register();
   f.setAccessToken(undefined);
   await Promise.all([cleanup, registration]);
@@ -188,7 +188,7 @@ test('logout during push-token lookup prevents a stale registration POST', async
   };
   const registration = f.register();
   await started.promise;
-  const cleanup = f.unregister();
+  const cleanup = f.unregister('old-session');
   f.setAccessToken(undefined);
   lookup.resolve();
   await Promise.all([registration, cleanup]);
@@ -200,7 +200,7 @@ test('a failed cleanup does not prevent a subsequent device registration', async
   f.persistence.getInstallationId = async () => {
     throw new Error('SecureStore unavailable');
   };
-  const cleanup = f.unregister();
+  const cleanup = f.unregister('old-session');
   await assert.rejects(cleanup, /SecureStore unavailable/);
   f.persistence.getInstallationId = async () => 'installation';
   f.setAccessToken('new-session');

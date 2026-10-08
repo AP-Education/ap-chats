@@ -3,6 +3,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, desc, eq, inArray, lt, ne, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
+import { throwConflictOnUnique } from '@/components/communities/repository/pg-unique-conflict';
 import {
   calls,
   channelMemberships,
@@ -13,19 +14,9 @@ import {
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 import type { CallRecord } from '../types';
-import { CallsRepository } from './calls.repository';
+import { type CallHistoryFilter, CallsRepository } from './calls.repository';
 
 const ACTIVE_STATUSES = ['ringing', 'active'] as const;
-
-function isUniqueViolation(error: unknown): boolean {
-  let current = error;
-  for (let depth = 0; depth < 3; depth += 1) {
-    if (!current || typeof current !== 'object') return false;
-    if ('code' in current && current.code === '23505') return true;
-    current = 'cause' in current ? current.cause : undefined;
-  }
-  return false;
-}
 
 @Injectable()
 export class DrizzleCallsRepository extends CallsRepository {
@@ -45,12 +36,7 @@ export class DrizzleCallsRepository extends CallsRepository {
       if (!row) throw new Error('Call insert failed');
       return row;
     } catch (error) {
-      if (!isUniqueViolation(error)) throw error;
-      // Lost the race for the one ringing/active call this channel may hold:
-      // hand back whichever call won it instead of failing the caller.
-      const existing = await this.findActive(input.channelId);
-      if (!existing) throw error;
-      return existing;
+      return throwConflictOnUnique(error, 'Channel already has an ongoing call');
     }
   }
 
@@ -148,6 +134,7 @@ export class DrizzleCallsRepository extends CallsRepository {
   async listForMember(
     workspaceId: string,
     memberId: string,
+    filter: CallHistoryFilter,
     cursor: { startedAt: Date; id: string } | undefined,
     limit: number,
   ) {
@@ -184,6 +171,9 @@ export class DrizzleCallsRepository extends CallsRepository {
             eq(directMessages.firstMemberId, memberId),
             eq(directMessages.secondMemberId, memberId),
           ),
+          filter === 'missed'
+            ? and(eq(calls.status, 'missed'), ne(calls.startedByMemberId, memberId))
+            : undefined,
           cursor
             ? or(
                 lt(calls.startedAt, cursor.startedAt),

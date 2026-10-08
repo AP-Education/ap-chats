@@ -4,7 +4,7 @@ import { AppConfigService } from '@/globals/config';
 
 import { validatePushSubscription } from './push-endpoint';
 import { WebPushRepository } from './repository/web-push.repository';
-import type { WebPushPresence, WebPushRegistration } from './web-push.types';
+import type { WebPushRegistration } from './web-push.types';
 
 @Injectable()
 export class WebPushService {
@@ -35,9 +35,5 @@ export class WebPushService {
 
   remove(userId: string, id: string) {
     return this.repository.remove(userId, id);
-  }
-
-  presence(userId: string, id: string, presence: WebPushPresence) {
-    return this.repository.presence(userId, id, presence);
   }
 }

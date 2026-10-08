@@ -1,0 +1,21 @@
+#!/bin/bash
+# Rendered by ansible; re-run the init/deploy playbook to pick up changes.
+# pipefail: a failed pg_dump must fail the run, not upload an empty archive.
+set -euo pipefail
+
+cd "{{ deploy_project_path }}"
+timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+dump_file="/tmp/{{ project_name }}-${timestamp}.sql.gz"
+object_key="backups/{{ project_name }}-${timestamp}.sql.gz"
+
+cleanup() {
+  rm -f "$dump_file"
+}
+trap cleanup EXIT
+
+docker compose exec -T postgres pg_dump -U "{{ postgres_user }}" "{{ postgres_db }}" | gzip > "$dump_file"
+
+AWS_ACCESS_KEY_ID="{{ do_spaces_access_key }}" \
+AWS_SECRET_ACCESS_KEY="{{ do_spaces_secret_key }}" \
+/snap/bin/aws s3 cp "$dump_file" "s3://{{ do_backups_bucket }}/${object_key}" \
+  --endpoint-url "{{ do_spaces_endpoint }}"

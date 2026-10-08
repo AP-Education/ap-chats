@@ -1,0 +1,12 @@
+argument_specs:
+  main:
+    short_description: Mount the block storage volume that holds Postgres, Valkey and Caddy state.
+    options:
+      data_volume_name:
+        type: str
+        required: true
+        description: Name of the DigitalOcean volume, from the terraform-backed inventory.
+      data_path:
+        type: str
+        default: '/mnt/<project_name>-data'
+        description: Mount point; compose_runtime bind-mounts its state directories from here.

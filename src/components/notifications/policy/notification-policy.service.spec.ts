@@ -18,17 +18,15 @@ function decision(changes: Partial<NotificationDecision> = {}): NotificationDeci
     kind: 'message.created',
     actorMemberId: 'author',
     recipientMemberId: 'recipient',
-    channelKind: 'public',
     settings,
     mentioned: false,
     ...changes,
   };
 }
 
-test('channel default alerts on structured mentions while DM default alerts on messages', () => {
-  assert.equal(policy.shouldAlert(decision()), false);
+test('default alerts on every message, whatever the conversation kind', () => {
+  assert.equal(policy.shouldAlert(decision()), true);
   assert.equal(policy.shouldAlert(decision({ mentioned: true })), true);
-  assert.equal(policy.shouldAlert(decision({ channelKind: 'dm' })), true);
 });
 
 test('mute, author and non-message changes never alert', () => {
@@ -52,19 +50,29 @@ test('mute, author and non-message changes never alert', () => {
 test('all and mentions overrides use the recipient preference', () => {
   assert.equal(policy.shouldAlert(decision({ settings: { ...settings, level: 'all' } })), true);
   assert.equal(
-    policy.shouldAlert(
-      decision({ channelKind: 'dm', settings: { ...settings, level: 'mentions' } }),
-    ),
+    policy.shouldAlert(decision({ settings: { ...settings, level: 'mentions' } })),
     false,
   );
   assert.equal(
     policy.shouldAlert(
       decision({
-        channelKind: 'dm',
         settings: { ...settings, level: 'mentions' },
         mentioned: true,
       }),
     ),
+    true,
+  );
+});
+
+test('temporary mute expires without changing the notification level', () => {
+  assert.equal(
+    policy.shouldAlert(
+      decision({ settings: { ...settings, mutedUntil: new Date(Date.now() + 60000) } }),
+    ),
+    false,
+  );
+  assert.equal(
+    policy.shouldAlert(decision({ settings: { ...settings, mutedUntil: new Date(0) } })),
     true,
   );
 });

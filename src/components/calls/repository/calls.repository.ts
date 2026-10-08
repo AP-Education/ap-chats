@@ -7,7 +7,11 @@ export interface CallHistoryParticipant {
   active: boolean;
 }
 
+// "missed" is only what rang for you and went unanswered, never your own unanswered dial.
+export type CallHistoryFilter = 'all' | 'missed';
+
 export abstract class CallsRepository {
+  /** Conflicts when the channel already holds a ringing/active call. */
   abstract insert(input: {
     id: string;
     workspaceId: string;
@@ -58,6 +62,7 @@ export abstract class CallsRepository {
   abstract listForMember(
     workspaceId: string,
     memberId: string,
+    filter: CallHistoryFilter,
     cursor: { startedAt: Date; id: string } | undefined,
     limit: number,
   ): Promise<Array<CallRecord & { participant: CallHistoryParticipant }>>;

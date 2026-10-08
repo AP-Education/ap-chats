@@ -1,22 +1,27 @@
 {
   "expo": {
     "name": "AP App",
-    "slug": "ap-chats",
-    "version": "0.0.0",
+    "slug": "ap-connect",
+    "description": "Робочий простір AP Education: командні чати, дзвінки й сповіщення.",
+    "version": "0.2.0",
     "scheme": "apchats",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "primaryColor": "#009a78",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.apeducation.native",
-      "buildNumber": "11"
+      "buildNumber": "11",
+      "icon": "./assets/AppIcon.icon",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.apeducation.native",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -27,9 +32,27 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "backgroundColor": "#f3f9f8",
+          "dark": {
+            "image": "./assets/splash-icon-dark.png",
+            "backgroundColor": "#0c1113"
+          }
+        }
+      ],
       "expo-web-browser",
       "expo-secure-store",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#009a78"
+        }
+      ],
       [
         "expo-callkit-telecom",
         {

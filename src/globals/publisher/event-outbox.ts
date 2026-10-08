@@ -1,5 +1,4 @@
 export interface OutboxOptions {
-  id?: string;
   priority?: number;
   expireInSeconds?: number;
 }

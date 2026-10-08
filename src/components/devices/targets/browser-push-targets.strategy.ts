@@ -3,24 +3,23 @@ import { Injectable } from '@nestjs/common';
 import { WebPushRepository } from '../browser/repository/web-push.repository';
 import type { WebPushSubscription } from '../browser/web-push.types';
 import { subscriptionFingerprint } from './credential-fingerprint';
-import type { PushTargetReference } from './types';
+import type { DeviceTarget } from './types';
 
 @Injectable()
 export class BrowserPushTargetsStrategy {
   constructor(private readonly repository: WebPushRepository) {}
 
-  async listMessageTargetsForUser(userId: string): Promise<PushTargetReference[]> {
+  async listMessageTargetsForUser(userId: string): Promise<DeviceTarget[]> {
     const subscriptions = await this.repository.forUser(userId);
 
     return subscriptions.map((subscription) => ({
-      kind: 'web',
       id: subscription.id,
       fingerprint: subscriptionFingerprint(subscription),
     }));
   }
 
   async findCurrentSubscription(
-    target: PushTargetReference,
+    target: DeviceTarget,
     userId: string,
   ): Promise<WebPushSubscription | undefined> {
     const subscription = await this.repository.find(target.id);

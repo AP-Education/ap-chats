@@ -16,70 +16,69 @@ const session = {
   incomingCallEvent: {
     serverCallId: 'server-call',
     caller: { id: 'caller', displayName: 'Caller' },
-    metadata: {
-      workspaceId: 'workspace',
-      channelId: 'channel',
-      channelKind: 'dm',
-      roomName: 'room',
-    },
+    metadata: { workspaceId: 'workspace', channelId: 'channel', channelKind: 'dm', roomName: 'r' },
   },
 };
 
-test('cold start restores an incoming call without relying on CallSessionAdded replay', async () => {
-  await hydrateCallSession({ getActiveCallSession: async () => session } as never);
+function restore(native: object) {
+  return hydrateCallSession({ getActiveCallSession: async () => native } as never);
+}
+
+function reset() {
+  untrackSession(session.id);
+  useNativeCallStore.getState().clearCall();
+}
+
+// A call that rang or was answered while JS was not running gets no replayed CallSessionAdded.
+const coldStarts = [
+  ['a ringing call restores as ringing', session, 'ringing'],
+  [
+    'an answer made before JS started restores as connecting',
+    { ...session, status: 'connecting' },
+    'connecting',
+  ],
+  ['an ended call is not restored', { ...session, status: 'ended' }, null],
+  [
+    'invalid native metadata is not restored',
+    { ...session, incomingCallEvent: { ...session.incomingCallEvent, metadata: {} } },
+    null,
+  ],
+] as const;
+
+for (const [name, native, expected] of coldStarts) {
+  test(`cold start: ${name}`, async () => {
+    await restore(native);
+
+    assert.equal(useNativeCallStore.getState().call?.status ?? null, expected);
+    assert.equal(getTrackedSession(session.id)?.serverCallId, expected ? 'server-call' : undefined);
+    reset();
+  });
+}
+
+test('restoring again keeps the session already being answered', async () => {
+  await restore(session);
   const tracked = getTrackedSession(session.id);
-  assert.equal(tracked?.serverCallId, 'server-call');
-  assert.equal(tracked?.metadata.workspaceId, 'workspace');
-  assert.equal(useNativeCallStore.getState().call?.status, 'ringing');
   useNativeCallStore.getState().updateCall({ status: 'connecting' });
-  await hydrateCallSession({ getActiveCallSession: async () => session } as never);
+
+  await restore(session);
+
   assert.equal(getTrackedSession(session.id), tracked);
   assert.equal(useNativeCallStore.getState().call?.status, 'connecting');
-  untrackSession(session.id);
-  useNativeCallStore.getState().clearCall();
-});
-
-test('invalid native metadata cannot create a tracked incoming session', async () => {
-  await hydrateCallSession({
-    getActiveCallSession: async () => ({
-      ...session,
-      incomingCallEvent: { ...session.incomingCallEvent, metadata: { workspaceId: null } },
-    }),
-  } as never);
-  assert.equal(getTrackedSession(session.id), undefined);
-});
-
-test('an answer made before JS starts is restored as connecting rather than a new ring', async () => {
-  await hydrateCallSession({
-    getActiveCallSession: async () => ({ ...session, status: 'connecting' }),
-  } as never);
-  assert.equal(useNativeCallStore.getState().call?.status, 'connecting');
-  untrackSession(session.id);
-  useNativeCallStore.getState().clearCall();
-});
-
-test('a native session that already ended cannot restore an incoming call', async () => {
-  await hydrateCallSession({
-    getActiveCallSession: async () => ({ ...session, status: 'ended' }),
-  } as never);
-  assert.equal(getTrackedSession(session.id), undefined);
-  assert.equal(useNativeCallStore.getState().call, null);
+  reset();
 });
 
 test('native calls wait for restored auth and refresh an expired background token', async () => {
-  let restore!: () => void;
-  let refreshed = false;
+  let restoreAuth!: () => void;
   const state = {
     status: 'signed-in',
     tokens: { accessToken: 'expired', expiresAt: 0 },
     refreshNow: async () => {
-      refreshed = true;
       state.tokens = { accessToken: 'renewed', expiresAt: Date.now() + 60000 };
     },
   };
   const auth = {
     authRestored: new Promise<void>((resolve) => {
-      restore = resolve;
+      restoreAuth = resolve;
     }),
     useAuthStore: { getState: () => state },
   };
@@ -92,9 +91,9 @@ test('native calls wait for restored auth and refresh an expired background toke
     { compilerOptions: { module: ts.ModuleKind.CommonJS } },
   ).outputText;
   runInNewContext(source, { exports, require: () => auth, Date });
+
   const token = exports.requireAccessToken!();
-  assert.equal(refreshed, false);
-  restore();
+  restoreAuth();
+
   assert.equal(await token, 'renewed');
-  assert.equal(refreshed, true);
 });

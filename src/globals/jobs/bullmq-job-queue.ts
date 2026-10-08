@@ -1,10 +1,18 @@
+import { createHash } from 'node:crypto';
+
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
-import { Queue, type RedisOptions, Worker } from 'bullmq';
+import { Queue, type RedisOptions, UnrecoverableError, Worker } from 'bullmq';
 
 import { AppConfigService } from '@/globals/config';
 import { Logger } from '@/globals/logger';
 
-import { type JobOptions, JobQueue, type JobRequest, type WorkerOptions } from './job-queue';
+import {
+  type JobOptions,
+  JobQueue,
+  type JobRequest,
+  PermanentJobError,
+  type WorkerOptions,
+} from './job-queue';
 
 @Injectable()
 export class BullMqJobQueue extends JobQueue implements OnModuleDestroy {
@@ -62,14 +70,17 @@ export class BullMqJobQueue extends JobQueue implements OnModuleDestroy {
 
     await this.queue(name).addBulk(
       jobs.map(({ data, options = {} }) => {
-        const { id, expiresAt, backoff, ...queueOptions } = options;
+        const { id, expiresAt, backoff, deduplication, ...queueOptions } = options;
 
         return {
           name,
           data: { payload: data, expiresAt },
           opts: {
             ...queueOptions,
-            ...(id ? { jobId: id } : {}),
+            ...(id ? { jobId: bullMqId(id) } : {}),
+            ...(deduplication
+              ? { deduplication: { ...deduplication, id: bullMqId(deduplication.id) } }
+              : {}),
             ...(backoff ? { backoff: { ...backoff, jitter: 0.5 } } : {}),
           },
         };
@@ -86,7 +97,13 @@ export class BullMqJobQueue extends JobQueue implements OnModuleDestroy {
       name,
       async (job) => {
         if (job.data.expiresAt !== undefined && job.data.expiresAt <= Date.now()) return;
-        await handle(job.data.payload, job.id!);
+
+        try {
+          await handle(job.data.payload, job.id!);
+        } catch (error) {
+          if (error instanceof PermanentJobError) throw new UnrecoverableError(error.message);
+          throw error;
+        }
       },
       {
         prefix: 'ap-connect',
@@ -96,9 +113,15 @@ export class BullMqJobQueue extends JobQueue implements OnModuleDestroy {
       },
     );
     worker.on('error', (err) => this.logger.error({ err, queue: name }, 'Worker error'));
-    worker.on('failed', (job, err) =>
-      this.logger.error({ err, queue: name, jobId: job?.id }, 'Job failed'),
-    );
+    // Only a job that has run out of attempts is an error; earlier failures are its retries working.
+    worker.on('failed', (job, err) => {
+      const isFinal =
+        err instanceof UnrecoverableError || (job?.attemptsMade ?? 0) >= (job?.opts.attempts ?? 1);
+      const fields = { err, queue: name, jobId: job?.id, attempt: job?.attemptsMade };
+
+      if (isFinal) this.logger.error(fields, 'Job failed');
+      else this.logger.warn(fields, 'Job attempt failed, retrying');
+    });
     this.workers.push(worker);
   }
 
@@ -106,4 +129,9 @@ export class BullMqJobQueue extends JobQueue implements OnModuleDestroy {
     await Promise.all(this.workers.map((worker) => worker.close()));
     await Promise.all([...this.queues.values()].map((queue) => queue.close()));
   }
+}
+
+// BullMQ rejects custom IDs with ':' or that look like integers, so any key maps to a fixed-length hash.
+function bullMqId(key: string): string {
+  return createHash('sha256').update(key).digest('hex').slice(0, 32);
 }

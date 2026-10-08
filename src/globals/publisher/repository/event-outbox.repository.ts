@@ -5,12 +5,12 @@ export type StoredOutboxEvent = {
   priority: number;
   expiresAt: Date;
 };
-export type NewOutboxEvent = Omit<StoredOutboxEvent, 'id'> & { id?: string };
+export type NewOutboxEvent = Omit<StoredOutboxEvent, 'id'>;
 
 export abstract class EventOutboxRepository {
   abstract append(event: NewOutboxEvent): Promise<void>;
-  abstract claim(): Promise<StoredOutboxEvent[]>;
+  abstract claim(limit: number): Promise<StoredOutboxEvent[]>;
   abstract release(ids: string[]): Promise<void>;
   abstract acknowledge(id: string): Promise<void>;
-  abstract purge(): Promise<void>;
+  abstract purgeExpired(): Promise<void>;
 }

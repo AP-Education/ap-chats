@@ -46,6 +46,7 @@ export type ServerToClientEvents = {
 interface ClientToServerEvents {
   'social:watch': (payload: { workspaceId: string; channelId: string }) => void;
   'social:unwatch': (payload: { workspaceId: string; channelId: string }) => void;
+  'attention:update': (payload: { attending: boolean }) => void;
 }
 
 export type RealtimeSocketClient = Socket<ServerToClientEvents, ClientToServerEvents>;

@@ -1,0 +1,28 @@
+---
+- name: Wait for the data volume to be attached
+  ansible.builtin.wait_for:
+    path: '/dev/disk/by-id/scsi-0DO_Volume_{{ data_volume_name }}'
+    timeout: 120
+
+# nofail: a detached volume must not stop the droplet from booting into SSH.
+- name: Mount the data volume
+  ansible.posix.mount:
+    src: '/dev/disk/by-id/scsi-0DO_Volume_{{ data_volume_name }}'
+    path: '{{ data_path }}'
+    fstype: ext4
+    opts: defaults,nofail,discard,noatime
+    state: mounted
+  become: true
+
+# Each image's entrypoint takes ownership of its own directory on first start.
+- name: Create state directories
+  ansible.builtin.file:
+    path: '{{ data_path }}/{{ item }}'
+    state: directory
+    mode: '0700'
+  loop:
+    - postgres
+    - valkey
+    - caddy/data
+    - caddy/config
+  become: true

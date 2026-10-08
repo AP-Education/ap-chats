@@ -1,0 +1,39 @@
+---
+- name: Ensure fail2ban is installed
+  ansible.builtin.apt:
+    name: fail2ban
+    state: present
+  become: true
+
+- name: Ensure fail2ban jail directory exists
+  ansible.builtin.file:
+    path: /etc/fail2ban/jail.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  become: true
+
+- name: Deploy fail2ban jail defaults
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.d/defaults.conf
+    content: |
+      [DEFAULT]
+      bantime = {{ fail2ban_bantime }}
+      findtime = {{ fail2ban_findtime }}
+      maxretry = {{ fail2ban_maxretry }}
+
+      [sshd]
+      enabled = true
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  notify: restart fail2ban
+
+- name: Ensure fail2ban is enabled and running
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+  become: true
