@@ -1,5 +1,6 @@
+import { withAlpha } from '@/shared/theme/color';
+
 import type { WallpaperLight } from '../types';
-import { withAlpha } from './color';
 
 // Soft light needs only a small canvas; CSS scales it up with bilinear filtering, so it
 // stays smooth at any size. The height follows the surface's aspect ratio, so rings and

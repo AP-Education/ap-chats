@@ -1,7 +1,7 @@
 import { createStyles } from 'antd-style';
 import { type ReactNode, useRef } from 'react';
 
-import { useAspectRatio, useLayoutOffset } from '../hooks/useFrameGeometry';
+import { FrameAspectProvider, useAspectRatio, useLayoutOffset } from '../hooks/useFrameGeometry';
 
 const useStyles = createStyles(({ css }) => ({
   host: css`
@@ -21,7 +21,7 @@ const useStyles = createStyles(({ css }) => ({
 }));
 
 interface ViewportFrameProps {
-  children: (aspectRatio: number) => ReactNode;
+  children: ReactNode;
 }
 
 // Lays its layers out across the whole screen and shows only the part behind its own
@@ -37,7 +37,7 @@ export function ViewportFrame({ children }: ViewportFrameProps) {
   return (
     <div ref={hostRef} className={styles.host} aria-hidden>
       <div ref={frameRef} className={styles.frame} style={{ left: -offset.left, top: -offset.top }}>
-        {children(aspectRatio)}
+        <FrameAspectProvider value={aspectRatio}>{children}</FrameAspectProvider>
       </div>
     </div>
   );

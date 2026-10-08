@@ -1,4 +1,14 @@
-import { type RefObject, useLayoutEffect, useState } from 'react';
+import { createContext, type RefObject, useContext, useLayoutEffect, useState } from 'react';
+
+// The shape of the frame a wallpaper is drawn into, measured once by the frame itself
+// (the screen-wide ViewportFrame or a preview box) for every layer inside it.
+const FrameAspectContext = createContext(1);
+
+export const FrameAspectProvider = FrameAspectContext.Provider;
+
+export function useFrameAspectRatio(): number {
+  return useContext(FrameAspectContext);
+}
 
 // Rounded to coarse steps, so the light is repainted when the shape of the surface
 // changes, not on every pixel of a resize.

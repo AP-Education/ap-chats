@@ -1,7 +1,7 @@
 import { createStyles } from 'antd-style';
 import { useRef } from 'react';
 
-import { useAspectRatio } from '../hooks/useFrameGeometry';
+import { FrameAspectProvider, useAspectRatio } from '../hooks/useFrameGeometry';
 import type { WallpaperBase } from '../hooks/useWallpaperBase';
 import type { WallpaperPreset } from '../types';
 import { GrainLayer, LightLayer, PatternLayer } from './WallpaperLayers';
@@ -29,9 +29,11 @@ export function WallpaperBackdrop({ preset, base, className }: WallpaperBackdrop
 
   return (
     <div ref={ref} className={cx(styles.backdrop, className)} aria-hidden>
-      <LightLayer preset={preset} base={base} aspectRatio={aspectRatio} />
-      <PatternLayer preset={preset} base={base} aspectRatio={aspectRatio} />
-      <GrainLayer appearance={base.appearance} />
+      <FrameAspectProvider value={aspectRatio}>
+        <LightLayer preset={preset} base={base} />
+        <PatternLayer preset={preset} base={base} />
+        <GrainLayer appearance={base.appearance} />
+      </FrameAspectProvider>
     </div>
   );
 }

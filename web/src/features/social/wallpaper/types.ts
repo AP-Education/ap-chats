@@ -28,6 +28,4 @@ export interface WallpaperPreset {
   name: string;
   lights: readonly WallpaperLight[];
   pattern: WallpaperPatternId | null;
-  /** Own bubble gradient: the deeper tone at the tail, a close lighter one opposite. */
-  accent: readonly [string, string];
 }

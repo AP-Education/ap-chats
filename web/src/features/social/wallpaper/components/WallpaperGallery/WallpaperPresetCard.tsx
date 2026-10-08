@@ -1,6 +1,5 @@
 import { CheckIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
-import type { CSSProperties } from 'react';
 
 import { PATTERN_TILE_SIZE } from '../../canvas/pattern-tile';
 import type { WallpaperBase } from '../../hooks/useWallpaperBase';
@@ -40,7 +39,7 @@ const useStyles = createStyles(({ token, css }) => ({
     aspect-ratio: 4 / 5;
     padding: 12px 10px;
     overflow: hidden;
-    border-radius: 14px;
+    border-radius: ${token.borderRadiusLG}px;
     box-shadow: inset 0 0 0 1px ${token.colorBorderSecondary};
     isolation: isolate;
     transition: box-shadow 0.15s ease;
@@ -64,16 +63,18 @@ const useStyles = createStyles(({ token, css }) => ({
   incoming: css`
     width: 68%;
     height: 18px;
-    border-radius: 9px 9px 9px 3px;
-    background: rgba(255, 255, 255, 0.92);
+    border-radius: ${token.borderRadiusLG}px ${token.borderRadiusLG}px ${token.borderRadiusLG}px
+      ${token.borderRadiusXS}px;
+    background: ${token.colorBgElevated};
     box-shadow: 0 1px 2px rgba(16, 40, 36, 0.14);
   `,
   outgoing: css`
     align-self: flex-end;
     width: 54%;
     height: 18px;
-    border-radius: 9px 9px 3px 9px;
-    background: linear-gradient(175deg, var(--accent-to), var(--accent-from));
+    border-radius: ${token.borderRadiusLG}px ${token.borderRadiusLG}px ${token.borderRadiusXS}px
+      ${token.borderRadiusLG}px;
+    background: linear-gradient(175deg, var(--chat-own-to), var(--chat-own-from));
   `,
   check: css`
     position: absolute;
@@ -115,15 +116,7 @@ export function WallpaperPresetCard({
       <span className={styles.preview}>
         <WallpaperBackdrop preset={preset} base={base} className={styles.backdrop} />
         <span className={styles.incoming} />
-        <span
-          className={styles.outgoing}
-          style={
-            {
-              '--accent-from': preset.accent[0],
-              '--accent-to': preset.accent[1],
-            } as CSSProperties
-          }
-        />
+        <span className={styles.outgoing} />
         {selected && (
           <span className={styles.check}>
             <CheckIcon size={14} weight="bold" />

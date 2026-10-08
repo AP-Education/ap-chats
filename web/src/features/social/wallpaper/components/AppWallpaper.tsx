@@ -5,9 +5,12 @@ import { useChatWallpaper } from '../stores/wallpaper-store';
 import { ViewportFrame } from './ViewportFrame';
 import { GrainLayer, LightLayer } from './WallpaperLayers';
 
-const SURFACE = {
-  light: 'rgba(255, 255, 255, 0.62)',
-  dark: 'rgba(18, 20, 26, 0.72)',
+// Two materials over the wallpaper. Surface: large panels take a translucent tint of the
+// light behind them, like Mica, with no live blur to compute. Glass: small floating controls
+// over moving content, paired with a backdrop blur where they are used.
+const MATERIALS = {
+  light: { surface: 'rgba(255, 255, 255, 0.62)', glass: 'rgba(255, 255, 255, 0.86)' },
+  dark: { surface: 'rgba(19, 26, 28, 0.72)', glass: 'rgba(32, 40, 43, 0.8)' },
 };
 
 /**
@@ -20,19 +23,14 @@ export function AppWallpaper() {
 
   return (
     <ViewportFrame>
-      {(aspectRatio) => (
-        <>
-          <LightLayer preset={preset} base={base} aspectRatio={aspectRatio} />
-          <GrainLayer appearance={base.appearance} />
-        </>
-      )}
+      <LightLayer preset={preset} base={base} />
+      <GrainLayer appearance={base.appearance} />
     </ViewportFrame>
   );
 }
 
-// Panels take a translucent tint of the light behind them, like the Mica material: the
-// colour of the wallpaper shows through as ambience, with no live blur to compute.
-export function useAppSurfaceStyle(): CSSProperties {
+export function useSurfaceMaterials(): CSSProperties {
   const { appearance } = useWallpaperBase();
-  return { '--app-surface': SURFACE[appearance] } as CSSProperties;
+  const { surface, glass } = MATERIALS[appearance];
+  return { '--app-surface': surface, '--glass': glass } as CSSProperties;
 }

@@ -1,17 +1,23 @@
 import { createStyles } from 'antd-style';
 import { type CSSProperties, useLayoutEffect, useMemo, useRef } from 'react';
 
-import { mix } from '../canvas/color';
+import { mix } from '@/shared/theme/color';
+
 import { GRAIN_TILE_PIXELS, renderGrain } from '../canvas/grain';
 import { paintLights } from '../canvas/lights';
 import { PATTERN_TILE_SIZE } from '../canvas/pattern-tile';
+import { useFrameAspectRatio } from '../hooks/useFrameGeometry';
 import { usePixelRatio, useTexture } from '../hooks/useTexture';
 import type { WallpaperBase } from '../hooks/useWallpaperBase';
 import { renderPatternMask } from '../patterns/recipes';
+import { useWallpaperGrain } from '../stores/wallpaper-store';
 import type { WallpaperAppearance, WallpaperLight, WallpaperPreset } from '../types';
 
-const PATTERN_OPACITY = { light: 0.42, dark: 0.5 };
-const GRAIN_OPACITY = { light: 0.35, dark: 0.7 };
+// Dark bases keep the wallpaper quieter, so bubbles and text stay the brightest things
+// on screen; grain there stays a faint film, it reads as noise any stronger.
+const LIGHT_STRENGTH = { light: 1, dark: 0.7 };
+const PATTERN_OPACITY = { light: 0.42, dark: 0.3 };
+const GRAIN_OPACITY = { light: 0.35, dark: 0.12 };
 
 const useStyles = createStyles(({ css }) => ({
   layer: css`
@@ -42,17 +48,22 @@ const useStyles = createStyles(({ css }) => ({
 interface LayerProps {
   preset: WallpaperPreset;
   base: WallpaperBase;
-  aspectRatio: number;
 }
 
 /** The theme background lit by the preset's light shapes: a tiny canvas stretched by CSS. */
-export function LightLayer({ preset, base, aspectRatio }: LayerProps) {
+export function LightLayer({ preset, base }: LayerProps) {
+  const aspectRatio = useFrameAspectRatio();
   const { styles } = useStyles();
   const ref = useRef<HTMLCanvasElement>(null);
 
+  const lights = useMemo(
+    () => scaleLights(preset.lights, LIGHT_STRENGTH[base.appearance]),
+    [preset.lights, base.appearance],
+  );
+
   useLayoutEffect(() => {
-    if (ref.current) paintLights(ref.current, aspectRatio, base.color, preset.lights);
-  }, [aspectRatio, base.color, preset.lights]);
+    if (ref.current) paintLights(ref.current, aspectRatio, base.color, lights);
+  }, [aspectRatio, base.color, lights]);
 
   return <canvas ref={ref} className={styles.layer} data-ready />;
 }
@@ -61,7 +72,8 @@ export function LightLayer({ preset, base, aspectRatio }: LayerProps) {
  * The same light shapes in deeper ink, showing only through the line art: the pattern
  * takes the colour of whatever light it crosses and fades to a quiet neutral between.
  */
-export function PatternLayer({ preset, base, aspectRatio }: LayerProps) {
+export function PatternLayer({ preset, base }: LayerProps) {
+  const aspectRatio = useFrameAspectRatio();
   const { styles, cx } = useStyles();
   const ref = useRef<HTMLCanvasElement>(null);
   const mask = useTexture(preset.pattern, renderPatternMask);
@@ -95,7 +107,10 @@ export function PatternLayer({ preset, base, aspectRatio }: LayerProps) {
 export function GrainLayer({ appearance }: { appearance: WallpaperAppearance }) {
   const { styles, cx } = useStyles();
   const pixelRatio = usePixelRatio();
-  const grain = useTexture('grain', renderGrain);
+  const visible = useWallpaperGrain(appearance);
+  const grain = useTexture(visible ? 'grain' : null, renderGrain);
+
+  if (!visible) return null;
 
   return (
     <span
@@ -121,10 +136,13 @@ function inkFor(lights: readonly WallpaperLight[], base: string, appearance: Wal
   const { shade, neutral, neutralShare } = INK[appearance];
   return {
     base: mix(base, neutral, neutralShare),
-    lights: lights.map((light) => ({
+    lights: scaleLights(lights, LIGHT_STRENGTH[appearance] * 1.5).map((light) => ({
       ...light,
       color: mix(light.color, shade, 0.22),
-      strength: Math.min(1, light.strength * 1.5),
     })),
   };
+}
+
+function scaleLights(lights: readonly WallpaperLight[], scale: number): WallpaperLight[] {
+  return lights.map((light) => ({ ...light, strength: Math.min(1, light.strength * scale) }));
 }

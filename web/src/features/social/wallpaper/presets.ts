@@ -41,7 +41,6 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
       { kind: 'glow', x: 0.72, y: 0.92, radius: 0.18, color: CYAN, strength: 0.24 },
     ],
     pattern: 'courses',
-    accent: ['#0b6a62', '#0f857c'],
   },
   {
     id: 'university',
@@ -80,7 +79,6 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
       { kind: 'glow', x: 0.08, y: 0.96, radius: 0.34, color: NAVY, strength: 0.2 },
     ],
     pattern: 'university',
-    accent: ['#2a35c9', '#4352e2'],
   },
   {
     id: 'school',
@@ -110,7 +108,6 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
       { kind: 'glow', x: 0.92, y: 0.96, radius: 0.3, color: VIOLET, strength: 0.28 },
     ],
     pattern: 'school',
-    accent: ['#6229c4', '#7f45e6'],
   },
   {
     id: 'space',
@@ -149,7 +146,6 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
       },
     ],
     pattern: 'space',
-    accent: ['#3a2fcc', '#5444e4'],
   },
   {
     id: 'aurora',
@@ -188,7 +184,6 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
       { kind: 'glow', x: 1, y: 0, radius: 0.3, color: TEAL, strength: 0.28 },
     ],
     pattern: 'stardust',
-    accent: ['#1b6f96', '#2f86b8'],
   },
   {
     id: 'innovation',
@@ -227,7 +222,6 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
       { kind: 'glow', x: 0.9, y: 0.14, radius: 0.18, color: CYAN, strength: 0.3 },
     ],
     pattern: 'network',
-    accent: ['#1f4bc0', '#3866dc'],
   },
   {
     id: 'minimal',
@@ -237,7 +231,12 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
       { kind: 'glow', x: 0.1, y: 1, radius: 0.6, color: INDIGO, strength: 0.22 },
     ],
     pattern: null,
-    accent: ['#0b6a62', '#0f857c'],
+  },
+  {
+    id: 'none',
+    name: 'Без фону',
+    lights: [],
+    pattern: null,
   },
 ];
 
