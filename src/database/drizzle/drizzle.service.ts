@@ -11,7 +11,12 @@ export class DrizzleService implements OnModuleDestroy {
   private readonly pool: Pool;
 
   constructor(config: AppConfigService) {
-    this.pool = new Pool({ connectionString: config.get('DATABASE_URL') });
+    this.pool = new Pool({
+      connectionString: config.get('DATABASE_URL'),
+      // Connections stay open between requests: a quiet app would otherwise pay a fresh
+      // connection, authentication and cold backend on nearly every request.
+      idleTimeoutMillis: 0,
+    });
     this.db = drizzle(this.pool, { schema });
   }
 
