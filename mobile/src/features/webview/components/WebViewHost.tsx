@@ -2,7 +2,7 @@ import { selectionAsync } from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { AppState, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 import type {
@@ -26,6 +26,7 @@ import { dismissPresentedNotifications } from '../../push/api/presented-notifica
 import { getPushPermissionStatus } from '../../push/api/push-token';
 import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
 import { useNotificationStore } from '../../push/store/notification-store';
+import { forgetLastLocation, loadLastLocation, rememberLocation } from '../api/last-location';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
 import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
 import { buildBridgeScript } from '../utils/inject-bridge';
@@ -51,11 +52,21 @@ export function WebViewHost() {
   const [loadCount, setLoadCount] = useState(0);
   const [messageSoundRequest, setMessageSoundRequest] = useState(0);
   const insets = useSafeAreaInsets();
+  // WKWebView reports the safe areas to the page (viewport-fit=cover), so the page draws its own
+  // surfaces under the status bar and home indicator. Android's WebView does not, so native
+  // keeps the page clear of the system bars there.
+  const edgeToEdge = Platform.OS === 'ios';
   const [containerHeight, setContainerHeight] = useState(0);
   const sendInputState = useCallback((state: ComposerInputState) => {
     webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'composer/state', ...state }));
   }, []);
   const input = useComposerInput(sendInputState);
+  // Opens on the page the person left; unset until the stored one is read, a moment at launch.
+  const [startUrl, setStartUrl] = useState<string>();
+
+  useEffect(() => {
+    if (webUrl) void loadLastLocation(webUrl).then((url) => setStartUrl(url ?? webUrl));
+  }, []);
 
   // Pushes the current token into web/ whenever it changes (sign-in, refresh).
   useEffect(() => {
@@ -134,6 +145,7 @@ export function WebViewHost() {
       void changePushPermission().then(sendPushPermission);
     } else if (message.type === 'auth/sign-out') {
       // PushRegistration unregisters the device on any way out of the session.
+      forgetLastLocation();
       void useAuthStore.getState().signOut();
     } else if (message.type === 'auth/refresh-request') {
       // Updates the store; the effect above picks up the new token and re-injects it.
@@ -180,56 +192,56 @@ export function WebViewHost() {
   }
 
   return (
-    // Keeps the WebView clear of the notch/Dynamic Island and the home indicator — the
-    // WebView is a plain native UIView and won't respect safe-area insets on its own the
-    // way a native screen or a web page with env(safe-area-inset-*) would. Only the
-    // 'top' edge is conditional: NativeMiniCallBar already claims that inset for
-    // itself when it's showing above this (see useIsMiniCallBarVisible) — reserving
-    // it here too would double it, leaving a gap between the bar and this view.
+    // NativeMiniCallBar claims the top inset itself while it shows above this view.
     <SafeAreaView
       style={[styles.container, { backgroundColor: palette.surface }]}
-      edges={miniCallBarVisible ? [] : ['top']}
+      edges={edgeToEdge || miniCallBarVisible ? [] : ['top']}
       onLayout={(event) => setContainerHeight(event.nativeEvent.layout.height)}
     >
       <MessageNotificationSound request={messageSoundRequest} />
       <View style={styles.webviewWrapper}>
-        <WebView
-          ref={webViewRef}
-          source={{ uri: webUrl }}
-          style={styles.webview}
-          hideKeyboardAccessoryView
-          keyboardDisplayRequiresUserAction={false}
-          automaticallyAdjustContentInsets={false}
-          contentInsetAdjustmentBehavior="never"
-          scrollEnabled={false}
-          bounces={false}
-          onLoadStart={() => {
-            input.close();
-            useNotificationStore.getState().setWebReady(false);
-          }}
-          applicationNameForUserAgent={APP_SHELL_USER_AGENT}
-          onMessage={handleMessage}
-          onLoadEnd={() => {
-            setLoadCount((count) => count + 1);
-            // WKWebView doesn't reliably become first responder on its own —
-            // without this, the very first tap anywhere after a (re)load gets
-            // consumed establishing focus instead of reaching its target,
-            // which reads as "the button needs two taps" (confirmed: only
-            // ever happens inside this WebView, never on desktop).
-            webViewRef.current?.requestFocus();
-          }}
-          injectedJavaScriptBeforeContentLoaded={__DEV__ ? DEBUG_CONSOLE_SCRIPT : undefined}
-          onError={(event: WebViewErrorEvent) =>
-            console.error('[webview] onError', event.nativeEvent)
-          }
-          onHttpError={(event: WebViewHttpErrorEvent) =>
-            console.error('[webview] onHttpError', event.nativeEvent)
-          }
-          onContentProcessDidTerminate={(event: WebViewTerminatedEvent) =>
-            console.error('[webview] render process terminated', event.nativeEvent)
-          }
-          renderError={() => <ConnectionErrorScreen onRetry={() => webViewRef.current?.reload()} />}
-        />
+        {startUrl && (
+          <WebView
+            ref={webViewRef}
+            source={{ uri: startUrl }}
+            style={styles.webview}
+            hideKeyboardAccessoryView
+            keyboardDisplayRequiresUserAction={false}
+            automaticallyAdjustContentInsets={false}
+            contentInsetAdjustmentBehavior="never"
+            scrollEnabled={false}
+            bounces={false}
+            onLoadStart={() => {
+              input.close();
+              useNotificationStore.getState().setWebReady(false);
+            }}
+            applicationNameForUserAgent={APP_SHELL_USER_AGENT}
+            onNavigationStateChange={(event) => rememberLocation(event.url, webUrl)}
+            onMessage={handleMessage}
+            onLoadEnd={() => {
+              setLoadCount((count) => count + 1);
+              // WKWebView doesn't reliably become first responder on its own —
+              // without this, the very first tap anywhere after a (re)load gets
+              // consumed establishing focus instead of reaching its target,
+              // which reads as "the button needs two taps" (confirmed: only
+              // ever happens inside this WebView, never on desktop).
+              webViewRef.current?.requestFocus();
+            }}
+            injectedJavaScriptBeforeContentLoaded={__DEV__ ? DEBUG_CONSOLE_SCRIPT : undefined}
+            onError={(event: WebViewErrorEvent) =>
+              console.error('[webview] onError', event.nativeEvent)
+            }
+            onHttpError={(event: WebViewHttpErrorEvent) =>
+              console.error('[webview] onHttpError', event.nativeEvent)
+            }
+            onContentProcessDidTerminate={(event: WebViewTerminatedEvent) =>
+              console.error('[webview] render process terminated', event.nativeEvent)
+            }
+            renderError={() => (
+              <ConnectionErrorScreen onRetry={() => webViewRef.current?.reload()} />
+            )}
+          />
+        )}
       </View>
       <EmojiKeyboardPanel
         mode={input.mode}
@@ -237,6 +249,7 @@ export function WebViewHost() {
         panelHeight={input.panelHeight}
         heldHeight={input.heldHeight}
         bottomInset={insets.bottom}
+        reservedInset={edgeToEdge ? 0 : insets.bottom}
         containerHeight={containerHeight}
         visible={input.state.mode === 'picker' || input.state.mode === 'search'}
         activeTab={input.state.tab}
