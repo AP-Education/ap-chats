@@ -28,6 +28,7 @@ interface MemberIdentityProps {
   avatarPath: string | null;
   detail: string;
   headingLevel?: 'h2' | 'h3';
+  avatarSize?: number;
 }
 
 export function MemberIdentity({
@@ -35,13 +36,14 @@ export function MemberIdentity({
   avatarPath,
   detail,
   headingLevel: Heading = 'h3',
+  avatarSize = 72,
 }: MemberIdentityProps) {
   const { styles } = useStyles();
 
   return (
     <>
       <div className={styles.avatar}>
-        <Avatar path={avatarPath} alt={name} size={72} shape="circle" />
+        <Avatar path={avatarPath} alt={name} size={avatarSize} shape="circle" />
       </div>
       <Heading className={styles.name}>{name}</Heading>
       <p className={styles.detail}>{detail}</p>
