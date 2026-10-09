@@ -156,8 +156,12 @@ export class UploadQueue {
 
   /** An upload under this commit failed: hand every job in it back to the composer to retry or remove. */
   uncommit(clientNonce: string): void {
-    for (const job of this.jobs.values())
-      if (job.committedTo === clientNonce) job.committedTo = undefined;
+    for (const [key, job] of this.jobs) {
+      if (job.committedTo !== clientNonce) continue;
+      // With the composer gone there is no one to retry it, so the file and its preview go.
+      if (this.disposed) this.remove(key);
+      else job.committedTo = undefined;
+    }
     this.publish();
   }
 
