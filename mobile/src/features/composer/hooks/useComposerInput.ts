@@ -5,7 +5,7 @@ import {
   KeyboardController,
   useGenericKeyboardHandler,
 } from 'react-native-keyboard-controller';
-import { runOnJS, useSharedValue, withTiming } from 'react-native-reanimated';
+import { runOnJS, useDerivedValue, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import type { PickerTab } from '../types';
 import {
@@ -14,18 +14,11 @@ import {
   type ComposerInputState,
   initialInputState,
 } from '../utils/input-state';
-import { DEFAULT_GLIDE_EASING, glideEasing } from '../utils/keyboard-glide';
-
-// Experiment: while the keyboard rises, the page slides up on the keyboard's own curve and the
-// WebView changes size once at the end, instead of re-laying out the page on every frame.
-const KEYBOARD_GLIDE = process.env.EXPO_PUBLIC_KEYBOARD_GLIDE !== 'off';
-
-/** A keyboard about to rise over the page; null once it has, or once it stops rising. */
-export type KeyboardGlide = { height: number; duration: number; easing: string } | null;
+import { type KeyboardGlide, useKeyboardGlide } from './useKeyboardGlide';
 
 export function useComposerInput(
   onState: (state: ComposerInputState) => void,
-  onGlide: (glide: KeyboardGlide) => void,
+  onGlide: (glide: KeyboardGlide | null) => void,
 ) {
   const [state, setState] = useState(initialInputState);
   const current = useRef(initialInputState);
@@ -37,9 +30,9 @@ export function useComposerInput(
   const heldHeight = useSharedValue(0);
   const measuredHeight = useSharedValue(0);
   const mode = useSharedValue(initialInputState.mode);
-  const gliding = useSharedValue(false);
-  const glideHeights = useSharedValue<number[]>([]);
-  const glideCurve = useRef(DEFAULT_GLIDE_EASING);
+  const glide = useKeyboardGlide(onGlide);
+  // The keyboard the room beneath the page makes way for: none while the page glides past it.
+  const keyboardRoom = useDerivedValue(() => (glide.holding.get() ? 0 : keyboardHeight.get()));
 
   const publish = useCallback(
     (next: ComposerInputState) => {
@@ -118,49 +111,33 @@ export function useComposerInput(
     [cancelKeyboardWait, heldHeight, publish],
   );
 
-  const startGlide = useCallback(
-    (height: number, duration: number) => onGlide({ height, duration, easing: glideCurve.current }),
-    [onGlide],
-  );
+  // Only the keyboard alone glides; swaps with the picker keep their own geometry.
+  const keyboardAlone = () => {
+    'worklet';
+    return (
+      panelHeight.get() === 0 &&
+      heldHeight.get() === 0 &&
+      mode.get() !== 'picker' &&
+      mode.get() !== 'search'
+    );
+  };
 
-  // The heights this keyboard reported become the curve the next rise is drawn with.
-  const finishGlide = useCallback(
-    (heights: number[], finalHeight: number) => {
-      glideCurve.current = glideEasing(heights, finalHeight) ?? glideCurve.current;
-      onGlide(null);
-    },
-    [onGlide],
-  );
-
-  const cancelGlide = useCallback(() => onGlide(null), [onGlide]);
+  const measure = (height: number) => {
+    'worklet';
+    if (height > 96 && mode.get() !== 'search') measuredHeight.set(height);
+  };
 
   useGenericKeyboardHandler(
     {
       onStart: (event) => {
         'worklet';
-        if (event.height > 96 && mode.get() !== 'search') measuredHeight.set(event.height);
-        // Only a rise from nothing glides; swaps with the picker keep their own geometry.
-        const rising =
-          KEYBOARD_GLIDE &&
-          event.height > 0 &&
-          keyboardHeight.get() === 0 &&
-          panelHeight.get() === 0 &&
-          heldHeight.get() === 0 &&
-          mode.get() !== 'picker' &&
-          mode.get() !== 'search';
-        if (gliding.get() && !rising) runOnJS(cancelGlide)();
-        gliding.set(rising);
-        glideHeights.set([]);
-        if (rising) runOnJS(startGlide)(event.height, event.duration);
+        measure(event.height);
+        glide.begin(keyboardHeight.get(), event.height, event.duration, keyboardAlone());
       },
       onMove: (event) => {
         'worklet';
-        // The area beneath the page waits for the end, so the page keeps its size meanwhile.
-        if (gliding.get()) {
-          glideHeights.set([...glideHeights.get(), event.height]);
-          return;
-        }
         keyboardHeight.set(Math.max(0, event.height));
+        glide.track(event.height);
       },
       onInteractive: (event) => {
         'worklet';
@@ -168,16 +145,13 @@ export function useComposerInput(
       },
       onEnd: (event) => {
         'worklet';
-        if (gliding.get()) {
-          gliding.set(false);
-          runOnJS(finishGlide)(glideHeights.get(), event.height);
-        }
         keyboardHeight.set(Math.max(0, event.height));
-        if (event.height > 96 && mode.get() !== 'search') measuredHeight.set(event.height);
+        measure(event.height);
+        glide.end();
         runOnJS(keyboardEnded)(event.height);
       },
     },
-    [keyboardEnded, startGlide, finishGlide, cancelGlide],
+    [keyboardEnded, glide],
   );
 
   const selectTab = useCallback(
@@ -225,7 +199,7 @@ export function useComposerInput(
   return {
     state,
     mode,
-    keyboardHeight,
+    keyboardHeight: keyboardRoom,
     panelHeight,
     heldHeight,
     request,

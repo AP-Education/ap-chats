@@ -63,14 +63,15 @@ export function WebViewHost() {
   const sendInputState = useCallback((state: ComposerInputState) => {
     webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'composer/state', ...state }));
   }, []);
-  // The page ends at the keyboard's top once it has risen, and the home indicator's inset it
-  // pads itself with goes with it, so it slides by the keyboard less that inset.
+  // The page's own inset for the home indicator comes and goes with the keyboard, so the page
+  // moves by the keyboard's travel less that inset.
   const sendGlide = useCallback(
-    (glide: KeyboardGlide) => {
+    (glide: KeyboardGlide | null) => {
       const message: NativeToWebMessage = glide
         ? {
             type: 'keyboard/glide',
-            shift: Math.max(0, glide.height - insets.bottom),
+            direction: glide.direction,
+            shift: Math.max(0, glide.distance - insets.bottom),
             duration: glide.duration,
             easing: glide.easing,
           }
