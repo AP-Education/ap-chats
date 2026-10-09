@@ -11,6 +11,7 @@ import type {
 } from '@/features/social/conversation/actions';
 import { useConversation } from '@/features/social/conversation/store';
 
+import { keyboardGlidePart } from '../../keyboard-glide';
 import type { DisplayItem, HistoryPage, MessageHistoryItem } from '../../types';
 import { isMessageItem } from '../../types';
 import { HistoryItemRow } from '../HistoryItemRow/HistoryItemRow';
@@ -221,7 +222,7 @@ export function MessageTimeline({
   useMobileMessageSelection(scrollRef, isMobile);
 
   return (
-    <div className={styles.viewport} data-keyboard-glide>
+    <div className={cx(styles.viewport, keyboardGlidePart)}>
       <div
         ref={scrollRef}
         className={styles.scroll}

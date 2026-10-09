@@ -2,7 +2,9 @@ import { createStyles } from 'antd-style';
 import { type ReactNode, useMemo, useRef } from 'react';
 
 import { ActiveCallBanner } from '@/features/calls/components/ActiveCallBanner';
+import { useKeyboardGlide } from '@/features/social/messaging/hooks/useKeyboardGlide';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
+import { keyboardGlidePart } from '@/features/social/messaging/keyboard-glide';
 import { PinnedMessageBar } from '@/features/social/pins/components/PinnedMessageBar/PinnedMessageBar';
 import { ReactorsDialog } from '@/features/social/reactions/components/ReactorsDialog/ReactorsDialog';
 import { useReactionEvents } from '@/features/social/reactions/hooks/useReactionEvents';
@@ -16,7 +18,6 @@ import { ConversationHistoryContent } from './ConversationHistoryContent';
 import { ConversationSelectionBar } from './ConversationSelectionBar';
 import { useConversationActions } from './useConversationActions';
 import { useConversationHistoryNavigation } from './useConversationHistoryNavigation';
-import { useKeyboardGlide } from './useKeyboardGlide';
 import { useOverlayInsets } from './useOverlayInsets';
 
 const useStyles = createStyles(({ css }) => ({
@@ -59,7 +60,7 @@ export function ConversationView({
   currentMember,
   readOnlyFooter,
 }: ConversationViewProps) {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
   const { workspaceId, channelId, title, avatarPath } = useConversationScope();
   const navigation = useConversationHistoryNavigation(canPost);
   const author = useMemo(
@@ -86,10 +87,15 @@ export function ConversationView({
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   useOverlayInsets(surfaceRef, topRef, bottomRef);
-  useKeyboardGlide(surfaceRef);
+  const glide = useKeyboardGlide(surfaceRef);
 
   return (
-    <ChatWallpaperSurface ref={surfaceRef} className={styles.shell} data-conversation-drop-target>
+    <ChatWallpaperSurface
+      ref={surfaceRef}
+      className={styles.shell}
+      data-conversation-drop-target
+      {...glide}
+    >
       <ConversationHistoryContent
         navigation={navigation}
         interaction={interaction}
@@ -104,7 +110,7 @@ export function ConversationView({
           calleeAvatarPath={avatarPath}
         />
       </div>
-      <div ref={bottomRef} className={styles.bottom} data-keyboard-glide>
+      <div ref={bottomRef} className={cx(styles.bottom, keyboardGlidePart)}>
         {historyReady && <ConversationSelectionBar interaction={interaction} />}
         {/* Hidden rather than unmounted while selecting, so a draft and its uploads live on. */}
         <div hidden={interaction.selectedItems.length > 0}>
