@@ -101,12 +101,15 @@ export function ConversationView({
       </div>
       <div ref={bottomRef} className={styles.bottom}>
         {historyReady && <ConversationSelectionBar interaction={interaction} />}
-        <ConversationFooter
-          canPost={canPost}
-          readOnlyFooter={readOnlyFooter}
-          items={navigation.items}
-          send={operations.send}
-        />
+        {/* Hidden rather than unmounted while selecting, so a draft and its uploads live on. */}
+        <div hidden={interaction.selectedItems.length > 0}>
+          <ConversationFooter
+            canPost={canPost}
+            readOnlyFooter={readOnlyFooter}
+            items={navigation.items}
+            send={operations.send}
+          />
+        </div>
       </div>
       <ConversationForwarding
         items={interaction.forwardItems}
