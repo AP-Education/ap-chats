@@ -69,3 +69,22 @@ export async function catchUpHistory(
   if (BigInt(targetSeq) > BigInt(cursor) + 1n)
     await queryClient.invalidateQueries({ queryKey: key, exact: true });
 }
+
+/**
+ * Back on a conversation, events may have been missed while it wasn't watched. Only the
+ * window it opened on is fetched again; older and newer pages load once scrolled to,
+ * instead of every cached page being requested one after another.
+ */
+export function refreshHistoryWindow(queryClient: QueryClient, key: readonly unknown[]) {
+  const data = queryClient.getQueryData<HistoryData>(key);
+  if (!data) return;
+
+  const window = data.pageParams.findIndex((param) => param.mode === 'window');
+  if (window >= 0) {
+    queryClient.setQueryData<HistoryData>(key, {
+      pages: [data.pages[window]!],
+      pageParams: [data.pageParams[window]!],
+    });
+  }
+  void queryClient.invalidateQueries({ queryKey: key, exact: true });
+}

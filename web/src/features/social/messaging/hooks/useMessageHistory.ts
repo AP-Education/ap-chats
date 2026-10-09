@@ -37,6 +37,8 @@ export function useMessageHistory(workspaceId: string, channelId: string, messag
         ? { mode: 'after', cursor: lastPage.newerCursor, snapshot: lastPage.snapshotSeq }
         : undefined,
     enabled: Boolean(token),
+    // Kept current by realtime events while watched, and refreshed on watching again.
+    staleTime: Infinity,
     refetchOnWindowFocus: false,
   });
 }
