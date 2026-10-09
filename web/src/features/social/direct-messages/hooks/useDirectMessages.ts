@@ -14,12 +14,12 @@ import {
 } from '../api/direct-messages-api';
 import { directMessageKey } from '../queryKeys';
 
-export function useDirectMessages(workspaceId: string) {
+export function useDirectMessages() {
   const { token, identity } = useQueryAuth();
   return useInfiniteQuery({
-    queryKey: directMessageKey(identity, workspaceId),
+    queryKey: directMessageKey(identity),
     initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam }) => listDirectMessages(token as string, workspaceId, pageParam),
+    queryFn: ({ pageParam }) => listDirectMessages(token as string, pageParam),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     enabled: Boolean(token),
     meta: { persist: true },
@@ -28,14 +28,14 @@ export function useDirectMessages(workspaceId: string) {
 
 // A conversation opened from the list is already known: it renders at once instead of
 // waiting on its own request before the history can even start.
-export function useDirectMessage(workspaceId: string, channelId: string | undefined) {
+export function useDirectMessage(channelId: string | undefined) {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
-  const listKey = directMessageKey(identity, workspaceId);
+  const listKey = directMessageKey(identity);
 
   return useQuery({
     queryKey: [...listKey, channelId],
-    queryFn: () => getDirectMessage(token as string, workspaceId, channelId as string),
+    queryFn: () => getDirectMessage(token as string, channelId as string),
     enabled: Boolean(token && channelId),
     initialData: () =>
       queryClient

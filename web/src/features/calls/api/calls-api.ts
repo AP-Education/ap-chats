@@ -31,6 +31,7 @@ export interface CallHistoryParticipant {
 }
 
 export interface CallHistoryItem extends CallView {
+  workspaceId: string;
   participant: CallHistoryParticipant;
 }
 
@@ -82,14 +83,13 @@ export function declineCall(
 
 export function listCallHistory(
   token: string,
-  workspaceId: string,
   filter: CallHistoryFilter,
   before?: string,
 ): Promise<{ items: CallHistoryItem[]; nextCursor: string | null }> {
   const query = new URLSearchParams({ filter });
   if (before) query.set('before', before);
 
-  return apiRequest(`/api/workspaces/${workspaceId}/calls?${query}`, token);
+  return apiRequest(`/api/calls?${query}`, token);
 }
 
 export function leaveCall(

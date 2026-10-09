@@ -58,17 +58,10 @@ export function ForwardModal({ workspaceId, sourceChannelId, items, onClose }: F
         items.map((item) => item.message.id),
         batchNonce,
       );
-      if (result.conversation)
-        mergeDirectMessage(queryClient, identity, workspaceId, result.conversation);
+      if (result.conversation) mergeDirectMessage(queryClient, identity, result.conversation);
       const targetChannelId = result.conversation?.id ?? target.id;
       if (target.kind !== 'channel' && result.messages.length) {
-        confirmDirectMessage(
-          queryClient,
-          identity,
-          workspaceId,
-          targetChannelId,
-          result.messages.at(-1)!,
-        );
+        confirmDirectMessage(queryClient, identity, targetChannelId, result.messages.at(-1)!);
       }
       message.success('Повідомлення переслано');
       onClose();

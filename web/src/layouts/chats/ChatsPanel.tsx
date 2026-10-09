@@ -119,7 +119,7 @@ export function ChatsPanel() {
           )}
           {workspace && (
             <PanelBody hidden={listSection !== 'calls'}>
-              <CallHistoryList workspaceId={workspace.id} />
+              <CallHistoryList />
             </PanelBody>
           )}
         </>
@@ -136,7 +136,7 @@ function SectionList({ section }: { section: SidebarSection | null }) {
   const { workspace } = useActiveWorkspace();
 
   if (workspace && section === 'direct') return <DirectMessageList workspaceId={workspace.id} />;
-  if (workspace && section === 'calls') return <CallHistoryList workspaceId={workspace.id} />;
+  if (workspace && section === 'calls') return <CallHistoryList />;
   return <ChannelsSidebar />;
 }
 

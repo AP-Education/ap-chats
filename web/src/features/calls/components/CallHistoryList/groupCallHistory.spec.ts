@@ -15,6 +15,7 @@ function call(
   const peer = `peer-${overrides.channelId ?? 'a'}`;
   return {
     id,
+    workspaceId: 'workspace',
     channelId: overrides.channelId ?? 'a',
     status: overrides.status ?? 'ended',
     startedByMemberId: overrides.outgoing === false ? peer : me,

@@ -188,7 +188,7 @@ export function useMessageOperations(
       return;
     }
 
-    confirmDirectMessage(queryClient, identity, workspaceId, channelId, message);
+    confirmDirectMessage(queryClient, identity, channelId, message);
     await mergeSent(token, message);
     outbox.settle(input.clientNonce);
   }

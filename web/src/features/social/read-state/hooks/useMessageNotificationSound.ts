@@ -8,10 +8,7 @@ import { isAttending, isPresent } from '@/shared/hooks/useIsAttending';
 
 import { playMessageBloop } from '../sound/messageBloop';
 
-export function useMessageNotificationSound(
-  workspaceId: string,
-  openChannelId: string | undefined,
-): void {
+export function useMessageNotificationSound(openChannelId: string | undefined): void {
   const push = usePush();
   useEffect(() => {
     if (!isNativeShell()) getSharedAudioContext();
@@ -23,7 +20,7 @@ export function useMessageNotificationSound(
     // The server holds pushes back by the same test, so this stays silent exactly when it pushes.
     if (push.enabled && !isPresent()) return;
 
-    const isOpen = event.workspaceId === workspaceId && event.channelId === openChannelId;
+    const isOpen = event.channelId === openChannelId;
     if (isOpen && isAttending()) return;
 
     playMessageBloop();
