@@ -221,7 +221,7 @@ export function MessageTimeline({
   useMobileMessageSelection(scrollRef, isMobile);
 
   return (
-    <div className={styles.viewport}>
+    <div className={styles.viewport} data-keyboard-glide>
       <div
         ref={scrollRef}
         className={styles.scroll}
