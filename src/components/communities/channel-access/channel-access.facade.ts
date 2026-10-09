@@ -35,6 +35,21 @@ export class ChannelAccessFacade {
     return { channel, isMember };
   }
 
+  /**
+   * For callers that only read. Takes no row locks, so the transaction stays read-only and
+   * commits without a WAL flush; the member guard has already confirmed the member is active.
+   */
+  async requireViewAccess(
+    member: WorkspaceMember,
+    channelId: string,
+  ): Promise<{ channel: ChannelAccessSnapshot; isMember: boolean }> {
+    const channel = await this.repository.findChannel(member.workspaceId, channelId);
+    if (!channel) throw new NotFoundException('Channel not found');
+    const isMember = await this.repository.isChannelMember(channelId, member.id);
+    if (channel.kind !== 'public' && !isMember) throw new NotFoundException('Channel not found');
+    return { channel, isMember };
+  }
+
   async requireForwardAccess(
     member: WorkspaceMember,
     sourceChannelId: string,

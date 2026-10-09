@@ -75,6 +75,10 @@ class FakeChannelAccessRepository extends ChannelAccessRepository {
     return this.channels.get(channelId);
   }
 
+  async findChannel(_workspaceId: string, channelId: string) {
+    return this.channels.get(channelId);
+  }
+
   async isActiveWorkspaceMember() {
     return true;
   }

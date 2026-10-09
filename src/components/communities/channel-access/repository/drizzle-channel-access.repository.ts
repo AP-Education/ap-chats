@@ -24,7 +24,20 @@ export class DrizzleChannelAccessRepository extends ChannelAccessRepository {
     channelId: string,
     strength: 'update' | 'key share',
   ): Promise<ChannelAccessSnapshot | undefined> {
-    const [channel] = await this.txHost.tx
+    const [channel] = await this.selectChannel(workspaceId, channelId).for(strength);
+    return channel;
+  }
+
+  async findChannel(
+    workspaceId: string,
+    channelId: string,
+  ): Promise<ChannelAccessSnapshot | undefined> {
+    const [channel] = await this.selectChannel(workspaceId, channelId);
+    return channel;
+  }
+
+  private selectChannel(workspaceId: string, channelId: string) {
+    return this.txHost.tx
       .select({
         id: channels.id,
         workspaceId: channels.workspaceId,
@@ -34,8 +47,7 @@ export class DrizzleChannelAccessRepository extends ChannelAccessRepository {
       })
       .from(channels)
       .where(and(eq(channels.workspaceId, workspaceId), eq(channels.id, channelId)))
-      .for(strength);
-    return channel;
+      .$dynamic();
   }
 
   async isActiveWorkspaceMember(workspaceId: string, memberId: string): Promise<boolean> {
