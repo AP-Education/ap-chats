@@ -11,6 +11,7 @@ import { WorkspaceMembersController } from './members/workspace-members.controll
 import { WorkspaceMembersService } from './members/workspace-members.service';
 import { DrizzleWorkspacesRepository, WorkspacesRepository } from './workspaces/repository';
 import { WorkspacesController } from './workspaces/workspaces.controller';
+import { WorkspacesGateway } from './workspaces/workspaces.gateway';
 import { WorkspacesService } from './workspaces/workspaces.service';
 
 @Module({
@@ -18,6 +19,7 @@ import { WorkspacesService } from './workspaces/workspaces.service';
   controllers: [WorkspacesController, WorkspaceMembersController],
   providers: [
     WorkspacesService,
+    WorkspacesGateway,
     { provide: WorkspacesRepository, useClass: DrizzleWorkspacesRepository },
     WorkspaceMembersService,
     { provide: WorkspaceMembersRepository, useClass: DrizzleWorkspaceMembersRepository },
