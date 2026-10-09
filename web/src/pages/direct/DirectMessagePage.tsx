@@ -17,7 +17,6 @@ import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import { useParams } from 'react-router-dom';
 
-import { ChatLoading } from '@/domain/conversation/ChatLoading';
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
 import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
@@ -78,7 +77,7 @@ export default function DirectMessagePage() {
   const { byId, currentMember } = useWorkspaceMemberLabels(workspaceId);
 
   if (!channelId) return <NoConversationSelected />;
-  if (conversation.isPending) return <ChatLoading />;
+  if (conversation.isPending) return <Page />;
 
   if (unavailable) {
     return (

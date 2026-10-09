@@ -1,16 +1,15 @@
-import { lazy } from 'react';
+import { Page } from '@ap-education/ui';
 import type { RouteObject } from 'react-router-dom';
 
-import { ChatLoading } from '@/domain/conversation/ChatLoading';
 import { LastConversationRoute } from '@/features/social/conversation/LastConversationRoute';
 import { RequiredWorkspaceLayout } from '@/features/workspaces/layouts/RequiredWorkspaceLayout';
 
-const ChannelContent = lazy(() => import('./ChannelContent'));
+import ChannelContent from './ChannelContent';
 
 export const channelsRoutes = [
   {
     path: 'channels',
-    element: <RequiredWorkspaceLayout loadingFallback={<ChatLoading />} />,
+    element: <RequiredWorkspaceLayout loadingFallback={<Page />} />,
     children: [
       {
         index: true,

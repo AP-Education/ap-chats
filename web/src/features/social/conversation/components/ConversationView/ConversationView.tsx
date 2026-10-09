@@ -103,7 +103,6 @@ export function ConversationView({
         {historyReady && <ConversationSelectionBar interaction={interaction} />}
         <ConversationFooter
           canPost={canPost}
-          historyReady={historyReady}
           readOnlyFooter={readOnlyFooter}
           items={navigation.items}
           send={operations.send}

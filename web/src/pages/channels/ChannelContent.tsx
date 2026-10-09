@@ -16,7 +16,6 @@ import { ChatsIcon, ProhibitIcon, WarningCircleIcon } from '@phosphor-icons/reac
 import { Button } from 'antd';
 import { useParams } from 'react-router-dom';
 
-import { ChatLoading } from '@/domain/conversation/ChatLoading';
 import { ChannelDetail } from '@/features/communities/channels/components/ChannelDetail';
 import { useChannel } from '@/features/communities/channels/hooks/useChannels';
 import { ChannelMembersPanel } from '@/features/communities/memberships/components/ChannelMembersPanel';
@@ -71,7 +70,7 @@ export default function ChannelContent() {
   const unavailable = useTrackConversation('channels', workspaceId, channelId, query, '/channels');
 
   if (!channelId) return <NoChannelSelected />;
-  if (query.isPending) return <ChatLoading />;
+  if (query.isPending) return <Page />;
   if (unavailable) return <ChannelUnavailable />;
 
   if (query.isError && !query.data) {

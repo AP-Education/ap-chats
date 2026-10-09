@@ -3,7 +3,6 @@ import { createStyles } from 'antd-style';
 
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 
-import { ConversationHistorySkeleton } from './ConversationHistorySkeleton';
 import { ConversationTimeline } from './ConversationTimeline';
 import type { useConversationActions } from './useConversationActions';
 import type { useConversationHistoryNavigation } from './useConversationHistoryNavigation';
@@ -31,7 +30,8 @@ export function ConversationHistoryContent({
   const { styles } = useStyles();
   const { history } = navigation;
 
-  if (history.isPending) return <ConversationHistorySkeleton />;
+  // The wallpaper alone until the history lands, which then appears at once.
+  if (history.isPending) return null;
 
   if (history.isError && !history.data)
     return (
