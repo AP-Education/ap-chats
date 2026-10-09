@@ -50,3 +50,25 @@ export function readComposerMessage(
     return message as NativeComposerMessage;
   return null;
 }
+
+/** The native keyboard about to rise over the page, or done rising. */
+export type KeyboardGlideMessage =
+  | { type: 'keyboard/glide'; shift: number; duration: number; easing: string }
+  | { type: 'keyboard/glide-end' };
+
+const GLIDE_EASING = /^(linear\([\d., ]+\)|cubic-bezier\([\d., -]+\))$/;
+
+export function readKeyboardGlide(value: unknown): KeyboardGlideMessage | null {
+  if (!value || typeof value !== 'object') return null;
+  const message = value as Record<string, unknown>;
+  if (message.type === 'keyboard/glide-end') return { type: 'keyboard/glide-end' };
+  if (
+    message.type === 'keyboard/glide' &&
+    Number.isFinite(message.shift) &&
+    Number.isFinite(message.duration) &&
+    typeof message.easing === 'string' &&
+    GLIDE_EASING.test(message.easing)
+  )
+    return message as KeyboardGlideMessage;
+  return null;
+}

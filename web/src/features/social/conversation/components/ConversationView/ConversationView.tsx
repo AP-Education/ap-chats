@@ -14,6 +14,7 @@ import { ConversationHistoryContent } from './ConversationHistoryContent';
 import { ConversationSelectionBar } from './ConversationSelectionBar';
 import { useConversationActions } from './useConversationActions';
 import { useConversationHistoryNavigation } from './useConversationHistoryNavigation';
+import { useKeyboardGlide } from './useKeyboardGlide';
 import { useOverlayInsets } from './useOverlayInsets';
 
 const useStyles = createStyles(({ css }) => ({
@@ -82,6 +83,7 @@ export function ConversationView({
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   useOverlayInsets(surfaceRef, topRef, bottomRef);
+  useKeyboardGlide(surfaceRef);
 
   return (
     <ChatWallpaperSurface ref={surfaceRef} className={styles.shell} data-conversation-drop-target>
@@ -99,14 +101,17 @@ export function ConversationView({
           calleeAvatarPath={avatarPath}
         />
       </div>
-      <div ref={bottomRef} className={styles.bottom}>
+      <div ref={bottomRef} className={styles.bottom} data-keyboard-glide>
         {historyReady && <ConversationSelectionBar interaction={interaction} />}
-        <ConversationFooter
-          canPost={canPost}
-          readOnlyFooter={readOnlyFooter}
-          items={navigation.items}
-          send={operations.send}
-        />
+        {/* Hidden rather than unmounted while selecting, so a draft and its uploads live on. */}
+        <div hidden={interaction.selectedItems.length > 0}>
+          <ConversationFooter
+            canPost={canPost}
+            readOnlyFooter={readOnlyFooter}
+            items={navigation.items}
+            send={operations.send}
+          />
+        </div>
       </div>
       <ConversationForwarding
         items={interaction.forwardItems}

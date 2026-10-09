@@ -19,6 +19,7 @@ import {
   EmojiKeyboardPanel,
   type GifResult,
   isComposerInputRequest,
+  type KeyboardGlide,
   useComposerInput,
 } from '../../composer';
 import { changePushPermission } from '../../push/api/change-push-permission';
@@ -62,7 +63,23 @@ export function WebViewHost() {
   const sendInputState = useCallback((state: ComposerInputState) => {
     webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'composer/state', ...state }));
   }, []);
-  const input = useComposerInput(sendInputState);
+  // The page ends at the keyboard's top once it has risen, and the home indicator's inset it
+  // pads itself with goes with it, so it slides by the keyboard less that inset.
+  const sendGlide = useCallback(
+    (glide: KeyboardGlide) => {
+      const message: NativeToWebMessage = glide
+        ? {
+            type: 'keyboard/glide',
+            shift: Math.max(0, glide.height - insets.bottom),
+            duration: glide.duration,
+            easing: glide.easing,
+          }
+        : { type: 'keyboard/glide-end' };
+      webViewRef.current?.injectJavaScript(buildBridgeScript(message));
+    },
+    [insets.bottom],
+  );
+  const input = useComposerInput(sendInputState, sendGlide);
   // Opens on the page the person left; unset until the stored one is read, a moment at launch.
   const [startUrl, setStartUrl] = useState<string>();
 

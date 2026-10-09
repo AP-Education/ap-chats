@@ -187,6 +187,7 @@ export function MessageTimeline({
   const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
   const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
+  const selecting = useConversation((state) => state.selectedIds.length > 0);
   const gesture = useRef<{ x: number; y: number; dismissed: boolean } | null>(null);
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   const firstUnreadSeq = pages.find((page) => page.firstUnreadSeq !== null)?.firstUnreadSeq ?? null;
@@ -220,7 +221,7 @@ export function MessageTimeline({
   useMobileMessageSelection(scrollRef, isMobile);
 
   return (
-    <div className={styles.viewport}>
+    <div className={styles.viewport} data-keyboard-glide>
       <div
         ref={scrollRef}
         className={styles.scroll}
@@ -249,7 +250,7 @@ export function MessageTimeline({
         aria-label="Повідомлення каналу"
         aria-live="off"
       >
-        <div className={styles.feed}>
+        <div className={styles.feed} data-selecting={selecting || undefined}>
           {hasOlder && (
             <Button
               className={styles.load}

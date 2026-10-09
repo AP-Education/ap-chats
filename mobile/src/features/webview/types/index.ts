@@ -19,6 +19,10 @@ export type NativeToWebMessage =
   | ({ type: 'composer/state' } & ComposerInputState)
   | { type: 'composer/insert'; sessionId: string; requestId: number; text: string }
   | { type: 'composer/gif'; sessionId: string; requestId: number; url: string; title: string }
+  /** The keyboard starts rising: slide the page up by `shift` over `duration` ms on `easing`. */
+  | { type: 'keyboard/glide'; shift: number; duration: number; easing: string }
+  /** The rise is over or abandoned; the page settles on its new size. */
+  | { type: 'keyboard/glide-end' }
   | { type: 'notifications/open'; payload: NotificationIntent }
   | { type: 'notifications/permission'; status: PushPermission };
 

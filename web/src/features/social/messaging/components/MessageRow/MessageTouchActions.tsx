@@ -11,10 +11,11 @@ import { MessageActionSheet } from './MessageActionSheet';
 import { useMessageReplySwipe } from './useMessageReplySwipe';
 
 const useStyles = createStyles(({ token, css }) => ({
+  // Nothing clips here: a swiped row slides off past the screen edge, and the selection
+  // check sits outside the row in the run's gutter.
   gestureArea: css`
     position: relative;
     min-width: 0;
-    overflow: hidden;
 
     &[data-swiping] > div,
     &[data-swiping] > span {
