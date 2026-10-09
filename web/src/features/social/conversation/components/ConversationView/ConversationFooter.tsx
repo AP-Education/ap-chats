@@ -14,7 +14,6 @@ import { useConversation } from '../../store';
 
 interface ConversationFooterProps {
   canPost: boolean;
-  historyReady: boolean;
   readOnlyFooter?: ReactNode;
   items: HistoryItem[];
   send: ReturnType<typeof useMessageOperations>['send'];
@@ -22,13 +21,11 @@ interface ConversationFooterProps {
 
 export function ConversationFooter({
   canPost,
-  historyReady,
   readOnlyFooter,
   items,
   send,
 }: ConversationFooterProps) {
   if (!canPost) return <>{readOnlyFooter}</>;
-  if (!historyReady) return null;
 
   return <WritableConversationFooter items={items} send={send} />;
 }

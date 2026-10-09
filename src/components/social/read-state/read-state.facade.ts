@@ -43,10 +43,9 @@ export class ReadStateFacade {
   ): Promise<ChannelReadState | null> {
     const seq = await this.repository.lastReadSeq(channelId, memberId);
     if (seq === null) return null;
-    return {
-      lastReadEntrySeq: seq.toString(),
-      unreadCount: await this.repository.unreadCount(channelId, memberId, seq, ceiling),
-    };
+    const unreadCount =
+      seq < ceiling ? await this.repository.unreadCount(channelId, memberId, seq, ceiling) : 0;
+    return { lastReadEntrySeq: seq.toString(), unreadCount };
   }
 
   async markRead(

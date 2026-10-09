@@ -40,6 +40,9 @@ function access(
       locks.push(id);
       return channels.find((item) => item.id === id);
     },
+    async findChannel(_workspaceId: string, id: string) {
+      return channels.find((item) => item.id === id);
+    },
     async isActiveWorkspaceMember() {
       return true;
     },
@@ -105,4 +108,15 @@ test('forwarding into a direct message requires an active peer', async () => {
     ).requireForwardAccess(actor, 'source', 'target'),
     { status: 403 },
   );
+});
+
+test('viewing takes no row locks and hides a private channel from a nonmember', async () => {
+  const locks: string[] = [];
+  const facade = access([channel('public', 'public'), channel('private', 'private')], [], locks);
+  assert.deepEqual(await facade.requireViewAccess(actor, 'public'), {
+    channel: channel('public', 'public'),
+    isMember: false,
+  });
+  await assert.rejects(facade.requireViewAccess(actor, 'private'), { status: 404 });
+  assert.deepEqual(locks, []);
 });

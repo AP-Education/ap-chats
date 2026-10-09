@@ -204,7 +204,9 @@ export function WebViewHost() {
           <WebView
             ref={webViewRef}
             source={{ uri: startUrl }}
-            style={styles.webview}
+            // WKWebView paints white wherever the page has not drawn yet, e.g. the strip it gains
+            // while the keyboard area beneath it shrinks.
+            style={[styles.webview, { backgroundColor: palette.surface }]}
             hideKeyboardAccessoryView
             keyboardDisplayRequiresUserAction={false}
             automaticallyAdjustContentInsets={false}

@@ -23,6 +23,9 @@ export class AccountsTokenVerifier {
     this.jwks = issuer
       ? createRemoteJWKSet(new URL(`${issuer.replace(/\/$/, '')}/jwks`), {
           timeoutDuration: 5000,
+          // A rotated key arrives under a new kid, which reloads the set on its own; an expiring
+          // cache would instead hold up whichever request comes next while it refetches.
+          cacheMaxAge: Infinity,
         })
       : null;
   }

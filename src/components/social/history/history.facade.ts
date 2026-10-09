@@ -20,7 +20,7 @@ export class HistoryFacade {
 
   @Transactional()
   async entry(member: WorkspaceMember, channelId: string, entryId: string) {
-    const { channel } = await this.access.requireReadAccess(member, channelId);
+    const { channel } = await this.access.requireViewAccess(member, channelId);
     const seq = await this.history.entrySeq(channelId, entryId);
     if (seq === null) throw new NotFoundException('Entry not found');
     const page = await this.history.page(channelId, 'after', seq - 1n, channel.lastEntrySeq, 1);
@@ -31,15 +31,16 @@ export class HistoryFacade {
 
   @Transactional()
   async window(member: WorkspaceMember, channelId: string, query: HistoryWindowQueryDto) {
-    const { channel, isMember } = await this.access.requireReadAccess(member, channelId);
+    const { channel, isMember } = await this.access.requireViewAccess(member, channelId);
     const snapshotSeq = channel.lastEntrySeq;
     const readState = isMember
       ? await this.readState.state(channelId, member.id, snapshotSeq)
       : null;
     const lastRead = BigInt(readState?.lastReadEntrySeq ?? '0');
-    const firstUnread = isMember
-      ? await this.history.firstUnreadSeq(channelId, member.id, lastRead, snapshotSeq)
-      : null;
+    const firstUnread =
+      isMember && lastRead < snapshotSeq
+        ? await this.history.firstUnreadSeq(channelId, member.id, lastRead, snapshotSeq)
+        : null;
     const target = query.messageId
       ? await this.history.messageSeq(channelId, query.messageId)
       : firstUnread;
@@ -84,7 +85,7 @@ export class HistoryFacade {
     if (query.before !== undefined && query.after !== undefined)
       throw new BadRequestException('Use either before or after');
 
-    const { channel, isMember } = await this.access.requireReadAccess(member, channelId);
+    const { channel, isMember } = await this.access.requireViewAccess(member, channelId);
     const direction = query.after === undefined ? 'before' : 'after';
     const cursorText = query.before ?? query.after;
     const cursor = cursorText === undefined ? undefined : BigInt(cursorText);
@@ -93,14 +94,15 @@ export class HistoryFacade {
       throw new BadRequestException('Snapshot exceeds channel history');
     const page = await this.history.page(channelId, direction, cursor, ceiling, query.limit ?? 40);
     const readState = isMember ? await this.readState.state(channelId, member.id, ceiling) : null;
-    const firstUnread = readState
-      ? await this.history.firstUnreadSeq(
-          channelId,
-          member.id,
-          BigInt(readState.lastReadEntrySeq),
-          ceiling,
-        )
-      : null;
+    const firstUnread =
+      readState && BigInt(readState.lastReadEntrySeq) < ceiling
+        ? await this.history.firstUnreadSeq(
+            channelId,
+            member.id,
+            BigInt(readState.lastReadEntrySeq),
+            ceiling,
+          )
+        : null;
     const items = page.rows.map((row) => this.item(row, member.id));
     const edge = direction === 'before' ? items[0] : items.at(-1);
     return {

@@ -1,9 +1,9 @@
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
-// The tail continues the bubble's flat bottom corner into a soft hook. It is shaped with a
-// mask and painted without backdrop-filter: Chromium clips a backdrop by neither mask nor
-// clip-path reliably, and a solid hook this small reads the same as the frosted bubble.
+// The tail continues the bubble's flat bottom corner into a soft hook, shaped with a mask.
+// Bubbles carry no backdrop-filter: each would be its own blurred compositor layer, and a
+// conversation holds hundreds that every scroll, drag and keyboard frame recomposites.
 const INCOMING_TAIL = tailMask('M8 0C8 6.6 6.3 11.6 1.1 15.4C.4 15.9.7 17 1.6 17H8Z');
 const OWN_TAIL = tailMask('M0 0C0 6.6 1.7 11.6 6.9 15.4C7.6 15.9 7.3 17 6.4 17H0Z');
 
@@ -17,7 +17,6 @@ const useStyles = createStyles(({ token, css }) => ({
   // rendered inside (replies, files, links, meta) follow one own/incoming scheme.
   stack: css`
     --bubble-bg: var(--chat-incoming-bg, rgba(255, 255, 255, 0.8));
-    --bubble-blur: var(--glass-blur, blur(24px) saturate(1.5));
     --bubble-shadow: 0 1px 1.5px rgba(23, 46, 42, 0.12);
     --bubble-text: ${token.colorText};
     --bubble-muted: ${token.colorTextSecondary};
@@ -46,15 +45,13 @@ const useStyles = createStyles(({ token, css }) => ({
     }
 
     // Two close tones fading downwards into the tail: a run of own messages reads as one
-    // calm column. Opaque on light, where a pale page showing through would wash white
-    // text below AA; dark pages only deepen it, so the frost stays there. No edge
+    // calm column, opaque so a pale page never washes the white text below AA. No edge
     // highlights: an inset line follows the rounded corners and reads as a stray border.
     &[data-side='own'] {
       --own-from: var(--chat-own-from, ${token.colorPrimary});
       --own-to: var(--chat-own-to, ${token.colorPrimary});
       --bubble-bg: linear-gradient(175deg, var(--own-to), var(--own-from));
       --bubble-tail: var(--own-from);
-      --bubble-blur: blur(20px) saturate(1.5);
       --bubble-shadow: 0 1px 2px rgba(18, 22, 60, 0.16);
       // Secondary text stays fully white and steps back by size alone, so the small times
       // keep AA on either end of the gradient. Nested blocks darken the fill, never lighten it.
@@ -115,16 +112,9 @@ const useStyles = createStyles(({ token, css }) => ({
       width: min(560px, 85%);
     }
 
-    @supports not (backdrop-filter: blur(1px)) {
-      &[data-side='incoming']:not([data-tone]) {
-        --bubble-bg: ${token.colorBgElevated};
-      }
-    }
-
     @media (prefers-reduced-transparency: reduce) {
       &[data-side='incoming']:not([data-tone]) {
         --bubble-bg: ${token.colorBgContainer};
-        --bubble-blur: none;
       }
     }
 
@@ -132,11 +122,9 @@ const useStyles = createStyles(({ token, css }) => ({
     @media (prefers-contrast: more) {
       &[data-side='incoming']:not([data-tone]) {
         --bubble-bg: ${token.colorBgContainer};
-        --bubble-blur: none;
       }
       &[data-side='own'] {
         --bubble-bg: var(--chat-own-from, ${token.colorPrimary});
-        --bubble-blur: none;
       }
     }
   `,
@@ -148,7 +136,6 @@ const useStyles = createStyles(({ token, css }) => ({
     padding: 6px ${token.paddingSM}px ${token.paddingXS}px;
     border-radius: var(--bubble-radius);
     background: var(--bubble-bg);
-    backdrop-filter: var(--bubble-blur);
     box-shadow: var(--bubble-shadow);
     color: var(--bubble-text);
     overflow-wrap: anywhere;
@@ -189,7 +176,6 @@ const useStyles = createStyles(({ token, css }) => ({
     &[data-variant='emoji'] {
       padding: 0;
       background: none;
-      backdrop-filter: none;
       box-shadow: none;
     }
   `,

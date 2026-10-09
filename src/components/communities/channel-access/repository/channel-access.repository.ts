@@ -7,6 +7,11 @@ export abstract class ChannelAccessRepository {
     strength: 'update' | 'key share',
   ): Promise<ChannelAccessSnapshot | undefined>;
 
+  abstract findChannel(
+    workspaceId: string,
+    channelId: string,
+  ): Promise<ChannelAccessSnapshot | undefined>;
+
   abstract isActiveWorkspaceMember(workspaceId: string, memberId: string): Promise<boolean>;
 
   abstract isChannelMember(channelId: string, memberId: string): Promise<boolean>;

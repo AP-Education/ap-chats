@@ -1,9 +1,7 @@
-import { useIsMobile } from '@ap-education/ui';
+import { Page, useIsMobile } from '@ap-education/ui';
 import { Skeleton, theme } from 'antd';
 import { Suspense } from 'react';
 import { useLocation, useRoutes } from 'react-router-dom';
-
-import { ChatLoading } from '@/domain/conversation/ChatLoading';
 
 import { chatsRoutes } from '../../app/routes';
 import { PageSection } from '../../shared/ui/PageSection/PageSection';
@@ -27,7 +25,7 @@ export function ChatsContent() {
         <Suspense
           fallback={
             isChatPage ? (
-              <ChatLoading />
+              <Page />
             ) : (
               <div role="status" aria-label="Завантажуємо сторінку" style={{ padding: 24 }}>
                 <Skeleton active paragraph={{ rows: 4 }} />

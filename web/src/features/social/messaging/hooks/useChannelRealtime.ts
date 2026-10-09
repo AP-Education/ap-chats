@@ -6,7 +6,7 @@ import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { useConnection } from '@/features/realtime/stores/realtime-context';
 
 import { getEntry, historyPage } from '../api/messages-api';
-import { catchUpHistory, mergeHistoryItem } from '../history-cache';
+import { catchUpHistory, mergeHistoryItem, refreshHistoryWindow } from '../history-cache';
 import { messagingQueryKeys } from '../queryKeys';
 import type { HistoryPage } from '../types';
 import type { PageCursor } from './useMessageHistory';
@@ -36,9 +36,10 @@ export function useChannelRealtime(
   );
 
   useEffect(() => {
-    if (!socket || status !== 'connected' || !isMember) return;
+    if (!socket || status !== 'connected') return;
+    refreshHistoryWindow(queryClient, key);
+    if (!isMember) return;
     socket.emit('social:watch', { workspaceId, channelId });
-    void queryClient.invalidateQueries({ queryKey: key });
     return () => {
       socket.emit('social:unwatch', { workspaceId, channelId });
     };
