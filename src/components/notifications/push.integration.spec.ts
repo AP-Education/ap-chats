@@ -1,13 +1,10 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 import { PGlite } from '@electric-sql/pglite';
-import { type TransactionalAdapter, TransactionHost } from '@nestjs-cls/transactional';
-import { TransactionalAdapterDrizzleOrm } from '@nestjs-cls/transactional-adapter-drizzle-orm';
 import { eq } from 'drizzle-orm';
-import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite';
+import { drizzle } from 'drizzle-orm/pglite';
 
 import { DrizzleWebPushRepository } from '@/components/devices/browser/repository/drizzle-web-push.repository';
 import { DrizzleDevicesRepository } from '@/components/devices/repository/drizzle-devices.repository';
@@ -24,6 +21,7 @@ import { IntegrationEvents } from '@/globals/publisher/integration-events';
 import { OutboxDispatcher } from '@/globals/publisher/outbox-dispatcher';
 import { PersistentEventOutbox } from '@/globals/publisher/persistent-event-outbox';
 import { DrizzleEventOutboxRepository } from '@/globals/publisher/repository/drizzle-event-outbox.repository';
+import { migrate, transactionHost } from '@/testing/pglite';
 
 import { MessageNotificationContentService } from './alerts/message-notification-content.service';
 import { DrizzlePushAudienceRepository } from './alerts/repository/drizzle-push-audience.repository';
@@ -425,35 +423,6 @@ test('push persistence on PostgreSQL', async (t) => {
     },
   );
 });
-
-async function migrate(pg: PGlite, options: { before: string; seed: string }) {
-  const migrations = readdirSync('drizzle')
-    .filter((name) => /^\d+.*\.sql$/u.test(name))
-    .sort();
-  const seedAt = migrations.indexOf(options.before);
-  assert.ok(seedAt >= 0, `missing migration ${options.before}`);
-
-  for (const [index, migration] of migrations.entries()) {
-    if (index === seedAt) await pg.query(options.seed);
-    await pg.exec(readFileSync(`drizzle/${migration}`, 'utf8'));
-  }
-}
-
-type TestDatabase = PgliteDatabase<typeof schema>;
-
-function transactionHost(db: TestDatabase) {
-  const adapter = new TransactionalAdapterDrizzleOrm<TestDatabase>({
-    drizzleInstanceToken: Symbol('test-db'),
-  });
-
-  return new TransactionHost<TransactionalAdapter<TestDatabase, TestDatabase, object>>({
-    ...adapter.optionsFactory(db),
-    connectionName: undefined,
-    enableTransactionProxy: false,
-    defaultTxOptions: { isolationLevel: 'read committed' },
-    extraProviderTokens: [],
-  });
-}
 
 function attachment() {
   return {
