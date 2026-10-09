@@ -1,3 +1,4 @@
+import { isNativeShell } from '@ap-education/shell-sdk';
 import { createStyles } from 'antd-style';
 import { type ReactNode, useRef } from 'react';
 
@@ -33,10 +34,17 @@ export function ViewportFrame({ children }: ViewportFrameProps) {
   const frameRef = useRef<HTMLDivElement>(null);
   const offset = useLayoutOffset(hostRef);
   const aspectRatio = useAspectRatio(frameRef);
+  // The native shell shrinks the page itself above its keyboard, so 100lvh would rescale and
+  // repaint the wallpaper through every frame of it; the screen's height never moves.
+  const height = isNativeShell() ? screen.height : undefined;
 
   return (
     <div ref={hostRef} className={styles.host} aria-hidden>
-      <div ref={frameRef} className={styles.frame} style={{ left: -offset.left, top: -offset.top }}>
+      <div
+        ref={frameRef}
+        className={styles.frame}
+        style={{ left: -offset.left, top: -offset.top, height }}
+      >
         <FrameAspectProvider value={aspectRatio}>{children}</FrameAspectProvider>
       </div>
     </div>
