@@ -44,7 +44,7 @@ function surfaceColors(preset: WallpaperPreset, base: WallpaperBase): CSSPropert
   const deepTone = tones.length ? mix(average(tones), '#000000', 0.35) : NEUTRAL_TONE;
 
   return {
-    '--chat-incoming-bg': dark ? 'rgba(44, 55, 59, 0.94)' : 'rgba(255, 255, 255, 0.86)',
+    '--chat-incoming-bg': dark ? 'rgba(44, 55, 59, 0.94)' : 'rgba(255, 255, 255, 0.92)',
     '--chat-service-bg': dark ? 'rgba(255, 255, 255, 0.14)' : serviceTone(deepTone, base.color),
     '--chat-service-strong': serviceTone(deepTone, base.color),
   } as CSSProperties;
