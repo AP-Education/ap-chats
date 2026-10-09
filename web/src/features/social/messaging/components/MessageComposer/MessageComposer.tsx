@@ -72,11 +72,20 @@ const useStyles = createStyles(({ token, css }) => ({
   // Floats over the wallpaper and the messages scrolling beneath it; only its controls
   // take pointer input, the transparent gaps between them pass it through.
   shell: css`
+    --composer-radius: ${token.borderRadiusLG}px;
+    --composer-control-radius: ${token.borderRadiusLG}px;
     flex-shrink: 0;
     display: flex;
     align-items: flex-end;
     gap: 8px;
     padding: 0 12px 12px;
+
+    // Round, the way iOS composes: a pill of a field that grows into a rounded one,
+    // beside circular controls.
+    html[data-platform='ios'] & {
+      --composer-radius: 22px;
+      --composer-control-radius: 50%;
+    }
 
     & > * {
       pointer-events: auto;
@@ -120,7 +129,7 @@ const useStyles = createStyles(({ token, css }) => ({
       && {
         display: inline-flex;
         flex-shrink: 0;
-        border-radius: ${token.borderRadiusLG}px;
+        border-radius: var(--composer-control-radius);
         background: var(--glass, rgba(255, 255, 255, 0.86));
         backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
         box-shadow: 0 1px 2px rgba(23, 46, 42, 0.12);
@@ -184,6 +193,10 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   toolbarButton: css`
     color: ${token.colorTextSecondary};
+
+    && {
+      border-radius: var(--composer-control-radius, ${token.borderRadius}px);
+    }
   `,
   toolbarButtonActive: css`
     background: ${token.colorPrimaryBg};

@@ -10,7 +10,7 @@ const useStyles = createStyles(({ token, css }) => ({
     height: 52px;
     flex-shrink: 0;
     border: 0;
-    border-radius: ${token.borderRadiusLG}px;
+    border-radius: var(--composer-control-radius, ${token.borderRadiusLG}px);
     background: var(--glass, rgba(255, 255, 255, 0.86));
     backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
     box-shadow: 0 1px 2px rgba(23, 46, 42, 0.12);

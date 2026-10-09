@@ -2,11 +2,11 @@ import { createStyles } from 'antd-style';
 import type { PropsWithChildren, ReactNode } from 'react';
 
 const useStyles = createStyles(({ token, css }) => ({
-  // Frosted over the chat wallpaper, the same material as the bubbles above it.
+  // Frosted over the chat wallpaper and the messages scrolling beneath it.
   surface: css`
     flex: 1;
     min-width: 0;
-    border-radius: ${token.borderRadiusLG}px;
+    border-radius: var(--composer-radius, ${token.borderRadiusLG}px);
     background: var(--glass, rgba(255, 255, 255, 0.86));
     backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
     box-shadow:
