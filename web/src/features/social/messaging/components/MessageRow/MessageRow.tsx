@@ -11,15 +11,21 @@ import { useConversation } from '@/features/social/conversation/store';
 import type { AttachmentDraft } from '../../attachments/types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';
 import { Bubble } from '../Bubble/Bubble';
+import { SELECTION_GUTTER } from '../HistoryRun/HistoryRun';
 import { bubbleLayout } from './bubbleLayout';
 import { MessageActions } from './MessageActions';
 import { MessageActionProvider } from './MessageActionScope';
 import { MessageBody } from './MessageBody';
 import { MessageHeader } from './MessageHeader';
 
+const CHECK_MARK = `url("data:image/svg+xml,${encodeURIComponent(
+  "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>",
+)}")`;
+
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
     position: relative;
+    isolation: isolate;
     display: flex;
     align-items: flex-end;
     gap: ${token.paddingXS}px;
@@ -49,8 +55,16 @@ const useStyles = createStyles(({ token, css }) => ({
       }
     }
   `,
+  // The band runs edge to edge behind the whole row, its avatar included, as in Telegram.
   selected: css`
-    background: color-mix(in srgb, ${token.colorPrimary} 14%, transparent);
+    &::before {
+      content: '';
+      position: absolute;
+      inset: -1px -100vw;
+      z-index: -1;
+      background: color-mix(in srgb, ${token.colorPrimary} 14%, transparent);
+      pointer-events: none;
+    }
   `,
   sending: css`
     [data-message-text] {
@@ -96,15 +110,35 @@ const useStyles = createStyles(({ token, css }) => ({
       text-decoration: underline;
     }
   `,
+  // Sits in the run's gutter at the screen edge, wherever the bubble itself is.
   checkbox: css`
-    align-self: center;
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-    accent-color: ${token.colorPrimary};
+    position: absolute;
+    top: 50%;
+    left: calc(
+      -1 * (var(--run-lead, 0px) + ${SELECTION_GUTTER}px) + ${(SELECTION_GUTTER - 22) / 2}px
+    );
+    width: 22px;
+    height: 22px;
+    margin: 0;
+    translate: 0 -50%;
+    appearance: none;
+    border: 2px solid ${token.colorTextQuaternary};
+    border-radius: 50%;
+    background: transparent no-repeat center / 14px;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
 
-    [data-own] > & {
-      margin-right: auto;
+    &:checked {
+      border-color: ${token.colorPrimary};
+      background-color: ${token.colorPrimary};
+      background-image: ${CHECK_MARK};
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${token.colorPrimary};
+      outline-offset: 2px;
     }
   `,
 }));

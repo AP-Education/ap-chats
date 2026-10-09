@@ -5,15 +5,29 @@ import type { ReactNode } from 'react';
 import type { MessageAuthor } from '../../types';
 import { RunAvatar } from './RunAvatar';
 
+/** Room at the screen edge for each row's check while messages are being selected. */
+export const SELECTION_GUTTER = 40;
+
 const useStyles = createStyles(({ token, css }) => ({
   run: css`
+    // How far the run's rows start past its padding: they keep their checks in the gutter.
+    --run-lead: 0px;
     display: flex;
     align-items: flex-end;
     gap: ${token.paddingXXS}px;
     padding-inline: ${token.paddingXS}px;
+    transition: padding-left 0.18s ease;
 
     & + & {
       margin-top: ${token.marginXS}px;
+    }
+
+    &[data-has-avatar] {
+      --run-lead: ${token.controlHeightLG + token.paddingXXS}px;
+    }
+
+    [data-selecting] & {
+      padding-left: ${token.paddingXS + SELECTION_GUTTER}px;
     }
   `,
   // Rides along the bottom of the viewport while a long run scrolls past.
@@ -70,7 +84,7 @@ export function HistoryRun({ avatar, children }: HistoryRunProps) {
   const { styles, theme } = useStyles();
 
   return (
-    <div className={styles.run} data-history-run>
+    <div className={styles.run} data-history-run data-has-avatar={avatar ? true : undefined}>
       {avatar && (
         <RunAvatar author={avatar} size={theme.controlHeightLG} className={styles.avatar} />
       )}
