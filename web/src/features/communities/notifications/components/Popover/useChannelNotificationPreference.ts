@@ -29,15 +29,22 @@ export function useChannelNotificationPreference(workspaceId: string, channelId:
   });
 
   return {
+    status: preferenceStatus(query),
     level: query.data?.level ?? 'default',
     isMuted: query.data?.isMuted ?? false,
-    isLoading: query.isPending,
-    isError: query.isError,
-    isPending: change.isPending,
-    retry: query.refetch,
+    changing: change.isPending,
+    retry: () => void query.refetch(),
     chooseLevel: (level: NotificationLevel) => change.mutateAsync({ type: 'level', level }),
     chooseMute: (milliseconds: number) =>
       change.mutateAsync({ type: 'mute', duration: milliseconds <= 3_600_000 ? 'hour' : 'day' }),
     unmute: () => change.mutateAsync({ type: 'unmute' }),
   };
+}
+
+export type ChannelNotificationPreference = ReturnType<typeof useChannelNotificationPreference>;
+
+function preferenceStatus(query: { isPending: boolean; isError: boolean }) {
+  if (query.isPending) return 'loading';
+  if (query.isError) return 'failed';
+  return 'ready';
 }

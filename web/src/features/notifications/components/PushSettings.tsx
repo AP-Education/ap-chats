@@ -21,16 +21,19 @@ export function PushSettings() {
       disabled={push.busy}
       onClick={push.change}
     >
-      {push.busy ? (
-        <LoadingIcon size={iconSize} />
-      ) : (
-        <PushIcon status={push.status} size={iconSize} />
-      )}
+      <PushIcon status={push.status} busy={push.busy} size={iconSize} />
     </IconButton>
   );
 }
 
-function PushIcon({ status, size }: { status: PushControl['status']; size: number }) {
+interface PushIconProps {
+  status: PushControl['status'];
+  busy: boolean;
+  size: number;
+}
+
+function PushIcon({ status, busy, size }: PushIconProps) {
+  if (busy) return <LoadingIcon size={size} />;
   if (status === 'blocked') return <BellSlashIcon size={size} />;
 
   return <BellIcon size={size} weight={status === 'on' ? 'fill' : 'regular'} />;

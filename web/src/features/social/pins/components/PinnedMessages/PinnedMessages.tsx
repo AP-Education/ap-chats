@@ -1,9 +1,4 @@
-import {
-  ContentState,
-  ContentStateDescription,
-  ContentStateIcon,
-  LoadingIcon,
-} from '@ap-education/ui';
+import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-education/ui';
 import { PushPinIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
@@ -12,6 +7,7 @@ import { useConversationScope } from '@/features/social/conversation/store';
 import { MessagePreview } from '@/features/social/messaging/components/MessagePreview/MessagePreview';
 
 import { usePins } from '../../hooks/usePins';
+import { PinnedMessagesSkeleton } from './PinnedMessagesSkeleton';
 
 const useStyles = createStyles(({ token, css }) => ({
   list: css`
@@ -60,7 +56,7 @@ export function PinnedMessages({ onJump }: PinnedMessagesProps) {
   if (query.isPending)
     return (
       <div className={styles.list}>
-        <LoadingIcon />
+        <PinnedMessagesSkeleton />
       </div>
     );
   if (query.isError)

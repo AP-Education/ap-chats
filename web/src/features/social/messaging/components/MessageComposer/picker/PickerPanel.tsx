@@ -1,8 +1,8 @@
-import { LoadingIcon } from '@ap-education/ui';
 import { Segmented } from 'antd';
 import { createStyles } from 'antd-style';
 import { lazy, Suspense } from 'react';
 
+import { EmojiTabSkeleton } from './EmojiTabSkeleton';
 import type { GifResult } from './gif-provider';
 import { GifTab } from './GifTab';
 import { StickerTab } from './StickerTab';
@@ -36,12 +36,6 @@ const useStyles = createStyles(({ css }) => ({
     flex: 1;
     min-height: 0;
   `,
-  loading: css`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-  `,
 }));
 
 interface PickerPanelProps {
@@ -71,13 +65,7 @@ export function PickerPanel({ activeTab, onTabChange, onPickEmoji, onPickGif }: 
         {activeTab === 'gif' && <GifTab onPick={onPickGif} />}
         {activeTab === 'sticker' && <StickerTab />}
         {activeTab === 'emoji' && (
-          <Suspense
-            fallback={
-              <div className={styles.loading}>
-                <LoadingIcon />
-              </div>
-            }
-          >
+          <Suspense fallback={<EmojiTabSkeleton />}>
             <EmojiTab onPick={onPickEmoji} />
           </Suspense>
         )}

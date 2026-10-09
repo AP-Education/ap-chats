@@ -1,21 +1,13 @@
-import { LoadingIcon } from '@ap-education/ui';
 import { ArrowLeftIcon, ArrowRightIcon, DownloadSimpleIcon } from '@phosphor-icons/react';
 import { Button, Modal } from 'antd';
 import { createStyles } from 'antd-style';
-import { useState } from 'react';
 
 import { formatFileSize } from '../../attachments/file-presentation';
 import type { Attachment } from '../../attachments/types';
-import { useAttachmentDownload, useAttachmentUrl } from './useAttachmentAccess';
+import { AttachmentImage } from './AttachmentImage';
+import { useAttachmentDownload } from './useAttachmentAccess';
 
 const useStyles = createStyles(({ token, css }) => ({
-  image: css`
-    display: block;
-    max-width: 100%;
-    max-height: 65dvh;
-    margin: auto;
-    object-fit: contain;
-  `,
   body: css`
     display: grid;
     place-items: center;
@@ -57,8 +49,6 @@ export function AttachmentViewer({
   onClose: () => void;
 }) {
   const { styles } = useStyles();
-  const [failed, setFailed] = useState(false);
-  const access = useAttachmentUrl(messageId, attachment.id, 'preview', true);
   const download = useAttachmentDownload(messageId, attachment);
   return (
     <Modal
@@ -103,29 +93,7 @@ export function AttachmentViewer({
       }
     >
       <div className={styles.body}>
-        {access.isPending && <LoadingIcon size={28} />}
-        {(access.isError || failed) && (
-          <div role="status">
-            Не вдалося відкрити зображення.{' '}
-            <Button
-              onClick={() => {
-                setFailed(false);
-                void access.refetch();
-              }}
-            >
-              Повторити
-            </Button>
-          </div>
-        )}
-        {access.data && !failed && (
-          <img
-            className={styles.image}
-            src={access.data.url}
-            alt={attachment.description || attachment.name}
-            referrerPolicy="no-referrer"
-            onError={() => setFailed(true)}
-          />
-        )}
+        <AttachmentImage key={attachment.id} attachment={attachment} messageId={messageId} />
       </div>
       {attachment.description && <p>{attachment.description}</p>}
     </Modal>
