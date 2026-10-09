@@ -30,6 +30,8 @@ export interface ConversationScope {
     ariaLabel: string;
     placeholder: string;
     autoFocus?: boolean;
+    /** Offers @everyone, which only a channel has; a DM has no one else to reach. */
+    mentionEveryone?: boolean;
   };
 }
 const ConversationScopeContext = createContext<ConversationScope | null>(null);

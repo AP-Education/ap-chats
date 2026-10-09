@@ -9,17 +9,19 @@ interface MarkdownNode {
   };
 }
 
-const memberIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function visit(node: MarkdownNode): void {
-  if (node.type === 'textDirective' && node.name === 'member') {
-    const memberId = node.children?.map((child) => child.value ?? '').join('') ?? '';
-    if (memberIdPattern.test(memberId)) {
-      node.data = {
-        hName: 'span',
-        hProperties: { 'data-member-id': memberId },
-      };
-    }
+  const label = node.children?.map((child) => child.value ?? '').join('') ?? '';
+
+  if (node.type === 'textDirective' && node.name === 'member' && uuidPattern.test(label)) {
+    node.data = { hName: 'span', hProperties: { 'data-member-id': label } };
+  }
+  if (node.type === 'textDirective' && node.name === 'channel' && uuidPattern.test(label)) {
+    node.data = { hName: 'span', hProperties: { 'data-channel-id': label } };
+  }
+  if (node.type === 'textDirective' && node.name === 'mention' && label === 'everyone') {
+    node.data = { hName: 'span', hProperties: { 'data-mention': label } };
   }
 
   node.children?.forEach(visit);

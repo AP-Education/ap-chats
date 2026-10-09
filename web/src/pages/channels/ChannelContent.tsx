@@ -101,6 +101,7 @@ export default function ChannelContent() {
           composer: {
             ariaLabel: `Написати в #${channel.name}`,
             placeholder: `Написати в #${channel.name}`,
+            mentionEveryone: true,
           },
         }}
       >

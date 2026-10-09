@@ -1,21 +1,31 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createStyles } from 'antd-style';
 import { type ComponentProps, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import { useChannels } from '@/features/communities/channels/hooks/useChannels';
 import { useConversationScope } from '@/features/social/conversation/store';
 import {
   ComposerEditor,
   type ComposerEditorHandle,
 } from '@/features/social/messaging/components/ComposerEditor/ComposerEditor';
 import { useMessageEditorSlot } from '@/features/social/messaging/MessageEditorSlot';
-import { apiRequest } from '@/shared/api/http';
 
-import { mentionChip, restoreEditor, serializeEditor } from './mention-editor-dom';
+import {
+  channelChip,
+  everyoneChip,
+  mentionChip,
+  restoreEditor,
+  serializeEditor,
+} from './mention-editor-dom';
 import { type MentionCandidate, MentionCandidateList } from './MentionCandidateList';
+import { tokenizeTypedEveryone } from './typed-everyone';
+import { type MentionQuery, useMentionCandidates } from './useMentionCandidates';
 
-const MENTION_QUERY_PATTERN = /(?:^|[\s(])@([\p{L}\p{N}._-]{0,80})$/u;
+const MENTION_QUERY_PATTERN = /(?:^|[\s(])([@#])([\p{L}\p{N}._-]{0,80})$/u;
+
+function sameQuery(a: MentionQuery | null, b: MentionQuery | null) {
+  return a?.trigger === b?.trigger && a?.text === b?.text;
+}
 
 const useStyles = createStyles(({ token, css }) => ({
   wrapper: css`
@@ -61,30 +71,20 @@ export function MentionEditor() {
     suggestionsHost,
   } = useMessageEditorSlot();
   const { styles, cx } = useStyles();
-  const { workspaceId, channelId } = useConversationScope();
-  const { token } = useQueryAuth();
+  const { workspaceId, composer } = useConversationScope();
+  const channels = useChannels(workspaceId);
   const composerRef = useRef<ComposerEditorHandle>(null);
   // Reseeded in onMount whenever the inner ComposerEditor remounts (a new
   // draftKey) rather than only once: this component instance outlives that,
   // since switching drafts no longer remounts MentionEditor itself.
   const labels = useRef<Record<string, string>>(initialDraft?.labels ?? {});
-  const [query, setQuery] = useState<string | null>(null);
+  const [query, setQuery] = useState<MentionQuery | null>(null);
   const [active, setActive] = useState(0);
-  const candidates = useQuery({
-    queryKey: ['mention-candidates', workspaceId, channelId, query],
-    queryFn: () =>
-      apiRequest<MentionCandidate[]>(
-        `/api/workspaces/${workspaceId}/channels/${channelId}/mention-candidates?q=${encodeURIComponent(query ?? '')}`,
-        token as string,
-      ),
-    enabled: Boolean(token && query !== null),
-    staleTime: 30_000,
-    // Typing narrows the list in place instead of closing it between keystrokes.
-    placeholderData: keepPreviousData,
-  });
+  const candidates = useMentionCandidates(query);
 
   function currentMarkdown() {
-    return serializeEditor(composerRef.current?.rootElement() ?? null);
+    const markdown = serializeEditor(composerRef.current?.rootElement() ?? null);
+    return composer.mentionEveryone ? tokenizeTypedEveryone(markdown) : markdown;
   }
 
   // Fires on every keystroke and click: the editor's content and/or the caret
@@ -105,9 +105,11 @@ export function MentionEditor() {
     }
     const before = (selection.anchorNode.textContent ?? '').slice(0, selection.anchorOffset);
     const match = before.match(MENTION_QUERY_PATTERN);
-    const nextQuery = match ? match[1]! : null;
+    const nextQuery = match
+      ? { trigger: match[1] as MentionQuery['trigger'], text: match[2]! }
+      : null;
     // Key-ups land here too; only a new query resets the highlight, not the arrow that moved it.
-    if (nextQuery !== query) setActive(0);
+    if (!sameQuery(nextQuery, query)) setActive(0);
     setQuery(nextQuery);
   }
 
@@ -120,17 +122,29 @@ export function MentionEditor() {
     const match = before.match(MENTION_QUERY_PATTERN);
     if (!match) return;
     const range = document.createRange();
-    range.setStart(node, selection.anchorOffset - match[1]!.length - 1);
+    range.setStart(node, selection.anchorOffset - match[2]!.length - 1);
     range.setEnd(node, selection.anchorOffset);
-    const name = candidate.displayName ?? 'учасник';
-    labels.current[candidate.memberId] = name;
-    const chip = mentionChip(candidate.memberId, name, styles.chip);
+    const chip = candidateChip(candidate);
     const fragment = document.createDocumentFragment();
     fragment.append(chip, document.createTextNode(' '));
     composerRef.current?.insertNode(fragment, range);
     setQuery(null);
     handleActivity();
     composerRef.current?.focus();
+  }
+
+  function candidateChip(candidate: MentionCandidate) {
+    if (candidate.kind === 'everyone') return everyoneChip(styles.chip);
+    if (candidate.kind === 'channel') {
+      const { id, name } = candidate.channel;
+      labels.current[id] = name;
+      return channelChip(id, name, styles.chip);
+    }
+
+    const { memberId, displayName } = candidate.member;
+    const name = displayName ?? 'учасник';
+    labels.current[memberId] = name;
+    return mentionChip(memberId, name, styles.chip);
   }
 
   useImperativeHandle(editorRef, () => ({
@@ -162,23 +176,23 @@ export function MentionEditor() {
           setQuery(null);
           return;
         }
-        if (query === null || !candidates.data?.length) return;
+        if (query === null || !candidates.length) return;
         if (event.key === 'ArrowDown') {
           event.preventDefault();
           event.stopPropagation();
-          setActive((index) => (index + 1) % candidates.data!.length);
+          setActive((index) => (index + 1) % candidates.length);
           return;
         }
         if (event.key === 'ArrowUp') {
           event.preventDefault();
           event.stopPropagation();
-          setActive((index) => (index - 1 + candidates.data!.length) % candidates.data!.length);
+          setActive((index) => (index - 1 + candidates.length) % candidates.length);
           return;
         }
         if (event.key === 'Enter') {
           event.preventDefault();
           event.stopPropagation();
-          const candidate = candidates.data[active] ?? candidates.data[0];
+          const candidate = candidates[active] ?? candidates[0];
           if (candidate) pick(candidate);
         }
       }}
@@ -187,8 +201,17 @@ export function MentionEditor() {
         key={draftKey}
         editorRef={composerRef}
         onMount={(root) => {
-          labels.current = initialDraft?.labels ?? {};
-          restoreEditor(root, initialDraft ?? { markdown: '', labels: {} }, styles.chip);
+          const draft = initialDraft ?? { markdown: '', labels: {} };
+          labels.current = draft.labels;
+          // A message being edited carries no channel names; the cached channel list has them.
+          const channelNames = Object.fromEntries(
+            (channels.data ?? []).map(({ id, name }) => [id, name]),
+          );
+          restoreEditor(
+            root,
+            { ...draft, labels: { ...channelNames, ...draft.labels } },
+            styles.chip,
+          );
         }}
         className={cx(styles.editor, className)}
         editorStyle={editorStyle}
@@ -200,11 +223,12 @@ export function MentionEditor() {
         onEscape={onEscape}
         onPasteFiles={onPasteFiles}
       />
-      {query !== null && candidates.data && candidates.data.length > 0 && (
+      {query !== null && candidates.length > 0 && (
         <MentionSuggestions
           host={suggestionsHost}
-          candidates={candidates.data}
-          query={query}
+          candidates={candidates}
+          subject={query.trigger === '#' ? 'channels' : 'people'}
+          query={query.text}
           active={active}
           onActivate={setActive}
           onPick={pick}

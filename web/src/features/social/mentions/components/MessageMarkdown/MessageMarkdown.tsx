@@ -5,6 +5,7 @@ import remarkDirective from 'remark-directive';
 
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
 
+import { ChannelReference } from './ChannelReference';
 import { mentionDirective } from './mention-directive';
 
 export interface MentionLabel {
@@ -113,6 +114,19 @@ export function MessageMarkdown({
           ),
         br: () => (inline ? <> </> : <br />),
         span: ({ node, children }) => {
+          if (node?.properties?.['data-mention'] === 'everyone')
+            return <span className={styles.mention}>@everyone</span>;
+
+          const channelId = node?.properties?.['data-channel-id'];
+          if (typeof channelId === 'string')
+            return (
+              <ChannelReference
+                channelId={channelId}
+                inline={inline}
+                className={cx(styles.mention, !inline && styles.mentionTrigger)}
+              />
+            );
+
           const memberId = String(node?.properties?.['data-member-id'] ?? '');
           if (!memberId) return <span>{children}</span>;
           const person = people.get(memberId);

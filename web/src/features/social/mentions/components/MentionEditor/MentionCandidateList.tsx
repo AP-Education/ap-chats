@@ -1,14 +1,35 @@
 import { useIsMobile } from '@ap-education/ui';
+import { UsersThreeIcon } from '@phosphor-icons/react';
 import { createStyles, keyframes } from 'antd-style';
 import { useLayoutEffect, useRef } from 'react';
 
+import {
+  PrivateChannelIcon,
+  PublicChannelIcon,
+} from '@/features/communities/channels/channelIcons';
 import { Avatar } from '@/shared/ui/Avatar';
 
-export interface MentionCandidate {
+export interface MemberCandidate {
   memberId: string;
   displayName: string | null;
   avatarPath: string | null;
 }
+
+export interface ChannelCandidate {
+  id: string;
+  name: string;
+  kind: 'public' | 'private';
+}
+
+export type MentionCandidate =
+  | { kind: 'member'; member: MemberCandidate }
+  | { kind: 'everyone' }
+  | { kind: 'channel'; channel: ChannelCandidate };
+
+const subjects = {
+  people: { heading: 'Учасники', label: 'Згадати людину' },
+  channels: { heading: 'Канали', label: 'Послатися на канал' },
+};
 
 const rise = keyframes`
   from { opacity: 0; transform: translateY(6px); }
@@ -83,12 +104,27 @@ const useStyles = createStyles(({ token, css }) => ({
     color: ${token.colorPrimaryTextActive};
     font-weight: 650;
   `,
+  badge: css`
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: 50%;
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorPrimaryTextActive};
+  `,
+  hint: css`
+    margin-left: auto;
+    color: ${token.colorTextTertiary};
+    font-size: 13px;
+    white-space: nowrap;
+  `,
 }));
 
 export type MentionListPlacement = 'docked' | 'floating';
 
 interface MentionCandidateListProps {
   candidates: MentionCandidate[];
+  subject: keyof typeof subjects;
   query: string;
   active: number;
   /** Docked in the composer's suggestion strip, or floating over an inline editor. */
@@ -99,6 +135,7 @@ interface MentionCandidateListProps {
 
 export function MentionCandidateList({
   candidates,
+  subject,
   query,
   active,
   placement,
@@ -119,14 +156,14 @@ export function MentionCandidateList({
       ref={panelRef}
       className={cx(styles.panel, styles[placement])}
       role="listbox"
-      aria-label="Згадати людину"
+      aria-label={subjects[subject].label}
     >
       <span className={styles.heading} aria-hidden>
-        Учасники
+        {subjects[subject].heading}
       </span>
       {candidates.map((candidate, index) => (
         <MentionCandidateOption
-          key={candidate.memberId}
+          key={candidateKey(candidate)}
           candidate={candidate}
           index={index}
           active={index === active}
@@ -157,8 +194,6 @@ function MentionCandidateOption({
   onPick,
 }: MentionCandidateOptionProps) {
   const { styles } = useStyles();
-  const isMobile = useIsMobile();
-  const name = candidate.displayName ?? 'Ім’я недоступне';
 
   return (
     <button
@@ -172,11 +207,75 @@ function MentionCandidateOption({
       onMouseMove={() => !active && onActivate(index)}
       onClick={() => onPick(candidate)}
     >
-      <Avatar path={candidate.avatarPath} alt={name} size={isMobile ? 36 : 30} shape="circle" />
+      <CandidateLabel candidate={candidate} query={query} />
+    </button>
+  );
+}
+
+function candidateKey(candidate: MentionCandidate) {
+  if (candidate.kind === 'member') return candidate.member.memberId;
+  if (candidate.kind === 'channel') return candidate.channel.id;
+  return candidate.kind;
+}
+
+function CandidateLabel({ candidate, query }: { candidate: MentionCandidate; query: string }) {
+  if (candidate.kind === 'member') return <MemberLabel member={candidate.member} query={query} />;
+  if (candidate.kind === 'channel')
+    return <ChannelLabel channel={candidate.channel} query={query} />;
+  return <EveryoneLabel query={query} />;
+}
+
+function MemberLabel({ member, query }: { member: MemberCandidate; query: string }) {
+  const { styles } = useStyles();
+  const isMobile = useIsMobile();
+  const name = member.displayName ?? 'Ім’я недоступне';
+
+  return (
+    <>
+      <Avatar path={member.avatarPath} alt={name} size={isMobile ? 36 : 30} shape="circle" />
       <span className={styles.name}>
         <MatchedName name={name} query={query} matchClassName={styles.match} />
       </span>
-    </button>
+    </>
+  );
+}
+
+function Badge({ icon: Icon }: { icon: typeof UsersThreeIcon }) {
+  const { styles } = useStyles();
+  const isMobile = useIsMobile();
+  const size = isMobile ? 36 : 30;
+
+  return (
+    <span className={styles.badge} style={{ width: size, height: size }}>
+      <Icon size={size * 0.55} weight="bold" />
+    </span>
+  );
+}
+
+function ChannelLabel({ channel, query }: { channel: ChannelCandidate; query: string }) {
+  const { styles } = useStyles();
+
+  return (
+    <>
+      <Badge icon={channel.kind === 'private' ? PrivateChannelIcon : PublicChannelIcon} />
+      <span className={styles.name}>
+        <MatchedName name={channel.name} query={query} matchClassName={styles.match} />
+      </span>
+    </>
+  );
+}
+
+function EveryoneLabel({ query }: { query: string }) {
+  const { styles } = useStyles();
+
+  return (
+    <>
+      <Badge icon={UsersThreeIcon} />
+      <span className={styles.name}>
+        @<MatchedName name="everyone" query={query} matchClassName={styles.match} />
+      </span>
+      <span className={styles.hint}>Сповістити всіх у каналі</span>
+    </>
   );
 }
 

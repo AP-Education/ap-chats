@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+import type { MentionTargets } from '@/components/social/mentions';
+
 type MarkdownNode = {
   type: string;
   value?: string;
@@ -29,10 +31,46 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}
 export interface NormalizedMessageContent {
   markdown: string;
   plainText: string;
-  mentionedMemberIds: string[];
+  mentions: MentionTargets;
 }
 
-function validateTree(node: MarkdownNode, mentioned: Set<string>, plain: string[]): void {
+interface CollectedMentions {
+  memberIds: Set<string>;
+  everyone: boolean;
+}
+
+// Inline references: a member or the whole channel is mentioned, a channel is only linked to.
+function readDirective(node: MarkdownNode, mentions: CollectedMentions, plain: string[]): void {
+  if (Object.keys(node.attributes ?? {}).length)
+    throw new BadRequestException('Unsupported Markdown directive');
+  const [label, ...rest] = node.children ?? [];
+  if (!label || rest.length || label.type !== 'text')
+    throw new BadRequestException('Invalid mention');
+  const value = label.value?.toLowerCase() ?? '';
+
+  switch (node.name) {
+    case 'mention':
+      if (value !== 'everyone') throw new BadRequestException('Invalid mention');
+      mentions.everyone = true;
+      plain.push('@everyone');
+      return;
+    case 'member':
+      if (!uuidPattern.test(value)) throw new BadRequestException('Invalid mention');
+      label.value = value;
+      mentions.memberIds.add(value);
+      plain.push(`@${value}`);
+      return;
+    case 'channel':
+      if (!uuidPattern.test(value)) throw new BadRequestException('Invalid channel link');
+      label.value = value;
+      plain.push(`#${value}`);
+      return;
+    default:
+      throw new BadRequestException('Unsupported Markdown directive');
+  }
+}
+
+function validateTree(node: MarkdownNode, mentions: CollectedMentions, plain: string[]): void {
   if (!allowedTypes.has(node.type)) throw new BadRequestException('Unsupported Markdown syntax');
   if (node.type === 'link') {
     if (!node.url || node.url.length > 2_048) throw new BadRequestException('Invalid link');
@@ -45,22 +83,13 @@ function validateTree(node: MarkdownNode, mentioned: Set<string>, plain: string[
     }
   }
   if (node.type === 'textDirective') {
-    if (node.name !== 'member' || Object.keys(node.attributes ?? {}).length)
-      throw new BadRequestException('Unsupported Markdown directive');
-    const children = node.children ?? [];
-    if (children.length !== 1 || children[0]?.type !== 'text')
-      throw new BadRequestException('Invalid mention');
-    const id = children[0].value?.toLowerCase() ?? '';
-    if (!uuidPattern.test(id)) throw new BadRequestException('Invalid mention');
-    children[0].value = id;
-    mentioned.add(id);
-    plain.push(`@${id}`);
+    readDirective(node, mentions, plain);
     return;
   }
   if (node.type === 'text' || node.type === 'inlineCode' || node.type === 'code') {
     plain.push(node.value ?? '');
   }
-  for (const child of node.children ?? []) validateTree(child, mentioned, plain);
+  for (const child of node.children ?? []) validateTree(child, mentions, plain);
   if (['paragraph', 'blockquote', 'listItem'].includes(node.type)) plain.push('\n');
 }
 
@@ -75,7 +104,11 @@ async function markdownProcessor() {
 export async function messagePlainText(markdown: string): Promise<string> {
   const processor = await markdownProcessor();
   const plain: string[] = [];
-  validateTree(processor.parse(markdown) as MarkdownNode, new Set(), plain);
+  validateTree(
+    processor.parse(markdown) as MarkdownNode,
+    { memberIds: new Set(), everyone: false },
+    plain,
+  );
   return plain.join('');
 }
 
@@ -91,14 +124,18 @@ export class MessageMarkdownService {
 
     const processor = await markdownProcessor();
     const tree = processor.parse(normalizedSource);
-    const mentioned = new Set<string>();
+    const mentions: CollectedMentions = { memberIds: new Set(), everyone: false };
     const plain: string[] = [];
-    validateTree(tree as MarkdownNode, mentioned, plain);
+    validateTree(tree as MarkdownNode, mentions, plain);
     const markdown = processor.stringify(tree).trim();
     if (!allowBlank && !plain.join('').trim())
       throw new BadRequestException('Message cannot be blank');
     if (Buffer.byteLength(markdown, 'utf8') > 32_768)
       throw new BadRequestException('Message is too long');
-    return { markdown, plainText: plain.join(''), mentionedMemberIds: [...mentioned] };
+    return {
+      markdown,
+      plainText: plain.join(''),
+      mentions: { memberIds: [...mentions.memberIds], everyone: mentions.everyone },
+    };
   }
 }

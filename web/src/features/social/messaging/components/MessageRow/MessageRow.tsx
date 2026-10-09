@@ -137,9 +137,7 @@ export const MessageRow = memo(function MessageRow({
   const { styles, cx } = useStyles();
   const authorName = item.author.displayName ?? 'Ім’я недоступне';
   const isOwnMessage = item.message.authorMemberId === actionContext.memberId;
-  const mentionsMe =
-    !isOwnMessage &&
-    (item.mentions?.some((mention) => mention.memberId === actionContext.memberId) ?? false);
+  const mentionsMe = !isOwnMessage && Boolean(item.mentionsMe);
   const isReplyToMe = !isOwnMessage && item.reply?.authorMemberId === actionContext.memberId;
   const highlighted = mentionsMe || isReplyToMe;
   const isSelected = useConversation((state) => state.selectedIds.includes(item.message.id));
