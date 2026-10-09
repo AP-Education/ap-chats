@@ -16,17 +16,19 @@ const useStyles = createStyles(({ token, css }) => ({
     min-width: 0;
     overflow: hidden;
 
-    &[data-swiping] > div {
-      transition: none;
-    }
+    &[data-swiping] [data-side],
     &[data-swiping] > span {
       transition: none;
     }
   `,
   touchTarget: css`
     touch-action: pan-y pinch-zoom;
-    transform: translate3d(calc(-1 * var(--message-swipe-offset, 0px)), 0, 0);
-    transition: ${SWIPE_SETTLE_TRANSITION};
+    // Only the bubble follows the finger; the row's highlight and selection stay put. A 2D
+    // translate keeps the resting bubbles off their own compositing layers.
+    & > [data-side] {
+      transform: translateX(calc(-1 * var(--message-swipe-offset, 0px)));
+      transition: ${SWIPE_SETTLE_TRANSITION};
+    }
     &[data-message-readonly],
     &[data-message-readonly] [data-message-text] {
       user-select: none;
