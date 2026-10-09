@@ -1,4 +1,3 @@
-import { Tooltip } from 'antd';
 import { createStyles, keyframes } from 'antd-style';
 
 import { callActionLabel } from '@/features/calls/callActionLabel';
@@ -67,16 +66,14 @@ export function CallBubbleAction({ call }: { call: CallHistoryItem['call'] }) {
   const label = callActionLabel(action, 'Подзвонити знову');
 
   return (
-    <Tooltip title={label}>
-      <button
-        type="button"
-        className={cx(styles.action, action.joinable && styles.live)}
-        aria-label={label}
-        disabled={action.busy || action.pending}
-        onClick={action.onClick}
-      >
-        <CallIcon size={20} weight="fill" />
-      </button>
-    </Tooltip>
+    <button
+      type="button"
+      className={cx(styles.action, action.joinable && styles.live)}
+      aria-label={label}
+      disabled={action.busy || action.pending}
+      onClick={action.onClick}
+    >
+      <CallIcon size={20} weight="fill" />
+    </button>
   );
 }

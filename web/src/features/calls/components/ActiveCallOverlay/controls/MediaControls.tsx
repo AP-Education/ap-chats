@@ -8,7 +8,6 @@ import {
   VideoCameraIcon,
   VideoCameraSlashIcon,
 } from '@phosphor-icons/react';
-import { Tooltip } from 'antd';
 import { Track } from 'livekit-client';
 import { useState } from 'react';
 
@@ -88,10 +87,8 @@ export function FlipCameraControl({ size, iconSize }: CallControlSize) {
   }
 
   return (
-    <Tooltip title="Змінити камеру">
-      <CallActionButton size={size} aria-label="Змінити камеру" onClick={() => void flipCamera()}>
-        <ArrowsClockwiseIcon size={iconSize} />
-      </CallActionButton>
-    </Tooltip>
+    <CallActionButton size={size} aria-label="Змінити камеру" onClick={() => void flipCamera()}>
+      <ArrowsClockwiseIcon size={iconSize} />
+    </CallActionButton>
   );
 }
