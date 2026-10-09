@@ -25,6 +25,7 @@
     "expo-secure-store": "~57.0.4",
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.4",
     "expo-web-browser": "~57.0.3",
     "livekit-client": "^2.22.3",
     "phosphor-react-native": "^3.0.6",

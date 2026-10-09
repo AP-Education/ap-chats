@@ -1,6 +1,6 @@
 import { SWIPE_SETTLE_TRANSITION } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
-import { type CSSProperties, useState } from 'react';
+import { type CSSProperties, type RefObject, useLayoutEffect, useRef, useState } from 'react';
 
 import { ReplyIcon } from '@/features/social/conversation/actionIcons';
 
@@ -16,19 +16,17 @@ const useStyles = createStyles(({ token, css }) => ({
     min-width: 0;
     overflow: hidden;
 
-    &[data-swiping] [data-side],
+    &[data-swiping] > div,
     &[data-swiping] > span {
       transition: none;
     }
   `,
+  // The whole row follows the finger, as in Telegram. A 2D translate keeps the resting
+  // rows off their own compositing layers.
   touchTarget: css`
     touch-action: pan-y pinch-zoom;
-    // Only the bubble follows the finger; the row's highlight and selection stay put. A 2D
-    // translate keeps the resting bubbles off their own compositing layers.
-    & > [data-side] {
-      transform: translateX(calc(-1 * var(--message-swipe-offset, 0px)));
-      transition: ${SWIPE_SETTLE_TRANSITION};
-    }
+    transform: translateX(calc(-1 * var(--message-swipe-offset, 0px)));
+    transition: ${SWIPE_SETTLE_TRANSITION};
     &[data-message-readonly],
     &[data-message-readonly] [data-message-text] {
       user-select: none;
@@ -78,6 +76,7 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
   const [open, setOpen] = useState(false);
   const available = scope.available(scope.messageTarget);
   const reply = available.find((action) => action.id === 'reply');
+  const areaRef = useRef<HTMLDivElement>(null);
   const swipe = useMessageReplySwipe({
     messageId: scope.item.message.id,
     enabled: !scope.delivery && !scope.editing && !open,
@@ -89,9 +88,12 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
     },
   });
 
+  useRunAvatarFollow(areaRef, swipe.offset, swipe.dragging);
+
   return (
     <>
       <div
+        ref={areaRef}
         className={styles.gestureArea}
         data-swiping={swipe.dragging || undefined}
         data-reply-ready={swipe.ready || undefined}
@@ -135,4 +137,20 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
       )}
     </>
   );
+}
+
+/** The run's avatar sits beside its last row, so it moves along when that row is swiped. */
+function useRunAvatarFollow(
+  areaRef: RefObject<HTMLDivElement | null>,
+  offset: number,
+  dragging: boolean,
+) {
+  useLayoutEffect(() => {
+    const area = areaRef.current;
+    const run = area?.closest<HTMLElement>('[data-history-run]');
+    if (!area || !run || run.querySelector('[data-run-entries] > :last-child') !== area) return;
+
+    run.style.setProperty('--run-swipe-offset', `${offset}px`);
+    run.toggleAttribute('data-swiping', dragging);
+  }, [areaRef, offset, dragging]);
 }

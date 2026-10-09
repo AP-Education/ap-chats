@@ -17,25 +17,31 @@ const useStyles = createStyles(({ token, css }) => ({
       width: calc(100vw - 24px) !important;
       max-width: 440px;
 
-      :global(.ant-modal-content) {
+      .ant-form-item {
+        margin-bottom: 18px;
+      }
+    }
+  `,
+  container: css`
+    @media (max-width: ${token.screenSM}px) {
+      && {
         padding-block: 20px 16px;
         border-radius: 16px;
       }
-
-      :global(.ant-modal-footer) {
+    }
+  `,
+  footer: css`
+    @media (max-width: ${token.screenSM}px) {
+      && {
         display: flex;
         justify-content: flex-end;
         gap: 8px;
         margin-top: 20px;
       }
 
-      :global(.ant-modal-footer .ant-btn) {
+      .ant-btn {
         min-height: 44px;
         margin-inline-start: 0;
-      }
-
-      :global(.ant-form-item) {
-        margin-bottom: 18px;
       }
     }
   `,
@@ -53,7 +59,7 @@ const useStyles = createStyles(({ token, css }) => ({
     color: ${token.colorTextSecondary};
   `,
   nameInput: css`
-    :global(.ant-input-prefix) {
+    .ant-input-prefix {
       color: ${token.colorTextTertiary};
       margin-inline-end: 4px;
     }
@@ -153,6 +159,7 @@ export function ChannelFormModal({
   return (
     <Modal
       className={styles.modal}
+      classNames={{ container: styles.container, footer: styles.footer }}
       open={open}
       onCancel={handleClose}
       onOk={() => form.submit()}

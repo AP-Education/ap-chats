@@ -1,3 +1,4 @@
+import { SWIPE_SETTLE_TRANSITION } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
@@ -26,6 +27,12 @@ const useStyles = createStyles(({ token, css }) => ({
     border-radius: 50%;
     background: transparent;
     cursor: pointer;
+    transform: translateX(calc(-1 * var(--run-swipe-offset, 0px)));
+    transition: ${SWIPE_SETTLE_TRANSITION};
+
+    [data-swiping] > & {
+      transition: none;
+    }
 
     &:focus-visible {
       outline: 2px solid ${token.colorPrimary};
@@ -63,11 +70,13 @@ export function HistoryRun({ avatar, children }: HistoryRunProps) {
   const { styles, theme } = useStyles();
 
   return (
-    <div className={styles.run}>
+    <div className={styles.run} data-history-run>
       {avatar && (
         <RunAvatar author={avatar} size={theme.controlHeightLG} className={styles.avatar} />
       )}
-      <div className={styles.entries}>{children}</div>
+      <div className={styles.entries} data-run-entries>
+        {children}
+      </div>
     </div>
   );
 }

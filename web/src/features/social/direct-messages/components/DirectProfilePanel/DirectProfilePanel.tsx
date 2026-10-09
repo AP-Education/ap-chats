@@ -50,7 +50,13 @@ export function DirectProfilePanel({ participant, member }: DirectProfilePanelPr
         <PageAsideClose aria-label="Закрити профіль" />
       </PageHeader>
       <section className={styles.body} aria-label={`Профіль ${name}`}>
-        <MemberIdentity name={name} avatarPath={avatarPath} detail={role} headingLevel="h2" />
+        <MemberIdentity
+          name={name}
+          avatarPath={avatarPath}
+          detail={role}
+          headingLevel="h2"
+          avatarSize={180}
+        />
         {member?.createdAt && (
           <div className={styles.details}>
             У просторі з{' '}

@@ -15,27 +15,28 @@ const ripple = keyframes`
 `;
 
 const useStyles = createStyles(({ token, css }) => ({
+  // A solid green handset, so calling back reads as the bubble's one action.
   action: css`
     display: grid;
     place-items: center;
-    flex: 0 0 40px;
-    height: 40px;
+    flex: 0 0 48px;
+    height: 48px;
 
     @media (max-width: ${token.screenMD}px) {
-      flex-basis: 44px;
-      height: 44px;
+      flex-basis: 52px;
+      height: 52px;
     }
 
     padding: 0;
     border: 0;
     border-radius: 50%;
-    background: var(--bubble-fill);
-    color: var(--bubble-accent);
+    background: ${CALL_PALETTE.accept};
+    color: #fff;
     cursor: pointer;
     transition: background 0.15s ease;
 
     &:hover:not(:disabled) {
-      background: color-mix(in srgb, var(--bubble-accent) 18%, transparent);
+      background: ${CALL_PALETTE.acceptHover};
     }
 
     &:disabled {
@@ -44,13 +45,7 @@ const useStyles = createStyles(({ token, css }) => ({
     }
   `,
   live: css`
-    background: ${CALL_PALETTE.accept};
-    color: #fff;
     animation: ${ripple} 1.8s ease-out infinite;
-
-    &:hover:not(:disabled) {
-      background: ${CALL_PALETTE.acceptHover};
-    }
 
     @media (prefers-reduced-motion: reduce) {
       animation: none;
@@ -73,7 +68,7 @@ export function CallBubbleAction({ call }: { call: CallHistoryItem['call'] }) {
       disabled={action.busy || action.pending}
       onClick={action.onClick}
     >
-      <CallIcon size={20} weight="fill" />
+      <CallIcon size={24} weight="fill" />
     </button>
   );
 }
