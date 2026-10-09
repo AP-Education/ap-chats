@@ -1,28 +1,13 @@
 import { ArrowLeftIcon, GearSixIcon, UserPlusIcon } from '@phosphor-icons/react';
-import { Drawer } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+
+import { BottomSheet } from '@/shared/ui/BottomSheet';
 
 import type { Channel } from '../../channels/types';
 import { AddChannelMemberControl } from '../../memberships/components/AddChannelMemberControl';
 
 const useStyles = createStyles(({ token, css }) => ({
-  sheet: css`
-    :global(.ant-drawer-content) {
-      border-radius: 20px 20px 0 0;
-      overflow: hidden;
-    }
-    :global(.ant-drawer-body) {
-      padding: 8px 12px calc(16px + env(safe-area-inset-bottom, 0px));
-    }
-  `,
-  handle: css`
-    width: 36px;
-    height: 4px;
-    margin: 2px auto 16px;
-    border-radius: 2px;
-    background: ${token.colorBorder};
-  `,
   action: css`
     display: flex;
     align-items: center;
@@ -79,16 +64,7 @@ export function ChannelActionSheet({
   }
 
   return (
-    <Drawer
-      placement="bottom"
-      open={open}
-      onClose={close}
-      closable={false}
-      height="auto"
-      className={styles.sheet}
-      aria-label={`Дії каналу ${channel.name}`}
-    >
-      <div className={styles.handle} aria-hidden="true" />
+    <BottomSheet open={open} onClose={close} aria-label={`Дії каналу ${channel.name}`}>
       {view === 'members' ? (
         <>
           <button type="button" className={styles.action} onClick={() => setView('actions')}>
@@ -124,6 +100,6 @@ export function ChannelActionSheet({
           )}
         </>
       )}
-    </Drawer>
+    </BottomSheet>
   );
 }
