@@ -12,6 +12,7 @@ import { PushSubscriptionSync } from '../features/notifications/components/PushS
 import { RealtimeProvider } from '../features/realtime/providers/RealtimeProvider';
 import { WorkspaceUnreadContext } from '../features/social/read-state/workspace-unread-context';
 import { ActiveWorkspaceProvider } from '../features/workspaces/providers/ActiveWorkspaceProvider';
+import { WorkspaceListRealtime } from '../features/workspaces/realtime/WorkspaceListRealtime';
 import { WorkspaceUnreadScope } from '../layouts/chats/WorkspaceUnreadScope';
 import { persistQueries } from './query-persistence';
 import { ShellRouter } from './ShellRouter';
@@ -42,6 +43,7 @@ export function ChatsProviders({ children }: PropsWithChildren) {
         <RealtimeProvider>
           <ChannelListRealtime />
           <ActiveWorkspaceProvider>
+            <WorkspaceListRealtime />
             <WorkspaceUnreadScope>
               <UnreadBadge />
               <PushSubscriptionSync />
