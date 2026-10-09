@@ -1,26 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { CSSProperties } from 'react';
-
 import { createGestureFixture as fixture } from './fixtures/touch-gesture-runtime.ts';
-
-function menuProgress(style: CSSProperties | undefined): number {
-  assert.ok(style);
-  return (style as CSSProperties & { '--drawer-progress': number })['--drawer-progress'];
-}
 
 test('drawer follows the finger on the next frame, before release', () => {
   const f = fixture();
   f.nav.value.openGesture.onTouchStartCapture(f.touch());
   f.emit('touchmove', 162, 53);
   f.advance(16);
-  assert.equal(f.render().dragging, true);
-  assert.equal(menuProgress(f.nav.value.style), 12 / 400);
+  assert.notEqual(f.drag(), null);
+  assert.equal(f.drag(), 12 / 400);
   assert.equal(f.isOpen(), false);
   f.emit('touchend', 162, 53);
-  assert.equal(f.render().dragging, false);
-  assert.equal(f.nav.value.style, undefined);
+  assert.equal(f.drag(), null);
+  assert.equal(f.drag(), null);
 });
 
 test('open and close swipes settle and remove fractional progress', () => {
@@ -29,18 +22,19 @@ test('open and close swipes settle and remove fractional progress', () => {
   f.advance(150);
   f.emit('touchmove', 250);
   f.advance(16);
-  assert.equal(menuProgress(f.render().style), 0.25);
+  assert.equal(f.drag(), 0.25);
   f.emit('touchend', 250);
   assert.equal(f.isOpen(), true);
-  assert.equal(f.render().style, undefined);
+  assert.equal(f.drag(), null);
+  f.render();
   f.nav.value.closeGesture.onTouchStartCapture(f.touch(250));
   f.advance(150);
   f.emit('touchmove', 150);
   f.advance(16);
-  assert.equal(menuProgress(f.render().style), 0.75);
+  assert.equal(f.drag(), 0.75);
   f.emit('touchend', 150);
   assert.equal(f.isOpen(), false);
-  assert.equal(f.render().style, undefined);
+  assert.equal(f.drag(), null);
 });
 
 for (const type of ['touchcancel', 'blur', 'pagehide', 'resize']) {
@@ -49,9 +43,9 @@ for (const type of ['touchcancel', 'blur', 'pagehide', 'resize']) {
     f.nav.value.openGesture.onTouchStartCapture(f.touch());
     f.emit('touchmove', 210);
     f.advance(16);
-    assert.equal(f.render().dragging, true);
+    assert.notEqual(f.drag(), null);
     f.emit(type);
-    assert.equal(f.render().style, undefined);
+    assert.equal(f.drag(), null);
     assert.equal(f.isOpen(), false);
     f.nav.value.openGesture.onTouchStartCapture(f.touch());
     f.advance(150);
@@ -66,10 +60,10 @@ test('route changes and external menu changes discard old progress and callbacks
     f.nav.value.openGesture.onTouchStartCapture(f.touch());
     f.emit('touchmove', 210);
     f.advance(16);
-    assert.equal(f.render().dragging, true);
+    assert.notEqual(f.drag(), null);
     if (change === 'navigate') f.navigate();
     else f.setOpen(true);
-    assert.equal(f.render().style, undefined);
+    assert.equal(f.drag(), null);
     f.emit('touchend', 250);
     assert.equal(f.isOpen(), change === 'setOpen');
   }
@@ -81,12 +75,12 @@ test('backgrounding and missing terminal events clear partial progress', () => {
     f.nav.value.openGesture.onTouchStartCapture(f.touch());
     f.emit('touchmove', 210);
     f.advance(16);
-    assert.equal(f.render().dragging, true);
+    assert.notEqual(f.drag(), null);
     if (background) {
       f.document.hidden = true;
       f.document.dispatchEvent(new globalThis.Event('visibilitychange'));
     } else f.advance(10_000);
-    assert.equal(f.render().style, undefined);
+    assert.equal(f.drag(), null);
     assert.equal(f.isOpen(), false);
   }
 });
@@ -111,7 +105,7 @@ test('paused short swipe settles back instead of committing a stale flick', () =
   f.advance(150);
   f.emit('touchend', 178);
   assert.equal(f.isOpen(), false);
-  assert.equal(f.render().style, undefined);
+  assert.equal(f.drag(), null);
 });
 
 test('recognized horizontal movement tolerates diagonal drift; vertical scrolling cancels', () => {
@@ -149,7 +143,7 @@ test('nested reply gesture receives movement and release without triggering long
   assert.equal(replies, 1);
   assert.equal(held, 0);
   assert.equal(f.isOpen(), false);
-  assert.equal(f.render().style, undefined);
+  assert.equal(f.drag(), null);
 });
 
 test('second touch cancels a pending drag', () => {
@@ -160,7 +154,7 @@ test('second touch cancels a pending drag', () => {
   f.emit('touchstart', 160, 50, { touches: [{ identifier: 1 }, { identifier: 2 }] });
   f.emit('touchend', 250);
   assert.equal(f.isOpen(), false);
-  assert.equal(f.render().style, undefined);
+  assert.equal(f.drag(), null);
 });
 
 test('swiping over a button suppresses its click, while a tap stays usable', () => {
@@ -198,16 +192,16 @@ test('after navigation a horizontal swipe prevents native scroll throughout diag
   f.beginTouch(f.touch(), f.nav.value.openGesture.onTouchStartCapture);
   assert.equal(f.emit('touchmove', 162, 53).defaultPrevented, true);
   f.advance(16);
-  assert.equal(f.render().dragging, true);
+  assert.notEqual(f.drag(), null);
   // WebKit also emits pointercancel when it starts recognizing native panning.
   // Touch tracking must not lose the gesture to that separate event stream.
   f.emit('pointercancel');
   assert.equal(f.emit('touchmove', 220, 150).defaultPrevented, true);
   f.advance(16);
-  assert.equal(menuProgress(f.render().style), 70 / 400);
+  assert.equal(f.drag(), 70 / 400);
   f.emit('touchend', 220, 150);
   assert.equal(f.isOpen(), true);
-  assert.equal(f.render().dragging, false);
+  assert.equal(f.drag(), null);
   assert.equal(f.listeners('touchend').length, 0);
 });
 
@@ -234,9 +228,9 @@ test('native scroll already in progress cancels dragging without committing and 
   f.nav.value.openGesture.onTouchStartCapture(f.touch());
   f.emit('touchmove', 210);
   f.advance(16);
-  assert.equal(f.render().dragging, true);
+  assert.notEqual(f.drag(), null);
   f.emit('touchmove', 250, 80, { cancelable: false });
-  assert.equal(f.render().dragging, false);
+  assert.equal(f.drag(), null);
   assert.equal(f.listeners('touchend').length, 0);
   f.emit('touchend', 250, 80);
   assert.equal(f.isOpen(), false);

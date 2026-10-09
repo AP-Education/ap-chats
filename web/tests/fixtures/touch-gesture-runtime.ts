@@ -214,6 +214,7 @@ export function createGestureFixture() {
 
   let open = false;
   let locationKey = 'first';
+  let drag: number | null = null;
   const options = () => ({
     enabled: true,
     open,
@@ -225,6 +226,9 @@ export function createGestureFixture() {
       open = false;
     },
     getWidth: () => 400,
+    onDrag: (progress: number | null) => {
+      drag = progress;
+    },
   });
   const nav = mount(useSwipeDrawer, options());
   return {
@@ -259,6 +263,8 @@ export function createGestureFixture() {
     },
     render: () => nav.render(options()),
     isOpen: () => open,
+    /** How far the menu follows the finger, or `null` while nothing drags it. */
+    drag: () => drag,
     setOpen(value: boolean) {
       open = value;
       return nav.render(options());
