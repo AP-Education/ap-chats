@@ -85,9 +85,6 @@ const useStyles = createStyles(({ token, css }) => ({
     @media (max-width: ${token.screenMD}px) {
       gap: 8px;
       padding: 4px 8px calc(8px + env(safe-area-inset-bottom, 0px));
-      html[data-native-shell='true'] & {
-        padding-bottom: 8px;
-      }
     }
   `,
   desktopPanel: css`
