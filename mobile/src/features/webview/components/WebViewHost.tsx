@@ -35,6 +35,8 @@ import { ConnectionErrorScreen } from './ConnectionErrorScreen';
 import { SetupScreen } from './SetupScreen';
 
 const webUrl = process.env.EXPO_PUBLIC_WEB_URL;
+// Lets Safari's Web Inspector profile a test build's page; store builds leave it closed.
+const inspectable = __DEV__ || process.env.EXPO_PUBLIC_WEBVIEW_INSPECTABLE === 'true';
 
 export function WebViewHost() {
   const webViewRef = useRef<WebView>(null);
@@ -208,6 +210,9 @@ export function WebViewHost() {
             // while the keyboard area beneath it shrinks.
             style={[styles.webview, { backgroundColor: palette.surface }]}
             hideKeyboardAccessoryView
+            // An app screen, not a document: no pinch zoom (Android; iOS follows the page viewport).
+            setBuiltInZoomControls={false}
+            webviewDebuggingEnabled={inspectable}
             keyboardDisplayRequiresUserAction={false}
             automaticallyAdjustContentInsets={false}
             contentInsetAdjustmentBehavior="never"
