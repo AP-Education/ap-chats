@@ -66,7 +66,7 @@ export const chatMessages = pgTable(
       columns: [table.workspaceId, table.authorMemberId],
       foreignColumns: [workspaceMembers.workspaceId, workspaceMembers.id],
       name: 'chat_messages_author_workspace_fk',
-    }),
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.workspaceId, table.channelId, table.replyToMessageId],
       foreignColumns: [table.workspaceId, table.channelId, table.id],
@@ -81,6 +81,6 @@ export const chatMessages = pgTable(
       columns: [table.workspaceId, table.forwardedFromMemberId],
       foreignColumns: [workspaceMembers.workspaceId, workspaceMembers.id],
       name: 'chat_messages_forward_author_workspace_fk',
-    }),
+    }).onDelete('cascade'),
   ],
 );

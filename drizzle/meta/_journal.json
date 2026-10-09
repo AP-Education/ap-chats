@@ -134,6 +134,13 @@
       "when": 1791368155910,
       "tag": "0018_push_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791483322888,
+      "tag": "0019_workspace_delete_cascade",
+      "breakpoints": true
     }
   ]
 }
