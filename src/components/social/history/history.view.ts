@@ -82,6 +82,7 @@ function messageItemView(row: MessageHistoryRow, viewerMemberId: string) {
         : null,
     pin: pin && { pinnedAt: pin.pinnedAt, pinnedByMemberId: pin.pinnedByMemberId },
     mentions: row.mentions,
+    mentionsMe: row.mentionsViewer,
     reactions: row.reactions,
   };
 }
