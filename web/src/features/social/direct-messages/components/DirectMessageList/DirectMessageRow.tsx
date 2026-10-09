@@ -172,6 +172,7 @@ export function DirectMessageRow({
     preview = item.lastMessage.markdown
       ? item.lastMessage.markdown
           .replace(/:member\[[0-9a-f-]{36}\]/gi, '@учасник')
+          .replace(/:channel\[[0-9a-f-]{36}\]/gi, '#канал')
           .replace(/\s+/gu, ' ')
       : item.lastMessage.markdown === null
         ? 'Повідомлення видалено'
