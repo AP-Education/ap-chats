@@ -14,7 +14,8 @@ function tailMask(path: string) {
 
 const useStyles = createStyles(({ token, css }) => ({
   // Colours live on the stack as variables, so the bubble, its tail and everything
-  // rendered inside (replies, files, links, meta) follow one own/incoming scheme.
+  // rendered inside (replies, files, links, meta) follow one own/incoming scheme. The text
+  // weight stays the same on both sides and in both themes; colour alone tells them apart.
   stack: css`
     --bubble-bg: var(--chat-incoming-bg, rgba(255, 255, 255, 0.8));
     --bubble-shadow: 0 1px 1.5px rgba(23, 46, 42, 0.12);
@@ -36,7 +37,6 @@ const useStyles = createStyles(({ token, css }) => ({
 
     html[data-theme='dark'] &[data-side='incoming'] {
       --bubble-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-      font-weight: 500;
     }
 
     // Room for the tail between the bubble and the avatar or the screen edge.
@@ -72,8 +72,6 @@ const useStyles = createStyles(({ token, css }) => ({
       --mention-me-color: var(--mention-color);
       align-items: flex-end;
       margin-right: 8px;
-      // Light text on a fill reads thinner than its weight, smoothed as it is: a touch heavier evens it out.
-      font-weight: 500;
     }
     html[data-theme='dark'] &[data-side='own'] {
       --own-from: color-mix(in srgb, var(--chat-own-from, ${token.colorPrimary}) 90%, transparent);
