@@ -3,6 +3,7 @@ import type { CallRecord } from '@/components/calls/types';
 import type { MessageModel } from '../../messages/types/message.types';
 
 type Profile = { displayName: string | null; avatarPath: string | null };
+type MentionedMember = Profile & { memberId: string };
 
 export interface MessageHistoryRow {
   type: 'MESSAGE';
@@ -18,7 +19,21 @@ export interface MessageHistoryRow {
     pinnedAt: Date;
     pinnedByMemberId: string;
   } | null;
-  mentions: { memberId: string; displayName: string | null; avatarPath: string | null }[];
+  /** Members named in the text, for rendering their tags. */
+  mentions: MentionedMember[];
+  /** Whether the message reached the viewer, by name or through @everyone. */
+  mentionsViewer: boolean;
+}
+
+/** A channel as one member sees it; the viewer decides which mentions are worth returning. */
+export interface HistoryView {
+  channelId: string;
+  viewerMemberId: string;
+}
+
+export interface MessageMentions {
+  named: MentionedMember[];
+  viewer: boolean;
 }
 
 export interface CallHistoryRow {

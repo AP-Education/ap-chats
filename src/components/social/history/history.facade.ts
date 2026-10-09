@@ -20,10 +20,11 @@ export class HistoryFacade {
 
   @Transactional()
   async entry(member: WorkspaceMember, channelId: string, entryId: string) {
+    const view = { channelId, viewerMemberId: member.id };
     const { channel } = await this.access.requireViewAccess(member, channelId);
     const seq = await this.history.entrySeq(channelId, entryId);
     if (seq === null) throw new NotFoundException('Entry not found');
-    const page = await this.history.page(channelId, 'after', seq - 1n, channel.lastEntrySeq, 1);
+    const page = await this.history.page(view, 'after', seq - 1n, channel.lastEntrySeq, 1);
     const row = page.rows[0];
     if (!row) throw new NotFoundException('Entry not found');
     return this.item(row, member.id);
@@ -31,6 +32,7 @@ export class HistoryFacade {
 
   @Transactional()
   async window(member: WorkspaceMember, channelId: string, query: HistoryWindowQueryDto) {
+    const view = { channelId, viewerMemberId: member.id };
     const { channel, isMember } = await this.access.requireViewAccess(member, channelId);
     const snapshotSeq = channel.lastEntrySeq;
     const readState = isMember
@@ -47,7 +49,7 @@ export class HistoryFacade {
     if (query.messageId && target === null) throw new NotFoundException('Message not found');
 
     if (target === null) {
-      const latest = await this.history.page(channelId, 'before', undefined, snapshotSeq, 40);
+      const latest = await this.history.page(view, 'before', undefined, snapshotSeq, 40);
       const items = latest.rows.map((row) => this.item(row, member.id));
       return {
         items,
@@ -63,8 +65,8 @@ export class HistoryFacade {
     }
 
     const [older, newer] = await Promise.all([
-      this.history.page(channelId, 'before', target, snapshotSeq, 12),
-      this.history.page(channelId, 'after', target - 1n, snapshotSeq, 40),
+      this.history.page(view, 'before', target, snapshotSeq, 12),
+      this.history.page(view, 'after', target - 1n, snapshotSeq, 40),
     ]);
     const items = [...older.rows, ...newer.rows].map((row) => this.item(row, member.id));
     return {
@@ -85,6 +87,7 @@ export class HistoryFacade {
     if (query.before !== undefined && query.after !== undefined)
       throw new BadRequestException('Use either before or after');
 
+    const view = { channelId, viewerMemberId: member.id };
     const { channel, isMember } = await this.access.requireViewAccess(member, channelId);
     const direction = query.after === undefined ? 'before' : 'after';
     const cursorText = query.before ?? query.after;
@@ -92,7 +95,7 @@ export class HistoryFacade {
     const ceiling = query.snapshot === undefined ? channel.lastEntrySeq : BigInt(query.snapshot);
     if (ceiling > channel.lastEntrySeq)
       throw new BadRequestException('Snapshot exceeds channel history');
-    const page = await this.history.page(channelId, direction, cursor, ceiling, query.limit ?? 40);
+    const page = await this.history.page(view, direction, cursor, ceiling, query.limit ?? 40);
     const readState = isMember ? await this.readState.state(channelId, member.id, ceiling) : null;
     const firstUnread =
       readState && BigInt(readState.lastReadEntrySeq) < ceiling
@@ -153,6 +156,7 @@ export class HistoryFacade {
       forwardAuthorProfile,
       pin,
       mentions,
+      mentionsViewer,
     } = row;
     return {
       type: 'MESSAGE' as const,
@@ -189,6 +193,7 @@ export class HistoryFacade {
           : null,
       pin: pin ? { pinnedAt: pin.pinnedAt, pinnedByMemberId: pin.pinnedByMemberId } : null,
       mentions,
+      mentionsMe: mentionsViewer,
     };
   }
 }

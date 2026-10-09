@@ -14,7 +14,12 @@ import {
 } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
-import type { HistoryRow, HistoryRowsPage } from '../types/history.types';
+import type {
+  HistoryRow,
+  HistoryRowsPage,
+  HistoryView,
+  MessageMentions,
+} from '../types/history.types';
 import { HistoryRepository } from './history.repository';
 
 @Injectable()
@@ -159,7 +164,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
   }
 
   async page(
-    channelId: string,
+    { channelId, viewerMemberId }: HistoryView,
     direction: 'before' | 'after',
     cursor: bigint | undefined,
     ceiling: bigint,
@@ -169,10 +174,17 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     const hasMore = rows.length > limit;
     const page = rows.slice(0, limit);
     const messageIds = page.flatMap((row) => (row.message ? [row.message.id] : []));
-    const mentions = messageIds.length
+    const mentions = await this.pageMentions(messageIds, viewerMemberId);
+    const ordered = direction === 'before' ? page.reverse() : page;
+    return { rows: ordered.map((row) => this.toHistoryRow(row, mentions)), hasMore };
+  }
+
+  private async pageMentions(messageIds: string[], viewerMemberId: string) {
+    const rows = messageIds.length
       ? await this.txHost.tx
           .select({
             messageId: messageMentions.messageId,
+            via: messageMentions.via,
             memberId: workspaceMembers.id,
             displayName: userProfiles.displayName,
             avatarPath: userProfiles.avatarPath,
@@ -180,21 +192,28 @@ export class DrizzleHistoryRepository extends HistoryRepository {
           .from(messageMentions)
           .innerJoin(workspaceMembers, eq(workspaceMembers.id, messageMentions.memberId))
           .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
-          .where(inArray(messageMentions.messageId, messageIds))
+          .where(
+            and(
+              inArray(messageMentions.messageId, messageIds),
+              // @everyone fans out to the whole channel; only named members and the viewer matter here.
+              or(eq(messageMentions.via, 'direct'), eq(messageMentions.memberId, viewerMemberId)),
+            ),
+          )
       : [];
-    const byMessage = new Map<string, typeof mentions>();
-    for (const mention of mentions)
-      byMessage.set(mention.messageId, [...(byMessage.get(mention.messageId) ?? []), mention]);
-    const ordered = direction === 'before' ? page.reverse() : page;
-    return { rows: ordered.map((row) => this.toHistoryRow(row, byMessage)), hasMore };
+
+    const byMessage = new Map<string, MessageMentions>();
+    for (const { messageId, via, ...member } of rows) {
+      const mentions = byMessage.get(messageId) ?? { named: [], viewer: false };
+      if (via === 'direct') mentions.named.push(member);
+      if (member.memberId === viewerMemberId) mentions.viewer = true;
+      byMessage.set(messageId, mentions);
+    }
+    return byMessage;
   }
 
   private toHistoryRow(
     row: Awaited<ReturnType<typeof this.rowsQuery>>[number],
-    mentionsByMessage: Map<
-      string,
-      { memberId: string; displayName: string | null; avatarPath: string | null }[]
-    >,
+    mentionsByMessage: Map<string, MessageMentions>,
   ): HistoryRow {
     if (row.call) {
       if (!row.startedByProfile) throw new Error('Call entry missing its starter profile');
@@ -218,7 +237,8 @@ export class DrizzleHistoryRepository extends HistoryRepository {
       replyAuthorProfile: row.replyAuthorProfile,
       forwardAuthorProfile: row.forwardAuthorProfile,
       pin: row.pin,
-      mentions: mentionsByMessage.get(row.message.id) ?? [],
+      mentions: mentionsByMessage.get(row.message.id)?.named ?? [],
+      mentionsViewer: mentionsByMessage.get(row.message.id)?.viewer ?? false,
     };
   }
 }

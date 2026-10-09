@@ -79,7 +79,7 @@ export class MessagesFacade {
     quote: string | null,
     digest: string,
   ) {
-    await this.access.requirePostAccess(member, channelId);
+    const channel = await this.access.requirePostAccess(member, channelId);
     const existing = await this.repository.findByNonce(channelId, member.id, dto.clientNonce);
     if (existing) {
       if (existing.requestDigest !== digest)
@@ -98,7 +98,7 @@ export class MessagesFacade {
       )
         throw new BadRequestException('Quote is not in the reply target');
     }
-    await this.mentions.requireValid(member.workspaceId, channelId, content.mentionedMemberIds);
+    await this.mentions.requireValid(channel, content.mentions);
     const attachments = await this.uploads.claim(member, channelId, dto.attachments ?? []);
     const message = await this.repository.insert({
       workspaceId: member.workspaceId,
@@ -113,10 +113,13 @@ export class MessagesFacade {
     });
     const entry = await this.entries.append(member.workspaceId, channelId, message.id);
     await this.mentions.replace(
-      member.workspaceId,
-      channelId,
-      message.id,
-      content.mentionedMemberIds,
+      {
+        workspaceId: member.workspaceId,
+        channelId,
+        messageId: message.id,
+        authorMemberId: member.id,
+      },
+      content.mentions,
     );
     const event = new MessageCreatedEvent(
       member.workspaceId,
@@ -147,7 +150,7 @@ export class MessagesFacade {
     dto: EditMessageDto,
     content: NormalizedMessageContent,
   ) {
-    await this.access.requirePostAccess(member, channelId);
+    const channel = await this.access.requirePostAccess(member, channelId);
     const message = await this.requireMessage(member.workspaceId, channelId, messageId);
     if (message.authorMemberId !== member.id)
       throw new ForbiddenException('Only the author can edit this message');
@@ -156,17 +159,15 @@ export class MessagesFacade {
       throw new BadRequestException('Message cannot be blank');
     if (dto.revision !== undefined && dto.revision !== message.revision)
       throw new ConflictException('Message was changed');
-    await this.mentions.requireValid(member.workspaceId, channelId, content.mentionedMemberIds);
+    await this.mentions.requireValid(channel, content.mentions);
     const updated = await this.repository.updateContent(
       messageId,
       content.markdown,
       message.revision + 1,
     );
     await this.mentions.replace(
-      member.workspaceId,
-      channelId,
-      messageId,
-      content.mentionedMemberIds,
+      { workspaceId: member.workspaceId, channelId, messageId, authorMemberId: member.id },
+      content.mentions,
     );
     return messageView(updated, await this.repository.entrySeq(messageId), member.id);
   }
