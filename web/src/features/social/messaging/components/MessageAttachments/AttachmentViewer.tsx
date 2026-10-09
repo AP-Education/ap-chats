@@ -1,5 +1,6 @@
+import { LoadingIcon } from '@ap-education/ui';
 import { ArrowLeftIcon, ArrowRightIcon, DownloadSimpleIcon } from '@phosphor-icons/react';
-import { Button, Modal, Spin } from 'antd';
+import { Button, Modal } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -102,7 +103,7 @@ export function AttachmentViewer({
       }
     >
       <div className={styles.body}>
-        {access.isPending && <Spin />}
+        {access.isPending && <LoadingIcon size={28} />}
         {(access.isError || failed) && (
           <div role="status">
             Не вдалося відкрити зображення.{' '}

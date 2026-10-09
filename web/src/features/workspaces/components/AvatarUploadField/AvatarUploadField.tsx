@@ -1,5 +1,6 @@
+import { LoadingIcon } from '@ap-education/ui';
 import { CameraIcon, PlusIcon } from '@phosphor-icons/react';
-import { message, Spin, Upload, type UploadProps } from 'antd';
+import { message, Upload, type UploadProps } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { Avatar } from '@/shared/ui/Avatar';
@@ -101,7 +102,7 @@ export function AvatarUploadField({ value, onChange, alt }: AvatarUploadFieldPro
         <div className={styles.circle}>
           <div className={styles.trigger} aria-label="Завантажити іконку">
             {uploadFile.isPending ? (
-              <Spin size="small" />
+              <LoadingIcon />
             ) : value ? (
               <Avatar path={value} alt={alt || '?'} size={88} shape="circle" />
             ) : (

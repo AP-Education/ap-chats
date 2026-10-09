@@ -1,4 +1,5 @@
-import { Segmented, Spin } from 'antd';
+import { LoadingIcon } from '@ap-education/ui';
+import { Segmented } from 'antd';
 import { createStyles } from 'antd-style';
 import { lazy, Suspense } from 'react';
 
@@ -73,7 +74,7 @@ export function PickerPanel({ activeTab, onTabChange, onPickEmoji, onPickGif }: 
           <Suspense
             fallback={
               <div className={styles.loading}>
-                <Spin size="small" />
+                <LoadingIcon />
               </div>
             }
           >

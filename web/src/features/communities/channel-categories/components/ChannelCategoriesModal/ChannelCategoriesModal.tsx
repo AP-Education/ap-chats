@@ -1,6 +1,11 @@
-import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-education/ui';
+import {
+  ContentState,
+  ContentStateDescription,
+  ContentStateIcon,
+  LoadingIcon,
+} from '@ap-education/ui';
 import { FoldersIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
-import { Button, Input, List, message, Modal, Popconfirm, Spin, Typography } from 'antd';
+import { Button, Input, List, message, Modal, Popconfirm, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -77,7 +82,7 @@ export function ChannelCategoriesModal({
       centered
     >
       {query.isLoading ? (
-        <Spin size="small" />
+        <LoadingIcon />
       ) : (
         <List
           dataSource={query.data ?? []}

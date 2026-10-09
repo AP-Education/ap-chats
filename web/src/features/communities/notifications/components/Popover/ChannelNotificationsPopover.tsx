@@ -1,6 +1,6 @@
-import { IconButton } from '@ap-education/ui';
+import { IconButton, LoadingIcon } from '@ap-education/ui';
 import { BellIcon, BellSlashIcon } from '@phosphor-icons/react';
-import { App, Button, Popover, Spin } from 'antd';
+import { App, Button, Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -70,7 +70,7 @@ export function ChannelNotificationsPopover({
       content={
         <div className={styles.menu} role="dialog" aria-label="Сповіщення каналу">
           {isLoading ? (
-            <Spin size="small" />
+            <LoadingIcon />
           ) : isError ? (
             <Button type="link" onClick={() => void retry()}>
               Повторити завантаження

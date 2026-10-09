@@ -1,5 +1,6 @@
+import { LoadingIcon } from '@ap-education/ui';
 import { MagnifyingGlassIcon } from '@phosphor-icons/react';
-import { Input, Spin } from 'antd';
+import { Input } from 'antd';
 import { createStyles } from 'antd-style';
 import { useEffect, useState } from 'react';
 
@@ -109,7 +110,7 @@ export function GifTab({ onPick }: GifTabProps) {
       />
       {status === 'loading' && results.length === 0 ? (
         <div className={styles.state}>
-          <Spin size="small" />
+          <LoadingIcon />
         </div>
       ) : status === 'error' ? (
         <div className={styles.state}>Не вдалося завантажити GIF. Спробуйте ще раз.</div>

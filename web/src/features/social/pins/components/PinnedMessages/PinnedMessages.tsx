@@ -1,6 +1,11 @@
-import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-education/ui';
+import {
+  ContentState,
+  ContentStateDescription,
+  ContentStateIcon,
+  LoadingIcon,
+} from '@ap-education/ui';
 import { PushPinIcon } from '@phosphor-icons/react';
-import { Button, Spin } from 'antd';
+import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { useConversationScope } from '@/features/social/conversation/store';
@@ -55,7 +60,7 @@ export function PinnedMessages({ onJump }: PinnedMessagesProps) {
   if (query.isPending)
     return (
       <div className={styles.list}>
-        <Spin size="small" />
+        <LoadingIcon />
       </div>
     );
   if (query.isError)

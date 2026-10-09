@@ -6,7 +6,6 @@ import {
   PlayIcon,
   VideoCameraIcon,
 } from '@phosphor-icons/react';
-import { Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -169,7 +168,7 @@ export function FileAttachment({
           </IconButton>
         </div>
       </div>
-      {playing && access.isPending && <Spin size="small" />}
+      {playing && access.isPending && <LoadingIcon />}
       {playing && access.data && !failed && (
         <div className={styles.player}>
           {attachment.preview === 'video' ? (

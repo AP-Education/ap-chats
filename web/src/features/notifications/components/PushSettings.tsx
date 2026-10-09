@@ -1,6 +1,5 @@
-import { IconButton, useIsMobile } from '@ap-education/ui';
+import { IconButton, LoadingIcon, useIsMobile } from '@ap-education/ui';
 import { BellIcon, BellSlashIcon } from '@phosphor-icons/react';
-import { Spin, Tooltip } from 'antd';
 
 import { usePushControl } from '../hooks/usePushControl';
 import type { PushControl } from '../types';
@@ -13,19 +12,21 @@ export function PushSettings() {
   const iconSize = isMobile ? 24 : 20;
 
   return (
-    <Tooltip title={push.hint}>
-      <IconButton
-        size={isMobile ? 44 : 36}
-        aria-label="Сповіщення"
-        aria-description={push.hint}
-        aria-pressed={push.status === 'on'}
-        aria-busy={push.busy}
-        disabled={push.busy}
-        onClick={push.change}
-      >
-        {push.busy ? <Spin size="small" /> : <PushIcon status={push.status} size={iconSize} />}
-      </IconButton>
-    </Tooltip>
+    <IconButton
+      size={isMobile ? 44 : 36}
+      aria-label="Сповіщення"
+      aria-description={push.hint}
+      aria-pressed={push.status === 'on'}
+      aria-busy={push.busy}
+      disabled={push.busy}
+      onClick={push.change}
+    >
+      {push.busy ? (
+        <LoadingIcon size={iconSize} />
+      ) : (
+        <PushIcon status={push.status} size={iconSize} />
+      )}
+    </IconButton>
   );
 }
 
