@@ -14,6 +14,9 @@ export type AuthState =
   | { status: 'signed-in'; tokens: TokenSet }
   | { status: 'error'; message: string; operation: 'sign-in' | 'sign-out' };
 
+/** The authorization server refused to renew the session; only signing in again helps. */
+export class SessionExpiredError extends Error {}
+
 /**
  * Port for the OIDC login/refresh/logout mechanics. The concrete adapter (expo-auth-session
  * today) sits behind this interface so it can be swapped or faked in tests without
@@ -21,6 +24,7 @@ export type AuthState =
  */
 export interface AuthSessionProvider {
   signIn(): Promise<TokenSet>;
+  /** Rejects with SessionExpiredError when the grant is refused; any other failure may pass. */
   refresh(tokens: TokenSet): Promise<TokenSet>;
   signOut(idToken?: string): Promise<void>;
 }

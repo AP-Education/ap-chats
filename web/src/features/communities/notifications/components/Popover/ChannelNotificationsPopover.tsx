@@ -1,11 +1,10 @@
 import { IconButton } from '@ap-education/ui';
 import { BellIcon, BellSlashIcon } from '@phosphor-icons/react';
-import { App, Button, Popover, Spin } from 'antd';
+import { Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
-import type { NotificationLevel } from '../../types';
-import { NotificationPopoverContent } from './NotificationPopoverContent';
+import { ChannelNotificationsMenu } from './ChannelNotificationsMenu';
 import { useChannelNotificationPreference } from './useChannelNotificationPreference';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -33,29 +32,8 @@ export function ChannelNotificationsPopover({
   compact = false,
 }: ChannelNotificationsPopoverProps) {
   const { styles, cx } = useStyles();
-  const { message } = App.useApp();
-  const { level, isMuted, isLoading, isError, isPending, retry, chooseLevel, chooseMute, unmute } =
-    useChannelNotificationPreference(workspaceId, channelId);
+  const preference = useChannelNotificationPreference(workspaceId, channelId);
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState<'levels' | 'mute'>('levels');
-
-  async function applyChange(change: () => Promise<unknown>) {
-    try {
-      await change();
-      setOpen(false);
-      setView('levels');
-    } catch {
-      void message.error('Не вдалося оновити сповіщення каналу.');
-    }
-  }
-
-  function handleChooseMute(milliseconds: number) {
-    void applyChange(() => chooseMute(milliseconds));
-  }
-
-  function handleUnmute() {
-    void applyChange(unmute);
-  }
 
   return (
     <Popover
@@ -63,44 +41,23 @@ export function ChannelNotificationsPopover({
       placement="bottomRight"
       styles={{ content: { padding: 4 } }}
       open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) setView('levels');
-      }}
+      onOpenChange={setOpen}
+      destroyOnHidden
       content={
         <div className={styles.menu} role="dialog" aria-label="Сповіщення каналу">
-          {isLoading ? (
-            <Spin size="small" />
-          ) : isError ? (
-            <Button type="link" onClick={() => void retry()}>
-              Повторити завантаження
-            </Button>
-          ) : (
-            <NotificationPopoverContent
-              view={view}
-              level={level}
-              isMuted={isMuted}
-              onBack={() => setView('levels')}
-              onOpenMute={() => setView('mute')}
-              onUnmute={handleUnmute}
-              onChooseLevel={(nextLevel: NotificationLevel) =>
-                void applyChange(() => chooseLevel(nextLevel))
-              }
-              onChooseMute={handleChooseMute}
-            />
-          )}
+          <ChannelNotificationsMenu preference={preference} onDone={() => setOpen(false)} />
         </div>
       }
     >
       <IconButton
         size={compact ? 40 : 36}
-        className={cx(styles.trigger, (open || isMuted) && styles.triggerActive)}
+        className={cx(styles.trigger, (open || preference.isMuted) && styles.triggerActive)}
         aria-label="Сповіщення каналу"
         aria-expanded={open}
         aria-haspopup="dialog"
-        disabled={isPending}
+        disabled={preference.changing}
       >
-        {isMuted ? <BellSlashIcon size={22} weight="duotone" /> : <BellIcon size={22} />}
+        {preference.isMuted ? <BellSlashIcon size={22} weight="duotone" /> : <BellIcon size={22} />}
       </IconButton>
     </Popover>
   );

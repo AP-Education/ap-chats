@@ -1,6 +1,5 @@
 import { useTrackToggle } from '@livekit/components-react';
 import type { Icon } from '@phosphor-icons/react';
-import { Tooltip } from 'antd';
 import type { Track } from 'livekit-client';
 import type { MouseEvent } from 'react';
 
@@ -51,16 +50,14 @@ export function TrackToggleControl({
   }
 
   return (
-    <Tooltip title={label}>
-      <CallActionButton
-        size={size}
-        tone={tone}
-        {...toggle.buttonProps}
-        onClick={handleClick}
-        aria-label={label}
-      >
-        <StateIcon size={iconSize} />
-      </CallActionButton>
-    </Tooltip>
+    <CallActionButton
+      size={size}
+      tone={tone}
+      {...toggle.buttonProps}
+      onClick={handleClick}
+      aria-label={label}
+    >
+      <StateIcon size={iconSize} />
+    </CallActionButton>
   );
 }

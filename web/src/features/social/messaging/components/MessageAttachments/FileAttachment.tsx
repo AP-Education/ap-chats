@@ -6,13 +6,13 @@ import {
   PlayIcon,
   VideoCameraIcon,
 } from '@phosphor-icons/react';
-import { Spin } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import { fileExtension, formatFileSize } from '../../attachments/file-presentation';
 import type { Attachment } from '../../attachments/types';
-import { useAttachmentDownload, useAttachmentUrl } from './useAttachmentAccess';
+import { AttachmentPlayer } from './AttachmentPlayer';
+import { useAttachmentDownload } from './useAttachmentAccess';
 
 const useStyles = createStyles(({ token, css }) => ({
   shell: css`
@@ -76,35 +76,6 @@ const useStyles = createStyles(({ token, css }) => ({
       color: var(--bubble-text);
     }
   `,
-  player: css`
-    margin-top: 6px;
-    overflow: hidden;
-    border-radius: ${token.borderRadiusLG}px;
-    video {
-      display: block;
-      width: 100%;
-      max-height: 360px;
-      background: #000;
-    }
-    audio {
-      display: block;
-      width: 100%;
-    }
-  `,
-  error: css`
-    padding: 6px 0 0;
-    color: var(--bubble-muted);
-    font-size: 12px;
-  `,
-  retry: css`
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--bubble-link);
-    font: inherit;
-    text-decoration: underline;
-    cursor: pointer;
-  `,
 }));
 
 export function FileAttachment({
@@ -118,15 +89,12 @@ export function FileAttachment({
 }) {
   const { styles } = useStyles();
   const [playing, setPlaying] = useState(false);
-  const [mediaFailed, setMediaFailed] = useState(false);
-  const access = useAttachmentUrl(messageId, attachment.id, 'preview', playing && available);
   const download = useAttachmentDownload(messageId, attachment);
   const playable = attachment.preview === 'video' || attachment.preview === 'audio';
   let icon = <FileIcon size={22} weight="fill" aria-hidden />;
   if (attachment.preview === 'video')
     icon = <VideoCameraIcon size={22} weight="fill" aria-hidden />;
   if (attachment.preview === 'audio') icon = <MusicNotesIcon size={22} weight="fill" aria-hidden />;
-  const failed = mediaFailed || access.isError;
 
   return (
     <article className={styles.shell} aria-label={attachment.name}>
@@ -169,44 +137,7 @@ export function FileAttachment({
           </IconButton>
         </div>
       </div>
-      {playing && access.isPending && <Spin size="small" />}
-      {playing && access.data && !failed && (
-        <div className={styles.player}>
-          {attachment.preview === 'video' ? (
-            <video
-              src={access.data.url}
-              controls
-              playsInline
-              preload="none"
-              aria-label={attachment.name}
-              onError={() => setMediaFailed(true)}
-            />
-          ) : (
-            <audio
-              src={access.data.url}
-              controls
-              preload="none"
-              aria-label={attachment.name}
-              onError={() => setMediaFailed(true)}
-            />
-          )}
-        </div>
-      )}
-      {playing && failed && (
-        <div className={styles.error} role="status">
-          Перегляд недоступний. Файл можна завантажити.{' '}
-          <button
-            type="button"
-            className={styles.retry}
-            onClick={() => {
-              setMediaFailed(false);
-              void access.refetch();
-            }}
-          >
-            Повторити
-          </button>
-        </div>
-      )}
+      {playing && available && <AttachmentPlayer attachment={attachment} messageId={messageId} />}
     </article>
   );
 }

@@ -18,14 +18,17 @@ const useStyles = createStyles(({ token, css }) => ({
     justify-content: center;
     gap: ${token.marginXS}px;
     padding: ${token.paddingXXS}px ${token.padding}px;
+    /* It meets the top edge, so it reaches under the status bar. */
+    padding-top: calc(${token.paddingXXS}px + var(--app-inset-top, 0px));
     font-size: ${token.fontSize}px;
     font-weight: ${token.fontWeightStrong};
     line-height: ${token.lineHeight};
+    text-align: center;
     animation: ${slideDown} ${token.motionDurationMid} ${token.motionEaseOut};
     @media (max-width: ${token.screenMD}px) {
-      justify-content: flex-start;
       gap: 8px;
       padding: 4px 12px;
+      padding-top: calc(4px + var(--app-inset-top, 0px));
       font-size: ${token.fontSizeSM}px;
       line-height: 18px;
     }

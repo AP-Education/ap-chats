@@ -2,7 +2,7 @@ import * as AuthSession from 'expo-auth-session';
 import { randomUUID } from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 
-import type { AuthSessionProvider, TokenSet } from '../types';
+import { type AuthSessionProvider, SessionExpiredError, type TokenSet } from '../types';
 import type { OidcConfig } from './config';
 
 /**
@@ -44,13 +44,20 @@ export class NativeAuthSession implements AuthSessionProvider {
 
   async refresh(tokens: TokenSet): Promise<TokenSet> {
     if (!tokens.refreshToken) {
-      throw new Error('No refresh token available');
+      throw new SessionExpiredError('No refresh token available');
     }
     const discovery = await AuthSession.fetchDiscoveryAsync(this.config.issuer);
-    const tokenResponse = await AuthSession.refreshAsync(
-      { clientId: this.config.clientId, refreshToken: tokens.refreshToken },
-      discovery,
-    );
+    let tokenResponse: AuthSession.TokenResponse;
+    try {
+      tokenResponse = await AuthSession.refreshAsync(
+        { clientId: this.config.clientId, refreshToken: tokens.refreshToken },
+        discovery,
+      );
+    } catch (error) {
+      // An OAuth error answer is the server refusing the grant; a dropped connection is not.
+      if (error instanceof AuthSession.TokenError) throw new SessionExpiredError(error.message);
+      throw error;
+    }
     return toTokenSet(tokenResponse, {
       refreshToken: tokens.refreshToken,
       idToken: tokens.idToken,

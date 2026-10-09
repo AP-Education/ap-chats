@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { AuthSessionProvider, TokenSet, TokenStore } from '../types';
+import {
+  type AuthSessionProvider,
+  SessionExpiredError,
+  type TokenSet,
+  type TokenStore,
+} from '../types';
 import { createAuthStore } from './auth-store';
 
 const tokens: TokenSet = {
@@ -152,7 +157,7 @@ test('old refresh failures cannot clear a new signed-in session', async () => {
   const refresh = f.store.getState().refreshNow();
   await f.store.getState().signOut();
   await f.store.getState().signIn();
-  response.reject(new Error('Revoked old token'));
+  response.reject(new SessionExpiredError('Revoked old token'));
   await refresh;
   assert.equal(f.persisted(), tokens);
   assert.equal(f.store.getState().status, 'signed-in');
@@ -190,6 +195,36 @@ test('parallel bridge refresh requests share one refresh operation', async () =>
   response.resolve(tokens);
   await Promise.all([first, second]);
   assert.deepEqual(f.operations, ['save']);
+});
+
+test('a refresh that fails on the network keeps the session and tries again', async (context) => {
+  context.mock.timers.enable({ apis: ['setTimeout'] });
+  const f = fixture();
+  await f.store.getState().restore();
+  let attempts = 0;
+  f.session.refresh = async () => {
+    if (++attempts === 1) throw new TypeError('Network request failed');
+    return { ...tokens, accessToken: 'renewed' };
+  };
+  await f.store.getState().refreshNow();
+  assert.equal(f.store.getState().status, 'signed-in');
+  assert.equal(f.persisted(), tokens);
+  context.mock.timers.tick(5_000);
+  await flush();
+  assert.equal(attempts, 2);
+  const state = f.store.getState();
+  assert.equal(state.status === 'signed-in' && state.tokens.accessToken, 'renewed');
+});
+
+test('a refused refresh grant signs out and clears the stored session', async () => {
+  const f = fixture();
+  await f.store.getState().restore();
+  f.session.refresh = async () => {
+    throw new SessionExpiredError('invalid_grant');
+  };
+  await f.store.getState().refreshNow();
+  assert.equal(f.store.getState().status, 'signed-out');
+  assert.equal(f.persisted(), null);
 });
 
 test('logout cancels scheduled token refresh', async (context) => {

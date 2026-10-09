@@ -12,6 +12,8 @@ interface EmojiKeyboardPanelProps {
   panelHeight: SharedValue<number>;
   heldHeight: SharedValue<number>;
   bottomInset: number;
+  /** Kept below the page even while nothing is open, where the page can't pad itself. */
+  reservedInset: number;
   containerHeight: number;
   visible: boolean;
   activeTab: PickerTab;
@@ -27,6 +29,7 @@ export function EmojiKeyboardPanel({
   panelHeight,
   heldHeight,
   bottomInset,
+  reservedInset,
   containerHeight,
   visible,
   activeTab,
@@ -42,7 +45,7 @@ export function EmojiKeyboardPanel({
       keyboardHeight.value,
       panelHeight.value,
       heldHeight.value,
-      bottomInset,
+      reservedInset,
       containerHeight,
     ),
   }));

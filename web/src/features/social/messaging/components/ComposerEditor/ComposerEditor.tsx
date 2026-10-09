@@ -1,3 +1,4 @@
+import { useMediaQuery } from '@ap-education/ui';
 import {
   type CSSProperties,
   type KeyboardEvent,
@@ -76,6 +77,8 @@ export function ComposerEditor({
   // instead of wherever the user had actually placed the caret.
   const lastRange = useRef<Range | null>(null);
   const inputSuspended = useRef(false);
+  // On-screen keyboards keep Return for new lines, as messengers do; the send button sends.
+  const touchKeyboard = useMediaQuery('(pointer: coarse)');
 
   function captureSelection() {
     if (!root.current || inputSuspended.current) return;
@@ -188,6 +191,7 @@ export function ComposerEditor({
       role="textbox"
       aria-multiline="true"
       aria-label={ariaLabel}
+      enterKeyHint={touchKeyboard ? 'enter' : 'send'}
       data-placeholder={placeholder}
       onInput={() => {
         // Deleting everything leaves a stray line break behind, which would hide the placeholder.
@@ -203,7 +207,7 @@ export function ComposerEditor({
           onEscape?.();
           return;
         }
-        if (event.key === 'Enter' && !event.shiftKey) {
+        if (event.key === 'Enter' && !event.shiftKey && !touchKeyboard) {
           event.preventDefault();
           onSubmit?.();
         }

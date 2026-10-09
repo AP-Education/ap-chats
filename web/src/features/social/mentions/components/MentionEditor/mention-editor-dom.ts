@@ -11,7 +11,11 @@ function serialize(node: Node): string {
   if (node.tagName === 'BR') return '\n';
 
   const content = [...node.childNodes].map(serialize).join('');
-  return node.tagName === 'DIV' || node.tagName === 'P' ? `${content}\n` : content;
+  if (node.tagName !== 'DIV' && node.tagName !== 'P') return content;
+
+  // Return on a phone keyboard opens a block: it starts a new line, and a lone <br> only holds it open.
+  const line = content === '\n' ? '' : content;
+  return node.previousSibling ? `\n${line}` : line;
 }
 
 export function serializeEditor(root: HTMLElement | null): string {

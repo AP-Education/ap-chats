@@ -41,6 +41,10 @@ export function useScrollAnchoring({
   const prepend = useRef<{ height: number; top: number } | null>(null);
   const didPosition = useRef(false);
   const atBottom = useRef(true);
+  // The height the anchoring last answered for. A shrinking viewport (the native keyboard
+  // rising frame by frame) can fire a scroll event before the observer below pins the
+  // bottom again; measured against the new height it would read as the reader leaving it.
+  const viewportHeight = useRef(0);
   const jumpAfterNext = useRef(false);
   const suppressOlderUntil = useRef(0);
   const lastSeq = useRef<string | undefined>(undefined);
@@ -50,7 +54,9 @@ export function useScrollAnchoring({
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
+    viewportHeight.current = container.clientHeight;
     const observer = new ResizeObserver(() => {
+      viewportHeight.current = container.clientHeight;
       if (atBottom.current) container.scrollTop = container.scrollHeight;
     });
     observer.observe(container);
@@ -136,7 +142,7 @@ export function useScrollAnchoring({
   function onScroll() {
     const container = scrollRef.current;
     if (!container) return;
-    const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 110;
+    const nearBottom = container.scrollHeight - container.scrollTop - viewportHeight.current < 110;
     atBottom.current = nearBottom;
     setAwayFromBottom(!nearBottom);
     if (

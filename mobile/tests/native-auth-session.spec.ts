@@ -26,6 +26,7 @@ function fixture(redirectUri = 'apchats://auth/callback') {
       },
     },
     'expo-crypto': { randomUUID: () => 'logout-state' },
+    '../types': { SessionExpiredError: class SessionExpiredError extends Error {} },
     'expo-web-browser': {
       openAuthSessionAsync: async (url: string, redirectUri: string, options: unknown) => {
         prompts.push({ url: new URL(url), redirectUri, options });

@@ -1,10 +1,9 @@
-import { CameraIcon, PlusIcon } from '@phosphor-icons/react';
-import { message, Spin, Upload, type UploadProps } from 'antd';
+import { PlusIcon } from '@phosphor-icons/react';
+import { message, Upload, type UploadProps } from 'antd';
 import { createStyles } from 'antd-style';
 
-import { Avatar } from '@/shared/ui/Avatar';
-
 import { useUploadFile } from '../../hooks/useUploadFile';
+import { AvatarPreview } from './AvatarPreview';
 
 const useStyles = createStyles(({ token, css }) => ({
   zone: css`
@@ -34,9 +33,6 @@ const useStyles = createStyles(({ token, css }) => ({
     &:hover {
       border-color: ${token.colorPrimary};
     }
-  `,
-  cameraIcon: css`
-    color: ${token.colorTextTertiary};
   `,
   badge: css`
     position: absolute;
@@ -100,13 +96,7 @@ export function AvatarUploadField({ value, onChange, alt }: AvatarUploadFieldPro
       >
         <div className={styles.circle}>
           <div className={styles.trigger} aria-label="Завантажити іконку">
-            {uploadFile.isPending ? (
-              <Spin size="small" />
-            ) : value ? (
-              <Avatar path={value} alt={alt || '?'} size={88} shape="circle" />
-            ) : (
-              <CameraIcon size={26} className={styles.cameraIcon} />
-            )}
+            <AvatarPreview uploading={uploadFile.isPending} path={value} alt={alt} />
           </div>
           <span className={styles.badge}>
             <PlusIcon size={14} weight="bold" />
