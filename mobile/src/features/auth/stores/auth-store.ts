@@ -1,8 +1,16 @@
 import { create, type StoreApi, type UseBoundStore } from 'zustand';
 
-import type { AuthSessionProvider, AuthState, TokenSet, TokenStore } from '../types';
+import {
+  type AuthSessionProvider,
+  type AuthState,
+  SessionExpiredError,
+  type TokenSet,
+  type TokenStore,
+} from '../types';
 
 const REFRESH_MARGIN_MS = 60_000;
+// Waking from the background often runs the refresh before the network is back.
+const RETRY_DELAYS_MS = [5_000, 15_000, 60_000];
 
 interface AuthActions {
   signIn: () => Promise<void>;
@@ -30,6 +38,7 @@ export function createAuthStore(
   configured: boolean,
 ): AuthStore {
   let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+  let failedRefreshes = 0;
   let generation = 0;
   let persistence = Promise.resolve();
   let refreshInFlight: { generation: number; promise: Promise<void> } | null = null;
@@ -67,8 +76,15 @@ export function createAuthStore(
 
     function scheduleRefresh(tokens: TokenSet): void {
       clearRefreshTimer();
+      failedRefreshes = 0;
       if (!tokens.refreshToken) return;
       const delay = Math.max(tokens.expiresAt - Date.now() - REFRESH_MARGIN_MS, 0);
+      refreshTimer = setTimeout(() => void refresh(tokens), delay);
+    }
+
+    function retryRefresh(tokens: TokenSet): void {
+      clearRefreshTimer();
+      const delay = RETRY_DELAYS_MS[Math.min(failedRefreshes++, RETRY_DELAYS_MS.length - 1)];
       refreshTimer = setTimeout(() => void refresh(tokens), delay);
     }
 
@@ -80,8 +96,13 @@ export function createAuthStore(
           const refreshed = await session.refresh(tokens);
           if (version !== generation) return;
           await saveSession(refreshed, version);
-        } catch {
+        } catch (error) {
           if (version !== generation) return;
+          // Only a refused grant ends the session; until then the person stays in.
+          if (!(error instanceof SessionExpiredError)) {
+            retryRefresh(tokens);
+            return;
+          }
           clearRefreshTimer();
           try {
             await persist(async () => {
