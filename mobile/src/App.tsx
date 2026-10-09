@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 
+import { WindowBackground } from './features/appearance';
 import { AuthGate } from './features/auth/components/AuthGate';
 import {
   CallSession,
@@ -19,6 +20,7 @@ import { ErrorBoundary } from './shell/ErrorBoundary';
 export default function App() {
   return (
     <AppProviders>
+      <WindowBackground />
       <ErrorBoundary label="notification-responses">
         <NotificationResponses />
       </ErrorBoundary>
