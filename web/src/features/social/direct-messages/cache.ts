@@ -12,10 +12,9 @@ interface DirectMessagePage {
 export function mergeDirectMessage(
   queryClient: QueryClient,
   identity: string | undefined,
-  workspaceId: string,
   updated: DirectMessage,
 ) {
-  const key = directMessageKey(identity, workspaceId);
+  const key = directMessageKey(identity);
   const detailKey = [...key, updated.id];
   queryClient.setQueryData(detailKey, updated);
   let found = false;
@@ -36,10 +35,9 @@ export function mergeDirectMessage(
 export function replaceDirectMessage(
   queryClient: QueryClient,
   identity: string | undefined,
-  workspaceId: string,
   updated: DirectMessage,
 ) {
-  const key = directMessageKey(identity, workspaceId);
+  const key = directMessageKey(identity);
   queryClient.setQueryData([...key, updated.id], updated);
   queryClient.setQueryData<InfiniteData<DirectMessagePage, string | undefined>>(key, (current) =>
     current
@@ -57,11 +55,10 @@ export function replaceDirectMessage(
 export function confirmDirectMessage(
   queryClient: QueryClient,
   identity: string | undefined,
-  workspaceId: string,
   channelId: string,
   message: Message,
 ) {
-  const key = directMessageKey(identity, workspaceId);
+  const key = directMessageKey(identity);
   const detailKey = [...key, channelId];
   const detail =
     queryClient.getQueryData<DirectMessage>(detailKey) ??
@@ -80,5 +77,5 @@ export function confirmDirectMessage(
       createdAt: message.createdAt,
     },
   };
-  mergeDirectMessage(queryClient, identity, workspaceId, updated);
+  mergeDirectMessage(queryClient, identity, updated);
 }

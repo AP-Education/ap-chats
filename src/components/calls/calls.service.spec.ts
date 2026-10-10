@@ -228,7 +228,7 @@ class FakeCallsRepository extends CallsRepository {
       .map((candidate) => candidate.profile.oidcUserId);
   }
 
-  async listForMember(): Promise<never[]> {
+  async listForUser(): Promise<never[]> {
     return [];
   }
 }

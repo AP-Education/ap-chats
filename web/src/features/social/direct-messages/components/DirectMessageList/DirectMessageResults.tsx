@@ -39,7 +39,7 @@ export function DirectMessageResults({
   onNavigate?: () => void;
 }) {
   const { styles } = useStyles();
-  const conversations = useDirectMessages(workspaceId);
+  const conversations = useDirectMessages();
   const { unreadByChannel } = useWorkspaceUnreadStore();
 
   if (conversations.isPending) return <DirectMessageListSkeleton />;

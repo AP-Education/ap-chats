@@ -32,7 +32,6 @@ export function WorkspaceRail() {
     }
     if (!changed) return;
     if (pathname.startsWith('/channels/')) void navigate('/channels');
-    if (pathname.startsWith('/direct/')) void navigate('/direct');
   }
 
   if (isLoading) {
