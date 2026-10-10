@@ -221,7 +221,7 @@ export function CallHistoryRow({ entry, active, onNavigate }: CallHistoryRowProp
   return (
     <div className={cx(styles.row, active && styles.active)}>
       <Link
-        to={`/direct/${latest.channelId}`}
+        to={`/calls/${latest.channelId}`}
         state={{ callEntry: entry.key } satisfies CallEntryLinkState}
         onClick={onNavigate}
         className={styles.link}

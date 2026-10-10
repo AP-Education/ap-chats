@@ -115,7 +115,7 @@ function CallHistoryResults({
       </div>
     );
 
-  const openChannelId = matchPath('/direct/:channelId', location.pathname)?.params.channelId;
+  const openChannelId = matchPath('/calls/:channelId', location.pathname)?.params.channelId;
   const openEntries = entries.filter((entry) => entry.latest.channelId === openChannelId);
   const clickedKey = (location.state as CallEntryLinkState | null)?.callEntry;
   const activeKey = (openEntries.find((entry) => entry.key === clickedKey) ?? openEntries[0])?.key;
