@@ -199,7 +199,7 @@ export function useComposerInput(
   return {
     state,
     mode,
-    keyboardHeight: keyboardRoom,
+    keyboardRoom,
     panelHeight,
     heldHeight,
     request,

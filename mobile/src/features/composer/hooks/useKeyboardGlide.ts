@@ -6,12 +6,12 @@ import {
   type GlideDirection,
   glideDirection,
   glideEasing,
+  type KeyboardFrame,
 } from '../utils/keyboard-glide';
 
 // Experiment, on unless built with EXPO_PUBLIC_KEYBOARD_GLIDE=off.
 const ENABLED = process.env.EXPO_PUBLIC_KEYBOARD_GLIDE !== 'off';
 
-/** A keyboard starting to move over `distance`, for the page to follow on `easing`. */
 export interface KeyboardGlide {
   direction: GlideDirection;
   distance: number;
@@ -19,75 +19,91 @@ export interface KeyboardGlide {
   easing: string;
 }
 
+interface Move {
+  direction: GlideDirection;
+  from: number;
+  to: number;
+  started: number;
+}
+
 /**
- * Lets the page follow the keyboard with a transform while the WebView keeps one size, so the
- * page is laid out once per keyboard move instead of once per frame. Rising, the WebView takes
- * its new size at the end; falling, at the start, once the page knows to hold its place.
- *
- * `holding` is true while the room beneath the page ignores the keyboard. Each move's reported
- * heights become the curve the next move that way is drawn with, matching this device.
+ * The page follows the keyboard with a transform while the WebView keeps its size, so it is laid
+ * out once per keyboard move rather than once per frame. `holding` keeps the room beneath the page.
  */
 export function useKeyboardGlide(onGlide: (glide: KeyboardGlide | null) => void) {
   const holding = useSharedValue(false);
-  const tracking = useSharedValue(false);
-  const frames = useSharedValue<number[]>([]);
-  const travel = useRef({ direction: 'up' as GlideDirection, from: 0, to: 0 });
+  const gliding = useSharedValue(false);
+  const frames = useSharedValue<KeyboardFrame[]>([]);
+  const move = useRef<Move | null>(null);
+  // Each move's frames become the curve the next move that way is drawn with, matching this device.
   const curves = useRef<Record<GlideDirection, string>>({
     up: DEFAULT_GLIDE_EASING,
     down: DEFAULT_GLIDE_EASING,
   });
 
   const announce = useCallback(
-    (direction: GlideDirection, from: number, to: number, duration: number) => {
-      travel.current = { direction, from, to };
+    (next: Move, duration: number) => {
+      move.current = next;
+      const distance = Math.abs(next.to - next.from);
       onGlide({
-        direction,
-        distance: Math.abs(to - from),
+        direction: next.direction,
+        distance,
         duration,
-        easing: curves.current[direction],
+        easing: curves.current[next.direction],
       });
-      // Told first, the page is ready to hold its place when the WebView grows right after.
-      if (direction === 'down') holding.set(true);
+      // Told first, the page holds its place when the WebView grows right after.
+      if (next.direction === 'down') holding.set(true);
     },
     [holding, onGlide],
   );
 
-  const conclude = useCallback(
-    (heights: number[]) => {
-      const { direction, from, to } = travel.current;
-      curves.current[direction] = glideEasing(heights, from, to) ?? curves.current[direction];
+  const learn = useCallback(
+    (moved: KeyboardFrame[], ended: number) => {
+      const finished = move.current;
+      if (finished) {
+        const { direction, from, to, started } = finished;
+        const curve = glideEasing(moved, from, to, started, ended);
+        if (curve) curves.current[direction] = curve;
+      }
+      move.current = null;
       onGlide(null);
     },
     [onGlide],
   );
 
-  const abandon = useCallback(() => onGlide(null), [onGlide]);
+  const abandon = useCallback(() => {
+    move.current = null;
+    onGlide(null);
+  }, [onGlide]);
 
   return useMemo(() => {
     const begin = (from: number, to: number, duration: number, alone: boolean) => {
       'worklet';
-      if (tracking.get()) runOnJS(abandon)();
+      if (gliding.get()) runOnJS(abandon)();
+
       const direction = ENABLED ? glideDirection(from, to, alone) : null;
-      tracking.set(direction !== null);
+      gliding.set(direction !== null);
       frames.set([]);
       // Rising, the room waits from the first frame; falling, only once the page is told.
       holding.set(direction === 'up');
-      if (direction) runOnJS(announce)(direction, from, to, duration);
+
+      if (direction) runOnJS(announce)({ direction, from, to, started: Date.now() }, duration);
     };
 
     const track = (height: number) => {
       'worklet';
-      if (tracking.get()) frames.set([...frames.get(), height]);
+      if (gliding.get()) frames.set([...frames.get(), { height, time: Date.now() }]);
     };
 
     const end = () => {
       'worklet';
-      if (!tracking.get()) return;
-      tracking.set(false);
+      if (!gliding.get()) return;
+
+      gliding.set(false);
       holding.set(false);
-      runOnJS(conclude)(frames.get());
+      runOnJS(learn)(frames.get(), Date.now());
     };
 
     return { holding, begin, track, end };
-  }, [abandon, announce, conclude, frames, holding, tracking]);
+  }, [abandon, announce, frames, gliding, holding, learn]);
 }

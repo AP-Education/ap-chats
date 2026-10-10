@@ -270,7 +270,7 @@ export function WebViewHost() {
       </View>
       <EmojiKeyboardPanel
         mode={input.mode}
-        keyboardHeight={input.keyboardHeight}
+        keyboardRoom={input.keyboardRoom}
         panelHeight={input.panelHeight}
         heldHeight={input.heldHeight}
         bottomInset={insets.bottom}
