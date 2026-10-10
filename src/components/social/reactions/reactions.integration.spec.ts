@@ -42,7 +42,7 @@ test('reactions on PostgreSQL', async (t) => {
 
   const txHost = transactionHost(db);
   const history = new DrizzleHistoryRepository(txHost as never);
-  const access = { requirePostAccess: async () => {}, requireViewAccess: async () => {} };
+  const access = { requireParticipant: async () => {}, requireViewAccess: async () => {} };
 
   /** A channel with one message and the given number of people in its workspace. */
   async function conversation(people = 2) {
@@ -128,7 +128,7 @@ test('reactions on PostgreSQL', async (t) => {
     );
   });
 
-  await t.test('a history page still brings each message its mentions', async () => {
+  await t.test('a history page brings mentions and no stray reply', async () => {
     const chat = await conversation();
     const { workspaceId, id: memberId } = chat.person(1);
     await db.insert(schema.messageMentions).values({
@@ -147,6 +147,7 @@ test('reactions on PostgreSQL', async (t) => {
     });
 
     const [row] = rows;
+    assert.equal(row?.type === 'MESSAGE' && row.reply, null, 'no reply preview');
     assert.deepEqual(row?.type === 'MESSAGE' && row.mentions, [
       { memberId, displayName: 'Person 2', avatarPath: null },
     ]);

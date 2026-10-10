@@ -75,7 +75,7 @@ export class ReactionsFacade {
     message: ReactedMessage,
     emoji: string,
   ): Promise<ReactionChange> {
-    await this.access.requirePostAccess(member, message.channelId);
+    await this.access.requireParticipant(member, message.channelId);
     await this.requireLiveMessage(message);
     await this.requireRoomFor(message.messageId, emoji);
 
@@ -90,7 +90,7 @@ export class ReactionsFacade {
     message: ReactedMessage,
     emoji: string,
   ): Promise<ReactionChange> {
-    await this.access.requirePostAccess(member, message.channelId);
+    await this.access.requireParticipant(member, message.channelId);
     await this.requireLiveMessage(message);
 
     const changed = await this.repository.remove(message.messageId, emoji, member.id);
@@ -103,6 +103,7 @@ export class ReactionsFacade {
     if (!isLive) throw new NotFoundException('Message not found');
   }
 
+  // Checked without a lock: two new emoji at the same instant can pass the limit by one, harmlessly.
   private async requireRoomFor(messageId: string, emoji: string) {
     const shown = await this.repository.emojisOn(messageId);
     const isNewEmoji = !shown.includes(emoji);

@@ -15,11 +15,18 @@ export class ChannelAccessFacade {
   ): Promise<ChannelAccessSnapshot> {
     const channel = await this.repository.lockChannel(member.workspaceId, channelId, 'update');
     if (!channel) throw new NotFoundException('Channel not found');
-    await this.requireActiveMember(member);
-    if (!(await this.repository.isChannelMember(channelId, member.id)))
-      throw new ForbiddenException('Join this channel first');
-    if (channel.kind === 'dm' && !(await this.repository.isDmPeerActive(channelId, member.id)))
-      throw new ForbiddenException('Direct message participant is unavailable');
+    await this.requireParticipation(member, channel);
+    return channel;
+  }
+
+  /** No channel lock: changes outside history (reactions) never queue behind messages being sent. */
+  async requireParticipant(
+    member: WorkspaceMember,
+    channelId: string,
+  ): Promise<ChannelAccessSnapshot> {
+    const channel = await this.repository.findChannel(member.workspaceId, channelId);
+    if (!channel) throw new NotFoundException('Channel not found');
+    await this.requireParticipation(member, channel);
     return channel;
   }
 
@@ -79,6 +86,17 @@ export class ChannelAccessFacade {
       throw new ForbiddenException('Direct messages have no channel manager');
     if (member.role !== 'owner')
       throw new ForbiddenException('Only the workspace owner can manage channels');
+  }
+
+  private async requireParticipation(member: WorkspaceMember, channel: ChannelAccessSnapshot) {
+    await this.requireActiveMember(member);
+
+    const isMember = await this.repository.isChannelMember(channel.id, member.id);
+    if (!isMember) throw new ForbiddenException('Join this channel first');
+
+    const peerGone =
+      channel.kind === 'dm' && !(await this.repository.isDmPeerActive(channel.id, member.id));
+    if (peerGone) throw new ForbiddenException('Direct message participant is unavailable');
   }
 
   private async requireActiveMember(member: WorkspaceMember): Promise<void> {

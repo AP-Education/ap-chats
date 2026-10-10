@@ -5,6 +5,14 @@ import type { MessageReaction } from '../../reactions/types/reaction.types';
 
 type Profile = { displayName: string | null; avatarPath: string | null };
 
+/** Just what a reply preview shows of the message it answers. */
+export interface ReplyPreview {
+  id: string;
+  authorMemberId: string;
+  contentMarkdown: string;
+  deletedAt: Date | null;
+}
+
 export interface Mention extends Profile {
   memberId: string;
 }
@@ -15,7 +23,7 @@ export interface MessageHistoryRow {
   createdAt: Date;
   message: MessageModel;
   authorProfile: Profile;
-  reply: MessageModel | null;
+  reply: ReplyPreview | null;
   replyAuthorProfile: Profile | null;
   forwardAuthorProfile: Profile | null;
   pin: {

@@ -116,7 +116,12 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         createdAt: channelEntries.createdAt,
         message: chatMessages,
         authorProfile: { displayName: authors.displayName, avatarPath: authors.avatarPath },
-        reply: replyMessages,
+        reply: {
+          id: replyMessages.id,
+          authorMemberId: replyMessages.authorMemberId,
+          contentMarkdown: replyMessages.contentMarkdown,
+          deletedAt: replyMessages.deletedAt,
+        },
         replyAuthorProfile: {
           displayName: replyAuthors.displayName,
           avatarPath: replyAuthors.avatarPath,
@@ -219,7 +224,10 @@ export class DrizzleHistoryRepository extends HistoryRepository {
   }
 
   async page(query: HistoryPageQuery): Promise<HistoryRowsPage> {
-    const rows = await this.rowsQuery(query);
+    // Named per direction, its only structural variant: each connection plans this wide query
+    // once and then sends parameters alone, which takes most of its latency away.
+    const statement = `history_page_${query.direction}`;
+    const rows = await this.rowsQuery(query).prepare(statement).execute();
     const hasMore = rows.length > query.limit;
 
     const page = rows.slice(0, query.limit);
