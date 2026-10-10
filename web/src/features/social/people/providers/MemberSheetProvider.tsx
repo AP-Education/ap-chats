@@ -1,3 +1,4 @@
+import { useShellLocation } from '@ap-education/shell-sdk';
 import { type PropsWithChildren, useMemo, useState } from 'react';
 
 import { BottomSheet } from '@/shared/ui/BottomSheet';
@@ -12,6 +13,14 @@ export function MemberSheetProvider({ children }: PropsWithChildren) {
   // Kept after close so the sheet keeps its content through the exit animation.
   const [member, setMember] = useState<MemberSummary | null>(null);
   const [open, setOpen] = useState(false);
+
+  // The sheet belongs to the page it was opened on, so any navigation closes it.
+  const href = useShellLocation();
+  const [lastHref, setLastHref] = useState(href);
+  if (href !== lastHref) {
+    setLastHref(href);
+    setOpen(false);
+  }
 
   const sheet = useMemo<MemberSheet>(
     () => ({
