@@ -21,6 +21,10 @@ const useStyles = createStyles(({ token, css }) => ({
     & > p:nth-last-child(2) {
       display: inline;
     }
+    // With the time on the reaction row instead, nothing trails the last paragraph.
+    & > p:last-child {
+      margin-bottom: 0;
+    }
     pre {
       margin: 0.4em 0;
       white-space: pre-wrap;

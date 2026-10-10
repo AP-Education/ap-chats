@@ -4,6 +4,8 @@ import { type ReactNode, useMemo, useRef } from 'react';
 import { ActiveCallBanner } from '@/features/calls/components/ActiveCallBanner';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import { PinnedMessageBar } from '@/features/social/pins/components/PinnedMessageBar/PinnedMessageBar';
+import { ReactorsDialog } from '@/features/social/reactions/components/ReactorsDialog/ReactorsDialog';
+import { useReactionEvents } from '@/features/social/reactions/hooks/useReactionEvents';
 import { ChatWallpaperSurface } from '@/features/social/wallpaper/components/ChatWallpaperSurface';
 import type { WorkspaceMember } from '@/features/workspaces/types';
 
@@ -69,6 +71,7 @@ export function ConversationView({
     [currentMember?.id, currentMember?.profile.displayName, currentMember?.profile.avatarPath],
   );
   const operations = useMessageOperations(workspaceId, channelId, author, navigation.items);
+  useReactionEvents(currentMember?.id);
   const interaction = useConversationActions({
     items: navigation.items,
     memberId: currentMember?.id,
@@ -118,6 +121,9 @@ export function ConversationView({
         historyReady={historyReady}
         onClose={interaction.closeForward}
       />
+      {interaction.reactionsItem && (
+        <ReactorsDialog item={interaction.reactionsItem} onClose={interaction.closeReactions} />
+      )}
     </ChatWallpaperSurface>
   );
 }

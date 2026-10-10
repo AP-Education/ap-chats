@@ -115,6 +115,8 @@ const useStyles = createStyles(({ token, css }) => ({
     height: 100%;
     font-size: ${EMOJI_FONT_SIZE}px;
     line-height: 1;
+    // Chromium paints colour emoji with the alpha of the text colour: an opaque one keeps them vivid.
+    color: ${token.colorTextBase};
     border: none;
     background: transparent;
     border-radius: ${token.borderRadius}px;

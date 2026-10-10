@@ -1,5 +1,6 @@
 import type { CSSProperties, Ref } from 'react';
 
+import type { MessageReaction } from '../reactions/types';
 import type { Attachment, AttachmentDraft } from './attachments/types';
 
 export interface Message {
@@ -36,6 +37,7 @@ export interface MessageHistoryItem {
   forwardedFrom: MessageAuthor | null;
   pin: { pinnedAt: string; pinnedByMemberId: string } | null;
   mentions?: { memberId: string; displayName: string | null; avatarPath: string | null }[];
+  reactions?: MessageReaction[];
 }
 
 export type CallEntryStatus = 'ringing' | 'active' | 'ended' | 'declined' | 'missed';
