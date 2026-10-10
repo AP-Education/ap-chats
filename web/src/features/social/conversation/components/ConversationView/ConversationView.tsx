@@ -2,13 +2,11 @@ import { createStyles } from 'antd-style';
 import { type ReactNode, useMemo, useRef } from 'react';
 
 import { ActiveCallBanner } from '@/features/calls/components/ActiveCallBanner';
-import { useKeyboardGlide } from '@/features/social/messaging/hooks/useKeyboardGlide';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
-import { keyboardGlidePart } from '@/features/social/messaging/keyboard-glide';
+import { keyboardGlidePart } from '@/features/social/messaging/keyboard-glide-part';
 import { PinnedMessageBar } from '@/features/social/pins/components/PinnedMessageBar/PinnedMessageBar';
 import { ReactorsDialog } from '@/features/social/reactions/components/ReactorsDialog/ReactorsDialog';
 import { useReactionEvents } from '@/features/social/reactions/hooks/useReactionEvents';
-import { ChatWallpaperSurface } from '@/features/social/wallpaper/components/ChatWallpaperSurface';
 import type { WorkspaceMember } from '@/features/workspaces/types';
 
 import { useConversationScope } from '../../store';
@@ -16,6 +14,7 @@ import { ConversationFooter } from './ConversationFooter';
 import { ConversationForwarding } from './ConversationForwarding';
 import { ConversationHistoryContent } from './ConversationHistoryContent';
 import { ConversationSelectionBar } from './ConversationSelectionBar';
+import { KeyboardGlideSurface } from './KeyboardGlideSurface';
 import { useConversationActions } from './useConversationActions';
 import { useConversationHistoryNavigation } from './useConversationHistoryNavigation';
 import { useOverlayInsets } from './useOverlayInsets';
@@ -87,14 +86,12 @@ export function ConversationView({
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   useOverlayInsets(surfaceRef, topRef, bottomRef);
-  const glide = useKeyboardGlide(surfaceRef);
 
   return (
-    <ChatWallpaperSurface
-      ref={surfaceRef}
+    <KeyboardGlideSurface
+      surfaceRef={surfaceRef}
       className={styles.shell}
       data-conversation-drop-target
-      {...glide}
     >
       <ConversationHistoryContent
         navigation={navigation}
@@ -130,6 +127,6 @@ export function ConversationView({
       {interaction.reactionsItem && (
         <ReactorsDialog item={interaction.reactionsItem} onClose={interaction.closeReactions} />
       )}
-    </ChatWallpaperSurface>
+    </KeyboardGlideSurface>
   );
 }
