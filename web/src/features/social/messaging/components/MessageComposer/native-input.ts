@@ -51,24 +51,36 @@ export function readComposerMessage(
   return null;
 }
 
-/** The native keyboard about to rise over the page, or done rising. */
+/** The native keyboard starting to move over the page, or done moving. */
 export type KeyboardGlideMessage =
-  | { type: 'keyboard/glide'; shift: number; duration: number; easing: string }
+  | {
+      type: 'keyboard/glide';
+      direction: 'up' | 'down';
+      shift: number;
+      duration: number;
+      /** The keyboard's own curve, when the shell has watched it move that way. */
+      easing?: string;
+    }
   | { type: 'keyboard/glide-end' };
 
-const GLIDE_EASING = /^(linear\([\d., ]+\)|cubic-bezier\([\d., -]+\))$/;
+const GLIDE_EASING = /^(linear\([\d., %]+\)|cubic-bezier\([\d., -]+\))$/;
 
 export function readKeyboardGlide(value: unknown): KeyboardGlideMessage | null {
   if (!value || typeof value !== 'object') return null;
   const message = value as Record<string, unknown>;
   if (message.type === 'keyboard/glide-end') return { type: 'keyboard/glide-end' };
-  if (
-    message.type === 'keyboard/glide' &&
-    Number.isFinite(message.shift) &&
-    Number.isFinite(message.duration) &&
-    typeof message.easing === 'string' &&
-    GLIDE_EASING.test(message.easing)
-  )
-    return message as KeyboardGlideMessage;
-  return null;
+
+  const { shift, duration, easing } = message;
+  const isGlide = message.type === 'keyboard/glide';
+  if (!isGlide || !Number.isFinite(shift) || !Number.isFinite(duration)) return null;
+
+  const validEasing = typeof easing === 'string' && GLIDE_EASING.test(easing);
+  return {
+    type: 'keyboard/glide',
+    // Shells that predate falling glides announce rises alone.
+    direction: message.direction === 'down' ? 'down' : 'up',
+    shift: shift as number,
+    duration: duration as number,
+    ...(validEasing ? { easing } : {}),
+  };
 }

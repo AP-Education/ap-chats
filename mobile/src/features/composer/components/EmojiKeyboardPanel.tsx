@@ -8,7 +8,7 @@ import { PickerPanel } from './PickerPanel';
 
 interface EmojiKeyboardPanelProps {
   mode: SharedValue<InputMode>;
-  keyboardHeight: SharedValue<number>;
+  keyboardRoom: SharedValue<number>;
   panelHeight: SharedValue<number>;
   heldHeight: SharedValue<number>;
   bottomInset: number;
@@ -25,7 +25,7 @@ interface EmojiKeyboardPanelProps {
 
 export function EmojiKeyboardPanel({
   mode,
-  keyboardHeight,
+  keyboardRoom,
   panelHeight,
   heldHeight,
   bottomInset,
@@ -42,7 +42,7 @@ export function EmojiKeyboardPanel({
   const animatedStyle = useAnimatedStyle(() => ({
     height: inputAreaHeight(
       mode.value,
-      keyboardHeight.value,
+      keyboardRoom.value,
       panelHeight.value,
       heldHeight.value,
       reservedInset,
@@ -54,12 +54,12 @@ export function EmojiKeyboardPanel({
       mode.value === 'search'
         ? inputAreaHeight(
             'search',
-            keyboardHeight.value,
+            keyboardRoom.value,
             panelHeight.value,
             0,
             bottomInset,
             containerHeight,
-          ) - keyboardHeight.value
+          ) - keyboardRoom.value
         : panelHeight.value,
     paddingBottom: mode.value === 'search' ? 0 : bottomInset,
   }));
