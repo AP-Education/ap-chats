@@ -1,4 +1,4 @@
-import { PlusIcon } from '@phosphor-icons/react';
+import { CaretDownIcon, PlusIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -8,13 +8,13 @@ import { useReactionToggle } from '../../hooks/useReactionToggle';
 import { quickReactions } from '../../quick-reactions';
 
 const useStyles = createStyles(({ token, css }) => ({
-  // Above the context menu, as a pill of its own (Telegram desktop).
+  // A compact pill above the context menu (Telegram desktop): bare emoji, no wider than it must be.
   menu: css`
     display: flex;
-    gap: 2px;
+    align-items: center;
     width: fit-content;
     margin-bottom: 8px;
-    padding: 4px;
+    padding: 4px 4px 4px 6px;
     border-radius: 999px;
     background: ${token.colorBgElevated};
     box-shadow: ${token.boxShadowSecondary};
@@ -36,20 +36,14 @@ const useStyles = createStyles(({ token, css }) => ({
     background: transparent;
     // Chromium paints colour emoji with the alpha of the text colour: an opaque one keeps them vivid.
     color: ${token.colorTextBase};
-    font-size: 22px;
+    font-size: 26px;
     line-height: 1;
     cursor: pointer;
-    transition:
-      transform 150ms ease-out,
-      background-color 150ms ease-out;
+    transition: transform 150ms ease-out;
     -webkit-tap-highlight-color: transparent;
 
     &:hover {
-      background: ${token.colorFillTertiary};
-      transform: scale(1.12);
-    }
-    &[aria-pressed='true'] {
-      background: ${token.colorPrimaryBg};
+      transform: scale(1.18);
     }
     &:focus-visible {
       outline: 2px solid ${token.colorPrimary};
@@ -71,6 +65,17 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   more: css`
     color: ${token.colorTextSecondary};
+
+    [data-variant='menu'] > & {
+      width: 32px;
+      height: 32px;
+      margin-left: 4px;
+      background: ${token.colorFillSecondary};
+    }
+    [data-variant='menu'] > &:hover {
+      background: ${token.colorFill};
+      transform: none;
+    }
   `,
 }));
 
@@ -125,7 +130,7 @@ export function QuickReactions({
         aria-label="Інші реакції"
         onClick={onMore}
       >
-        <PlusIcon size={variant === 'menu' ? 18 : 20} />
+        {variant === 'menu' ? <CaretDownIcon size={16} weight="bold" /> : <PlusIcon size={20} />}
       </button>
     </div>
   );

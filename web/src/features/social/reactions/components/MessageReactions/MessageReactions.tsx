@@ -13,7 +13,8 @@ import type { MessageReaction } from '../../types';
 const MAX_FACES = 3;
 const countFormat = new Intl.NumberFormat('uk-UA', { notation: 'compact' });
 
-// A plain translucent wash in the theme's fills, deeper once the reaction is yours.
+// A quiet fill of the theme; your own reaction is a soft tint of the primary colour with a
+// thin outline of it, the way Discord marks it, never a solid block.
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
     display: flex;
@@ -25,13 +26,14 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   chip: css`
     --chip-bg: ${token.colorFillSecondary};
-    --chip-bg-mine: ${token.colorFill};
+    --chip-mine-bg: color-mix(in srgb, var(--chip-accent) 16%, transparent);
+    --chip-accent: var(--bubble-accent);
     display: inline-flex;
     align-items: center;
     gap: 6px;
     height: 32px;
     padding: 0 12px 0 8px;
-    border: 0;
+    border: 1px solid transparent;
     border-radius: 16px;
     background: var(--chip-bg);
     color: var(--bubble-text);
@@ -43,23 +45,25 @@ const useStyles = createStyles(({ token, css }) => ({
     cursor: pointer;
     transition:
       background-color 150ms ease-out,
+      border-color 150ms ease-out,
       transform 100ms ease-out;
     -webkit-tap-highlight-color: transparent;
 
-    // Own bubbles are the primary colour in either theme, so they always take a light wash.
+    // The bubble's accent is its primary tone, white on own bubbles, which then need a deeper wash.
     [data-side='own'] & {
-      --chip-bg: rgba(255, 255, 255, 0.16);
-      --chip-bg-mine: rgba(255, 255, 255, 0.32);
+      --chip-bg: rgba(255, 255, 255, 0.14);
+      --chip-mine-bg: rgba(255, 255, 255, 0.24);
     }
-    // Large emoji sit on the wallpaper without a bubble, in the page's own text colour.
+    // Large emoji sit on the wallpaper without a bubble, in the page's own colours.
     [data-variant='emoji'] & {
-      --chip-bg: ${token.colorFillSecondary};
-      --chip-bg-mine: ${token.colorFill};
+      --chip-accent: ${token.colorPrimaryTextActive};
       color: ${token.colorText};
     }
 
     &[aria-pressed='true'] {
-      background: var(--chip-bg-mine);
+      border-color: color-mix(in srgb, var(--chip-accent) 55%, transparent);
+      background: var(--chip-mine-bg);
+      color: var(--chip-accent);
     }
     &[aria-disabled] {
       cursor: default;
