@@ -1,6 +1,7 @@
 import type { ShellPalette } from '../../appearance';
 import type { NativeCallConnectPayload } from '../../calls/types';
 import type { ComposerInputRequest, ComposerInputState } from '../../composer';
+import type { TabBarModel } from '../../navigation/types';
 import type { PushPermission } from '../../push/types';
 import type { NotificationIntent } from '../../push/utils/notification-intent';
 
@@ -24,7 +25,10 @@ export type NativeToWebMessage =
   /** The rise is over or abandoned; the page settles on its new size. */
   | { type: 'keyboard/glide-end' }
   | { type: 'notifications/open'; payload: NotificationIntent }
-  | { type: 'notifications/permission'; status: PushPermission };
+  | { type: 'notifications/permission'; status: PushPermission }
+  | { type: 'navigation/select'; id: string }
+  /** How much of the page's bottom the native tab bar covers. */
+  | { type: 'navigation/inset'; bottom: number };
 
 export type WebToNativeMessage =
   | { type: 'auth/sign-out' }
@@ -32,6 +36,8 @@ export type WebToNativeMessage =
   | { type: 'calls/connect'; payload: NativeCallConnectPayload }
   /** The theme the page resolved, for everything native draws around it. */
   | { type: 'appearance/changed'; payload: ShellPalette }
+  /** The page's tab bar, which native draws over it. */
+  | { type: 'navigation/tabs'; payload: TabBarModel }
   | { type: 'haptics/selection' }
   | { type: 'notifications/message-sound' }
   /** The page can route a tapped notification now; sent on every mount of its handler. */

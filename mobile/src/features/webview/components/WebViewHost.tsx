@@ -22,6 +22,8 @@ import {
   type KeyboardGlide,
   useComposerInput,
 } from '../../composer';
+import { TabBar } from '../../navigation/components/TabBar';
+import type { TabBarModel } from '../../navigation/types';
 import { changePushPermission } from '../../push/api/change-push-permission';
 import { dismissPresentedNotifications } from '../../push/api/presented-notifications';
 import { getPushPermissionStatus } from '../../push/api/push-token';
@@ -54,6 +56,7 @@ export function WebViewHost() {
   // re-fires on every reload since the injected globals don't survive one.
   const [loadCount, setLoadCount] = useState(0);
   const [messageSoundRequest, setMessageSoundRequest] = useState(0);
+  const [tabBar, setTabBar] = useState<TabBarModel | null>(null);
   const insets = useSafeAreaInsets();
   // WKWebView reports the safe areas to the page (viewport-fit=cover), so the page draws its own
   // surfaces under the status bar and home indicator. Android's WebView does not, so native
@@ -173,6 +176,8 @@ export function WebViewHost() {
       void connectBridgedCall(message.payload);
     } else if (message.type === 'appearance/changed') {
       useAppearanceStore.getState().setPalette(message.payload);
+    } else if (message.type === 'navigation/tabs') {
+      setTabBar(message.payload);
     } else if (message.type === 'haptics/selection') {
       void selectionAsync().catch(() => undefined);
     } else if (message.type === 'notifications/message-sound') {
@@ -184,6 +189,14 @@ export function WebViewHost() {
     } else if (__DEV__ && message.type === 'debug/error') {
       console.error('[webview] uncaught error:', message.message);
     }
+  }
+
+  function handleSelectTab(id: string) {
+    webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'navigation/select', id }));
+  }
+
+  function handleTabBarInset(bottom: number) {
+    webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'navigation/inset', bottom }));
   }
 
   function handlePickEmoji(text: string) {
@@ -237,6 +250,7 @@ export function WebViewHost() {
             bounces={false}
             onLoadStart={() => {
               input.close();
+              setTabBar(null);
               useNotificationStore.getState().setWebReady(false);
             }}
             applicationNameForUserAgent={APP_SHELL_USER_AGENT}
@@ -266,6 +280,7 @@ export function WebViewHost() {
             )}
           />
         )}
+        {tabBar && <TabBar model={tabBar} onSelect={handleSelectTab} onInset={handleTabBarInset} />}
       </View>
       <EmojiKeyboardPanel
         mode={input.mode}
