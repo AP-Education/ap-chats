@@ -23,6 +23,6 @@ export const messagePins = pgTable(
       columns: [table.workspaceId, table.pinnedByMemberId],
       foreignColumns: [workspaceMembers.workspaceId, workspaceMembers.id],
       name: 'message_pins_actor_workspace_fk',
-    }),
+    }).onDelete('cascade'),
   ],
 );

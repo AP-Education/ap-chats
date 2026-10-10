@@ -5,6 +5,7 @@ import { useCreateWorkspace } from '../../hooks/useCreateWorkspace';
 import { useUpdateWorkspace } from '../../hooks/useUpdateWorkspace';
 import type { Workspace } from '../../types';
 import { WorkspaceForm, type WorkspaceFormValues } from '../WorkspaceForm';
+import { DeleteWorkspaceSection } from './DeleteWorkspaceSection';
 
 const useStyles = createStyles(({ token, css }) => ({
   header: css`
@@ -83,6 +84,8 @@ export function WorkspaceFormModal({ open, onClose, workspace }: WorkspaceFormMo
         }
         onFinish={handleFinish}
       />
+
+      {workspace && <DeleteWorkspaceSection workspace={workspace} onDeleted={handleClose} />}
     </Modal>
   );
 }

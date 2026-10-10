@@ -49,6 +49,6 @@ export const channelMemberships = pgTable(
       columns: [table.workspaceId, table.memberId],
       foreignColumns: [workspaceMembers.workspaceId, workspaceMembers.id],
       name: 'channel_memberships_member_workspace_fk',
-    }),
+    }).onDelete('cascade'),
   ],
 );

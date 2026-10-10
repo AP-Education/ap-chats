@@ -34,11 +34,11 @@ export const directMessages = pgTable(
       columns: [table.workspaceId, table.firstMemberId],
       foreignColumns: [workspaceMembers.workspaceId, workspaceMembers.id],
       name: 'direct_messages_first_member_fk',
-    }),
+    }).onDelete('cascade'),
     foreignKey({
       columns: [table.workspaceId, table.secondMemberId],
       foreignColumns: [workspaceMembers.workspaceId, workspaceMembers.id],
       name: 'direct_messages_second_member_fk',
-    }),
+    }).onDelete('cascade'),
   ],
 );

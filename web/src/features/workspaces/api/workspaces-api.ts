@@ -18,6 +18,10 @@ export function updateWorkspace(
   return apiRequest(`/api/workspaces/${workspaceId}`, token, jsonInit('PATCH', input));
 }
 
+export function deleteWorkspace(token: string, workspaceId: string): Promise<void> {
+  return apiRequest(`/api/workspaces/${workspaceId}`, token, { method: 'DELETE' });
+}
+
 export function uploadFile(token: string, file: File): Promise<UploadedFile> {
   const formData = new FormData();
   formData.append('file', file);

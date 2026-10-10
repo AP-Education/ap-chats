@@ -55,6 +55,6 @@ export const channels = pgTable(
       columns: [table.workspaceId, table.createdByMemberId],
       foreignColumns: [workspaceMembers.workspaceId, workspaceMembers.id],
       name: 'channels_creator_workspace_fk',
-    }),
+    }).onDelete('cascade'),
   ],
 );

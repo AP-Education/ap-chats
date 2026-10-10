@@ -22,6 +22,6 @@ export const messageMentions = pgTable(
       columns: [table.workspaceId, table.memberId],
       foreignColumns: [workspaceMembers.workspaceId, workspaceMembers.id],
       name: 'message_mentions_member_workspace_fk',
-    }),
+    }).onDelete('cascade'),
   ],
 );

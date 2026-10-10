@@ -50,7 +50,7 @@ export const calls = pgTable(
       columns: [table.workspaceId, table.startedByMemberId],
       foreignColumns: [workspaceMembers.workspaceId, workspaceMembers.id],
       name: 'calls_started_by_workspace_fk',
-    }),
+    }).onDelete('cascade'),
     check(
       'calls_status_check',
       sql`${table.status} in ('ringing', 'active', 'ended', 'declined', 'missed')`,
