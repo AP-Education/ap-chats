@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkDirective from 'remark-directive';
 
-import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
+import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
 
 import { mentionDirective } from './mention-directive';
 
@@ -121,7 +121,7 @@ export function MessageMarkdown({
           const mentionClass = cx(styles.mention, isMe && styles.mentionMe);
           if (inline || !person) return <span className={mentionClass}>@{name}</span>;
           return (
-            <MemberPopover
+            <MemberProfileTrigger
               member={{
                 memberId,
                 displayName: person.displayName,
@@ -136,7 +136,7 @@ export function MessageMarkdown({
               >
                 @{name}
               </button>
-            </MemberPopover>
+            </MemberProfileTrigger>
           );
         },
       }}
