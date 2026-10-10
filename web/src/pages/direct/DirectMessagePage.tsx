@@ -15,7 +15,7 @@ import {
 import { ChatTextIcon, ProhibitIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
-import { useParams } from 'react-router-dom';
+import { useMatch, useParams } from 'react-router-dom';
 
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
 import { ConversationProvider } from '@/features/social/conversation/store';
@@ -66,13 +66,15 @@ export default function DirectMessagePage() {
   const { styles } = useStyles();
   const { id: activeWorkspaceId } = useRequiredWorkspace();
   const { channelId } = useParams<{ channelId: string }>();
+  // Opened from the calls, the conversation goes back to them.
+  const listPath = useMatch('/calls/*') ? '/calls' : '/direct';
   const conversation = useDirectMessage(channelId);
   const unavailable = useTrackConversation(
     'direct',
     activeWorkspaceId,
     channelId,
     conversation,
-    '/direct',
+    listPath,
   );
   // A conversation belongs to people rather than to the active workspace, so it names its own.
   const { byId, currentMember } = useWorkspaceMemberLabels(conversation.data?.workspaceId);

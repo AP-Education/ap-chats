@@ -1,3 +1,4 @@
+import { useMobileMenu } from '@ap-education/shell-sdk';
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 
@@ -16,9 +17,11 @@ export function LastConversationRoute({
   const { identity } = useQueryAuth();
   const { id: workspaceId } = useRequiredWorkspace();
   const { search } = useLocation();
+  const { isOpen: listShown } = useMobileMenu();
   const channelId = getLastConversation(identity, workspaceId, section);
 
-  if (channelId && new URLSearchParams(search).get('list') !== '1') {
+  // While the mobile list is on screen, its section opens on the list rather than a conversation.
+  if (channelId && !listShown && new URLSearchParams(search).get('list') !== '1') {
     return <Navigate to={`/${section}/${encodeURIComponent(channelId)}`} replace />;
   }
 

@@ -1,4 +1,4 @@
-import { useAppBadge, useBeforeSignOut } from '@ap-education/shell-sdk';
+import { useAppBadge, useBeforeSignOut, useTabBadge } from '@ap-education/shell-sdk';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type PropsWithChildren, useContext } from 'react';
 
@@ -12,6 +12,7 @@ import { PushSubscriptionSync } from '../features/notifications/components/PushS
 import { RealtimeProvider } from '../features/realtime/providers/RealtimeProvider';
 import { WorkspaceUnreadContext } from '../features/social/read-state/workspace-unread-context';
 import { ActiveWorkspaceProvider } from '../features/workspaces/providers/ActiveWorkspaceProvider';
+import { personalTab, teamTab } from '../layouts/chats/sections';
 import { WorkspaceUnreadScope } from '../layouts/chats/WorkspaceUnreadScope';
 import { persistQueries } from './query-persistence';
 import { ShellRouter } from './ShellRouter';
@@ -24,9 +25,13 @@ const queryClient = new QueryClient({
 
 const forgetPersistedQueries = persistQueries(queryClient);
 
-function UnreadBadge() {
+function UnreadBadges() {
   const unread = useContext(WorkspaceUnreadContext);
-  useAppBadge((unread?.channelTotal ?? 0) + (unread?.directTotal ?? 0));
+  const channelTotal = unread?.channelTotal ?? 0;
+  const directTotal = unread?.directTotal ?? 0;
+  useAppBadge(channelTotal + directTotal);
+  useTabBadge(teamTab.id, channelTotal);
+  useTabBadge(personalTab.id, directTotal);
   return null;
 }
 
@@ -43,7 +48,7 @@ export function ChatsProviders({ children }: PropsWithChildren) {
           <ChannelListRealtime />
           <ActiveWorkspaceProvider>
             <WorkspaceUnreadScope>
-              <UnreadBadge />
+              <UnreadBadges />
               <PushSubscriptionSync />
               <AttentionReporter />
               <NotificationDismissal />
