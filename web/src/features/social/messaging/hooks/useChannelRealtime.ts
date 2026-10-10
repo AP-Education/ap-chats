@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { useConnection } from '@/features/realtime/stores/realtime-context';
+import { REACTION_EVENT_PREFIX } from '@/features/social/reactions/hooks/useReactionEvents';
 
 import { getEntry, historyPage } from '../api/messages-api';
 import { catchUpHistory, mergeHistoryItem, refreshHistoryWindow } from '../history-cache';
@@ -47,6 +48,8 @@ export function useChannelRealtime(
 
   useSocketEvent('social:changed', (event) => {
     if (event.workspaceId !== workspaceId || event.channelId !== channelId || !token) return;
+    // These carry their new count and are applied in place by useReactionEvents.
+    if (event.type.startsWith(REACTION_EVENT_PREFIX)) return;
     if (event.type.startsWith('social.pin.')) {
       void queryClient.invalidateQueries({ queryKey: ['pins', identity, workspaceId, channelId] });
     }

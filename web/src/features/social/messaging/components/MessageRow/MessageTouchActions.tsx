@@ -3,6 +3,8 @@ import { createStyles } from 'antd-style';
 import { type CSSProperties, type RefObject, useLayoutEffect, useRef, useState } from 'react';
 
 import { ReplyIcon } from '@/features/social/conversation/actionIcons';
+import { QuickReactions } from '@/features/social/reactions/components/QuickReactions/QuickReactions';
+import { ReactionPickerSheet } from '@/features/social/reactions/components/ReactionPicker/ReactionPicker';
 
 import { groupMessageActions } from './messageActionGroups';
 import type { MessageActionsProps } from './MessageActions';
@@ -75,12 +77,13 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
   const { styles } = useStyles();
   const scope = useMessageActionScope();
   const [open, setOpen] = useState(false);
+  const [picking, setPicking] = useState(false);
   const available = scope.available(scope.messageTarget);
   const reply = available.find((action) => action.id === 'reply');
   const areaRef = useRef<HTMLDivElement>(null);
   const swipe = useMessageReplySwipe({
     messageId: scope.item.message.id,
-    enabled: !scope.delivery && !scope.editing && !open,
+    enabled: !scope.delivery && !scope.editing && !open && !picking,
     canReply: !!reply,
     onLongPress: () => setOpen(true),
     onReply: () => {
@@ -131,9 +134,31 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
         <MessageActionSheet
           open={open}
           onClose={() => setOpen(false)}
+          header={
+            scope.canReact && (
+              <QuickReactions
+                item={scope.item}
+                viewerMemberId={scope.context.memberId}
+                variant="sheet"
+                onPicked={() => setOpen(false)}
+                onMore={() => {
+                  setOpen(false);
+                  setPicking(true);
+                }}
+              />
+            )
+          }
           target={scope.messageTarget}
           groups={groupMessageActions(available)}
           onAction={scope.onAction}
+        />
+      )}
+      {picking && (
+        <ReactionPickerSheet
+          item={scope.item}
+          viewerMemberId={scope.context.memberId}
+          open
+          onClose={() => setPicking(false)}
         />
       )}
     </>

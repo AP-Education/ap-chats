@@ -9,11 +9,17 @@ import type { HistoryItem, MessageHistoryItem } from '@/features/social/messagin
 import { isMessageItem } from '@/features/social/messaging/types';
 import { pinActions } from '@/features/social/pins/actions';
 import { usePinActions } from '@/features/social/pins/hooks/usePins';
+import { reactionActions } from '@/features/social/reactions/actions';
 
 import type { ActionCommands, ActionTarget, ConversationAction } from '../../actions';
 import { useConversation, useConversationScope } from '../../store';
 
-export const conversationActions = [...messagingActions, ...forwardingActions, ...pinActions];
+export const conversationActions = [
+  ...messagingActions,
+  ...forwardingActions,
+  ...pinActions,
+  ...reactionActions,
+];
 
 interface UseConversationActionsInput {
   items: HistoryItem[];
@@ -40,6 +46,7 @@ export function useConversationActions({
   const toggleSelected = useConversation((state) => state.toggleSelected);
   const setIntent = useConversation((state) => state.setIntent);
   const setEditingId = useConversation((state) => state.setEditingId);
+  const showReactions = useConversation((state) => state.showReactions);
   const selectedItems = useMemo(
     () => items.filter(isMessageItem).filter((item) => selectedIds.includes(item.id)),
     [items, selectedIds],
@@ -95,6 +102,7 @@ export function useConversationActions({
         .update(item.message.id, active)
         .catch(() => toast.error('Не вдалося змінити закріплення.'));
     },
+    showReactions: (item) => showReactions(item.message.id),
   };
   const commandsRef = useRef(commands);
   useLayoutEffect(() => {

@@ -47,6 +47,13 @@ const useStyles = createStyles(({ token, css }) => ({
     justify-content: flex-end;
     margin: 2px -${token.paddingXXS}px -2px ${token.paddingSM}px;
   `,
+  // At the end of the reaction chips, level with them.
+  reactions: css`
+    top: 0;
+    float: none;
+    height: 28px;
+    margin-left: auto;
+  `,
   // Over a photo, and over the corner of large emoji that have no bubble behind them.
   badge: css`
     top: auto;
@@ -80,7 +87,7 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-export type MessageMetaPlacement = 'inline' | 'block' | 'overlay' | 'emoji';
+export type MessageMetaPlacement = 'inline' | 'block' | 'overlay' | 'emoji' | 'reactions';
 
 export function MessageMeta({ placement }: { placement: MessageMetaPlacement }) {
   const { styles, cx } = useStyles();
@@ -94,6 +101,7 @@ export function MessageMeta({ placement }: { placement: MessageMetaPlacement }) 
       className={cx(
         styles.meta,
         placement === 'block' && styles.block,
+        placement === 'reactions' && styles.reactions,
         (placement === 'overlay' || placement === 'emoji') && styles.badge,
         placement === 'overlay' && styles.overlay,
         placement === 'emoji' && styles.emoji,

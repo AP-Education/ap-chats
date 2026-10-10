@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 
 import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
+import { MessageReactions } from '@/features/social/reactions/components/MessageReactions/MessageReactions';
 
 import type { MessageHistoryItem } from '../../types';
 import { MessageAttachments } from '../MessageAttachments/MessageAttachments';
@@ -27,7 +28,8 @@ export function MessageBody({
   onEdit,
   onCloseEdit,
 }: MessageBodyProps) {
-  const { editing, item, delivery, pendingAttachments } = useMessageActionScope();
+  const { editing, item, delivery, pendingAttachments, canReact, context } =
+    useMessageActionScope();
   const textMeta = (layout.meta === 'inline' || layout.meta === 'emoji') && (
     <MessageMeta placement={layout.meta} />
   );
@@ -57,6 +59,14 @@ export function MessageBody({
       )}
       {(layout.meta === 'block' || layout.meta === 'overlay') && (
         <MessageMeta placement={layout.meta} />
+      )}
+      {layout.reactions && (
+        <MessageReactions
+          item={item}
+          viewerMemberId={context.memberId}
+          canReact={canReact}
+          meta={layout.meta === 'reactions' && <MessageMeta placement="reactions" />}
+        />
       )}
     </>
   );

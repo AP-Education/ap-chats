@@ -28,6 +28,8 @@ export interface BubbleLayout {
   jumboEmoji: number;
   /** Where the time goes; null while the message is being edited. */
   meta: MessageMetaPlacement | null;
+  /** Reaction chips close the bubble; the time moves onto their row when it would close text. */
+  reactions: boolean;
 }
 
 export function bubbleLayout(
@@ -43,12 +45,15 @@ export function bubbleLayout(
     ? pendingAttachments.length > 0
     : images.length < attachments.length;
   const jumboEmoji = attachments.length || pendingAttachments ? 0 : jumboEmojiCount(markdown);
+  const reactions = !editing && Boolean(item.reactions?.length);
 
-  if (editing) return { variant: 'text', hasText, jumboEmoji: 0, meta: null };
-  if (jumboEmoji) return { variant: 'emoji', hasText, jumboEmoji, meta: 'emoji' };
+  if (editing) return { variant: 'text', hasText, jumboEmoji: 0, meta: null, reactions };
+  if (jumboEmoji) return { variant: 'emoji', hasText, jumboEmoji, meta: 'emoji', reactions };
 
   const variant = images.length ? 'media' : 'text';
-  if (hasText) return { variant, hasText, jumboEmoji, meta: 'inline' };
-  if (hasFiles) return { variant, hasText, jumboEmoji, meta: 'block' };
-  return { variant, hasText, jumboEmoji, meta: 'overlay' };
+  if (hasText)
+    return { variant, hasText, jumboEmoji, meta: reactions ? 'reactions' : 'inline', reactions };
+  if (hasFiles)
+    return { variant, hasText, jumboEmoji, meta: reactions ? 'reactions' : 'block', reactions };
+  return { variant, hasText, jumboEmoji, meta: 'overlay', reactions };
 }

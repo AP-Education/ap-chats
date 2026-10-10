@@ -22,6 +22,7 @@ export interface ActionCommands {
   copy: (items: MessageHistoryItem[], selectedText?: string) => void;
   forward: (items: MessageHistoryItem[]) => void;
   pin: (item: MessageHistoryItem, active: boolean) => void;
+  showReactions: (item: MessageHistoryItem) => void;
 }
 
 export interface ConversationAction {
