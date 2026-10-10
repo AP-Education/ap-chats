@@ -4,11 +4,14 @@ import { Transactional } from '@nestjs-cls/transactional';
 import { ChannelAccessFacade } from '@/components/communities/channel-access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { messageView } from '../messages/message-view';
 import { ReadStateFacade } from '../read-state/read-state.facade';
+import type { ChannelReadState } from '../read-state/types';
 import type { HistoryQueryDto, HistoryWindowQueryDto } from './dto/history-query.dto';
+import { historyItemView, historyPageView } from './history.view';
 import { HistoryRepository } from './repository/history.repository';
-import type { HistoryRow } from './types/history.types';
+
+const PAGE_SIZE = 40;
+const CONTEXT_BEFORE_TARGET = 12;
 
 @Injectable()
 export class HistoryFacade {
@@ -21,21 +24,25 @@ export class HistoryFacade {
   @Transactional()
   async entry(member: WorkspaceMember, channelId: string, entryId: string) {
     const { channel } = await this.access.requireViewAccess(member, channelId);
+
     const seq = await this.history.entrySeq(channelId, entryId);
     if (seq === null) throw new NotFoundException('Entry not found');
-    const page = await this.history.page(
+
+    const { rows } = await this.history.page({
       channelId,
-      'after',
-      seq - 1n,
-      channel.lastEntrySeq,
-      1,
-      member.id,
-    );
-    const row = page.rows[0];
+      viewerMemberId: member.id,
+      direction: 'after',
+      cursor: seq - 1n,
+      ceiling: channel.lastEntrySeq,
+      limit: 1,
+    });
+    const [row] = rows;
     if (!row) throw new NotFoundException('Entry not found');
-    return this.item(row, member.id);
+
+    return historyItemView(row, member.id);
   }
 
+  /** Opens history at the first unread entry or at a linked message; otherwise at the newest. */
   @Transactional()
   async window(member: WorkspaceMember, channelId: string, query: HistoryWindowQueryDto) {
     const { channel, isMember } = await this.access.requireViewAccess(member, channelId);
@@ -43,55 +50,43 @@ export class HistoryFacade {
     const readState = isMember
       ? await this.readState.state(channelId, member.id, snapshotSeq)
       : null;
-    const lastRead = BigInt(readState?.lastReadEntrySeq ?? '0');
-    const firstUnread =
-      isMember && lastRead < snapshotSeq
-        ? await this.history.firstUnreadSeq(channelId, member.id, lastRead, snapshotSeq)
-        : null;
+    const firstUnreadSeq = await this.firstUnreadSeq(channelId, member.id, readState, snapshotSeq);
+
     const target = query.messageId
-      ? await this.history.messageSeq(channelId, query.messageId)
-      : firstUnread;
-    if (query.messageId && target === null) throw new NotFoundException('Message not found');
+      ? await this.requireMessageSeq(channelId, query.messageId)
+      : firstUnreadSeq;
+    const snapshot = { channelId, viewerMemberId: member.id, ceiling: snapshotSeq };
+    const view = { viewerMemberId: member.id, snapshotSeq, readState, firstUnreadSeq };
 
     if (target === null) {
-      const latest = await this.history.page(
-        channelId,
-        'before',
-        undefined,
-        snapshotSeq,
-        40,
-        member.id,
-      );
-      const items = latest.rows.map((row) => this.item(row, member.id));
-      return {
-        items,
-        snapshotSeq: snapshotSeq.toString(),
-        firstUnreadSeq: null,
-        unreadCount: readState?.unreadCount ?? 0,
+      const latest = await this.history.page({
+        ...snapshot,
+        direction: 'before',
+        limit: PAGE_SIZE,
+      });
+      return historyPageView({
+        ...view,
+        rows: latest.rows,
         hasOlder: latest.hasMore,
-        olderCursor: latest.hasMore ? (items[0]?.seq ?? null) : null,
         hasNewer: false,
-        newerCursor: null,
-        readState,
-      };
+      });
     }
 
     const [older, newer] = await Promise.all([
-      this.history.page(channelId, 'before', target, snapshotSeq, 12, member.id),
-      this.history.page(channelId, 'after', target - 1n, snapshotSeq, 40, member.id),
+      this.history.page({
+        ...snapshot,
+        direction: 'before',
+        cursor: target,
+        limit: CONTEXT_BEFORE_TARGET,
+      }),
+      this.history.page({ ...snapshot, direction: 'after', cursor: target - 1n, limit: PAGE_SIZE }),
     ]);
-    const items = [...older.rows, ...newer.rows].map((row) => this.item(row, member.id));
-    return {
-      items,
-      snapshotSeq: snapshotSeq.toString(),
-      firstUnreadSeq: firstUnread?.toString() ?? null,
-      unreadCount: readState?.unreadCount ?? 0,
+    return historyPageView({
+      ...view,
+      rows: [...older.rows, ...newer.rows],
       hasOlder: older.hasMore,
-      olderCursor: older.hasMore ? (items[0]?.seq ?? null) : null,
       hasNewer: newer.hasMore,
-      newerCursor: newer.hasMore ? (items.at(-1)?.seq ?? null) : null,
-      readState,
-    };
+    });
   }
 
   @Transactional()
@@ -100,118 +95,54 @@ export class HistoryFacade {
       throw new BadRequestException('Use either before or after');
 
     const { channel, isMember } = await this.access.requireViewAccess(member, channelId);
-    const direction = query.after === undefined ? 'before' : 'after';
-    const cursorText = query.before ?? query.after;
-    const cursor = cursorText === undefined ? undefined : BigInt(cursorText);
     const ceiling = query.snapshot === undefined ? channel.lastEntrySeq : BigInt(query.snapshot);
     if (ceiling > channel.lastEntrySeq)
       throw new BadRequestException('Snapshot exceeds channel history');
-    const page = await this.history.page(
+
+    const direction = query.after === undefined ? 'before' : 'after';
+    const cursorText = query.before ?? query.after;
+    const cursor = cursorText === undefined ? undefined : BigInt(cursorText);
+    const page = await this.history.page({
       channelId,
+      viewerMemberId: member.id,
       direction,
       cursor,
       ceiling,
-      query.limit ?? 40,
-      member.id,
-    );
+      limit: query.limit ?? PAGE_SIZE,
+    });
+
     const readState = isMember ? await this.readState.state(channelId, member.id, ceiling) : null;
-    const firstUnread =
-      readState && BigInt(readState.lastReadEntrySeq) < ceiling
-        ? await this.history.firstUnreadSeq(
-            channelId,
-            member.id,
-            BigInt(readState.lastReadEntrySeq),
-            ceiling,
-          )
-        : null;
-    const items = page.rows.map((row) => this.item(row, member.id));
-    const edge = direction === 'before' ? items[0] : items.at(-1);
-    return {
-      items,
-      snapshotSeq: ceiling.toString(),
-      firstUnreadSeq: firstUnread?.toString() ?? null,
-      unreadCount: readState?.unreadCount ?? 0,
-      hasOlder: direction === 'before' ? page.hasMore : Boolean(cursor),
-      olderCursor:
-        direction === 'before' && page.hasMore ? (edge?.seq ?? null) : (items[0]?.seq ?? null),
-      hasNewer: direction === 'after' ? page.hasMore : Boolean(cursor),
-      newerCursor:
-        direction === 'after' && page.hasMore ? (edge?.seq ?? null) : (items.at(-1)?.seq ?? null),
+    const firstUnreadSeq = await this.firstUnreadSeq(channelId, member.id, readState, ceiling);
+    const startsMidHistory = Boolean(cursor);
+
+    return historyPageView({
+      rows: page.rows,
+      viewerMemberId: member.id,
+      snapshotSeq: ceiling,
       readState,
-    };
+      firstUnreadSeq,
+      hasOlder: direction === 'before' ? page.hasMore : startsMidHistory,
+      hasNewer: direction === 'after' ? page.hasMore : startsMidHistory,
+    });
   }
 
-  private item(row: HistoryRow, viewerMemberId: string) {
-    if (row.type === 'CALL') {
-      const { seq, createdAt, call, startedByProfile } = row;
-      return {
-        type: 'CALL' as const,
-        id: call.id,
-        seq: seq.toString(),
-        createdAt,
-        call: {
-          id: call.id,
-          status: call.status,
-          startedByMemberId: call.startedByMemberId,
-          startedAt: call.startedAt,
-          endedAt: call.endedAt,
-        },
-        startedBy: {
-          memberId: call.startedByMemberId,
-          displayName: startedByProfile.displayName,
-          avatarPath: startedByProfile.avatarPath,
-        },
-      };
-    }
+  private async firstUnreadSeq(
+    channelId: string,
+    memberId: string,
+    readState: ChannelReadState | null,
+    ceiling: bigint,
+  ): Promise<bigint | null> {
+    if (!readState) return null;
 
-    const {
-      seq,
-      createdAt,
-      message,
-      authorProfile,
-      reply,
-      replyAuthorProfile,
-      forwardAuthorProfile,
-      pin,
-      mentions,
-      reactions,
-    } = row;
-    return {
-      type: 'MESSAGE' as const,
-      id: message.id,
-      seq: seq.toString(),
-      createdAt,
-      message: messageView(message, seq, viewerMemberId),
-      author: {
-        memberId: message.authorMemberId,
-        displayName: authorProfile.displayName,
-        avatarPath: authorProfile.avatarPath,
-      },
-      reply: reply
-        ? {
-            id: reply.id,
-            authorMemberId: reply.authorMemberId,
-            author: replyAuthorProfile
-              ? {
-                  memberId: reply.authorMemberId,
-                  displayName: replyAuthorProfile.displayName,
-                  avatarPath: replyAuthorProfile.avatarPath,
-                }
-              : null,
-            markdown: reply.deletedAt ? null : reply.contentMarkdown,
-          }
-        : null,
-      forwardedFrom:
-        message.forwardedFromMemberId && forwardAuthorProfile
-          ? {
-              memberId: message.forwardedFromMemberId,
-              displayName: forwardAuthorProfile.displayName,
-              avatarPath: forwardAuthorProfile.avatarPath,
-            }
-          : null,
-      pin: pin ? { pinnedAt: pin.pinnedAt, pinnedByMemberId: pin.pinnedByMemberId } : null,
-      mentions,
-      reactions,
-    };
+    const lastReadSeq = BigInt(readState.lastReadEntrySeq);
+    if (lastReadSeq >= ceiling) return null;
+
+    return this.history.firstUnreadSeq(channelId, memberId, lastReadSeq, ceiling);
+  }
+
+  private async requireMessageSeq(channelId: string, messageId: string): Promise<bigint> {
+    const seq = await this.history.messageSeq(channelId, messageId);
+    if (seq === null) throw new NotFoundException('Message not found');
+    return seq;
   }
 }

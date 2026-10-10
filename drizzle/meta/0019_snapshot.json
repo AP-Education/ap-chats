@@ -1,5 +1,5 @@
 {
-  "id": "d2dabdb8-a1aa-48c3-9c3a-1093098cda58",
+  "id": "af5dbed5-92d4-4573-8441-ff59ce0d1b80",
   "prevId": "29433da7-6010-4a64-aa39-cc951901c2b8",
   "version": "7",
   "dialect": "postgresql",
@@ -1537,12 +1537,7 @@
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "message_reactions_emoji_check": {
-          "name": "message_reactions_emoji_check",
-          "value": "char_length(\"message_reactions\".\"emoji\") BETWEEN 1 AND 32"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.user_profiles": {
@@ -1796,7 +1791,29 @@
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
+  "views": {
+    "public.message_reaction_summaries": {
+      "columns": {
+        "message_id": {
+          "name": "message_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "emoji": {
+          "name": "emoji",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "definition": "select \"message_id\", \"emoji\", count(*)::int as \"count\", (array_agg(\"member_id\" order by \"created_at\" desc))[1:3] as \"recent_member_ids\", min(\"created_at\") as \"first_reacted_at\" from \"message_reactions\" group by \"message_reactions\".\"message_id\", \"message_reactions\".\"emoji\"",
+      "name": "message_reaction_summaries",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": false
+    }
+  },
   "_meta": {
     "columns": {},
     "schemas": {},

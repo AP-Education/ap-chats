@@ -41,15 +41,19 @@ export function useConversationActions({
   const { workspaceId, channelId } = useConversationScope();
   const pins = usePinActions(workspaceId, channelId);
   const [forwardItems, setForwardItems] = useState<MessageHistoryItem[]>([]);
+  const [reactionsMessageId, setReactionsMessageId] = useState<string | null>(null);
   const selectedIds = useConversation((state) => state.selectedIds);
   const clearSelection = useConversation((state) => state.clearSelection);
   const toggleSelected = useConversation((state) => state.toggleSelected);
   const setIntent = useConversation((state) => state.setIntent);
   const setEditingId = useConversation((state) => state.setEditingId);
-  const showReactions = useConversation((state) => state.showReactions);
   const selectedItems = useMemo(
     () => items.filter(isMessageItem).filter((item) => selectedIds.includes(item.id)),
     [items, selectedIds],
+  );
+  const reactionsItem = useMemo(
+    () => items.filter(isMessageItem).find((item) => item.id === reactionsMessageId),
+    [items, reactionsMessageId],
   );
   const actionContext = useMemo(
     () => ({ memberId, canManage, canPin, canPost }),
@@ -102,7 +106,7 @@ export function useConversationActions({
         .update(item.message.id, active)
         .catch(() => toast.error('Не вдалося змінити закріплення.'));
     },
-    showReactions: (item) => showReactions(item.message.id),
+    showReactions: (item) => setReactionsMessageId(item.message.id),
   };
   const commandsRef = useRef(commands);
   useLayoutEffect(() => {
@@ -137,5 +141,7 @@ export function useConversationActions({
     onEdit,
     forwardItems,
     closeForward,
+    reactionsItem,
+    closeReactions: () => setReactionsMessageId(null),
   };
 }

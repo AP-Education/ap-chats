@@ -23,6 +23,7 @@ interface MessageActionInput {
 
 interface MessageActionScope extends MessageActionInput {
   isMobile: boolean;
+  isOwn: boolean;
   canReact: boolean;
   messageTarget: ActionTarget;
   selectedText: string;
@@ -73,6 +74,7 @@ export function MessageActionProvider({
       value={{
         ...value,
         isMobile,
+        isOwn: value.item.message.authorMemberId === value.context.memberId,
         canReact: !value.delivery && value.context.canPost,
         messageTarget,
         textTarget,

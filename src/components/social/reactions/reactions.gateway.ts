@@ -5,9 +5,8 @@ import type { Namespace } from 'socket.io';
 import { ChannelAudienceFacade } from '@/components/communities/channel-audience';
 import { Logger } from '@/globals/logger';
 
-import { deliverChannelEvent } from '../realtime/deliver-channel-event';
-import { REACTION_ADDED_EVENT, ReactionAddedEvent } from './events/reaction-added.event';
-import { REACTION_REMOVED_EVENT, ReactionRemovedEvent } from './events/reaction-removed.event';
+import { broadcastToChannel } from '../realtime/deliver-channel-event';
+import { REACTION_CHANGED_EVENT, ReactionChangedEvent } from './events/reaction-changed.event';
 
 @WebSocketGateway({ namespace: '/chats' })
 export class ReactionsGateway {
@@ -19,25 +18,24 @@ export class ReactionsGateway {
     private readonly logger: Logger,
   ) {}
 
-  @OnEvent(REACTION_ADDED_EVENT)
-  onAdded(event: ReactionAddedEvent): Promise<void> {
-    return deliverChannelEvent(
+  // A state to apply in place rather than a hint to fetch again, so it has its own socket event.
+  @OnEvent(REACTION_CHANGED_EVENT)
+  onChanged(event: ReactionChangedEvent): Promise<void> {
+    const payload = {
+      workspaceId: event.workspaceId,
+      channelId: event.channelId,
+      messageId: event.messageId,
+      actorMemberId: event.actorMemberId,
+      added: event.added,
+      reaction: event.reaction,
+    };
+    return broadcastToChannel(
       this.namespace,
       this.audience,
       this.logger,
-      REACTION_ADDED_EVENT,
       event,
-    );
-  }
-
-  @OnEvent(REACTION_REMOVED_EVENT)
-  onRemoved(event: ReactionRemovedEvent): Promise<void> {
-    return deliverChannelEvent(
-      this.namespace,
-      this.audience,
-      this.logger,
-      REACTION_REMOVED_EVENT,
-      event,
+      'social:reaction',
+      payload,
     );
   }
 }

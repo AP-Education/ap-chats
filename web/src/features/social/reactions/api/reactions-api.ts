@@ -1,31 +1,39 @@
 import { messagesUrl } from '@/features/social/messaging/api/messages-api';
-import { apiRequest } from '@/shared/api/http';
+import { apiRequest, jsonInit } from '@/shared/api/http';
 
 import type { MessageReaction, Reactor } from '../types';
 
-function reactionsUrl(workspaceId: string, channelId: string, messageId: string) {
-  return `${messagesUrl(workspaceId, channelId)}/${messageId}/reactions`;
+interface ReactionTarget {
+  workspaceId: string;
+  channelId: string;
+  messageId: string;
 }
 
-export function setReaction(
+function reactionsUrl({ workspaceId, channelId, messageId }: ReactionTarget, emoji?: string) {
+  const query = emoji ? `?emoji=${encodeURIComponent(emoji)}` : '';
+  return `${messagesUrl(workspaceId, channelId)}/${messageId}/reactions${query}`;
+}
+
+export function addReaction(
   token: string,
-  workspaceId: string,
-  channelId: string,
-  messageId: string,
+  target: ReactionTarget,
   emoji: string,
-  active: boolean,
 ): Promise<MessageReaction> {
-  const url = `${reactionsUrl(workspaceId, channelId, messageId)}/${encodeURIComponent(emoji)}`;
-  return apiRequest(url, token, { method: active ? 'PUT' : 'DELETE' });
+  return apiRequest(reactionsUrl(target), token, jsonInit('POST', { emoji }));
+}
+
+export function removeReaction(
+  token: string,
+  target: ReactionTarget,
+  emoji: string,
+): Promise<MessageReaction> {
+  return apiRequest(reactionsUrl(target, emoji), token, { method: 'DELETE' });
 }
 
 export function listReactors(
   token: string,
-  workspaceId: string,
-  channelId: string,
-  messageId: string,
-  emoji?: string,
+  target: ReactionTarget,
+  emoji: string | undefined,
 ): Promise<Reactor[]> {
-  const query = emoji ? `?emoji=${encodeURIComponent(emoji)}` : '';
-  return apiRequest(`${reactionsUrl(workspaceId, channelId, messageId)}${query}`, token);
+  return apiRequest(reactionsUrl(target, emoji), token);
 }

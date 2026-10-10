@@ -8,8 +8,6 @@ interface ConversationState {
   selectedIds: string[];
   intent: ComposerIntent;
   editingId: string | null;
-  /** The message whose reactions are open in the list of people who reacted. */
-  reactionsMessageId: string | null;
   /** Bumped by the timeline on scroll so the composer can dismiss the on-screen
    * keyboard — a counter rather than a boolean since there's nothing to "unset". */
   blurComposerToken: number;
@@ -17,7 +15,6 @@ interface ConversationState {
   clearSelection: () => void;
   setIntent: (intent: ComposerIntent) => void;
   setEditingId: (id: string | null) => void;
-  showReactions: (messageId: string | null) => void;
   requestComposerBlur: () => void;
 }
 
@@ -42,7 +39,6 @@ function createConversationStore() {
     selectedIds: [],
     intent: null,
     editingId: null,
-    reactionsMessageId: null,
     blurComposerToken: 0,
     toggleSelected: (id) =>
       set((state) => ({
@@ -53,7 +49,6 @@ function createConversationStore() {
     clearSelection: () => set({ selectedIds: [] }),
     setIntent: (intent) => set({ intent, editingId: null }),
     setEditingId: (editingId) => set({ editingId, intent: null }),
-    showReactions: (reactionsMessageId) => set({ reactionsMessageId }),
     requestComposerBlur: () => set((state) => ({ blurComposerToken: state.blurComposerToken + 1 })),
   }));
 }

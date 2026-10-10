@@ -4,6 +4,7 @@ import { type ReactNode, useMemo, useRef } from 'react';
 import { ActiveCallBanner } from '@/features/calls/components/ActiveCallBanner';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import { PinnedMessageBar } from '@/features/social/pins/components/PinnedMessageBar/PinnedMessageBar';
+import { ReactorsDialog } from '@/features/social/reactions/components/ReactorsDialog/ReactorsDialog';
 import { useReactionEvents } from '@/features/social/reactions/hooks/useReactionEvents';
 import { ChatWallpaperSurface } from '@/features/social/wallpaper/components/ChatWallpaperSurface';
 import type { WorkspaceMember } from '@/features/workspaces/types';
@@ -12,7 +13,6 @@ import { useConversationScope } from '../../store';
 import { ConversationFooter } from './ConversationFooter';
 import { ConversationForwarding } from './ConversationForwarding';
 import { ConversationHistoryContent } from './ConversationHistoryContent';
-import { ConversationReactors } from './ConversationReactors';
 import { ConversationSelectionBar } from './ConversationSelectionBar';
 import { useConversationActions } from './useConversationActions';
 import { useConversationHistoryNavigation } from './useConversationHistoryNavigation';
@@ -121,7 +121,9 @@ export function ConversationView({
         historyReady={historyReady}
         onClose={interaction.closeForward}
       />
-      <ConversationReactors items={navigation.items} />
+      {interaction.reactionsItem && (
+        <ReactorsDialog item={interaction.reactionsItem} onClose={interaction.closeReactions} />
+      )}
     </ChatWallpaperSurface>
   );
 }

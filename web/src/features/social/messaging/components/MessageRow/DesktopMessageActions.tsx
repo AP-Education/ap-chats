@@ -2,7 +2,7 @@ import { Dropdown } from 'antd';
 import { useState } from 'react';
 
 import { QuickReactions } from '@/features/social/reactions/components/QuickReactions/QuickReactions';
-import { ReactionPickerPopover } from '@/features/social/reactions/components/ReactionPicker/ReactionPicker';
+import { ReactionPicker } from '@/features/social/reactions/components/ReactionPicker/ReactionPicker';
 
 import type { MessageActionsProps } from './MessageActions';
 import { useMessageActionScope } from './MessageActionScope';
@@ -17,6 +17,21 @@ export function DesktopMessageActions({ rowProps, children }: MessageActionsProp
   const [menuOpen, setMenuOpen] = useState(false);
   const [picking, setPicking] = useState(false);
 
+  const closeMenu = () => setMenuOpen(false);
+  const pickAnyReaction = () => {
+    closeMenu();
+    setPicking(true);
+  };
+  const quickReactions = scope.canReact && (
+    <QuickReactions
+      item={scope.item}
+      viewerMemberId={scope.context.memberId}
+      variant="menu"
+      onPicked={closeMenu}
+      onMore={pickAnyReaction}
+    />
+  );
+
   return (
     <Dropdown
       trigger={['contextMenu']}
@@ -25,18 +40,7 @@ export function DesktopMessageActions({ rowProps, children }: MessageActionsProp
       onOpenChange={setMenuOpen}
       popupRender={(menuNode) => (
         <>
-          {scope.canReact && (
-            <QuickReactions
-              item={scope.item}
-              viewerMemberId={scope.context.memberId}
-              variant="menu"
-              onPicked={() => setMenuOpen(false)}
-              onMore={() => {
-                setMenuOpen(false);
-                setPicking(true);
-              }}
-            />
-          )}
+          {quickReactions}
           {menuNode}
         </>
       )}
@@ -52,11 +56,10 @@ export function DesktopMessageActions({ rowProps, children }: MessageActionsProp
       >
         {children}
         {picking && (
-          <ReactionPickerPopover
+          <ReactionPicker
             item={scope.item}
             viewerMemberId={scope.context.memberId}
-            own={scope.item.message.authorMemberId === scope.context.memberId}
-            open
+            own={scope.isOwn}
             onClose={() => setPicking(false)}
           />
         )}

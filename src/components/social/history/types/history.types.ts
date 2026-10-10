@@ -5,6 +5,10 @@ import type { MessageReaction } from '../../reactions/types/reaction.types';
 
 type Profile = { displayName: string | null; avatarPath: string | null };
 
+export interface Mention extends Profile {
+  memberId: string;
+}
+
 export interface MessageHistoryRow {
   type: 'MESSAGE';
   seq: bigint;
@@ -19,7 +23,7 @@ export interface MessageHistoryRow {
     pinnedAt: Date;
     pinnedByMemberId: string;
   } | null;
-  mentions: { memberId: string; displayName: string | null; avatarPath: string | null }[];
+  mentions: Mention[];
   reactions: MessageReaction[];
 }
 
@@ -34,6 +38,18 @@ export interface CallHistoryRow {
 // One row per channel_entries position; the query joins both subject kinds,
 // but a row is exactly one of them, never a grab-bag of optional fields.
 export type HistoryRow = MessageHistoryRow | CallHistoryRow;
+
+/** One page of a channel's history as one member sees it. */
+export interface HistoryPageQuery {
+  channelId: string;
+  viewerMemberId: string;
+  direction: 'before' | 'after';
+  /** Exclusive; without it the page starts at the oldest or the newest entry. */
+  cursor?: bigint | undefined;
+  /** The snapshot the reader is paging through; later entries stay out. */
+  ceiling: bigint;
+  limit: number;
+}
 
 export interface HistoryRowsPage {
   rows: HistoryRow[];

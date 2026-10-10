@@ -1,10 +1,21 @@
-import { Controller, Delete, Get, Param, ParseUUIDPipe, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 
 import { UseAuthGuards } from '@/components/auth';
 import { CurrentWorkspaceMember } from '@/components/workspaces/members/decorators';
 import { WorkspaceMemberGuard } from '@/components/workspaces/members/guards';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
+import { ReactionDto, ReactorsQueryDto } from './dto/reaction.dto';
 import { ReactionsFacade } from './reactions.facade';
 
 @Controller('workspaces/:workspaceId/channels/:channelId/messages/:messageId/reactions')
@@ -13,32 +24,33 @@ export class ReactionsController {
   constructor(private readonly reactions: ReactionsFacade) {}
 
   @Get()
-  reactors(
+  whoReacted(
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
     @Param('messageId', ParseUUIDPipe) messageId: string,
-    @Query('emoji') emoji?: string,
+    @Query() query: ReactorsQueryDto,
   ) {
-    return this.reactions.reactors(member, channelId, messageId, emoji);
+    return this.reactions.whoReacted(member, channelId, messageId, query.emoji);
   }
 
-  @Put(':emoji')
-  add(
+  @Post()
+  @HttpCode(200)
+  react(
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
     @Param('messageId', ParseUUIDPipe) messageId: string,
-    @Param('emoji') emoji: string,
+    @Body() dto: ReactionDto,
   ) {
-    return this.reactions.add(member, channelId, messageId, emoji);
+    return this.reactions.react(member, channelId, messageId, dto.emoji);
   }
 
-  @Delete(':emoji')
-  remove(
+  @Delete()
+  withdraw(
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
     @Param('messageId', ParseUUIDPipe) messageId: string,
-    @Param('emoji') emoji: string,
+    @Query() dto: ReactionDto,
   ) {
-    return this.reactions.remove(member, channelId, messageId, emoji);
+    return this.reactions.withdraw(member, channelId, messageId, dto.emoji);
   }
 }

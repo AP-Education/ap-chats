@@ -4,9 +4,11 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 import { PGlite } from '@electric-sql/pglite';
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { type TransactionalAdapter, TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterDrizzleOrm } from '@nestjs-cls/transactional-adapter-drizzle-orm';
+import { plainToInstance } from 'class-transformer';
+import { validateSync } from 'class-validator';
 import { eq } from 'drizzle-orm';
 import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite';
 
@@ -14,16 +16,18 @@ import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import * as schema from '@/database/drizzle/schema';
 
 import { DrizzleHistoryRepository } from '../history/repository/drizzle-history.repository';
-import { REACTION_ADDED_EVENT, ReactionAddedEvent } from './events/reaction-added.event';
-import { REACTION_REMOVED_EVENT, ReactionRemovedEvent } from './events/reaction-removed.event';
-import { isReactionEmoji, MAX_DISTINCT_REACTIONS } from './reaction-emoji';
+import { ReactionDto } from './dto/reaction.dto';
+import { REACTION_CHANGED_EVENT, ReactionChangedEvent } from './events/reaction-changed.event';
 import { ReactionsFacade } from './reactions.facade';
 import { DrizzleReactionsRepository } from './repository/drizzle-reactions.repository';
 
 test('a reaction is one fully qualified emoji', () => {
-  for (const emoji of ['👍', '❤️', '👍🏽', '🏳️‍🌈', '#️⃣']) assert.equal(isReactionEmoji(emoji), true);
+  const accepts = (emoji: string) =>
+    validateSync(plainToInstance(ReactionDto, { emoji })).length === 0;
+
+  for (const emoji of ['👍', '❤️', '👍🏽', '🏳️‍🌈', '#️⃣']) assert.equal(accepts(emoji), true, emoji);
   for (const value of ['', '❤', 'ok', '👍👍', '👍 ', ':thumbsup:'])
-    assert.equal(isReactionEmoji(value), false);
+    assert.equal(accepts(value), false, value);
 });
 
 // Embedded PostgreSQL with the real migrations: no application database is contacted.
@@ -37,167 +41,205 @@ test('reactions on PostgreSQL', async (t) => {
     await pg.exec(readFileSync(`drizzle/${migration}`, 'utf8'));
 
   const txHost = transactionHost(db);
-  const repository = new DrizzleReactionsRepository(txHost as never);
   const history = new DrizzleHistoryRepository(txHost as never);
   const access = { requirePostAccess: async () => {}, requireViewAccess: async () => {} };
 
-  async function seedMessage(extraPeople = 0) {
+  /** A channel with one message and the given number of people in its workspace. */
+  async function conversation(people = 2) {
     const workspaceId = randomUUID();
     const channelId = randomUUID();
     const messageId = randomUUID();
-    const members = Array.from({ length: 2 + extraPeople }, () => randomUUID());
-    const profiles = members.map(() => randomUUID());
+    const members = Array.from({ length: people }, (_, index) => ({
+      id: randomUUID(),
+      profileId: randomUUID(),
+      name: `Person ${index + 1}`,
+    }));
 
     await db.insert(schema.workspaces).values({ id: workspaceId, name: 'Workspace' });
     await db.insert(schema.userProfiles).values(
-      profiles.map((id, index) => ({
-        id,
-        oidcUserId: `user-${id}`,
-        displayName: `Person ${index + 1}`,
+      members.map(({ profileId, name }) => ({
+        id: profileId,
+        oidcUserId: `user-${profileId}`,
+        displayName: name,
       })),
     );
     await db
       .insert(schema.workspaceMembers)
-      .values(members.map((id, index) => ({ id, workspaceId, userProfileId: profiles[index]! })));
+      .values(members.map(({ id, profileId }) => ({ id, workspaceId, userProfileId: profileId })));
     await db.insert(schema.channels).values({
       id: channelId,
       workspaceId,
       kind: 'public',
       name: 'General',
-      createdByMemberId: members[0]!,
+      createdByMemberId: members[0]!.id,
       lastEntrySeq: 1n,
     });
     await db.insert(schema.chatMessages).values({
       id: messageId,
       workspaceId,
       channelId,
-      authorMemberId: members[0]!,
+      authorMemberId: members[0]!.id,
       contentMarkdown: 'Release is out',
       requestDigest: messageId,
       clientNonce: randomUUID(),
     });
     await db.insert(schema.channelEntries).values({ workspaceId, channelId, messageId, seq: 1n });
 
-    const [author, reader, ...extraMembers] = members.map(
-      (id) => ({ id, workspaceId }) as WorkspaceMember,
-    );
     const published: { key: string; event: unknown }[] = [];
-    const facade = new ReactionsFacade(access as never, repository, {
-      publish: (key: string, event: unknown) => published.push({ key, event }),
-    });
-    const projection = async (viewer: WorkspaceMember) => {
-      const { rows } = await history.page(channelId, 'after', 0n, 1n, 1, viewer.id);
+    const reactions = new ReactionsFacade(
+      access as never,
+      new DrizzleReactionsRepository(txHost as never),
+      { publish: (key: string, event: unknown) => published.push({ key, event }) },
+    );
+    const person = (index: number) => ({ id: members[index]!.id, workspaceId }) as WorkspaceMember;
+    const react = (who: number, emoji: string) =>
+      reactions.react(person(who), channelId, messageId, emoji);
+    const withdraw = (who: number, emoji: string) =>
+      reactions.withdraw(person(who), channelId, messageId, emoji);
+    const whoReacted = async (emoji?: string) => {
+      const people = await reactions.whoReacted(person(0), channelId, messageId, emoji);
+      return people.map((reactor) => `${reactor.displayName} ${reactor.emoji}`);
+    };
+    const seenBy = async (who: number) => {
+      const viewerMemberId = person(who).id;
+      const query = { channelId, viewerMemberId, direction: 'after' as const, ceiling: 1n };
+      const { rows } = await history.page({ ...query, limit: 1 });
       return rows[0]?.type === 'MESSAGE' ? rows[0].reactions : undefined;
     };
 
-    return {
-      channelId,
-      messageId,
-      author: author!,
-      reader: reader!,
-      extraMembers,
-      facade,
-      published,
-      projection,
-    };
+    return { channelId, messageId, person, react, withdraw, whoReacted, seenBy, published };
   }
 
   await t.test('history shows each emoji once, in the order it first appeared', async () => {
-    const { channelId, messageId, author, reader, facade, projection } = await seedMessage();
+    const chat = await conversation();
+    const [author, reader] = [chat.person(0).id, chat.person(1).id];
 
-    await facade.add(reader, channelId, messageId, '🎉');
-    await facade.add(author, channelId, messageId, '👍');
-    await facade.add(reader, channelId, messageId, '👍');
+    await chat.react(1, '🎉');
+    await chat.react(0, '👍');
+    await chat.react(1, '👍');
 
-    assert.deepEqual(await projection(author), [
-      { emoji: '🎉', count: 1, reacted: false, recentMemberIds: [reader.id] },
-      { emoji: '👍', count: 2, reacted: true, recentMemberIds: [reader.id, author.id] },
+    assert.deepEqual(await chat.seenBy(0), [
+      { emoji: '🎉', count: 1, recentMemberIds: [reader], reacted: false },
+      { emoji: '👍', count: 2, recentMemberIds: [reader, author], reacted: true },
     ]);
     assert.deepEqual(
-      (await projection(reader))?.map((reaction) => reaction.reacted),
+      (await chat.seenBy(1))?.map((reaction) => reaction.reacted),
       [true, true],
     );
-    const people = async (emoji?: string) =>
-      (await facade.reactors(author, channelId, messageId, emoji)).map(
-        (person) => `${person.displayName} ${person.emoji}`,
-      );
-    assert.deepEqual(await people('👍'), ['Person 2 👍', 'Person 1 👍']);
-    assert.deepEqual(await people(), ['Person 2 👍', 'Person 1 👍', 'Person 2 🎉']);
+  });
+
+  await t.test('a history page still brings each message its mentions', async () => {
+    const chat = await conversation();
+    const { workspaceId, id: memberId } = chat.person(1);
+    await db.insert(schema.messageMentions).values({
+      workspaceId,
+      channelId: chat.channelId,
+      messageId: chat.messageId,
+      memberId,
+    });
+
+    const { rows } = await history.page({
+      channelId: chat.channelId,
+      viewerMemberId: chat.person(0).id,
+      direction: 'after',
+      ceiling: 1n,
+      limit: 1,
+    });
+
+    const [row] = rows;
+    assert.deepEqual(row?.type === 'MESSAGE' && row.mentions, [
+      { memberId, displayName: 'Person 2', avatarPath: null },
+    ]);
+  });
+
+  await t.test('people who reacted come latest first, by emoji or all together', async () => {
+    const chat = await conversation();
+
+    await chat.react(1, '🎉');
+    await chat.react(0, '👍');
+    await chat.react(1, '👍');
+
+    assert.deepEqual(await chat.whoReacted('👍'), ['Person 2 👍', 'Person 1 👍']);
+    assert.deepEqual(await chat.whoReacted(), ['Person 2 👍', 'Person 1 👍', 'Person 2 🎉']);
   });
 
   await t.test('a chip names at most its three latest people', async () => {
-    const { channelId, messageId, author, facade, extraMembers } = await seedMessage(3);
+    const chat = await conversation(4);
+    for (const who of [0, 1, 2, 3]) await chat.react(who, '👍');
 
-    for (const person of [author, ...extraMembers])
-      await facade.add(person, channelId, messageId, '👍');
+    const summary = await chat.react(0, '👍');
 
-    const state = await facade.add(author, channelId, messageId, '👍');
-    assert.equal(state.count, 4);
-    assert.deepEqual(state.recentMemberIds, extraMembers.map((person) => person.id).reverse());
+    assert.equal(summary.count, 4);
+    assert.deepEqual(
+      summary.recentMemberIds,
+      [3, 2, 1].map((who) => chat.person(who).id),
+    );
   });
 
-  await t.test('a repeated add or remove changes nothing and announces nothing', async () => {
-    const { channelId, messageId, author, reader, facade, published, projection } =
-      await seedMessage();
+  await t.test('only a real change is announced, with the state it left', async () => {
+    const chat = await conversation();
+    const [author, reader] = [chat.person(0), chat.person(1)];
 
-    await facade.add(author, channelId, messageId, '👍');
-    assert.deepEqual(await facade.add(reader, channelId, messageId, '👍'), {
-      emoji: '👍',
-      count: 2,
-      recentMemberIds: [reader.id, author.id],
-      reacted: true,
-    });
-    await facade.add(reader, channelId, messageId, '👍');
-    await facade.remove(reader, channelId, messageId, '👍');
-    await facade.remove(reader, channelId, messageId, '👍');
+    await chat.react(0, '👍');
+    await chat.react(1, '👍');
+    await chat.react(1, '👍');
+    await chat.withdraw(1, '👍');
+    await chat.withdraw(1, '👍');
 
-    const event = (Event: typeof ReactionAddedEvent, actor: WorkspaceMember, faces: string[]) =>
-      new Event(actor.workspaceId, channelId, messageId, actor.id, '👍', faces.length, faces);
-    assert.deepEqual(published, [
-      { key: REACTION_ADDED_EVENT, event: event(ReactionAddedEvent, author, [author.id]) },
-      {
-        key: REACTION_ADDED_EVENT,
-        event: event(ReactionAddedEvent, reader, [reader.id, author.id]),
-      },
-      { key: REACTION_REMOVED_EVENT, event: event(ReactionRemovedEvent, reader, [author.id]) },
-    ]);
-    assert.deepEqual(await projection(reader), [
-      { emoji: '👍', count: 1, reacted: false, recentMemberIds: [author.id] },
+    const change = (actor: WorkspaceMember, added: boolean, people: WorkspaceMember[]) => {
+      const reaction = {
+        emoji: '👍',
+        count: people.length,
+        recentMemberIds: people.map((person) => person.id),
+      };
+      const { workspaceId, id } = actor;
+      const event = new ReactionChangedEvent(
+        workspaceId,
+        chat.channelId,
+        chat.messageId,
+        id,
+        added,
+        reaction,
+      );
+      return { key: REACTION_CHANGED_EVENT, event };
+    };
+    assert.deepEqual(chat.published, [
+      change(author, true, [author]),
+      change(reader, true, [reader, author]),
+      change(reader, false, [author]),
     ]);
   });
 
   await t.test('a full message takes no new emoji but keeps taking the ones it has', async () => {
-    const { channelId, messageId, author, reader, facade } = await seedMessage();
-    const emojis = [...'😀😁😂🤣😃😄😅😆😉😊😋😎😍😘🥰😗😙🥲😚🙂'];
-    assert.equal(emojis.length, MAX_DISTINCT_REACTIONS);
-    for (const emoji of emojis) await facade.add(author, channelId, messageId, emoji);
+    const chat = await conversation();
+    const twenty = [...'😀😁😂🤣😃😄😅😆😉😊😋😎😍😘🥰😗😙🥲😚🙂'];
+    for (const emoji of twenty) await chat.react(0, emoji);
 
-    await assert.rejects(facade.add(reader, channelId, messageId, '👍'), ConflictException);
-    assert.equal((await facade.add(reader, channelId, messageId, '😀')).count, 2);
+    await assert.rejects(chat.react(1, '👍'), ConflictException);
+    assert.equal((await chat.react(1, '😀')).count, 2);
   });
 
-  await t.test('text and deleted messages take no reactions', async () => {
-    const { channelId, messageId, author, facade, published } = await seedMessage();
-
-    await assert.rejects(facade.add(author, channelId, messageId, 'ok'), BadRequestException);
+  await t.test('a deleted message takes no reactions', async () => {
+    const chat = await conversation();
     await db
       .update(schema.chatMessages)
       .set({ deletedAt: new Date() })
-      .where(eq(schema.chatMessages.id, messageId));
-    await assert.rejects(facade.add(author, channelId, messageId, '👍'), NotFoundException);
-    assert.deepEqual(published, []);
+      .where(eq(schema.chatMessages.id, chat.messageId));
+
+    await assert.rejects(chat.react(0, '👍'), NotFoundException);
+    assert.deepEqual(chat.published, []);
   });
 
   await t.test('reactions go with their channel', async () => {
-    const { channelId, messageId, author, facade } = await seedMessage();
-    await facade.add(author, channelId, messageId, '👍');
+    const chat = await conversation();
+    await chat.react(0, '👍');
 
-    await db.delete(schema.channels).where(eq(schema.channels.id, channelId));
+    await db.delete(schema.channels).where(eq(schema.channels.id, chat.channelId));
 
     const left = await db
       .select()
       .from(schema.messageReactions)
-      .where(eq(schema.messageReactions.messageId, messageId));
+      .where(eq(schema.messageReactions.messageId, chat.messageId));
     assert.deepEqual(left, []);
   });
 });
