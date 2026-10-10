@@ -1,6 +1,7 @@
 import type { CallRecord } from '@/components/calls/types';
 
 import type { MessageModel } from '../../messages/types/message.types';
+import type { MessageReaction } from '../../reactions/types/reaction.types';
 
 type Profile = { displayName: string | null; avatarPath: string | null };
 
@@ -19,6 +20,7 @@ export interface MessageHistoryRow {
     pinnedByMemberId: string;
   } | null;
   mentions: { memberId: string; displayName: string | null; avatarPath: string | null }[];
+  reactions: MessageReaction[];
 }
 
 export interface CallHistoryRow {

@@ -1,6 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, lte, ne, or } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  lte,
+  min,
+  ne,
+  or,
+  sql,
+} from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import {
@@ -9,12 +25,14 @@ import {
   chatMessages,
   messageMentions,
   messagePins,
+  messageReactions,
   userProfiles,
   workspaceMembers,
 } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
-import type { HistoryRow, HistoryRowsPage } from '../types/history.types';
+import { recentMemberIds } from '../../reactions/repository/drizzle-reactions.repository';
+import type { HistoryRow, HistoryRowsPage, MessageHistoryRow } from '../types/history.types';
 import { HistoryRepository } from './history.repository';
 
 @Injectable()
@@ -164,6 +182,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     cursor: bigint | undefined,
     ceiling: bigint,
     limit: number,
+    viewerMemberId: string,
   ): Promise<HistoryRowsPage> {
     const rows = await this.rowsQuery(channelId, direction, cursor, ceiling, limit);
     const hasMore = rows.length > limit;
@@ -182,19 +201,32 @@ export class DrizzleHistoryRepository extends HistoryRepository {
           .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
           .where(inArray(messageMentions.messageId, messageIds))
       : [];
-    const byMessage = new Map<string, typeof mentions>();
-    for (const mention of mentions)
-      byMessage.set(mention.messageId, [...(byMessage.get(mention.messageId) ?? []), mention]);
+    // Counts and three faces: the full list is read on demand, so a busy message stays small here.
+    const reactions = messageIds.length
+      ? await this.txHost.tx
+          .select({
+            messageId: messageReactions.messageId,
+            emoji: messageReactions.emoji,
+            count: count(),
+            reacted: sql<boolean>`bool_or(${messageReactions.memberId} = ${viewerMemberId})`,
+            recentMemberIds: recentMemberIds(),
+          })
+          .from(messageReactions)
+          .where(inArray(messageReactions.messageId, messageIds))
+          .groupBy(messageReactions.messageId, messageReactions.emoji)
+          .orderBy(min(messageReactions.createdAt))
+      : [];
+    const details = { mentions: byMessage(mentions), reactions: byMessage(reactions) };
     const ordered = direction === 'before' ? page.reverse() : page;
-    return { rows: ordered.map((row) => this.toHistoryRow(row, byMessage)), hasMore };
+    return { rows: ordered.map((row) => this.toHistoryRow(row, details)), hasMore };
   }
 
   private toHistoryRow(
     row: Awaited<ReturnType<typeof this.rowsQuery>>[number],
-    mentionsByMessage: Map<
-      string,
-      { memberId: string; displayName: string | null; avatarPath: string | null }[]
-    >,
+    details: {
+      mentions: Map<string, MessageHistoryRow['mentions']>;
+      reactions: Map<string, (MessageHistoryRow['reactions'][number] & { messageId: string })[]>;
+    },
   ): HistoryRow {
     if (row.call) {
       if (!row.startedByProfile) throw new Error('Call entry missing its starter profile');
@@ -218,7 +250,21 @@ export class DrizzleHistoryRepository extends HistoryRepository {
       replyAuthorProfile: row.replyAuthorProfile,
       forwardAuthorProfile: row.forwardAuthorProfile,
       pin: row.pin,
-      mentions: mentionsByMessage.get(row.message.id) ?? [],
+      mentions: details.mentions.get(row.message.id) ?? [],
+      reactions: (details.reactions.get(row.message.id) ?? []).map(
+        ({ emoji, count, reacted, recentMemberIds }) => ({
+          emoji,
+          count,
+          reacted,
+          recentMemberIds,
+        }),
+      ),
     };
   }
+}
+
+function byMessage<T extends { messageId: string }>(rows: T[]): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+  for (const row of rows) grouped.set(row.messageId, [...(grouped.get(row.messageId) ?? []), row]);
+  return grouped;
 }

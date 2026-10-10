@@ -16,5 +16,6 @@ export abstract class HistoryRepository {
     cursor: bigint | undefined,
     ceiling: bigint,
     limit: number,
+    viewerMemberId: string,
   ): Promise<HistoryRowsPage>;
 }
