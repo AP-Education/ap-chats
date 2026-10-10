@@ -10,18 +10,12 @@ import { useActiveWorkspace } from '@/features/workspaces/hooks/useActiveWorkspa
 import { ApiError } from '@/shared/api/http';
 
 import { getMemberProfile } from '../../api/member-profile-api';
+import type { MemberSummary } from '../../types';
 import { MemberIdentity } from '../MemberIdentity';
-
-export interface MemberSummary {
-  memberId: string;
-  displayName: string | null;
-  avatarPath: string | null;
-}
 
 const useStyles = createStyles(({ token, css }) => ({
   card: css`
     box-sizing: border-box;
-    width: min(288px, calc(100vw - 32px));
     padding: 22px;
     color: ${token.colorText};
     text-align: center;
@@ -39,7 +33,12 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-export function MemberCard({ member }: { member: MemberSummary }) {
+interface MemberCardProps {
+  member: MemberSummary;
+  onConversationOpen: () => void;
+}
+
+export function MemberCard({ member, onConversationOpen }: MemberCardProps) {
   const { styles } = useStyles();
   const { workspace } = useActiveWorkspace();
   const { token, identity } = useQueryAuth();
@@ -78,7 +77,9 @@ export function MemberCard({ member }: { member: MemberSummary }) {
             loading={opening}
             disabled={unavailable}
             onClick={() => {
-              void open(member.memberId).catch(() => toast.error('Не вдалося відкрити розмову.'));
+              void open(member.memberId).then(onConversationOpen, () =>
+                toast.error('Не вдалося відкрити розмову.'),
+              );
             }}
           >
             Написати

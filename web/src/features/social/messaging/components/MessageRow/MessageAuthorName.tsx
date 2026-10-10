@@ -2,7 +2,7 @@ import { avatarColors } from '@ap-education/ui';
 import { theme } from 'antd';
 import { createStyles } from 'antd-style';
 
-import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
+import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
 
 import { useMessageActionScope } from './MessageActionScope';
 
@@ -40,7 +40,7 @@ export function MessageAuthorName() {
   if (item.message.authorMemberId === context.memberId) return null;
 
   return (
-    <MemberPopover member={item.author}>
+    <MemberProfileTrigger member={item.author}>
       <button
         type="button"
         className={styles.author}
@@ -48,6 +48,6 @@ export function MessageAuthorName() {
       >
         {author}
       </button>
-    </MemberPopover>
+    </MemberProfileTrigger>
   );
 }
