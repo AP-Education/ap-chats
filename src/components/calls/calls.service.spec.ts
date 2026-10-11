@@ -87,7 +87,7 @@ class FakeChannelAccessRepository extends ChannelAccessRepository {
     return this.membership.get(channelId)?.has(memberId) ?? false;
   }
 
-  async isDmPeerActive() {
+  async isDmPeerReachable() {
     return true;
   }
 }
@@ -238,7 +238,13 @@ function member(id: string): WorkspaceMember {
     id,
     workspaceId: 'workspace-1',
     userProfileId: `profile-${id}`,
-    profile: { id: `profile-${id}`, oidcUserId: `${id}-oidc`, displayName: id, avatarPath: null },
+    profile: {
+      id: `profile-${id}`,
+      oidcUserId: `${id}-oidc`,
+      displayName: id,
+      avatarPath: null,
+      isBot: false,
+    },
     role: 'member',
     status: 'active',
     leftAt: null,

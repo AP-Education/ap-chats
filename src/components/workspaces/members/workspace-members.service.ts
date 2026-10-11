@@ -31,6 +31,7 @@ export class WorkspaceMembersService {
       memberId: member.id,
       displayName: member.profile.displayName,
       avatarPath: member.profile.avatarPath,
+      isBot: member.profile.isBot,
       role: member.role,
       isSelf: member.id === viewer.id,
     };

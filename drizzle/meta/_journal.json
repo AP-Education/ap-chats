@@ -134,6 +134,20 @@
       "when": 1791368155910,
       "tag": "0018_push_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791630707537,
+      "tag": "0019_bot_profiles",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791653091870,
+      "tag": "0020_star_me_question_messages",
+      "breakpoints": true
     }
   ]
 }

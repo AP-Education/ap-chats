@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { and, desc, eq, exists, gt, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
@@ -46,9 +51,10 @@ export class DirectMessagesService {
     if (member.id === targetMemberId)
       throw new ConflictException('Choose another workspace member');
     const [firstMemberId, secondMemberId] = [member.id, targetMemberId].sort();
-    const target = await this.txHost.tx
-      .select({ id: workspaceMembers.id })
+    const [target] = await this.txHost.tx
+      .select({ isBot: userProfiles.isBot })
       .from(workspaceMembers)
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
       .where(
         and(
           eq(workspaceMembers.workspaceId, member.workspaceId),
@@ -56,7 +62,8 @@ export class DirectMessagesService {
           eq(workspaceMembers.status, 'active'),
         ),
       );
-    if (!target.length) throw new NotFoundException('Workspace member not found');
+    if (!target) throw new NotFoundException('Workspace member not found');
+    if (target.isBot) throw new ForbiddenException('A bot takes no direct messages');
 
     const existing = await this.findPair(member.workspaceId, firstMemberId!, secondMemberId!);
     if (existing) return this.get(member, existing);

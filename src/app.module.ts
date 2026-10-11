@@ -9,6 +9,7 @@ import { DevicesModule } from '@/components/devices';
 import { DirectMessagesModule } from '@/components/direct-messages/direct-messages.module';
 import { NotificationsModule } from '@/components/notifications';
 import { SocialModule } from '@/components/social/social.module';
+import { StarMeModule } from '@/components/star-me';
 import { UploadsModule } from '@/components/uploads';
 import { UserProfilesModule } from '@/components/user-profiles/user-profiles.module';
 import { WorkspacesModule } from '@/components/workspaces';
@@ -38,6 +39,7 @@ import { HealthController } from '@/health/health.controller';
     SocialModule,
     BootstrapModule,
     CallsModule,
+    StarMeModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],

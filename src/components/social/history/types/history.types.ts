@@ -1,24 +1,23 @@
 import type { CallRecord } from '@/components/calls/types';
+import type { MemberAppearance, MemberSummary } from '@/components/workspaces/members/types';
 
 import type { MessageModel } from '../../messages/types/message.types';
-
-type Profile = { displayName: string | null; avatarPath: string | null };
 
 export interface MessageHistoryRow {
   type: 'MESSAGE';
   seq: bigint;
   createdAt: Date;
   message: MessageModel;
-  authorProfile: Profile;
+  authorProfile: MemberAppearance;
   reply: MessageModel | null;
-  replyAuthorProfile: Profile | null;
-  forwardAuthorProfile: Profile | null;
+  replyAuthorProfile: MemberAppearance | null;
+  forwardAuthorProfile: MemberAppearance | null;
   pin: {
     messageId: string;
     pinnedAt: Date;
     pinnedByMemberId: string;
   } | null;
-  mentions: { memberId: string; displayName: string | null; avatarPath: string | null }[];
+  mentions: MemberSummary[];
 }
 
 export interface CallHistoryRow {
@@ -26,7 +25,7 @@ export interface CallHistoryRow {
   seq: bigint;
   createdAt: Date;
   call: CallRecord;
-  startedByProfile: Profile;
+  startedByProfile: MemberAppearance;
 }
 
 // One row per channel_entries position; the query joins both subject kinds,

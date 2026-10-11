@@ -1,9 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, eq, ilike, inArray, notInArray } from 'drizzle-orm';
+import {
+  and,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  ne,
+  notInArray,
+  or,
+  type SQL,
+} from 'drizzle-orm';
 
 import {
   channelMemberships,
+  channels,
   messageMentions,
   userProfiles,
   workspaceMembers,
@@ -29,24 +41,12 @@ export class DrizzleMentionsRepository extends MentionsRepository {
 
   async candidates(workspaceId: string, channelId: string, query: string) {
     const escaped = query.replace(/[\\%_]/gu, '\\$&');
-    return this.txHost.tx
-      .select({
-        memberId: workspaceMembers.id,
-        displayName: userProfiles.displayName,
-        avatarPath: userProfiles.avatarPath,
-      })
-      .from(channelMemberships)
-      .innerJoin(workspaceMembers, eq(workspaceMembers.id, channelMemberships.memberId))
-      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
-      .where(
-        and(
-          eq(channelMemberships.channelId, channelId),
-          eq(channelMemberships.workspaceId, workspaceId),
-          eq(workspaceMembers.status, 'active'),
-          query ? ilike(userProfiles.displayName, `%${escaped}%`) : undefined,
-        ),
-      )
-      .orderBy(userProfiles.displayName)
+    return this.mentionable(
+      workspaceId,
+      channelId,
+      query ? ilike(userProfiles.displayName, `%${escaped}%`) : undefined,
+    )
+      .orderBy(desc(userProfiles.isBot), userProfiles.displayName)
       .limit(20);
   }
 
@@ -56,19 +56,42 @@ export class DrizzleMentionsRepository extends MentionsRepository {
     ids: string[],
   ): Promise<boolean> {
     if (!ids.length) return true;
-    const rows = await this.txHost.tx
-      .select({ id: workspaceMembers.id })
+    const rows = await this.mentionable(workspaceId, channelId, inArray(workspaceMembers.id, ids));
+    return rows.length === ids.length;
+  }
+
+  // The channel's members, and the workspace's bots in any channel but a direct message: a
+  // mention summons a bot, which joins when it answers.
+  private mentionable(workspaceId: string, channelId: string, condition: SQL | undefined) {
+    return this.txHost.tx
+      .select({
+        memberId: workspaceMembers.id,
+        displayName: userProfiles.displayName,
+        avatarPath: userProfiles.avatarPath,
+        isBot: userProfiles.isBot,
+      })
       .from(workspaceMembers)
-      .innerJoin(channelMemberships, eq(channelMemberships.memberId, workspaceMembers.id))
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
+      .innerJoin(channels, and(eq(channels.workspaceId, workspaceId), eq(channels.id, channelId)))
+      .leftJoin(
+        channelMemberships,
+        and(
+          eq(channelMemberships.channelId, channelId),
+          eq(channelMemberships.memberId, workspaceMembers.id),
+        ),
+      )
       .where(
         and(
           eq(workspaceMembers.workspaceId, workspaceId),
           eq(workspaceMembers.status, 'active'),
-          eq(channelMemberships.channelId, channelId),
-          inArray(workspaceMembers.id, ids),
+          or(
+            isNotNull(channelMemberships.memberId),
+            and(eq(userProfiles.isBot, true), ne(channels.kind, 'dm')),
+          ),
+          condition,
         ),
-      );
-    return rows.length === ids.length;
+      )
+      .$dynamic();
   }
 
   async replace(

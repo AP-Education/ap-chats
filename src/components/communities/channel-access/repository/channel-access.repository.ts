@@ -16,5 +16,6 @@ export abstract class ChannelAccessRepository {
 
   abstract isChannelMember(channelId: string, memberId: string): Promise<boolean>;
 
-  abstract isDmPeerActive(channelId: string, memberId: string): Promise<boolean>;
+  /** Whether the other side of the member's direct message is an active person, not a bot. */
+  abstract isDmPeerReachable(channelId: string, memberId: string): Promise<boolean>;
 }

@@ -6,6 +6,7 @@ import {
   channelMemberships,
   channels,
   directMessages,
+  userProfiles,
   workspaceMembers,
 } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
@@ -75,7 +76,7 @@ export class DrizzleChannelAccessRepository extends ChannelAccessRepository {
     return !!row;
   }
 
-  async isDmPeerActive(channelId: string, memberId: string): Promise<boolean> {
+  async isDmPeerReachable(channelId: string, memberId: string): Promise<boolean> {
     const [pair] = await this.txHost.tx
       .select({ first: directMessages.firstMemberId, second: directMessages.secondMemberId })
       .from(directMessages)
@@ -85,8 +86,15 @@ export class DrizzleChannelAccessRepository extends ChannelAccessRepository {
     const [peer] = await this.txHost.tx
       .select({ id: workspaceMembers.id })
       .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.id, other), eq(workspaceMembers.status, 'active')))
-      .for('share');
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
+      .where(
+        and(
+          eq(workspaceMembers.id, other),
+          eq(workspaceMembers.status, 'active'),
+          eq(userProfiles.isBot, false),
+        ),
+      )
+      .for('share', { of: workspaceMembers });
     return !!peer;
   }
 }

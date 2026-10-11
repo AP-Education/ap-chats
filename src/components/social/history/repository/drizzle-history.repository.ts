@@ -3,6 +3,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, lte, ne, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
+import type { MemberSummary } from '@/components/workspaces/members/types';
 import {
   calls,
   channelEntries,
@@ -98,21 +99,28 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         seq: channelEntries.seq,
         createdAt: channelEntries.createdAt,
         message: chatMessages,
-        authorProfile: { displayName: authors.displayName, avatarPath: authors.avatarPath },
+        authorProfile: {
+          displayName: authors.displayName,
+          avatarPath: authors.avatarPath,
+          isBot: authors.isBot,
+        },
         reply: replyMessages,
         replyAuthorProfile: {
           displayName: replyAuthors.displayName,
           avatarPath: replyAuthors.avatarPath,
+          isBot: replyAuthors.isBot,
         },
         forwardAuthorProfile: {
           displayName: forwardAuthors.displayName,
           avatarPath: forwardAuthors.avatarPath,
+          isBot: forwardAuthors.isBot,
         },
         pin: messagePins,
         call: calls,
         startedByProfile: {
           displayName: startedByProfiles.displayName,
           avatarPath: startedByProfiles.avatarPath,
+          isBot: startedByProfiles.isBot,
         },
       })
       .from(channelEntries)
@@ -176,6 +184,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
             memberId: workspaceMembers.id,
             displayName: userProfiles.displayName,
             avatarPath: userProfiles.avatarPath,
+            isBot: userProfiles.isBot,
           })
           .from(messageMentions)
           .innerJoin(workspaceMembers, eq(workspaceMembers.id, messageMentions.memberId))
@@ -191,10 +200,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
 
   private toHistoryRow(
     row: Awaited<ReturnType<typeof this.rowsQuery>>[number],
-    mentionsByMessage: Map<
-      string,
-      { memberId: string; displayName: string | null; avatarPath: string | null }[]
-    >,
+    mentionsByMessage: Map<string, MemberSummary[]>,
   ): HistoryRow {
     if (row.call) {
       if (!row.startedByProfile) throw new Error('Call entry missing its starter profile');

@@ -1,13 +1,10 @@
+import type { MemberProfile } from './member-appearance.types';
+
 export interface WorkspaceMember {
   id: string;
   workspaceId: string;
   userProfileId: string;
-  profile: {
-    id: string;
-    oidcUserId: string;
-    displayName: string | null;
-    avatarPath: string | null;
-  };
+  profile: MemberProfile;
   role: 'owner' | 'member';
   status: 'active' | 'removed';
   leftAt: Date | null;

@@ -135,11 +135,7 @@ export class HistoryFacade {
           startedAt: call.startedAt,
           endedAt: call.endedAt,
         },
-        startedBy: {
-          memberId: call.startedByMemberId,
-          displayName: startedByProfile.displayName,
-          avatarPath: startedByProfile.avatarPath,
-        },
+        startedBy: { memberId: call.startedByMemberId, ...startedByProfile },
       };
     }
 
@@ -160,32 +156,20 @@ export class HistoryFacade {
       seq: seq.toString(),
       createdAt,
       message: messageView(message, seq, viewerMemberId),
-      author: {
-        memberId: message.authorMemberId,
-        displayName: authorProfile.displayName,
-        avatarPath: authorProfile.avatarPath,
-      },
+      author: { memberId: message.authorMemberId, ...authorProfile },
       reply: reply
         ? {
             id: reply.id,
             authorMemberId: reply.authorMemberId,
             author: replyAuthorProfile
-              ? {
-                  memberId: reply.authorMemberId,
-                  displayName: replyAuthorProfile.displayName,
-                  avatarPath: replyAuthorProfile.avatarPath,
-                }
+              ? { memberId: reply.authorMemberId, ...replyAuthorProfile }
               : null,
             markdown: reply.deletedAt ? null : reply.contentMarkdown,
           }
         : null,
       forwardedFrom:
         message.forwardedFromMemberId && forwardAuthorProfile
-          ? {
-              memberId: message.forwardedFromMemberId,
-              displayName: forwardAuthorProfile.displayName,
-              avatarPath: forwardAuthorProfile.avatarPath,
-            }
+          ? { memberId: message.forwardedFromMemberId, ...forwardAuthorProfile }
           : null,
       pin: pin ? { pinnedAt: pin.pinnedAt, pinnedByMemberId: pin.pinnedByMemberId } : null,
       mentions,

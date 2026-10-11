@@ -1,17 +1,26 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
+import { EventPublisher } from '@/globals/publisher/event-publisher';
+
 import type { WorkspaceMember } from '../members/types';
 import type { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import type { UpdateWorkspaceDto } from './dto/update-workspace.dto';
+import { WORKSPACE_CREATED_EVENT, WorkspaceCreatedEvent } from './events';
 import { WorkspacesRepository } from './repository';
 import type { Workspace } from './types';
 
 @Injectable()
 export class WorkspacesService {
-  constructor(private readonly workspacesRepository: WorkspacesRepository) {}
+  constructor(
+    private readonly workspacesRepository: WorkspacesRepository,
+    private readonly events: EventPublisher,
+  ) {}
 
-  create(userId: string, dto: CreateWorkspaceDto): Promise<Workspace> {
-    return this.workspacesRepository.create(userId, dto);
+  async create(userId: string, dto: CreateWorkspaceDto): Promise<Workspace> {
+    const workspace = await this.workspacesRepository.create(userId, dto);
+
+    this.events.publish(WORKSPACE_CREATED_EVENT, new WorkspaceCreatedEvent(workspace.id));
+    return workspace;
   }
 
   findAllForCurrentUser(userId: string): Promise<Workspace[]> {

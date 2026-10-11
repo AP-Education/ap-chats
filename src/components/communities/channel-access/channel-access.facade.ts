@@ -18,7 +18,7 @@ export class ChannelAccessFacade {
     await this.requireActiveMember(member);
     if (!(await this.repository.isChannelMember(channelId, member.id)))
       throw new ForbiddenException('Join this channel first');
-    if (channel.kind === 'dm' && !(await this.repository.isDmPeerActive(channelId, member.id)))
+    if (channel.kind === 'dm' && !(await this.repository.isDmPeerReachable(channelId, member.id)))
       throw new ForbiddenException('Direct message participant is unavailable');
     return channel;
   }
@@ -69,7 +69,7 @@ export class ChannelAccessFacade {
       throw new NotFoundException('Channel not found');
     if (!(await this.repository.isChannelMember(target.id, member.id)))
       throw new ForbiddenException('Join the destination channel first');
-    if (target.kind === 'dm' && !(await this.repository.isDmPeerActive(target.id, member.id)))
+    if (target.kind === 'dm' && !(await this.repository.isDmPeerReachable(target.id, member.id)))
       throw new ForbiddenException('Direct message participant is unavailable');
     return target;
   }

@@ -11,7 +11,13 @@ const actor: WorkspaceMember = {
   id: 'member-1',
   workspaceId: 'workspace-1',
   userProfileId: 'profile-1',
-  profile: { id: 'profile-1', oidcUserId: 'user-1', displayName: 'User One', avatarPath: null },
+  profile: {
+    id: 'profile-1',
+    oidcUserId: 'user-1',
+    displayName: 'User One',
+    avatarPath: null,
+    isBot: false,
+  },
   role: 'member',
   status: 'active',
   leftAt: null,
@@ -49,7 +55,7 @@ function access(
     async isChannelMember(id: string) {
       return memberships.includes(id);
     },
-    async isDmPeerActive() {
+    async isDmPeerReachable() {
       return peerActive;
     },
   } as ChannelAccessRepository;

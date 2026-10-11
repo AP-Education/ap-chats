@@ -12,5 +12,6 @@ import { ChannelMembershipsRepositoryModule } from './channel-memberships-reposi
   imports: [AuthModule, WorkspacesModule, ChannelAccessModule, ChannelMembershipsRepositoryModule],
   controllers: [ChannelMembershipsController],
   providers: [ChannelMembershipsService],
+  exports: [ChannelMembershipsService],
 })
 export class ChannelMembershipsModule {}
