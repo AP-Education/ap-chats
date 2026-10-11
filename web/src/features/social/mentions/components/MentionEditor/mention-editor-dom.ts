@@ -1,13 +1,12 @@
 import type { ComposerDraft } from '@/features/social/messaging/types';
 
-const mentionPattern = /:member\[([0-9a-f-]{36})\]/gi;
+import { type MentionToken, splitTokens, writeToken } from '../../mention-tokens';
 
 function serialize(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
   if (!(node instanceof HTMLElement)) return '';
 
-  const memberId = node.dataset.memberId;
-  if (memberId) return `:member[${memberId}]`;
+  if (node.dataset.token) return node.dataset.token;
   if (node.tagName === 'BR') return '\n';
 
   const content = [...node.childNodes].map(serialize).join('');
@@ -22,22 +21,27 @@ export function serializeEditor(root: HTMLElement | null): string {
   return root ? [...root.childNodes].map(serialize).join('') : '';
 }
 
-export function mentionChip(id: string, label: string, className: string) {
-  const chip = document.createElement('span');
-  chip.dataset.memberId = id;
-  chip.contentEditable = 'false';
-  chip.className = className;
-  chip.textContent = `@${label}`;
-  return chip;
+function chipText(token: MentionToken, labels: Record<string, string>) {
+  if (token.kind === 'everyone') return '@everyone';
+  if (token.kind === 'channel') return `#${labels[token.id] ?? 'канал'}`;
+  return `@${labels[token.id] ?? 'учасник'}`;
+}
+
+/** An uneditable chip that serializes back to the token it shows. */
+export function tokenChip(token: MentionToken, labels: Record<string, string>, className: string) {
+  const element = document.createElement('span');
+  element.contentEditable = 'false';
+  element.className = className;
+  element.dataset.token = writeToken(token);
+  element.textContent = chipText(token, labels);
+  return element;
 }
 
 export function restoreEditor(root: HTMLElement, draft: ComposerDraft, chipClass: string) {
-  root.replaceChildren();
-  let start = 0;
-  for (const match of draft.markdown.matchAll(mentionPattern)) {
-    root.append(document.createTextNode(draft.markdown.slice(start, match.index)));
-    root.append(mentionChip(match[1]!, draft.labels[match[1]!] ?? 'учасник', chipClass));
-    start = match.index + match[0].length;
-  }
-  root.append(document.createTextNode(draft.markdown.slice(start)));
+  const nodes = splitTokens(draft.markdown).map((part) =>
+    typeof part === 'string'
+      ? document.createTextNode(part)
+      : tokenChip(part, draft.labels, chipClass),
+  );
+  root.replaceChildren(...nodes);
 }

@@ -37,6 +37,8 @@ export interface MessageHistoryItem {
   forwardedFrom: MessageAuthor | null;
   pin: { pinnedAt: string; pinnedByMemberId: string } | null;
   mentions?: { memberId: string; displayName: string | null; avatarPath: string | null }[];
+  /** Whether the message reached the viewer, by name or through @everyone. */
+  mentionsMe?: boolean;
   reactions?: MessageReaction[];
 }
 

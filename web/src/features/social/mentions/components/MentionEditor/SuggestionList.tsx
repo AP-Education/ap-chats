@@ -4,11 +4,7 @@ import { useLayoutEffect, useRef } from 'react';
 
 import { Avatar } from '@/shared/ui/Avatar';
 
-export interface MentionCandidate {
-  memberId: string;
-  displayName: string | null;
-  avatarPath: string | null;
-}
+import type { Suggestion, SuggestionGroup } from './suggestions';
 
 const rise = keyframes`
   from { opacity: 0; transform: translateY(6px); }
@@ -49,7 +45,7 @@ const useStyles = createStyles(({ token, css }) => ({
     font-size: 12px;
     font-weight: 600;
   `,
-  candidate: css`
+  option: css`
     display: flex;
     flex-shrink: 0;
     align-items: center;
@@ -83,28 +79,42 @@ const useStyles = createStyles(({ token, css }) => ({
     color: ${token.colorPrimaryTextActive};
     font-weight: 650;
   `,
+  badge: css`
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: 50%;
+    background: ${token.colorPrimaryBg};
+    color: ${token.colorPrimaryTextActive};
+  `,
+  hint: css`
+    margin-left: auto;
+    color: ${token.colorTextTertiary};
+    font-size: 13px;
+    white-space: nowrap;
+  `,
 }));
 
-export type MentionListPlacement = 'docked' | 'floating';
+export type SuggestionListPlacement = 'docked' | 'floating';
 
-interface MentionCandidateListProps {
-  candidates: MentionCandidate[];
+interface SuggestionListProps {
+  group: SuggestionGroup;
   query: string;
   active: number;
   /** Docked in the composer's suggestion strip, or floating over an inline editor. */
-  placement: MentionListPlacement;
+  placement: SuggestionListPlacement;
   onActivate: (index: number) => void;
-  onPick: (candidate: MentionCandidate) => void;
+  onPick: (suggestion: Suggestion) => void;
 }
 
-export function MentionCandidateList({
-  candidates,
+export function SuggestionList({
+  group,
   query,
   active,
   placement,
   onActivate,
   onPick,
-}: MentionCandidateListProps) {
+}: SuggestionListProps) {
   const { styles, cx } = useStyles();
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -119,15 +129,15 @@ export function MentionCandidateList({
       ref={panelRef}
       className={cx(styles.panel, styles[placement])}
       role="listbox"
-      aria-label="Згадати людину"
+      aria-label={group.ariaLabel}
     >
       <span className={styles.heading} aria-hidden>
-        Учасники
+        {group.heading}
       </span>
-      {candidates.map((candidate, index) => (
-        <MentionCandidateOption
-          key={candidate.memberId}
-          candidate={candidate}
+      {group.items.map((suggestion, index) => (
+        <SuggestionOption
+          key={suggestion.key}
+          suggestion={suggestion}
           index={index}
           active={index === active}
           query={query}
@@ -139,26 +149,24 @@ export function MentionCandidateList({
   );
 }
 
-interface MentionCandidateOptionProps {
-  candidate: MentionCandidate;
+interface SuggestionOptionProps {
+  suggestion: Suggestion;
   index: number;
   active: boolean;
   query: string;
   onActivate: (index: number) => void;
-  onPick: (candidate: MentionCandidate) => void;
+  onPick: (suggestion: Suggestion) => void;
 }
 
-function MentionCandidateOption({
-  candidate,
+function SuggestionOption({
+  suggestion,
   index,
   active,
   query,
   onActivate,
   onPick,
-}: MentionCandidateOptionProps) {
+}: SuggestionOptionProps) {
   const { styles } = useStyles();
-  const isMobile = useIsMobile();
-  const name = candidate.displayName ?? 'Ім’я недоступне';
 
   return (
     <button
@@ -166,17 +174,34 @@ function MentionCandidateOption({
       role="option"
       data-index={index}
       aria-selected={active}
-      className={styles.candidate}
+      className={styles.option}
       onMouseDown={(event) => event.preventDefault()}
       // Pointer movement, not enter: keyboard scrolling slides rows under a resting cursor.
       onMouseMove={() => !active && onActivate(index)}
-      onClick={() => onPick(candidate)}
+      onClick={() => onPick(suggestion)}
     >
-      <Avatar path={candidate.avatarPath} alt={name} size={isMobile ? 36 : 30} shape="circle" />
+      <SuggestionVisual suggestion={suggestion} />
       <span className={styles.name}>
-        <MatchedName name={name} query={query} matchClassName={styles.match} />
+        <MatchedName name={suggestion.label} query={query} matchClassName={styles.match} />
       </span>
+      {suggestion.hint && <span className={styles.hint}>{suggestion.hint}</span>}
     </button>
+  );
+}
+
+function SuggestionVisual({ suggestion: { label, visual } }: { suggestion: Suggestion }) {
+  const { styles } = useStyles();
+  const isMobile = useIsMobile();
+  const size = isMobile ? 36 : 30;
+
+  if ('avatarPath' in visual)
+    return <Avatar path={visual.avatarPath} alt={label} size={size} shape="circle" />;
+
+  const Icon = visual.icon;
+  return (
+    <span className={styles.badge} style={{ width: size, height: size }}>
+      <Icon size={size * 0.55} weight="bold" />
+    </span>
   );
 }
 

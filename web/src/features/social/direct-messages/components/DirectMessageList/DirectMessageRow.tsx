@@ -3,6 +3,7 @@ import { BellSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { Link, useMatch } from 'react-router-dom';
 
+import { previewText } from '@/features/social/mentions/mention-tokens';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
@@ -170,9 +171,7 @@ export function DirectMessageRow({
   let preview = 'Нова розмова';
   if (item.lastMessage) {
     preview = item.lastMessage.markdown
-      ? item.lastMessage.markdown
-          .replace(/:member\[[0-9a-f-]{36}\]/gi, '@учасник')
-          .replace(/\s+/gu, ' ')
+      ? previewText(item.lastMessage.markdown)
       : item.lastMessage.markdown === null
         ? 'Повідомлення видалено'
         : 'Вкладення';
