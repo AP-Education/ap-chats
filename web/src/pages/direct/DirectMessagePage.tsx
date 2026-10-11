@@ -18,8 +18,8 @@ import { createStyles } from 'antd-style';
 import { useMatch, useParams } from 'react-router-dom';
 
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
-import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
+import { ConversationProvider } from '@/features/social/conversation-scope/store';
 import { DirectMessageActions } from '@/features/social/direct-messages/components/DirectMessageActions';
 import { DirectProfilePanel } from '@/features/social/direct-messages/components/DirectProfilePanel/DirectProfilePanel';
 import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDirectMessages';

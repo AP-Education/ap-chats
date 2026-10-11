@@ -1,12 +1,7 @@
 import type { ReactNode } from 'react';
 
-import type {
-  ActionContext,
-  ActionTarget,
-  ConversationAction,
-} from '@/features/social/conversation/actions';
-
 import type { AttachmentDraft } from '../../attachments/types';
+import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
 import type { DeliveryStatus, HistoryItem, MessageHistoryItem } from '../../types';
 
 // Everything a strategy might need, regardless of which fields its own kind

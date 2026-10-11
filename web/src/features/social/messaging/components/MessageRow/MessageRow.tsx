@@ -1,14 +1,10 @@
 import { createStyles } from 'antd-style';
 import { memo, useLayoutEffect, useRef } from 'react';
 
-import type {
-  ActionContext,
-  ActionTarget,
-  ConversationAction,
-} from '@/features/social/conversation/actions';
-import { useConversation } from '@/features/social/conversation/store';
+import { useConversation } from '@/features/social/conversation-scope/store';
 
 import type { AttachmentDraft } from '../../attachments/types';
+import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';
 import { Bubble } from '../Bubble/Bubble';
 import { SELECTION_GUTTER } from '../HistoryRun/HistoryRun';
@@ -76,17 +72,6 @@ const useStyles = createStyles(({ token, css }) => ({
       }
       to {
         opacity: 1;
-      }
-    }
-  `,
-  confirmed: css`
-    animation: confirmed 0.9s ease-out;
-    @keyframes confirmed {
-      30% {
-        background: color-mix(in srgb, ${token.colorPrimary} 12%, transparent);
-      }
-      100% {
-        background: transparent;
       }
     }
   `,
@@ -171,9 +156,7 @@ export const MessageRow = memo(function MessageRow({
   const { styles, cx } = useStyles();
   const authorName = item.author.displayName ?? 'Ім’я недоступне';
   const isOwnMessage = item.message.authorMemberId === actionContext.memberId;
-  const mentionsMe =
-    !isOwnMessage &&
-    (item.mentions?.some((mention) => mention.memberId === actionContext.memberId) ?? false);
+  const mentionsMe = !isOwnMessage && Boolean(item.mentionsMe);
   const isReplyToMe = !isOwnMessage && item.reply?.authorMemberId === actionContext.memberId;
   const highlighted = mentionsMe || isReplyToMe;
   const isSelected = useConversation((state) => state.selectedIds.includes(item.message.id));
@@ -217,7 +200,6 @@ export const MessageRow = memo(function MessageRow({
             styles.row,
             isSelected && styles.selected,
             (delivery === 'sending' || delivery === 'uploading') && styles.sending,
-            delivery === 'confirmed' && styles.confirmed,
           ),
           onClick: (event) => {
             if (!hasSelection || window.getSelection()?.toString()) return;

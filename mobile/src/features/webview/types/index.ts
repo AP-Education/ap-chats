@@ -20,10 +20,11 @@ export type NativeToWebMessage =
   | ({ type: 'composer/state' } & ComposerInputState)
   | { type: 'composer/insert'; sessionId: string; requestId: number; text: string }
   | { type: 'composer/gif'; sessionId: string; requestId: number; url: string; title: string }
-  /** The keyboard starts rising: slide the page up by `shift` over `duration` ms on `easing`. */
-  | { type: 'keyboard/glide'; shift: number; duration: number; easing: string }
-  /** The rise is over or abandoned; the page settles on its new size. */
-  | { type: 'keyboard/glide-end' }
+  /**
+   * The native input now covers `inset` px of the page's bottom beyond its own safe area, reached
+   * over `duration` ms on `easing`; the page never resizes for it.
+   */
+  | { type: 'keyboard/inset'; inset: number; duration: number; easing: string }
   | { type: 'notifications/open'; payload: NotificationIntent }
   | { type: 'notifications/permission'; status: PushPermission }
   | { type: 'navigation/select'; id: string }

@@ -26,6 +26,7 @@ interface BottomSheetProps extends PropsWithChildren {
   open: boolean;
   onClose: () => void;
   'aria-label': string;
+  destroyOnHidden?: boolean;
 }
 
 /** A sheet of actions rising from the bottom of a phone screen. */

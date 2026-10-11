@@ -1,6 +1,6 @@
 import { createStyles } from 'antd-style';
 
-import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
+import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
 
 import type { MessageAuthor } from '../../types';
 
@@ -28,10 +28,10 @@ export function ForwardedAuthorName({ member }: { member: MessageAuthor | null }
   if (!member) return 'Ім’я недоступне';
 
   return (
-    <MemberPopover member={member}>
+    <MemberProfileTrigger member={member}>
       <button type="button" className={styles.name}>
         {member.displayName ?? 'Ім’я недоступне'}
       </button>
-    </MemberPopover>
+    </MemberProfileTrigger>
   );
 }

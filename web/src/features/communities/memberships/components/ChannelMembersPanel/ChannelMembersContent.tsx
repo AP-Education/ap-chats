@@ -3,7 +3,7 @@ import { UserMinusIcon, UsersIcon } from '@phosphor-icons/react';
 import { Button, Popconfirm, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 
-import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
+import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
 import { MemberLabel } from '@/features/workspaces/components/MemberLabel';
 import type { WorkspaceMemberLabel } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 
@@ -131,7 +131,7 @@ export function ChannelMembersContent({
         return (
           <div className={styles.member} key={membership.memberId}>
             <span className={styles.memberLabel}>
-              <MemberPopover
+              <MemberProfileTrigger
                 member={{
                   memberId: entry.member.id,
                   displayName: entry.member.profile.displayName,
@@ -141,7 +141,7 @@ export function ChannelMembersContent({
                 <button type="button" className={styles.memberTrigger}>
                   <MemberLabel entry={entry} size={40} />
                 </button>
-              </MemberPopover>
+              </MemberProfileTrigger>
             </span>
             {canManage && !entry.isSelf && (
               <Popconfirm

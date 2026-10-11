@@ -1,13 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
 import { flashMessage } from '@/features/social/messaging/flashMessage';
 import { useChannelRealtime } from '@/features/social/messaging/hooks/useChannelRealtime';
 import { useMessageHistory } from '@/features/social/messaging/hooks/useMessageHistory';
 import type { HistoryPage } from '@/features/social/messaging/types';
 import { useActiveConversationReadState } from '@/features/social/read-state/hooks/useActiveConversationReadState';
-
-import { useConversation, useConversationScope } from '../../store';
 
 const emptyPages: HistoryPage[] = [];
 

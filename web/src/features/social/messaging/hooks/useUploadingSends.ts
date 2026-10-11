@@ -3,10 +3,10 @@ import { useState } from 'react';
 import type { AttachmentDraft } from '../attachments/types';
 import type { PendingAttachmentCommit, SendMessageCommand } from '../types';
 
+export type UploadingInput = Omit<SendMessageCommand, 'clientNonce' | 'attachments'>;
+
 interface UploadingSend {
-  markdown: string;
-  replyToMessageId?: string;
-  quoteText?: string;
+  input: UploadingInput;
   createdAt: string;
   drafts: AttachmentDraft[];
 }
@@ -24,10 +24,7 @@ export function useUploadingSends(onReady: (input: SendMessageCommand, createdAt
     () => new Map(),
   );
 
-  function start(
-    input: { markdown: string; replyToMessageId?: string; quoteText?: string },
-    pending: PendingAttachmentCommit,
-  ) {
+  function start(input: UploadingInput, pending: PendingAttachmentCommit) {
     const { nonce, drafts, watchCommitted, uncommit, releaseCommitted } = pending;
     const createdAt = new Date().toISOString();
     const drop = () =>
@@ -39,13 +36,7 @@ export function useUploadingSends(onReady: (input: SendMessageCommand, createdAt
       });
     setUploadingSends((current) => {
       const next = new Map(current);
-      next.set(nonce, {
-        markdown: input.markdown,
-        replyToMessageId: input.replyToMessageId,
-        quoteText: input.quoteText,
-        createdAt,
-        drafts,
-      });
+      next.set(nonce, { input, createdAt, drafts });
       return next;
     });
     const unsubscribe = watchCommitted(nonce, (nextDrafts) => {
@@ -67,10 +58,8 @@ export function useUploadingSends(onReady: (input: SendMessageCommand, createdAt
         drop();
         onReady(
           {
-            markdown: input.markdown,
+            ...input,
             clientNonce: nonce,
-            replyToMessageId: input.replyToMessageId,
-            quoteText: input.quoteText,
             attachments: nextDrafts.map((draft) => ({
               ...draft.attachment!,
               description: draft.description || null,

@@ -19,8 +19,8 @@ import {
   type ComposerInputState,
   EmojiKeyboardPanel,
   type GifResult,
+  type InsetMotion,
   isComposerInputRequest,
-  type KeyboardGlide,
   useComposerInput,
 } from '../../composer';
 import { NativeTabs } from '../../navigation/components/NativeTabs';
@@ -43,7 +43,8 @@ const webUrl = process.env.EXPO_PUBLIC_WEB_URL;
 const inspectable = __DEV__ || process.env.EXPO_PUBLIC_WEBVIEW_INSPECTABLE === 'true';
 
 export function WebViewHost() {
-  const webViewRef = useRef<WebView>(null);
+  // 13.17 defaults WebView's extra props to `undefined`, which leaves it accepting none.
+  const webViewRef = useRef<WebView<object>>(null);
   const auth = useAuthStore();
   const pendingNotification = useNotificationStore((state) => state.pending);
   const webReady = useNotificationStore((state) => state.webReady);
@@ -67,23 +68,20 @@ export function WebViewHost() {
   const sendInputState = useCallback((state: ComposerInputState) => {
     webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'composer/state', ...state }));
   }, []);
-  // The page ends at the keyboard's top once it has risen, and the home indicator's inset it
-  // pads itself with goes with it, so it slides by the keyboard less that inset.
-  const sendGlide = useCallback(
-    (glide: KeyboardGlide) => {
-      const message: NativeToWebMessage = glide
-        ? {
-            type: 'keyboard/glide',
-            shift: Math.max(0, glide.height - insets.bottom),
-            duration: glide.duration,
-            easing: glide.easing,
-          }
-        : { type: 'keyboard/glide-end' };
-      webViewRef.current?.injectJavaScript(buildBridgeScript(message));
+  // The page already keeps clear of the home indicator (iOS) or sits above the reserved inset
+  // (Android), so it pads only for what covers more than that.
+  const lastInset = useRef(0);
+  const sendInset = useCallback(
+    (room: number, { duration, easing }: InsetMotion) => {
+      lastInset.current = Math.max(0, room - insets.bottom);
+      webViewRef.current?.injectJavaScript(
+        buildBridgeScript({ type: 'keyboard/inset', inset: lastInset.current, duration, easing }),
+      );
     },
     [insets.bottom],
   );
-  const input = useComposerInput(sendInputState, sendGlide);
+  const reservedInset = edgeToEdge ? 0 : insets.bottom;
+  const input = useComposerInput(sendInputState, sendInset, { reservedInset, containerHeight });
   // Opens on the page the person left; unset until the stored one is read, a moment at launch.
   const [startUrl, setStartUrl] = useState<string>();
 
@@ -126,6 +124,19 @@ export function WebViewHost() {
   }, [auth.status, webReady, pendingNotification, loadCount]);
 
   useEffect(() => () => useNotificationStore.getState().setWebReady(false), []);
+
+  // A reloaded page starts unpadded.
+  useEffect(() => {
+    if (loadCount === 0) return;
+
+    const message: NativeToWebMessage = {
+      type: 'keyboard/inset',
+      inset: lastInset.current,
+      duration: 0,
+      easing: 'linear',
+    };
+    webViewRef.current?.injectJavaScript(buildBridgeScript(message));
+  }, [loadCount]);
 
   // Settings changes the permission outside the app, so it is re-read on every return.
   useEffect(() => {
@@ -234,15 +245,16 @@ export function WebViewHost() {
       onLayout={(event) => setContainerHeight(event.nativeEvent.layout.height)}
     >
       <MessageNotificationSound request={messageSoundRequest} />
-      <View style={styles.webviewWrapper}>
+      <View style={[styles.webviewWrapper, { paddingBottom: reservedInset }]}>
         {startUrl && (
           <Portal hostName={tabBar?.activeId} style={styles.page}>
-            <WebView
+            <WebView<object>
               ref={webViewRef}
               source={{ uri: startUrl }}
-              // WKWebView paints white wherever the page has not drawn yet, e.g. the strip it gains
-              // while the keyboard area beneath it shrinks.
               style={[styles.webview, { backgroundColor: palette.surface }]}
+              // The page keeps its size under the keyboard and pads itself by `keyboard/inset`;
+              // WKWebView would otherwise shift and resize it a beat behind the keyboard.
+              removeIosKeyboardObserver
               hideKeyboardAccessoryView
               // An app screen, not a document: no pinch zoom (Android; iOS follows the page viewport).
               setBuiltInZoomControls={false}
@@ -296,7 +308,7 @@ export function WebViewHost() {
         panelHeight={input.panelHeight}
         heldHeight={input.heldHeight}
         bottomInset={insets.bottom}
-        reservedInset={edgeToEdge ? 0 : insets.bottom}
+        reservedInset={reservedInset}
         containerHeight={containerHeight}
         visible={input.state.mode === 'picker' || input.state.mode === 'search'}
         activeTab={input.state.tab}
