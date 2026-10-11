@@ -41,9 +41,9 @@ export function useScrollAnchoring({
   const prepend = useRef<{ height: number; top: number } | null>(null);
   const didPosition = useRef(false);
   const atBottom = useRef(true);
-  // The height the anchoring last answered for. A shrinking viewport (the native keyboard
-  // rising frame by frame) can fire a scroll event before the observer below pins the
-  // bottom again; measured against the new height it would read as the reader leaving it.
+  // The height the anchoring last answered for. A viewport that changes size fires its scroll
+  // event before the observer below catches up; measured against the smaller of the two heights,
+  // a reader at the bottom would read as leaving it.
   const viewportHeight = useRef(0);
   const jumpAfterNext = useRef(false);
   const suppressOlderUntil = useRef(0);
@@ -56,7 +56,11 @@ export function useScrollAnchoring({
     if (!container) return;
     viewportHeight.current = container.clientHeight;
     const observer = new ResizeObserver(() => {
-      viewportHeight.current = container.clientHeight;
+      const height = container.clientHeight;
+      // A viewport that shrinks or grows (the keyboard) keeps what sits at its bottom in place,
+      // as in any chat; a changing feed keeps the reading position instead.
+      if (!atBottom.current) container.scrollTop += viewportHeight.current - height;
+      viewportHeight.current = height;
       if (atBottom.current) container.scrollTop = container.scrollHeight;
     });
     observer.observe(container);
@@ -142,7 +146,8 @@ export function useScrollAnchoring({
   function onScroll() {
     const container = scrollRef.current;
     if (!container) return;
-    const nearBottom = container.scrollHeight - container.scrollTop - viewportHeight.current < 110;
+    const viewport = Math.max(viewportHeight.current, container.clientHeight);
+    const nearBottom = container.scrollHeight - container.scrollTop - viewport < 110;
     atBottom.current = nearBottom;
     setAwayFromBottom(!nearBottom);
     if (
