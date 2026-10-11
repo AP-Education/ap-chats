@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { useConversation } from '@/features/social/conversation-scope/store';
 import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { MessageComposer } from '@/features/social/messaging/components/MessageComposer';
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
@@ -9,8 +10,6 @@ import type {
   SendMessageCommand,
 } from '@/features/social/messaging/types';
 import { isMessageItem } from '@/features/social/messaging/types';
-
-import { useConversation } from '../../store';
 
 interface ConversationFooterProps {
   canPost: boolean;

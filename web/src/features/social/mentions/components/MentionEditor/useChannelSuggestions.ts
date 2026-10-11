@@ -4,7 +4,7 @@ import {
 } from '@/features/communities/channels/channelIcons';
 import { useChannels } from '@/features/communities/channels/hooks/useChannels';
 import type { Channel } from '@/features/communities/channels/types';
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import type { Suggestion, SuggestionGroup, SuggestionQuery } from './suggestions';
 

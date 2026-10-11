@@ -22,7 +22,7 @@ import {
 } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { useConversation, useConversationScope } from '@/features/social/conversation/store';
+import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
 import { randomId } from '@/shared/lib/random-id';
 

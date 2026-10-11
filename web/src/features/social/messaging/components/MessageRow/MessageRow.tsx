@@ -1,14 +1,10 @@
 import { createStyles } from 'antd-style';
 import { memo, useLayoutEffect, useRef } from 'react';
 
-import type {
-  ActionContext,
-  ActionTarget,
-  ConversationAction,
-} from '@/features/social/conversation/actions';
-import { useConversation } from '@/features/social/conversation/store';
+import { useConversation } from '@/features/social/conversation-scope/store';
 
 import type { AttachmentDraft } from '../../attachments/types';
+import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';
 import { Bubble } from '../Bubble/Bubble';
 import { SELECTION_GUTTER } from '../HistoryRun/HistoryRun';

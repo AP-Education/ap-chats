@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 
 import { useChannels } from '@/features/communities/channels/hooks/useChannels';
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import { MentionChipText, useMentionChipStyles } from './MentionChip';
 

@@ -1,7 +1,7 @@
 import { CopyIcon, PencilSimpleIcon, SelectionIcon, TrashIcon } from '@phosphor-icons/react';
 
-import { QuoteIcon, ReplyIcon } from '../conversation/actionIcons';
-import type { ConversationAction } from '../conversation/actions';
+import { QuoteIcon, ReplyIcon } from './actionIcons';
+import type { ConversationAction } from './types';
 
 const textAvailable = (markdown: string | null) => markdown !== null;
 

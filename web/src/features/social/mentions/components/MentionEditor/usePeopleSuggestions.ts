@@ -2,7 +2,7 @@ import { UsersThreeIcon } from '@phosphor-icons/react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { apiRequest } from '@/shared/api/http';
 
 import type { Suggestion, SuggestionGroup, SuggestionQuery } from './suggestions';

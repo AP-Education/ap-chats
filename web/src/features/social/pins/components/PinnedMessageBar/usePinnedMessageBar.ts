@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import { usePinActions, usePins } from '../../hooks/usePins';
 

@@ -1,7 +1,6 @@
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { ForwardModal } from '@/features/social/forwarding/components/ForwardModal/ForwardModal';
 import type { MessageHistoryItem } from '@/features/social/messaging/types';
-
-import { useConversationScope } from '../../store';
 
 interface ConversationForwardingProps {
   items: MessageHistoryItem[];

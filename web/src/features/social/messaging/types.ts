@@ -1,4 +1,4 @@
-import type { CSSProperties, Ref } from 'react';
+import type { CSSProperties, ReactNode, Ref } from 'react';
 
 import type { MessageReaction } from '../reactions/types';
 import type { Attachment, AttachmentDraft } from './attachments/types';
@@ -172,4 +172,36 @@ export interface ComposerEditorSlotProps {
   onPasteFiles?: (files: File[]) => void;
   /** The strip above the composer where suggestion lists dock; an inline editor has none. */
   suggestionsHost?: HTMLElement | null;
+}
+
+// What any feature can offer on messages: the conversation gathers them, message rows show them.
+export type ActionTarget =
+  | { kind: 'message'; items: [MessageHistoryItem] }
+  | { kind: 'text'; items: [MessageHistoryItem]; selectedText: string }
+  | { kind: 'batch'; items: MessageHistoryItem[] };
+
+export interface ActionContext {
+  memberId: string | undefined;
+  canManage: boolean;
+  canPin: boolean;
+  canPost: boolean;
+}
+
+export interface ActionCommands {
+  reply: (item: MessageHistoryItem, quoteText?: string) => void;
+  edit: (item: MessageHistoryItem) => void;
+  remove: (items: MessageHistoryItem[]) => void;
+  select: (item: MessageHistoryItem) => void;
+  copy: (items: MessageHistoryItem[], selectedText?: string) => void;
+  forward: (items: MessageHistoryItem[]) => void;
+  pin: (item: MessageHistoryItem, active: boolean) => void;
+  showReactions: (item: MessageHistoryItem) => void;
+}
+
+export interface ConversationAction {
+  id: string;
+  icon: ReactNode;
+  label: (target: ActionTarget) => string;
+  available: (target: ActionTarget, context: ActionContext) => boolean;
+  execute: (target: ActionTarget, commands: ActionCommands) => void;
 }

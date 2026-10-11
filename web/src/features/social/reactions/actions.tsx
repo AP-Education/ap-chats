@@ -1,6 +1,6 @@
 import { SmileyIcon } from '@phosphor-icons/react';
 
-import type { ConversationAction } from '../conversation/actions';
+import type { ConversationAction } from '../messaging/types';
 import { reactionsLabel, totalReactions } from './reaction-display';
 
 export const reactionActions: ConversationAction[] = [
