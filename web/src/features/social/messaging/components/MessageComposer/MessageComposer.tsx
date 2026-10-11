@@ -305,10 +305,11 @@ export function MessageComposer({
   }, [blurComposerToken]);
 
   const handleSend = useCallback(() => {
-    const markdown = editableRef.current?.markdown().trim() ?? '';
+    const draft = editableRef.current?.draft();
     if (!canSend) return;
     const input = {
-      markdown,
+      markdown: draft?.markdown.trim() ?? '',
+      labels: draft?.labels,
       ...(intent ? { replyToMessageId: intent.messageId } : {}),
       ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
     };

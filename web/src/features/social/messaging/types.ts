@@ -103,6 +103,8 @@ export interface SendMessageCommand {
   replyToMessageId?: string;
   quoteText?: string;
   attachments?: Attachment[];
+  /** The composer's names for its inline references, so the echo shows them before history does. */
+  labels?: Record<string, string>;
 }
 
 // 'uploading': attachments are still in flight — sending never waits on them
@@ -137,7 +139,7 @@ export interface ComposerDraft {
 }
 
 export interface ComposerEditorApi {
-  markdown: () => string;
+  draft: () => ComposerDraft;
   clear: () => void;
   focus: () => void;
   blur: () => void;

@@ -75,7 +75,7 @@ export function MessageEditor({ item, onEdit, onClose, minHeight, children }: Me
 
   const save = useCallback(
     async (overwrite = false) => {
-      const markdown = editor.current?.markdown().trim();
+      const markdown = editor.current?.draft().markdown.trim();
       if (markdown === undefined || (!markdown && !item.message.attachments?.length) || saving)
         return;
       setSaving(true);

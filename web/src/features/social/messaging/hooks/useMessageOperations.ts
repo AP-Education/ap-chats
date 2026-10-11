@@ -75,6 +75,12 @@ function synthesize(
       : null,
     forwardedFrom: null,
     pin: null,
+    // Named from the composer's own labels so the row reads the same before and after history has it.
+    mentions: Object.entries(input.labels ?? {}).map(([memberId, displayName]) => ({
+      memberId,
+      displayName,
+      avatarPath: null,
+    })),
   };
 }
 
@@ -246,15 +252,10 @@ export function useMessageOperations(
     }));
     const uploading: DisplayItem[] = [...uploadingSends.entries()].map(([nonce, entry]) => ({
       item: synthesize(
-        {
-          markdown: entry.markdown,
-          clientNonce: nonce,
-          replyToMessageId: entry.replyToMessageId,
-          quoteText: entry.quoteText,
-        },
+        { ...entry.input, clientNonce: nonce },
         entry.createdAt,
         author,
-        findMessage(messages, entry.replyToMessageId),
+        findMessage(messages, entry.input.replyToMessageId),
       ),
       delivery: 'uploading',
       pendingAttachments: entry.drafts,

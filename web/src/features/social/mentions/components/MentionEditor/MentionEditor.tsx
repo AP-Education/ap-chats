@@ -88,11 +88,15 @@ export function MentionEditor() {
     return composer.mentionEveryone ? tokenizeTypedEveryone(markdown) : markdown;
   }
 
+  function currentDraft() {
+    return { markdown: currentMarkdown(), labels: labels.current };
+  }
+
   // Fires on every keystroke and click: the editor's content and/or the caret
   // position may have moved, so both the draft echo and the suggestion query
   // get re-derived from scratch rather than threaded through as separate state.
   function handleActivity() {
-    onChange?.({ markdown: currentMarkdown(), labels: labels.current });
+    onChange?.(currentDraft());
     const root = composerRef.current?.rootElement();
     const selection = window.getSelection();
     if (
@@ -135,7 +139,7 @@ export function MentionEditor() {
   }
 
   useImperativeHandle(editorRef, () => ({
-    markdown: currentMarkdown,
+    draft: currentDraft,
     clear: () => {
       composerRef.current?.clear();
       labels.current = {};
