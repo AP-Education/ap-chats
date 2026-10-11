@@ -1,23 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { PGlite } from '@electric-sql/pglite';
 import { NotFoundException } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/pglite';
 
 import * as schema from '@/database/drizzle/schema';
 import { seedConversations } from '@/testing/conversations';
-import { migrate, transactionHost } from '@/testing/pglite';
+import { migratedDatabase, transactionHost } from '@/testing/pglite';
 
 import { DirectMessagesService } from './direct-messages.service';
 
 // Embedded PostgreSQL with the real migrations: no application database is contacted.
 test('direct messages across workspaces on PostgreSQL', async (t) => {
-  const pg = await PGlite.create();
-  const db = drizzle(pg, { schema });
+  const { pg, db } = await migratedDatabase();
   t.after(() => pg.close());
-  await migrate(pg);
 
   const directMessages = new DirectMessagesService(transactionHost(db) as never);
   const seed = seedConversations(db);

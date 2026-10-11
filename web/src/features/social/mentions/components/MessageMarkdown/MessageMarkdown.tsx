@@ -1,64 +1,18 @@
-import { createStyles } from 'antd-style';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkDirective from 'remark-directive';
 
-import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
+import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
 
+import { ChannelReference } from './ChannelReference';
 import { mentionDirective } from './mention-directive';
+import { MentionChipText, useMentionChipStyles } from './MentionChip';
 
 export interface MentionLabel {
   memberId: string;
   displayName: string | null;
   avatarPath?: string | null;
 }
-
-const useStyles = createStyles(({ token, css }) => ({
-  // Hugs the glyphs instead of filling the line: a button would otherwise stretch its
-  // tint to the full line box and read as a block in the middle of the sentence.
-  mention: css`
-    display: inline;
-    padding: 1px 4px;
-    border: 0;
-    border-radius: ${token.borderRadiusSM}px;
-    background: var(--mention-bg, ${token.colorPrimaryBg});
-    color: var(--mention-color, ${token.colorPrimaryTextActive});
-    font: inherit;
-    font-weight: 600;
-    line-height: 1.2;
-    vertical-align: baseline;
-    box-decoration-break: clone;
-  `,
-  mentionTrigger: css`
-    cursor: pointer;
-
-    &:hover,
-    &:focus-visible {
-      background: var(--mention-bg-hover, ${token.colorPrimaryBgHover});
-    }
-  `,
-  // A mention of you specifically reads differently from a mention of
-  // anyone else — Discord's amber "this is about you" tag. The same accent
-  // as the row highlight, deliberately not antd's stock warning tokens,
-  // which read as a random clash against this app's teal palette.
-  // Own bubbles override these with their usual mention ink: naming yourself in your
-  // own message is no news to you, and amber on the accent fill reads as mud.
-  mentionMe: css`
-    background: var(--mention-me-bg, rgba(250, 173, 20, 0.18));
-    color: var(--mention-me-color, #874d00);
-
-    html[data-theme='dark'] & {
-      background: var(--mention-me-bg, rgba(250, 173, 20, 0.22));
-      color: var(--mention-me-color, #ffd591);
-    }
-  `,
-  mentionMeTrigger: css`
-    &:hover,
-    &:focus-visible {
-      background: var(--mention-me-bg-hover, rgba(250, 173, 20, 0.28));
-    }
-  `,
-}));
 
 interface MessageMarkdownProps {
   markdown: string;
@@ -74,7 +28,7 @@ export function MessageMarkdown({
   inline = false,
   viewerMemberId,
 }: MessageMarkdownProps) {
-  const { styles, cx } = useStyles();
+  const { styles, cx } = useMentionChipStyles();
   const people = new Map(mentions.map((mention) => [mention.memberId, mention]));
 
   return (
@@ -113,15 +67,31 @@ export function MessageMarkdown({
           ),
         br: () => (inline ? <> </> : <br />),
         span: ({ node, children }) => {
+          if (node?.properties?.['data-mention'] === 'everyone')
+            return (
+              <span className={styles.mention}>
+                <MentionChipText>@everyone</MentionChipText>
+              </span>
+            );
+
+          const channelId = node?.properties?.['data-channel-id'];
+          if (typeof channelId === 'string')
+            return <ChannelReference channelId={channelId} inline={inline} />;
+
           const memberId = String(node?.properties?.['data-member-id'] ?? '');
           if (!memberId) return <span>{children}</span>;
           const person = people.get(memberId);
           const name = person?.displayName ?? 'учасник';
           const isMe = memberId === viewerMemberId;
           const mentionClass = cx(styles.mention, isMe && styles.mentionMe);
-          if (inline || !person) return <span className={mentionClass}>@{name}</span>;
+          if (inline || !person)
+            return (
+              <span className={mentionClass}>
+                <MentionChipText>@{name}</MentionChipText>
+              </span>
+            );
           return (
-            <MemberPopover
+            <MemberProfileTrigger
               member={{
                 memberId,
                 displayName: person.displayName,
@@ -134,9 +104,9 @@ export function MessageMarkdown({
                 onPointerDown={(event) => event.stopPropagation()}
                 onContextMenu={(event) => event.stopPropagation()}
               >
-                @{name}
+                <MentionChipText>@{name}</MentionChipText>
               </button>
-            </MemberPopover>
+            </MemberProfileTrigger>
           );
         },
       }}

@@ -2,21 +2,16 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle } from 'drizzle-orm/pglite';
-
 import * as schema from '@/database/drizzle/schema';
 import { seedConversations } from '@/testing/conversations';
-import { migrate, transactionHost } from '@/testing/pglite';
+import { migratedDatabase, transactionHost } from '@/testing/pglite';
 
 import { DrizzleCallsRepository } from './drizzle-calls.repository';
 
 // Embedded PostgreSQL with the real migrations: no application database is contacted.
 test('call history across workspaces on PostgreSQL', async (t) => {
-  const pg = await PGlite.create();
-  const db = drizzle(pg, { schema });
+  const { pg, db } = await migratedDatabase();
   t.after(() => pg.close());
-  await migrate(pg);
 
   const calls = new DrizzleCallsRepository(transactionHost(db) as never);
   const seed = seedConversations(db);

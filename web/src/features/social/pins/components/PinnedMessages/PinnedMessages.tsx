@@ -3,7 +3,7 @@ import { PushPinIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { MessagePreview } from '@/features/social/messaging/components/MessagePreview/MessagePreview';
 
 import { usePins } from '../../hooks/usePins';

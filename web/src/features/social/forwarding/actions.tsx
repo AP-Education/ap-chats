@@ -1,5 +1,5 @@
-import { ForwardIcon } from '../conversation/actionIcons';
-import type { ConversationAction } from '../conversation/actions';
+import { ForwardIcon } from '../messaging/actionIcons';
+import type { ConversationAction } from '../messaging/types';
 
 export const forwardingActions: ConversationAction[] = [
   {

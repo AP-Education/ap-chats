@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 import { PGlite } from '@electric-sql/pglite';
@@ -21,7 +22,7 @@ import { IntegrationEvents } from '@/globals/publisher/integration-events';
 import { OutboxDispatcher } from '@/globals/publisher/outbox-dispatcher';
 import { PersistentEventOutbox } from '@/globals/publisher/persistent-event-outbox';
 import { DrizzleEventOutboxRepository } from '@/globals/publisher/repository/drizzle-event-outbox.repository';
-import { migrate, transactionHost } from '@/testing/pglite';
+import { migrationFiles, transactionHost } from '@/testing/pglite';
 
 import { MessageNotificationContentService } from './alerts/message-notification-content.service';
 import { DrizzlePushAudienceRepository } from './alerts/repository/drizzle-push-audience.repository';
@@ -423,6 +424,17 @@ test('push persistence on PostgreSQL', async (t) => {
     },
   );
 });
+
+async function migrate(pg: PGlite, options: { before: string; seed: string }) {
+  const migrations = migrationFiles();
+  const seedAt = migrations.indexOf(options.before);
+  assert.ok(seedAt >= 0, `missing migration ${options.before}`);
+
+  for (const [index, migration] of migrations.entries()) {
+    if (index === seedAt) await pg.query(options.seed);
+    await pg.exec(readFileSync(`drizzle/${migration}`, 'utf8'));
+  }
+}
 
 function attachment() {
   return {

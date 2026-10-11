@@ -1,6 +1,6 @@
 import { PushPinIcon } from '@phosphor-icons/react';
 
-import type { ConversationAction } from '../conversation/actions';
+import type { ConversationAction } from '../messaging/types';
 
 export const pinActions: ConversationAction[] = [
   {

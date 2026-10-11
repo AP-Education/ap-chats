@@ -10,6 +10,7 @@ import { NotificationDismissal } from '../features/notifications/components/Noti
 import { PushNavigation } from '../features/notifications/components/PushNavigation';
 import { PushSubscriptionSync } from '../features/notifications/components/PushSubscriptionSync';
 import { RealtimeProvider } from '../features/realtime/providers/RealtimeProvider';
+import { MemberSheetProvider } from '../features/social/people/providers/MemberSheetProvider';
 import { WorkspaceUnreadContext } from '../features/social/read-state/workspace-unread-context';
 import { ActiveWorkspaceProvider } from '../features/workspaces/providers/ActiveWorkspaceProvider';
 import { WorkspaceUnreadScope } from '../layouts/chats/WorkspaceUnreadScope';
@@ -47,7 +48,9 @@ export function ChatsProviders({ children }: PropsWithChildren) {
               <PushSubscriptionSync />
               <AttentionReporter />
               <NotificationDismissal />
-              <PushNavigation>{children}</PushNavigation>
+              <PushNavigation>
+                <MemberSheetProvider>{children}</MemberSheetProvider>
+              </PushNavigation>
             </WorkspaceUnreadScope>
           </ActiveWorkspaceProvider>
         </RealtimeProvider>

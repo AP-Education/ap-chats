@@ -1,4 +1,4 @@
-import type { ConversationAction } from '@/features/social/conversation/actions';
+import type { ConversationAction } from '../../types';
 
 const priorities = [['reply', 'quote'], ['copy'], ['edit', 'pin', 'forward', 'select'], ['delete']];
 

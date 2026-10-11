@@ -1,27 +1,27 @@
-import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 
-import type { PGlite } from '@electric-sql/pglite';
+import { PGlite } from '@electric-sql/pglite';
 import { type TransactionalAdapter, TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterDrizzleOrm } from '@nestjs-cls/transactional-adapter-drizzle-orm';
-import type { PgliteDatabase } from 'drizzle-orm/pglite';
+import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite';
 
-import type * as schema from '@/database/drizzle/schema';
+import * as schema from '@/database/drizzle/schema';
 
 export type TestDatabase = PgliteDatabase<typeof schema>;
 
-/** Applies the real migrations; `seed` runs right before the `before` migration. */
-export async function migrate(pg: PGlite, options?: { before: string; seed: string }) {
-  const migrations = readdirSync('drizzle')
+export function migrationFiles(): string[] {
+  return readdirSync('drizzle')
     .filter((name) => /^\d+.*\.sql$/u.test(name))
     .sort();
-  const seedAt = options ? migrations.indexOf(options.before) : -1;
-  if (options) assert.ok(seedAt >= 0, `missing migration ${options.before}`);
+}
 
-  for (const [index, migration] of migrations.entries()) {
-    if (index === seedAt) await pg.query(options!.seed);
+/** Embedded PostgreSQL with every real migration applied; no application database is contacted. */
+export async function migratedDatabase() {
+  const pg = await PGlite.create();
+  for (const migration of migrationFiles())
     await pg.exec(readFileSync(`drizzle/${migration}`, 'utf8'));
-  }
+
+  return { pg, db: drizzle(pg, { schema }) };
 }
 
 export function transactionHost(db: TestDatabase) {
