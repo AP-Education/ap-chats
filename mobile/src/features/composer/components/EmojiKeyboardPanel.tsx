@@ -8,7 +8,7 @@ import { PickerPanel } from './PickerPanel';
 
 interface EmojiKeyboardPanelProps {
   mode: SharedValue<InputMode>;
-  keyboardRoom: SharedValue<number>;
+  keyboardHeight: SharedValue<number>;
   panelHeight: SharedValue<number>;
   heldHeight: SharedValue<number>;
   bottomInset: number;
@@ -25,7 +25,7 @@ interface EmojiKeyboardPanelProps {
 
 export function EmojiKeyboardPanel({
   mode,
-  keyboardRoom,
+  keyboardHeight,
   panelHeight,
   heldHeight,
   bottomInset,
@@ -42,7 +42,7 @@ export function EmojiKeyboardPanel({
   const animatedStyle = useAnimatedStyle(() => ({
     height: inputAreaHeight(
       mode.value,
-      keyboardRoom.value,
+      keyboardHeight.value,
       panelHeight.value,
       heldHeight.value,
       reservedInset,
@@ -54,18 +54,23 @@ export function EmojiKeyboardPanel({
       mode.value === 'search'
         ? inputAreaHeight(
             'search',
-            keyboardRoom.value,
+            keyboardHeight.value,
             panelHeight.value,
             0,
             bottomInset,
             containerHeight,
-          ) - keyboardRoom.value
+          ) - keyboardHeight.value
         : panelHeight.value,
     paddingBottom: mode.value === 'search' ? 0 : bottomInset,
   }));
 
   return (
-    <Reanimated.View style={[styles.root, animatedStyle]}>
+    // Laid over the bottom of the page, which pads itself instead; until it shows, the page's own
+    // background stays visible beneath the keyboard.
+    <Reanimated.View
+      pointerEvents={visible ? 'auto' : 'none'}
+      style={[styles.root, visible && styles.shown, animatedStyle]}
+    >
       {visible && (
         <Reanimated.View style={contentStyle}>
           <PickerPanel
@@ -84,7 +89,13 @@ export function EmojiKeyboardPanel({
 const themedStyles = (palette: ShellPalette) =>
   StyleSheet.create({
     root: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
       overflow: 'hidden',
+    },
+    shown: {
       backgroundColor: palette.surface,
     },
   });

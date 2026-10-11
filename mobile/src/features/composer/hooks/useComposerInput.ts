@@ -5,7 +5,7 @@ import {
   KeyboardController,
   useGenericKeyboardHandler,
 } from 'react-native-keyboard-controller';
-import { runOnJS, useDerivedValue, useSharedValue, withTiming } from 'react-native-reanimated';
+import { runOnJS, useAnimatedReaction, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import type { PickerTab } from '../types';
 import {
@@ -13,12 +13,28 @@ import {
   type ComposerInputRequest,
   type ComposerInputState,
   initialInputState,
+  inputAreaHeight,
 } from '../utils/input-state';
-import { type KeyboardGlide, useKeyboardGlide } from './useKeyboardGlide';
+import { DEFAULT_EASING, type InsetMotion } from '../utils/keyboard-curve';
+import { useKeyboardCurves } from './useKeyboardCurves';
 
+const PANEL_CLOSE_MS = 160;
+const INSTANT: InsetMotion = { duration: 0, easing: DEFAULT_EASING };
+
+interface InputAreaLayout {
+  /** Kept below the page even while nothing is open, where the page can't pad itself. */
+  reservedInset: number;
+  containerHeight: number;
+}
+
+/**
+ * The native input beneath the page: the keyboard, or the emoji panel in its place. The page is
+ * never resized for it; `onRoom` tells the page each new height it covers, and how it gets there.
+ */
 export function useComposerInput(
   onState: (state: ComposerInputState) => void,
-  onGlide: (glide: KeyboardGlide | null) => void,
+  onRoom: (room: number, motion: InsetMotion) => void,
+  { reservedInset, containerHeight }: InputAreaLayout,
 ) {
   const [state, setState] = useState(initialInputState);
   const current = useRef(initialInputState);
@@ -30,9 +46,28 @@ export function useComposerInput(
   const heldHeight = useSharedValue(0);
   const measuredHeight = useSharedValue(0);
   const mode = useSharedValue(initialInputState.mode);
-  const glide = useKeyboardGlide(onGlide);
-  // The keyboard the room beneath the page makes way for: none while the page glides past it.
-  const keyboardRoom = useDerivedValue(() => (glide.holding.get() ? 0 : keyboardHeight.get()));
+  // Where the keyboard and the panel are heading, and how: the page moves once per change.
+  const keyboardTarget = useSharedValue(0);
+  const panelTarget = useSharedValue(0);
+  const motion = useSharedValue(INSTANT);
+  const curves = useKeyboardCurves();
+
+  const movePanel = useCallback(
+    (height: number, duration = 0) => {
+      motion.set({ duration, easing: DEFAULT_EASING });
+      panelTarget.set(height);
+      panelHeight.set(duration ? withTiming(height, { duration }) : height);
+    },
+    [motion, panelHeight, panelTarget],
+  );
+
+  const hold = useCallback(
+    (height: number) => {
+      motion.set(INSTANT);
+      heldHeight.set(height);
+    },
+    [heldHeight, motion],
+  );
 
   const publish = useCallback(
     (next: ComposerInputState) => {
@@ -54,18 +89,18 @@ export function useComposerInput(
     // Before the first soft keyboard measurement there is no exact height to reuse.
     // This provisional size is confined to this window, never persisted across devices.
     const height = measuredHeight.get() || Math.min(360, Math.max(240, windowHeight * 0.4));
-    panelHeight.set(height);
-    heldHeight.set(0);
+    movePanel(height);
+    hold(0);
     void KeyboardController.dismiss();
-  }, [cancelKeyboardWait, heldHeight, measuredHeight, panelHeight, windowHeight]);
+  }, [cancelKeyboardWait, hold, measuredHeight, movePanel, windowHeight]);
 
   const close = useCallback(() => {
     cancelKeyboardWait();
-    heldHeight.set(0);
-    panelHeight.set(withTiming(0, { duration: 160 }));
+    hold(0);
+    movePanel(0, PANEL_CLOSE_MS);
     publish({ ...current.current, mode: 'closed' });
     void KeyboardController.dismiss();
-  }, [cancelKeyboardWait, heldHeight, panelHeight, publish]);
+  }, [cancelKeyboardWait, hold, movePanel, publish]);
 
   const request = useCallback(
     (message: ComposerInputRequest) => {
@@ -77,22 +112,22 @@ export function useComposerInput(
         mode.set('picker');
         openPanel();
       } else if (next.mode === 'keyboard') {
-        heldHeight.set(Math.max(panelHeight.get(), keyboardHeight.get()));
-        panelHeight.set(0);
+        hold(Math.max(panelHeight.get(), keyboardHeight.get()));
+        movePanel(0);
         awaitingKeyboard.current = true;
         // Hardware keyboards need no inset and produce no show event.
         keyboardTimeout.current = setTimeout(() => {
           awaitingKeyboard.current = false;
-          heldHeight.set(0);
+          hold(0);
         }, 1200);
       } else {
-        heldHeight.set(0);
-        panelHeight.set(0);
+        hold(0);
+        movePanel(0);
         void KeyboardController.dismiss();
       }
       publish(next);
     },
-    [cancelKeyboardWait, heldHeight, keyboardHeight, mode, openPanel, panelHeight, publish],
+    [cancelKeyboardWait, hold, keyboardHeight, mode, movePanel, openPanel, panelHeight, publish],
   );
 
   const keyboardEnded = useCallback(
@@ -100,27 +135,16 @@ export function useComposerInput(
       if (height > 0) {
         cancelKeyboardWait();
         if (current.current.mode === 'closed') publish({ ...current.current, mode: 'keyboard' });
-        if (current.current.mode === 'keyboard') heldHeight.set(0);
+        if (current.current.mode === 'keyboard') hold(0);
       } else if (current.current.mode === 'search') {
         publish({ ...current.current, mode: 'picker' });
       } else if (current.current.mode === 'keyboard' && !awaitingKeyboard.current) {
-        heldHeight.set(0);
+        hold(0);
         publish({ ...current.current, mode: 'closed' });
       }
     },
-    [cancelKeyboardWait, heldHeight, publish],
+    [cancelKeyboardWait, hold, publish],
   );
-
-  // Only the keyboard alone glides; swaps with the picker keep their own geometry.
-  const keyboardAlone = () => {
-    'worklet';
-    return (
-      panelHeight.get() === 0 &&
-      heldHeight.get() === 0 &&
-      mode.get() !== 'picker' &&
-      mode.get() !== 'search'
-    );
-  };
 
   const measure = (height: number) => {
     'worklet';
@@ -131,13 +155,17 @@ export function useComposerInput(
     {
       onStart: (event) => {
         'worklet';
+        const from = keyboardHeight.get();
+        const to = Math.max(0, event.height);
         measure(event.height);
-        glide.begin(keyboardHeight.get(), event.height, event.duration, keyboardAlone());
+        curves.begin(from, to);
+        motion.set(curves.motion(from, to, event.duration));
+        keyboardTarget.set(to);
       },
       onMove: (event) => {
         'worklet';
         keyboardHeight.set(Math.max(0, event.height));
-        glide.track(event.height);
+        curves.track(event.height);
       },
       onInteractive: (event) => {
         'worklet';
@@ -145,13 +173,35 @@ export function useComposerInput(
       },
       onEnd: (event) => {
         'worklet';
-        keyboardHeight.set(Math.max(0, event.height));
+        const height = Math.max(0, event.height);
+        keyboardHeight.set(height);
         measure(event.height);
-        glide.end();
+        curves.end();
+        // A keyboard dragged away ends somewhere its start never announced.
+        if (keyboardTarget.get() !== height) {
+          motion.set(INSTANT);
+          keyboardTarget.set(height);
+        }
         runOnJS(keyboardEnded)(event.height);
       },
     },
-    [keyboardEnded, glide],
+    [keyboardEnded, curves],
+  );
+
+  useAnimatedReaction(
+    () =>
+      inputAreaHeight(
+        mode.get(),
+        keyboardTarget.get(),
+        panelTarget.get(),
+        heldHeight.get(),
+        reservedInset,
+        containerHeight,
+      ),
+    (room, previous) => {
+      if (room !== previous) runOnJS(onRoom)(room, motion.get());
+    },
+    [onRoom, reservedInset, containerHeight],
   );
 
   const selectTab = useCallback(
@@ -199,7 +249,7 @@ export function useComposerInput(
   return {
     state,
     mode,
-    keyboardRoom,
+    keyboardHeight,
     panelHeight,
     heldHeight,
     request,
