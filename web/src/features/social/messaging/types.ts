@@ -110,7 +110,7 @@ export interface SendMessageCommand {
 // 'uploading': attachments are still in flight — sending never waits on them
 // (matches Discord/Telegram/Slack/WhatsApp), so a message can sit here before
 // it's even been POSTed at all, not just awaiting server confirmation.
-export type DeliveryStatus = 'uploading' | 'sending' | 'failed' | 'confirmed';
+export type DeliveryStatus = 'uploading' | 'sending' | 'failed';
 
 export interface DisplayItem {
   item: HistoryItem;

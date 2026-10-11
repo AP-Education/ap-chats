@@ -79,17 +79,6 @@ const useStyles = createStyles(({ token, css }) => ({
       }
     }
   `,
-  confirmed: css`
-    animation: confirmed 0.9s ease-out;
-    @keyframes confirmed {
-      30% {
-        background: color-mix(in srgb, ${token.colorPrimary} 12%, transparent);
-      }
-      100% {
-        background: transparent;
-      }
-    }
-  `,
   retry: css`
     display: flex;
     align-items: center;
@@ -215,7 +204,6 @@ export const MessageRow = memo(function MessageRow({
             styles.row,
             isSelected && styles.selected,
             (delivery === 'sending' || delivery === 'uploading') && styles.sending,
-            delivery === 'confirmed' && styles.confirmed,
           ),
           onClick: (event) => {
             if (!hasSelection || window.getSelection()?.toString()) return;
