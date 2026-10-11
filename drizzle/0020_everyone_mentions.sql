@@ -1,0 +1,2 @@
+ALTER TABLE "message_mentions" ADD COLUMN "via" text DEFAULT 'direct' NOT NULL;--> statement-breakpoint
+ALTER TABLE "message_mentions" ADD CONSTRAINT "message_mentions_via_check" CHECK ("message_mentions"."via" in ('direct', 'everyone'));

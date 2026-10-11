@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { confirmDirectMessage } from '@/features/social/direct-messages/cache';
@@ -26,10 +26,6 @@ import type {
 import { isMessageItem } from '../types';
 import { useOutbox } from './useOutbox';
 import { useUploadingSends } from './useUploadingSends';
-
-// Matches the `confirmed` keyframe duration in MessageRow.tsx: long enough for
-// the "just sent" flash to play before the row settles into a normal message.
-const CONFIRMED_FLASH_MS = 900;
 
 function outboxKey(identity: string | undefined, workspaceId: string, channelId: string) {
   return `ap-chats:outbox:${identity}:${workspaceId}:${channelId}`;
@@ -75,6 +71,12 @@ function synthesize(
       : null,
     forwardedFrom: null,
     pin: null,
+    // Named from the composer's own labels so the row reads the same before and after history has it.
+    mentions: Object.entries(input.labels ?? {}).map(([memberId, displayName]) => ({
+      memberId,
+      displayName,
+      avatarPath: null,
+    })),
   };
 }
 
@@ -100,7 +102,6 @@ export function useMessageOperations(
 ) {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
-  const [confirmedFlash, setConfirmedFlash] = useState<ReadonlySet<string>>(() => new Set());
 
   const messages = useMemo(() => items.filter(isMessageItem), [items]);
   const delivered = useMemo(
@@ -109,18 +110,6 @@ export function useMessageOperations(
     [messages],
   );
   const outbox = useOutbox(outboxKey(identity, workspaceId, channelId), delivered);
-
-  function flashConfirmed(id: string) {
-    setConfirmedFlash((current) => new Set(current).add(id));
-    window.setTimeout(() => {
-      setConfirmedFlash((current) => {
-        if (!current.has(id)) return current;
-        const next = new Set(current);
-        next.delete(id);
-        return next;
-      });
-    }, CONFIRMED_FLASH_MS);
-  }
 
   function refreshHistory() {
     void queryClient.invalidateQueries({
@@ -167,7 +156,6 @@ export function useMessageOperations(
         (cursor) => historyPage(sessionToken, workspaceId, channelId, 'after', cursor),
       );
       mergeHistoryItem(queryClient, identity, workspaceId, channelId, item);
-      flashConfirmed(item.id);
     } catch {
       // Sent, just not locally merged: a full refetch brings it in instead.
       void queryClient.invalidateQueries({ queryKey: historyKey, exact: true });
@@ -231,10 +219,7 @@ export function useMessageOperations(
   }
 
   const displayItems = useMemo<DisplayItem[]>(() => {
-    const history: DisplayItem[] = items.map((item) => ({
-      item,
-      delivery: confirmedFlash.has(item.id) ? 'confirmed' : undefined,
-    }));
+    const history: DisplayItem[] = items.map((item) => ({ item, delivery: undefined }));
     const queued: DisplayItem[] = outbox.unsent.map((entry) => ({
       item: synthesize(
         entry.input,
@@ -246,22 +231,17 @@ export function useMessageOperations(
     }));
     const uploading: DisplayItem[] = [...uploadingSends.entries()].map(([nonce, entry]) => ({
       item: synthesize(
-        {
-          markdown: entry.markdown,
-          clientNonce: nonce,
-          replyToMessageId: entry.replyToMessageId,
-          quoteText: entry.quoteText,
-        },
+        { ...entry.input, clientNonce: nonce },
         entry.createdAt,
         author,
-        findMessage(messages, entry.replyToMessageId),
+        findMessage(messages, entry.input.replyToMessageId),
       ),
       delivery: 'uploading',
       pendingAttachments: entry.drafts,
     }));
     // Unsent rows sit below the history, in the order they were written.
     return [...history, ...[...queued, ...uploading].sort(byCreatedAt)];
-  }, [items, confirmedFlash, outbox.unsent, uploadingSends, author, messages]);
+  }, [items, outbox.unsent, uploadingSends, author, messages]);
 
   return { displayItems, send, retry, edit, remove };
 }

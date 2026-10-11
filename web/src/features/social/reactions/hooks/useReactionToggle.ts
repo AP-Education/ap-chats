@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { message as toast } from 'antd';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import type { MessageHistoryItem } from '@/features/social/messaging/types';
 import { ApiError } from '@/shared/api/http';
 

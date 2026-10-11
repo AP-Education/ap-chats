@@ -4,7 +4,7 @@ import { callActionLabel } from '@/features/calls/callActionLabel';
 import { CallIcon } from '@/features/calls/callIcons';
 import { CALL_PALETTE } from '@/features/calls/callTheme';
 import { useKnownCallAction } from '@/features/calls/hooks/useKnownCallAction';
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import type { CallHistoryItem } from '../../types';
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, eq, ilike, inArray, notInArray } from 'drizzle-orm';
+import { and, eq, ilike, inArray, ne, sql } from 'drizzle-orm';
 
 import {
   channelMemberships,
@@ -10,6 +10,7 @@ import {
 } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
+import type { MentionedMessage } from '../types';
 import { MentionsRepository } from './mentions.repository';
 
 @Injectable()
@@ -71,25 +72,47 @@ export class DrizzleMentionsRepository extends MentionsRepository {
     return rows.length === ids.length;
   }
 
-  async replace(
-    workspaceId: string,
-    channelId: string,
-    messageId: string,
-    ids: string[],
-  ): Promise<void> {
+  async replaceDirect(message: MentionedMessage, memberIds: string[]): Promise<void> {
     await this.txHost.tx
       .delete(messageMentions)
-      .where(
-        and(
-          eq(messageMentions.messageId, messageId),
-          ids.length ? notInArray(messageMentions.memberId, ids) : undefined,
-        ),
+      .where(eq(messageMentions.messageId, message.messageId));
+
+    if (memberIds.length)
+      await this.txHost.tx.insert(messageMentions).values(
+        memberIds.map((memberId) => ({
+          workspaceId: message.workspaceId,
+          channelId: message.channelId,
+          messageId: message.messageId,
+          memberId,
+          via: 'direct' as const,
+        })),
       );
-    if (ids.length)
-      await this.txHost.tx
-        .insert(messageMentions)
-        .values(ids.map((memberId) => ({ workspaceId, channelId, messageId, memberId })))
-        .onConflictDoNothing();
+  }
+
+  async addEveryone(message: MentionedMessage): Promise<void> {
+    await this.txHost.tx
+      .insert(messageMentions)
+      .select((qb) =>
+        qb
+          .select({
+            workspaceId: sql`${message.workspaceId}::uuid`.as('workspace_id'),
+            channelId: sql`${message.channelId}::uuid`.as('channel_id'),
+            messageId: sql`${message.messageId}::uuid`.as('message_id'),
+            memberId: channelMemberships.memberId,
+            via: sql`'everyone'`.as('via'),
+          })
+          .from(channelMemberships)
+          .innerJoin(workspaceMembers, eq(workspaceMembers.id, channelMemberships.memberId))
+          .where(
+            and(
+              eq(channelMemberships.workspaceId, message.workspaceId),
+              eq(channelMemberships.channelId, message.channelId),
+              eq(workspaceMembers.status, 'active'),
+              ne(channelMemberships.memberId, message.authorMemberId),
+            ),
+          ),
+      )
+      .onConflictDoNothing();
   }
 
   async removeForMessages(ids: string[]): Promise<void> {

@@ -42,7 +42,7 @@ export function MessageBody({
         <MessageAttachments
           attachments={item.message.attachments ?? []}
           messageId={item.message.id}
-          available={!delivery || delivery === 'confirmed'}
+          available={!delivery}
         />
       )}
       {editing && (

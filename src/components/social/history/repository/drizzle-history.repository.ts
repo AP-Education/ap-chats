@@ -132,6 +132,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         },
         pin: messagePins,
         mentions: mentions.mentions,
+        mentionsViewer: this.viewerMentioned(viewerMemberId),
         reactions: reactions.reactions,
         call: calls,
         startedByProfile: {
@@ -192,8 +193,18 @@ export class DrizzleHistoryRepository extends HistoryRepository {
       .from(messageMentions)
       .innerJoin(workspaceMembers, eq(workspaceMembers.id, messageMentions.memberId))
       .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
-      .where(eq(messageMentions.messageId, chatMessages.id))
+      // @everyone fans out to the whole channel; only members named in the text become tags.
+      .where(and(eq(messageMentions.messageId, chatMessages.id), eq(messageMentions.via, 'direct')))
       .as('message_mention_list');
+  }
+
+  // Reached through @everyone the viewer is not among the tags, so it is asked on its own.
+  private viewerMentioned(viewerMemberId: string) {
+    return sql<boolean>`exists (
+      select 1 from ${messageMentions}
+      where ${messageMentions.messageId} = ${chatMessages.id}
+        and ${messageMentions.memberId} = ${viewerMemberId}
+    )`;
   }
 
   private reactionsOfMessage(viewerMemberId: string) {
@@ -262,6 +273,7 @@ function toHistoryRow(
     forwardAuthorProfile: row.forwardAuthorProfile,
     pin: row.pin,
     mentions: row.mentions ?? [],
+    mentionsViewer: row.mentionsViewer,
     reactions: row.reactions ?? [],
   };
 }

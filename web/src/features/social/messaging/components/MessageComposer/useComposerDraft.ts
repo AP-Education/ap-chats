@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 
-import type { ComposerDraft } from '../../types';
+import type { ComposerDraft } from '@/features/social/mentions/types';
 
 const EMPTY_DRAFT: ComposerDraft = { markdown: '', labels: {} };
 

@@ -4,8 +4,8 @@ import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { ForwardIcon } from '@/features/social/conversation/actionIcons';
 import { confirmDirectMessage, mergeDirectMessage } from '@/features/social/direct-messages/cache';
+import { ForwardIcon } from '@/features/social/messaging/actionIcons';
 import type { MessageHistoryItem } from '@/features/social/messaging/types';
 import { randomId } from '@/shared/lib/random-id';
 
