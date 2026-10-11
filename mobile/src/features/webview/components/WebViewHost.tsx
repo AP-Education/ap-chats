@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Portal } from 'react-native-teleport';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 import type {
   WebViewErrorEvent,
@@ -22,7 +23,7 @@ import {
   type KeyboardGlide,
   useComposerInput,
 } from '../../composer';
-import { TabBar } from '../../navigation/components/TabBar';
+import { NativeTabs } from '../../navigation/components/NativeTabs';
 import type { TabBarModel } from '../../navigation/types';
 import { changePushPermission } from '../../push/api/change-push-permission';
 import { dismissPresentedNotifications } from '../../push/api/presented-notifications';
@@ -191,13 +192,15 @@ export function WebViewHost() {
     }
   }
 
+  // The page moves into the chosen tab at once; the page then confirms it in its next model.
   function handleSelectTab(id: string) {
+    setTabBar((current) => current && { ...current, activeId: id });
     webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'navigation/select', id }));
   }
 
-  function handleTabBarInset(bottom: number) {
+  const handleTabBarInset = useCallback((bottom: number) => {
     webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'navigation/inset', bottom }));
-  }
+  }, []);
 
   function handlePickEmoji(text: string) {
     const { sessionId, requestId, mode } = input.state;
@@ -233,54 +236,59 @@ export function WebViewHost() {
       <MessageNotificationSound request={messageSoundRequest} />
       <View style={styles.webviewWrapper}>
         {startUrl && (
-          <WebView
-            ref={webViewRef}
-            source={{ uri: startUrl }}
-            // WKWebView paints white wherever the page has not drawn yet, e.g. the strip it gains
-            // while the keyboard area beneath it shrinks.
-            style={[styles.webview, { backgroundColor: palette.surface }]}
-            hideKeyboardAccessoryView
-            // An app screen, not a document: no pinch zoom (Android; iOS follows the page viewport).
-            setBuiltInZoomControls={false}
-            webviewDebuggingEnabled={inspectable}
-            keyboardDisplayRequiresUserAction={false}
-            automaticallyAdjustContentInsets={false}
-            contentInsetAdjustmentBehavior="never"
-            scrollEnabled={false}
-            bounces={false}
-            onLoadStart={() => {
-              input.close();
-              setTabBar(null);
-              useNotificationStore.getState().setWebReady(false);
-            }}
-            applicationNameForUserAgent={APP_SHELL_USER_AGENT}
-            onNavigationStateChange={(event) => rememberLocation(event.url, webUrl)}
-            onMessage={handleMessage}
-            onLoadEnd={() => {
-              setLoadCount((count) => count + 1);
-              // WKWebView doesn't reliably become first responder on its own —
-              // without this, the very first tap anywhere after a (re)load gets
-              // consumed establishing focus instead of reaching its target,
-              // which reads as "the button needs two taps" (confirmed: only
-              // ever happens inside this WebView, never on desktop).
-              webViewRef.current?.requestFocus();
-            }}
-            injectedJavaScriptBeforeContentLoaded={__DEV__ ? DEBUG_CONSOLE_SCRIPT : undefined}
-            onError={(event: WebViewErrorEvent) =>
-              console.error('[webview] onError', event.nativeEvent)
-            }
-            onHttpError={(event: WebViewHttpErrorEvent) =>
-              console.error('[webview] onHttpError', event.nativeEvent)
-            }
-            onContentProcessDidTerminate={(event: WebViewTerminatedEvent) =>
-              console.error('[webview] render process terminated', event.nativeEvent)
-            }
-            renderError={() => (
-              <ConnectionErrorScreen onRetry={() => webViewRef.current?.reload()} />
-            )}
-          />
+          <Portal hostName={tabBar?.activeId} style={styles.page}>
+            <WebView
+              ref={webViewRef}
+              source={{ uri: startUrl }}
+              // WKWebView paints white wherever the page has not drawn yet, e.g. the strip it gains
+              // while the keyboard area beneath it shrinks.
+              style={[styles.webview, { backgroundColor: palette.surface }]}
+              hideKeyboardAccessoryView
+              // An app screen, not a document: no pinch zoom (Android; iOS follows the page viewport).
+              setBuiltInZoomControls={false}
+              webviewDebuggingEnabled={inspectable}
+              keyboardDisplayRequiresUserAction={false}
+              automaticallyAdjustContentInsets={false}
+              contentInsetAdjustmentBehavior="never"
+              scrollEnabled={false}
+              bounces={false}
+              onLoadStart={() => {
+                input.close();
+                // Hidden rather than dropped: the page lives inside a tab's host until it reloads.
+                setTabBar((current) => current && { ...current, visible: false });
+                useNotificationStore.getState().setWebReady(false);
+              }}
+              applicationNameForUserAgent={APP_SHELL_USER_AGENT}
+              onNavigationStateChange={(event) => rememberLocation(event.url, webUrl)}
+              onMessage={handleMessage}
+              onLoadEnd={() => {
+                setLoadCount((count) => count + 1);
+                // WKWebView doesn't reliably become first responder on its own —
+                // without this, the very first tap anywhere after a (re)load gets
+                // consumed establishing focus instead of reaching its target,
+                // which reads as "the button needs two taps" (confirmed: only
+                // ever happens inside this WebView, never on desktop).
+                webViewRef.current?.requestFocus();
+              }}
+              injectedJavaScriptBeforeContentLoaded={__DEV__ ? DEBUG_CONSOLE_SCRIPT : undefined}
+              onError={(event: WebViewErrorEvent) =>
+                console.error('[webview] onError', event.nativeEvent)
+              }
+              onHttpError={(event: WebViewHttpErrorEvent) =>
+                console.error('[webview] onHttpError', event.nativeEvent)
+              }
+              onContentProcessDidTerminate={(event: WebViewTerminatedEvent) =>
+                console.error('[webview] render process terminated', event.nativeEvent)
+              }
+              renderError={() => (
+                <ConnectionErrorScreen onRetry={() => webViewRef.current?.reload()} />
+              )}
+            />
+          </Portal>
         )}
-        {tabBar && <TabBar model={tabBar} onSelect={handleSelectTab} onInset={handleTabBarInset} />}
+        {tabBar && (
+          <NativeTabs model={tabBar} onSelect={handleSelectTab} onInset={handleTabBarInset} />
+        )}
       </View>
       <EmojiKeyboardPanel
         mode={input.mode}
@@ -305,5 +313,6 @@ export function WebViewHost() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   webviewWrapper: { flex: 1 },
+  page: { flex: 1 },
   webview: { flex: 1 },
 });
