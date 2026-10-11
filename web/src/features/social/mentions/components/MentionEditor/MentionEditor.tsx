@@ -10,10 +10,11 @@ import {
   type ComposerEditorHandle,
 } from '@/features/social/messaging/components/ComposerEditor/ComposerEditor';
 import { useMessageEditorSlot } from '@/features/social/messaging/MessageEditorSlot';
+import type { MemberSummary } from '@/features/workspaces/types';
 import { apiRequest } from '@/shared/api/http';
 
 import { mentionChip, restoreEditor, serializeEditor } from './mention-editor-dom';
-import { type MentionCandidate, MentionCandidateList } from './MentionCandidateList';
+import { MentionCandidateList } from './MentionCandidateList';
 
 const MENTION_QUERY_PATTERN = /(?:^|[\s(])@([\p{L}\p{N}._-]{0,80})$/u;
 
@@ -73,7 +74,7 @@ export function MentionEditor() {
   const candidates = useQuery({
     queryKey: ['mention-candidates', workspaceId, channelId, query],
     queryFn: () =>
-      apiRequest<MentionCandidate[]>(
+      apiRequest<MemberSummary[]>(
         `/api/workspaces/${workspaceId}/channels/${channelId}/mention-candidates?q=${encodeURIComponent(query ?? '')}`,
         token as string,
       ),
@@ -111,7 +112,7 @@ export function MentionEditor() {
     setQuery(nextQuery);
   }
 
-  function pick(candidate: MentionCandidate) {
+  function pick(candidate: MemberSummary) {
     const selection = window.getSelection();
     if (!selection || !selection.isCollapsed || selection.anchorNode?.nodeType !== Node.TEXT_NODE)
       return;

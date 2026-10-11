@@ -24,9 +24,13 @@ export interface ActionCommands {
   pin: (item: MessageHistoryItem, active: boolean) => void;
 }
 
+/** How an action stands out: a destructive one warns, an assistant's leads on its own sky. */
+export type ActionAccent = 'danger' | 'ai';
+
 export interface ConversationAction {
   id: string;
   icon: ReactNode;
+  accent?: ActionAccent;
   label: (target: ActionTarget) => string;
   available: (target: ActionTarget, context: ActionContext) => boolean;
   execute: (target: ActionTarget, commands: ActionCommands) => void;

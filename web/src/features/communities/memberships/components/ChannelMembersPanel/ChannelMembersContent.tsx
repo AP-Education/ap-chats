@@ -136,6 +136,7 @@ export function ChannelMembersContent({
                   memberId: entry.member.id,
                   displayName: entry.member.profile.displayName,
                   avatarPath: entry.member.profile.avatarPath,
+                  isBot: entry.member.profile.isBot,
                 }}
               >
                 <button type="button" className={styles.memberTrigger}>

@@ -29,7 +29,7 @@ function item(id: string, seq: string): MessageHistoryItem {
       editedAt: null,
       deletedAt: null,
     },
-    author: { memberId: 'member', displayName: 'Member', avatarPath: null },
+    author: { memberId: 'member', displayName: 'Member', avatarPath: null, isBot: false },
     reply: null,
     forwardedFrom: null,
     pin: null,

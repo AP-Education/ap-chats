@@ -1,9 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { confirmDirectMessage } from '@/features/social/direct-messages/cache';
-import { randomId } from '@/shared/lib/random-id';
+import type { MemberSummary } from '@/features/workspaces/types';
 
 import {
   deleteMessages,
@@ -18,7 +18,6 @@ import type {
   DisplayItem,
   HistoryItem,
   Message,
-  MessageAuthor,
   MessageHistoryItem,
   PendingAttachmentCommit,
   SendMessageCommand,
@@ -39,7 +38,7 @@ function outboxKey(identity: string | undefined, workspaceId: string, channelId:
 function synthesize(
   input: SendMessageCommand,
   createdAt: string,
-  author: MessageAuthor,
+  author: MemberSummary,
   replyTarget: MessageHistoryItem | undefined,
 ): MessageHistoryItem {
   return {
@@ -86,6 +85,20 @@ function byCreatedAt(a: DisplayItem, b: DisplayItem) {
   return a.item.createdAt.localeCompare(b.item.createdAt);
 }
 
+/** A sent message's arrival at the server, which a failed attempt only postpones. */
+interface Landing {
+  landed: Promise<Message>;
+  land: (message: Message) => void;
+}
+
+function expectLanding(): Landing {
+  let land!: (message: Message) => void;
+  const landed = new Promise<Message>((resolve) => {
+    land = resolve;
+  });
+  return { landed, land };
+}
+
 /**
  * Owns sending. Every message the server hasn't acknowledged lives in the outbox (useOutbox)
  * and shows from there at once, as sending or failed; once history holds it, it is a
@@ -95,12 +108,13 @@ function byCreatedAt(a: DisplayItem, b: DisplayItem) {
 export function useMessageOperations(
   workspaceId: string,
   channelId: string,
-  author: MessageAuthor,
+  author: MemberSummary,
   items: HistoryItem[],
 ) {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
   const [confirmedFlash, setConfirmedFlash] = useState<ReadonlySet<string>>(() => new Set());
+  const landings = useRef(new Map<string, Landing>());
 
   const messages = useMemo(() => items.filter(isMessageItem), [items]);
   const delivered = useMemo(
@@ -188,6 +202,8 @@ export function useMessageOperations(
       return;
     }
 
+    landings.current.get(input.clientNonce)?.land(message);
+    landings.current.delete(input.clientNonce);
     confirmDirectMessage(queryClient, identity, workspaceId, channelId, message);
     await mergeSent(token, message);
     outbox.settle(input.clientNonce);
@@ -200,15 +216,17 @@ export function useMessageOperations(
 
   const { uploadingSends, start: startUploadingSend } = useUploadingSends(dispatch);
 
+  /** Sends the message; settles once the server has it, however many retries that takes. */
   function send(
-    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
+    input: Omit<SendMessageCommand, 'attachments'>,
     pending?: PendingAttachmentCommit,
-  ) {
-    if (!pending) {
-      dispatch({ ...input, clientNonce: randomId() }, new Date().toISOString());
-      return;
-    }
-    startUploadingSend(input, pending);
+  ): Promise<Message> {
+    const landing = expectLanding();
+    landings.current.set(input.clientNonce, landing);
+
+    if (pending) startUploadingSend(input, pending);
+    else dispatch(input, new Date().toISOString());
+    return landing.landed;
   }
 
   function retry(rowId: string) {

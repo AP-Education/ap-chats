@@ -65,6 +65,7 @@ export function ConversationView({
       memberId: currentMember?.id ?? '',
       displayName: currentMember?.profile.displayName ?? null,
       avatarPath: currentMember?.profile.avatarPath ?? null,
+      isBot: false,
     }),
     [currentMember?.id, currentMember?.profile.displayName, currentMember?.profile.avatarPath],
   );

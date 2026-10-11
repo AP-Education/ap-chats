@@ -34,6 +34,7 @@ import type {
   PendingAttachmentCommit,
   SendMessageCommand,
 } from '../../types';
+import { AskExcerpt } from '../AskExcerpt/AskExcerpt';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
 import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
@@ -230,7 +231,7 @@ interface MessageComposerProps {
   replyAuthor?: string;
   replyPreview?: string;
   onSend: (
-    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
+    input: Omit<SendMessageCommand, 'attachments'>,
     pending?: PendingAttachmentCommit,
   ) => void;
   /** The text-input to compose with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
@@ -283,7 +284,11 @@ export function MessageComposer({
   // Sending never waits on attachment upload completion (matches Discord/
   // Telegram/Slack/WhatsApp) — only a failed draft doesn't count, since it's
   // left out of the send and stays in the composer for the user to handle.
-  const canSend = hasContent || uploads.drafts.some((draft) => draft.status !== 'error');
+  // Asking about picked messages needs no words of its own.
+  const canSend =
+    hasContent ||
+    intent?.kind === 'ask' ||
+    uploads.drafts.some((draft) => draft.status !== 'error');
 
   useLayoutEffect(() => {
     if (intent || (composer.autoFocus && !isCompact)) editableRef.current?.focus();
@@ -307,12 +312,13 @@ export function MessageComposer({
   const handleSend = useCallback(() => {
     const markdown = editableRef.current?.markdown().trim() ?? '';
     if (!canSend) return;
-    const input = {
-      markdown,
-      ...(intent ? { replyToMessageId: intent.messageId } : {}),
-      ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
-    };
     const nonce = randomId();
+    const input = {
+      markdown: intent?.kind === 'ask' ? addressedTo(intent.member.memberId, markdown) : markdown,
+      clientNonce: nonce,
+      ...(intent?.kind === 'reply' ? { replyToMessageId: intent.messageId } : {}),
+      ...(intent?.kind === 'reply' && intent.quoteText ? { quoteText: intent.quoteText } : {}),
+    };
     const drafts = uploads.commit(nonce);
     if (drafts.length) {
       onSend(input, {
@@ -337,7 +343,7 @@ export function MessageComposer({
   }
 
   function pickGif(gif: Pick<GifResult, 'title' | 'url'>) {
-    onSend({ markdown: `![${gif.title || 'GIF'}](${gif.url})` });
+    onSend({ markdown: `![${gif.title || 'GIF'}](${gif.url})`, clientNonce: randomId() });
     setIntent(null);
     closePicker();
   }
@@ -538,7 +544,19 @@ export function MessageComposer({
                     </Button>
                   </div>
                 )}
-                {intent && (
+                {intent?.kind === 'ask' && (
+                  <div className={styles.reply}>
+                    <AskExcerpt member={intent.member} count={intent.messageIds.length} />
+                    <IconButton
+                      size={28}
+                      aria-label="Скасувати запит"
+                      onClick={() => setIntent(null)}
+                    >
+                      <XIcon size={16} />
+                    </IconButton>
+                  </div>
+                )}
+                {intent?.kind === 'reply' && (
                   <div className={styles.reply}>
                     <ReplyExcerpt
                       title={
@@ -615,4 +633,11 @@ export function MessageComposer({
       )}
     </div>
   );
+}
+
+/** The message mentions whom it asks, unless the person already did. */
+function addressedTo(memberId: string, markdown: string): string {
+  const mention = `:member[${memberId}]`;
+  if (markdown.includes(mention)) return markdown;
+  return markdown ? `${mention} ${markdown}` : mention;
 }

@@ -2,7 +2,15 @@ import { createContext, type PropsWithChildren, useContext, useState } from 'rea
 import { createStore, type StoreApi } from 'zustand';
 import { useStore } from 'zustand/react';
 
-export type ComposerIntent = { kind: 'reply'; messageId: string; quoteText?: string } | null;
+import type { MemberSummary } from '@/features/workspaces/types';
+
+import type { ConversationContribution } from './contributions';
+
+export type ComposerIntent =
+  | { kind: 'reply'; messageId: string; quoteText?: string }
+  /** Asks a member, such as an assistant, about the picked messages: the message mentions them. */
+  | { kind: 'ask'; member: MemberSummary; messageIds: string[] }
+  | null;
 
 interface ConversationState {
   selectedIds: string[];
@@ -11,11 +19,18 @@ interface ConversationState {
   /** Bumped by the timeline on scroll so the composer can dismiss the on-screen
    * keyboard — a counter rather than a boolean since there's nothing to "unset". */
   blurComposerToken: number;
+  /** What the features mounted in this conversation add to it. */
+  contributions: ConversationContribution[];
+  /** Where those features show what happens next, after the last message. */
+  timelineEnd: HTMLElement | null;
   toggleSelected: (id: string) => void;
   clearSelection: () => void;
   setIntent: (intent: ComposerIntent) => void;
   setEditingId: (id: string | null) => void;
   requestComposerBlur: () => void;
+  /** Adds a contribution until the returned cleanup runs. */
+  contribute: (contribution: ConversationContribution) => () => void;
+  setTimelineEnd: (host: HTMLElement | null) => void;
 }
 
 const ConversationContext = createContext<StoreApi<ConversationState> | null>(null);
@@ -40,6 +55,8 @@ function createConversationStore() {
     intent: null,
     editingId: null,
     blurComposerToken: 0,
+    contributions: [],
+    timelineEnd: null,
     toggleSelected: (id) =>
       set((state) => ({
         selectedIds: state.selectedIds.includes(id)
@@ -50,6 +67,14 @@ function createConversationStore() {
     setIntent: (intent) => set({ intent, editingId: null }),
     setEditingId: (editingId) => set({ editingId, intent: null }),
     requestComposerBlur: () => set((state) => ({ blurComposerToken: state.blurComposerToken + 1 })),
+    contribute: (contribution) => {
+      set((state) => ({ contributions: [...state.contributions, contribution] }));
+      return () =>
+        set((state) => ({
+          contributions: state.contributions.filter((current) => current !== contribution),
+        }));
+    },
+    setTimelineEnd: (timelineEnd) => set({ timelineEnd }),
   }));
 }
 

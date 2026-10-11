@@ -2,14 +2,21 @@ import { avatarColors } from '@ap-education/ui';
 import { theme } from 'antd';
 import { createStyles } from 'antd-style';
 
+import { BotBadge } from '@/features/social/people/components/BotBadge/BotBadge';
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
 
 import { useMessageActionScope } from './MessageActionScope';
 
 const useStyles = createStyles(({ token, css }) => ({
   // Only the first bubble of a run names its author (HistoryRun hides the rest).
+  line: css`
+    display: var(--run-author, flex);
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  `,
   author: css`
-    display: var(--run-author, block);
+    display: block;
     max-width: 100%;
     padding: 0;
     overflow: hidden;
@@ -40,14 +47,17 @@ export function MessageAuthorName() {
   if (item.message.authorMemberId === context.memberId) return null;
 
   return (
-    <MemberPopover member={item.author}>
-      <button
-        type="button"
-        className={styles.author}
-        style={{ color: avatarColors(author, token).name }}
-      >
-        {author}
-      </button>
-    </MemberPopover>
+    <span className={styles.line}>
+      <MemberPopover member={item.author}>
+        <button
+          type="button"
+          className={styles.author}
+          style={{ color: avatarColors(author, token).name }}
+        >
+          {author}
+        </button>
+      </MemberPopover>
+      {item.author.isBot && <BotBadge />}
+    </span>
   );
 }

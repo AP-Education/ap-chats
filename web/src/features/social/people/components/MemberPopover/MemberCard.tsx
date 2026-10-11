@@ -7,16 +7,11 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { CallIcon } from '@/features/calls/callIcons';
 import { useOpenDirectMessage } from '@/features/social/direct-messages/hooks/useOpenDirectMessage';
 import { useActiveWorkspace } from '@/features/workspaces/hooks/useActiveWorkspace';
+import type { MemberSummary } from '@/features/workspaces/types';
 import { ApiError } from '@/shared/api/http';
 
 import { getMemberProfile } from '../../api/member-profile-api';
 import { MemberIdentity } from '../MemberIdentity';
-
-export interface MemberSummary {
-  memberId: string;
-  displayName: string | null;
-  avatarPath: string | null;
-}
 
 const useStyles = createStyles(({ token, css }) => ({
   card: css`
@@ -58,7 +53,8 @@ export function MemberCard({ member }: { member: MemberSummary }) {
     !workspace || (profile.error instanceof ApiError && [403, 404].includes(profile.error.status));
 
   let detail = 'Учасник простору';
-  if (profile.data?.role === 'owner') detail = 'Власник простору';
+  if (member.isBot) detail = 'Асистент простору';
+  else if (profile.data?.role === 'owner') detail = 'Власник простору';
   else if (unavailable) detail = 'Учасник недоступний';
 
   return (
@@ -69,7 +65,8 @@ export function MemberCard({ member }: { member: MemberSummary }) {
           <Skeleton.Button active block size="small" />
         </div>
       )}
-      {!profile.isPending && !profile.data?.isSelf && (
+      {/* A bot takes no direct messages or calls. */}
+      {!profile.isPending && !profile.data?.isSelf && !member.isBot && (
         <div className={styles.actions}>
           <Button
             type="primary"

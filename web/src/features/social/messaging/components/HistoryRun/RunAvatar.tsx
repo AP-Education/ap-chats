@@ -1,10 +1,9 @@
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
+import type { MemberSummary } from '@/features/workspaces/types';
 import { Avatar } from '@/shared/ui/Avatar';
 
-import type { MessageAuthor } from '../../types';
-
 interface RunAvatarProps {
-  author: MessageAuthor;
+  author: MemberSummary;
   size: number;
   className: string;
 }

@@ -11,6 +11,7 @@ import { useConversation } from '@/features/social/conversation/store';
 import type { AttachmentDraft } from '../../attachments/types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';
 import { Bubble } from '../Bubble/Bubble';
+import { BubbleRetry } from '../Bubble/BubbleRetry';
 import { SELECTION_GUTTER } from '../HistoryRun/HistoryRun';
 import { bubbleLayout } from './bubbleLayout';
 import { MessageActions } from './MessageActions';
@@ -88,26 +89,6 @@ const useStyles = createStyles(({ token, css }) => ({
       100% {
         background: transparent;
       }
-    }
-  `,
-  retry: css`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--bubble-meta);
-    font-size: ${token.fontSizeSM}px;
-  `,
-  retryButton: css`
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--bubble-link);
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover {
-      text-decoration: underline;
     }
   `,
   // Sits in the run's gutter at the screen edge, wherever the bubble itself is.
@@ -262,12 +243,7 @@ export const MessageRow = memo(function MessageRow({
             onCloseEdit={() => setEditingId(null)}
           />
           {delivery === 'failed' && (
-            <div className={styles.retry}>
-              Не надіслано
-              <button type="button" className={styles.retryButton} onClick={() => onRetry(item.id)}>
-                Повторити
-              </button>
-            </div>
+            <BubbleRetry status="Не надіслано" onRetry={() => onRetry(item.id)} />
           )}
         </Bubble>
       </MessageActions>

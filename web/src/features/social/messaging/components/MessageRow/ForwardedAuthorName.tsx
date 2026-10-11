@@ -1,8 +1,7 @@
 import { createStyles } from 'antd-style';
 
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
-
-import type { MessageAuthor } from '../../types';
+import type { MemberSummary } from '@/features/workspaces/types';
 
 const useStyles = createStyles(({ css }) => ({
   name: css`
@@ -22,7 +21,7 @@ const useStyles = createStyles(({ css }) => ({
 }));
 
 /** The original author of a forwarded message; one no longer known stays plain text. */
-export function ForwardedAuthorName({ member }: { member: MessageAuthor | null }) {
+export function ForwardedAuthorName({ member }: { member: MemberSummary | null }) {
   const { styles } = useStyles();
 
   if (!member) return 'Ім’я недоступне';

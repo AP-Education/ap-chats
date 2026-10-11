@@ -10,6 +10,7 @@ import type {
 } from '@/features/social/messaging/types';
 import { isMessageItem } from '@/features/social/messaging/types';
 
+import type { ComposedMessage } from '../../contributions';
 import { useConversation } from '../../store';
 
 interface ConversationFooterProps {
@@ -35,15 +36,23 @@ function WritableConversationFooter({
   send,
 }: Pick<ConversationFooterProps, 'items' | 'send'>) {
   const intent = useConversation((state) => state.intent);
-  const replyTarget = intent
-    ? items.filter(isMessageItem).find((item) => item.message.id === intent.messageId)
-    : undefined;
+  const contributions = useConversation((state) => state.contributions);
+  const replyTarget =
+    intent?.kind === 'reply'
+      ? items.filter(isMessageItem).find((item) => item.message.id === intent.messageId)
+      : undefined;
 
   function onSend(
-    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
+    input: Omit<SendMessageCommand, 'attachments'>,
     pending?: PendingAttachmentCommit,
   ) {
-    send(input, pending);
+    const landed = send(input, pending);
+    const composed: ComposedMessage = {
+      input,
+      ...(intent?.kind === 'ask' ? { picked: intent.messageIds } : {}),
+      ...(replyTarget ? { replyToAuthorId: replyTarget.author.memberId } : {}),
+    };
+    contributions.forEach((contribution) => contribution.sent?.(composed, landed));
   }
 
   return (

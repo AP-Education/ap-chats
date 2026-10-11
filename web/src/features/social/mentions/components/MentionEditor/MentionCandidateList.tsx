@@ -2,13 +2,9 @@ import { useIsMobile } from '@ap-education/ui';
 import { createStyles, keyframes } from 'antd-style';
 import { useLayoutEffect, useRef } from 'react';
 
+import { BotBadge } from '@/features/social/people/components/BotBadge/BotBadge';
+import type { MemberSummary } from '@/features/workspaces/types';
 import { Avatar } from '@/shared/ui/Avatar';
-
-export interface MentionCandidate {
-  memberId: string;
-  displayName: string | null;
-  avatarPath: string | null;
-}
 
 const rise = keyframes`
   from { opacity: 0; transform: translateY(6px); }
@@ -74,6 +70,13 @@ const useStyles = createStyles(({ token, css }) => ({
       font-size: 16px;
     }
   `,
+  // The name and its badge stay together, closer than the avatar keeps to them.
+  identity: css`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  `,
   name: css`
     overflow: hidden;
     text-overflow: ellipsis;
@@ -88,13 +91,13 @@ const useStyles = createStyles(({ token, css }) => ({
 export type MentionListPlacement = 'docked' | 'floating';
 
 interface MentionCandidateListProps {
-  candidates: MentionCandidate[];
+  candidates: MemberSummary[];
   query: string;
   active: number;
   /** Docked in the composer's suggestion strip, or floating over an inline editor. */
   placement: MentionListPlacement;
   onActivate: (index: number) => void;
-  onPick: (candidate: MentionCandidate) => void;
+  onPick: (candidate: MemberSummary) => void;
 }
 
 export function MentionCandidateList({
@@ -140,12 +143,12 @@ export function MentionCandidateList({
 }
 
 interface MentionCandidateOptionProps {
-  candidate: MentionCandidate;
+  candidate: MemberSummary;
   index: number;
   active: boolean;
   query: string;
   onActivate: (index: number) => void;
-  onPick: (candidate: MentionCandidate) => void;
+  onPick: (candidate: MemberSummary) => void;
 }
 
 function MentionCandidateOption({
@@ -173,8 +176,11 @@ function MentionCandidateOption({
       onClick={() => onPick(candidate)}
     >
       <Avatar path={candidate.avatarPath} alt={name} size={isMobile ? 36 : 30} shape="circle" />
-      <span className={styles.name}>
-        <MatchedName name={name} query={query} matchClassName={styles.match} />
+      <span className={styles.identity}>
+        <span className={styles.name}>
+          <MatchedName name={name} query={query} matchClassName={styles.match} />
+        </span>
+        {candidate.isBot && <BotBadge />}
       </span>
     </button>
   );

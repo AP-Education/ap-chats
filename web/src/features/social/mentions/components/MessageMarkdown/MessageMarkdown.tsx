@@ -4,14 +4,9 @@ import remarkBreaks from 'remark-breaks';
 import remarkDirective from 'remark-directive';
 
 import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
+import type { MemberSummary } from '@/features/workspaces/types';
 
 import { mentionDirective } from './mention-directive';
-
-export interface MentionLabel {
-  memberId: string;
-  displayName: string | null;
-  avatarPath?: string | null;
-}
 
 const useStyles = createStyles(({ token, css }) => ({
   // Hugs the glyphs instead of filling the line: a button would otherwise stretch its
@@ -52,6 +47,13 @@ const useStyles = createStyles(({ token, css }) => ({
       color: var(--mention-me-color, #ffd591);
     }
   `,
+  // A bot here is an assistant: its mention carries a faint indigo-to-violet wash, hover
+  // included. The spark's teal end is left out, since it would vanish into the teal accent.
+  mentionAssistant: css`
+    &&& {
+      background-image: linear-gradient(100deg, rgb(84 104 245 / 0.38), rgb(168 85 247 / 0.38));
+    }
+  `,
   mentionMeTrigger: css`
     &:hover,
     &:focus-visible {
@@ -62,7 +64,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
 interface MessageMarkdownProps {
   markdown: string;
-  mentions?: MentionLabel[];
+  mentions?: MemberSummary[];
   inline?: boolean;
   /** The current viewer's own member id — highlights a mention of them distinctly. */
   viewerMemberId?: string;
@@ -118,16 +120,14 @@ export function MessageMarkdown({
           const person = people.get(memberId);
           const name = person?.displayName ?? 'учасник';
           const isMe = memberId === viewerMemberId;
-          const mentionClass = cx(styles.mention, isMe && styles.mentionMe);
+          const mentionClass = cx(
+            styles.mention,
+            isMe && styles.mentionMe,
+            person?.isBot && styles.mentionAssistant,
+          );
           if (inline || !person) return <span className={mentionClass}>@{name}</span>;
           return (
-            <MemberPopover
-              member={{
-                memberId,
-                displayName: person.displayName,
-                avatarPath: person.avatarPath ?? null,
-              }}
-            >
+            <MemberPopover member={person}>
               <button
                 type="button"
                 className={cx(mentionClass, styles.mentionTrigger, isMe && styles.mentionMeTrigger)}

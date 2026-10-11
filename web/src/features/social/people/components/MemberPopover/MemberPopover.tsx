@@ -2,9 +2,10 @@ import { Popover, theme } from 'antd';
 import { createStyles } from 'antd-style';
 import type { ReactElement } from 'react';
 
+import type { MemberSummary } from '@/features/workspaces/types';
 import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
 
-import { MemberCard, type MemberSummary } from './MemberCard';
+import { MemberCard } from './MemberCard';
 
 const useStyles = createStyles(({ token, css }) => ({
   surface: css`

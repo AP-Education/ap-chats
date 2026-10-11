@@ -1,3 +1,4 @@
+import type { MemberSummary } from '@/features/workspaces/types';
 import { apiRequest, jsonInit } from '@/shared/api/http';
 
 export interface DirectMessage {
@@ -24,12 +25,6 @@ export interface DirectMessage {
 
 export interface UnreadDirectMessage extends DirectMessage {
   unreadCount: number;
-}
-
-export interface PersonResult {
-  memberId: string;
-  displayName: string | null;
-  avatarPath: string | null;
 }
 
 export function listDirectMessages(
@@ -85,7 +80,7 @@ export function searchPeople(
   token: string,
   workspaceId: string,
   query: string,
-): Promise<PersonResult[]> {
+): Promise<MemberSummary[]> {
   return apiRequest(
     `/api/workspaces/${workspaceId}/members/search?q=${encodeURIComponent(query)}`,
     token,

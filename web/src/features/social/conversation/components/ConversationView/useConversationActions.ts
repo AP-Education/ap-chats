@@ -13,7 +13,7 @@ import { usePinActions } from '@/features/social/pins/hooks/usePins';
 import type { ActionCommands, ActionTarget, ConversationAction } from '../../actions';
 import { useConversation, useConversationScope } from '../../store';
 
-export const conversationActions = [...messagingActions, ...forwardingActions, ...pinActions];
+const builtInActions = [...messagingActions, ...forwardingActions, ...pinActions];
 
 interface UseConversationActionsInput {
   items: HistoryItem[];
@@ -47,6 +47,15 @@ export function useConversationActions({
   const actionContext = useMemo(
     () => ({ memberId, canManage, canPin, canPost }),
     [memberId, canManage, canPin, canPost],
+  );
+  const contributions = useConversation((state) => state.contributions);
+  // Features mounted in the conversation offer their own actions after the built-in ones.
+  const actions = useMemo(
+    () => [
+      ...builtInActions,
+      ...contributions.flatMap((contribution) => contribution.actions ?? []),
+    ],
+    [contributions],
   );
 
   const commands: ActionCommands = {
@@ -122,6 +131,7 @@ export function useConversationActions({
   }
 
   return {
+    actions,
     actionContext,
     selectedItems,
     clearSelection,

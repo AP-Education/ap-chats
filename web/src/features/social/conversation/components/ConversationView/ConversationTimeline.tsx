@@ -2,7 +2,6 @@ import { MessageTimeline } from '@/features/social/messaging/components/MessageT
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 
 import type { useConversationActions } from './useConversationActions';
-import { conversationActions } from './useConversationActions';
 import type { useConversationHistoryNavigation } from './useConversationHistoryNavigation';
 
 interface ConversationTimelineProps {
@@ -17,7 +16,7 @@ export function ConversationTimeline({
   operations,
 }: ConversationTimelineProps) {
   const { history, pages, historyTargetId, targetMessageId, onJump } = navigation;
-  const { actionContext, onAction, onEdit } = interaction;
+  const { actions, actionContext, onAction, onEdit } = interaction;
 
   return (
     <MessageTimeline
@@ -25,7 +24,7 @@ export function ConversationTimeline({
       pages={pages}
       displayItems={operations.displayItems}
       actionContext={actionContext}
-      actions={conversationActions}
+      actions={actions}
       onAction={onAction}
       onJump={onJump}
       onEdit={onEdit}

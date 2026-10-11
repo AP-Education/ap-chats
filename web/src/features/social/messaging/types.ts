@@ -1,5 +1,7 @@
 import type { CSSProperties, Ref } from 'react';
 
+import type { MemberSummary } from '@/features/workspaces/types';
+
 import type { Attachment, AttachmentDraft } from './attachments/types';
 
 export interface Message {
@@ -26,16 +28,16 @@ export interface MessageHistoryItem {
   seq: string;
   createdAt: string;
   message: Message;
-  author: MessageAuthor;
+  author: MemberSummary;
   reply: {
     id: string;
     authorMemberId: string;
-    author: MessageAuthor | null;
+    author: MemberSummary | null;
     markdown: string | null;
   } | null;
-  forwardedFrom: MessageAuthor | null;
+  forwardedFrom: MemberSummary | null;
   pin: { pinnedAt: string; pinnedByMemberId: string } | null;
-  mentions?: { memberId: string; displayName: string | null; avatarPath: string | null }[];
+  mentions?: MemberSummary[];
 }
 
 export type CallEntryStatus = 'ringing' | 'active' | 'ended' | 'declined' | 'missed';
@@ -52,7 +54,7 @@ export interface CallHistoryItem {
     startedAt: string;
     endedAt: string | null;
   };
-  startedBy: MessageAuthor;
+  startedBy: MemberSummary;
 }
 
 // A row in the channel timeline: exactly one kind, never a grab-bag of
@@ -64,12 +66,6 @@ export type HistoryItem = MessageHistoryItem | CallHistoryItem;
 // same predicate rather than re-deriving `item.type === 'MESSAGE'` locally.
 export function isMessageItem(item: HistoryItem): item is MessageHistoryItem {
   return item.type === 'MESSAGE';
-}
-
-export interface MessageAuthor {
-  memberId: string;
-  displayName: string | null;
-  avatarPath: string | null;
 }
 
 export interface ReadState {

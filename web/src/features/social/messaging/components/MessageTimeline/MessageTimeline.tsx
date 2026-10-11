@@ -188,6 +188,7 @@ export function MessageTimeline({
   const isMobile = useIsMobile();
   const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
   const selecting = useConversation((state) => state.selectedIds.length > 0);
+  const setTimelineEnd = useConversation((state) => state.setTimelineEnd);
   const gesture = useRef<{ x: number; y: number; dismissed: boolean } | null>(null);
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   const firstUnreadSeq = pages.find((page) => page.firstUnreadSeq !== null)?.firstUnreadSeq ?? null;
@@ -298,6 +299,8 @@ export function MessageTimeline({
               ))}
             </section>
           ))}
+          {/* Only the live end: what happens next has no place after an older stretch. */}
+          {!hasNewer && <div ref={setTimelineEnd} />}
           {hasNewer && (
             <Button
               className={styles.load}

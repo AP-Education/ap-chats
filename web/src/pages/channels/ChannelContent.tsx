@@ -22,6 +22,7 @@ import { ChannelMembersPanel } from '@/features/communities/memberships/componen
 import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
 import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
+import { StarMeConversation } from '@/features/star-me/components/StarMeConversation';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 
@@ -105,6 +106,7 @@ export default function ChannelContent() {
         }}
       >
         <WorkspaceChannelPresence channelId={channel.id} />
+        <StarMeConversation />
         <ChannelDetail workspaceId={workspaceId} channel={channel} leading={<MobileMenuButton />} />
       </ConversationProvider>
       <PageAside>

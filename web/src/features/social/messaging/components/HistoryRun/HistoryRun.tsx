@@ -2,7 +2,8 @@ import { SWIPE_SETTLE_TRANSITION } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
-import type { MessageAuthor } from '../../types';
+import type { MemberSummary } from '@/features/workspaces/types';
+
 import { RunAvatar } from './RunAvatar';
 
 /** Room at the screen edge for each row's check while messages are being selected. */
@@ -76,7 +77,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
 interface HistoryRunProps {
   /** The face beside an incoming run; own runs and standalone events have none. */
-  avatar: MessageAuthor | null;
+  avatar: MemberSummary | null;
   children: ReactNode;
 }
 
