@@ -20,6 +20,7 @@ const useStyles = createStyles(({ token, css }) => ({
     background: transparent;
     cursor: pointer;
     color: ${token.colorText};
+    font: inherit;
     text-align: left;
     transition: background 0.15s ease;
 

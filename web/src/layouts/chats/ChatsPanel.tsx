@@ -1,5 +1,4 @@
-import { Panel, PanelBody, PanelDivider, PanelHeader, useIsMobile } from '@ap-education/ui';
-import { createStyles } from 'antd-style';
+import { Panel, PanelBody, PanelHeader, useIsMobile } from '@ap-education/ui';
 import { useLocation } from 'react-router-dom';
 
 import { CallHistoryList } from '../../features/calls/components/CallHistoryList/CallHistoryList';
@@ -9,15 +8,8 @@ import { DirectMessageList } from '../../features/social/direct-messages/compone
 import { UnreadDirectMessages } from '../../features/social/direct-messages/components/UnreadDirectMessages/UnreadDirectMessages';
 import { WorkspaceHeader } from '../../features/workspaces/components/WorkspaceHeader';
 import { useActiveWorkspace } from '../../features/workspaces/hooks/useActiveWorkspace';
+import { PanelHeaderActions } from '../../shared/ui/PanelHeaderActions';
 import { type ChatsSection, sectionAt } from './sections';
-
-const useStyles = createStyles(({ css }) => ({
-  headerActions: css`
-    display: flex;
-    flex-shrink: 0;
-    padding-right: 8px;
-  `,
-}));
 
 /** The list of the page's section: the team's channels, direct messages or calls. */
 export function ChatsPanel() {
@@ -50,19 +42,17 @@ export function ChatsPanel() {
 }
 
 function TeamHeader() {
-  const { styles } = useStyles();
   const { workspace } = useActiveWorkspace();
 
   return (
     <>
       <PanelHeader>
         <WorkspaceHeader />
-        <div className={styles.headerActions}>
+        <PanelHeaderActions>
           <PushSettings />
-        </div>
+        </PanelHeaderActions>
       </PanelHeader>
       {workspace && <UnreadDirectMessages />}
-      <PanelDivider />
     </>
   );
 }
