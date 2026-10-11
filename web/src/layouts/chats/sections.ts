@@ -18,7 +18,7 @@ export const teamTab: AppTab = {
   id: 'team',
   label: 'Команда',
   icon: UsersThreeIcon,
-  symbol: { ios: 'person.3', android: 'groups' },
+  symbol: { ios: 'person.2', android: 'groups' },
   path: '/channels',
   includes: (path) => sectionAt(path) === 'channels',
   rail: true,
@@ -28,7 +28,7 @@ export const personalTab: AppTab = {
   id: 'personal',
   label: 'Особисте',
   icon: ChatTextIcon,
-  symbol: { ios: 'bubble.left.and.bubble.right', android: 'forum' },
+  symbol: { ios: 'bubble.left', android: 'forum' },
   path: '/direct',
   includes: (path) => sectionAt(path) === 'direct',
 };
