@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { WorkspaceUnreadContext } from '../../features/social/read-state/workspace-unread-context';
 import { WorkspaceRail } from '../../features/workspaces/components/WorkspaceRail';
-import { callsTab, personalTab, sectionAt } from './sections';
+import { personalTab, sectionAt } from './sections';
 
 const useStyles = createStyles(({ token, css }) => ({
   divider: css`
@@ -18,7 +18,7 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-/** Chats on the shell rail: the person's direct messages and calls, then the team workspaces. */
+/** Chats on the shell rail: the person's direct messages, then the team workspaces. */
 export function ChatsRail() {
   const { styles } = useStyles();
   const { pathname } = useLocation();
@@ -32,7 +32,8 @@ export function ChatsRail() {
   return (
     <>
       <SectionTile tab={personalTab} pathname={pathname} badge={directTotal} />
-      <SectionTile tab={callsTab} pathname={pathname} />
+      {/* Technical debt: calls have no desktop tile until the stakeholder settles where they
+          belong there; /calls still opens from links and the mobile tab. */}
       <div className={styles.divider} role="separator" />
       <WorkspaceRail onTeam={onTeam} />
     </>
