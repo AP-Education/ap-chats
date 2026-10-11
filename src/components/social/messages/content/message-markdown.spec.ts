@@ -26,15 +26,45 @@ test('stores canonical Markdown and derives structured mentions without persisti
   assert.deepEqual(await markdown.normalize(normalized.markdown), normalized);
 });
 
-test('rejects executable links, unsupported syntax, and blank messages', async () => {
-  await assert.rejects(markdown.normalize('[run](javascript:alert(1))'));
-  await assert.rejects(markdown.normalize('![image](https://example.com/image.png)'));
+test('formatting chat does not support is dropped and its text kept, not refused', async () => {
+  const cases: [string, string][] = [
+    ['# Підсумок\nтекст', 'Підсумок\n\nтекст'],
+    ['до\n\n---\n\nпісля', 'до\n\nпісля'],
+    ['![схема](https://example.com/a.png)', '[схема](https://example.com/a.png)'],
+    ['[run](javascript:alert(1))', 'run'],
+  ];
+
+  for (const [source, expected] of cases) {
+    const normalized = await markdown.normalize(source);
+    assert.equal(normalized.markdown, expected);
+    assert.deepEqual(await markdown.normalize(normalized.markdown), normalized);
+  }
+});
+
+test('HTML and unknown directives read as the text they were typed as', async () => {
+  const normalized = await markdown.normalize('<b>важливо</b> о 10:30, ::note');
+
+  assert.equal(normalized.plainText.trim(), '<b>важливо</b> о 10:30, ::note');
+  assert.deepEqual(normalized.mentionedMemberIds, []);
+  assert.deepEqual(await markdown.normalize(normalized.markdown), normalized);
+});
+
+test('a blank message is still refused', async () => {
   await assert.rejects(markdown.normalize('   '));
+  await assert.rejects(markdown.normalize('---'));
 });
 
 test('does not index text that only resembles a mention', async () => {
   const result = await markdown.normalize('`@Alex` and @Alex');
   assert.deepEqual(result.mentionedMemberIds, []);
+});
+
+test('stores an escaped colon so it parses back as text, not as a directive', async () => {
+  const normalized = await markdown.normalize('Зустріч о 10\\:30, тема\\:бюджет');
+
+  assert.equal(normalized.markdown, 'Зустріч о 10\\:30, тема\\:бюджет');
+  assert.equal(normalized.plainText.trim(), 'Зустріч о 10:30, тема:бюджет');
+  assert.deepEqual(await markdown.normalize(normalized.markdown), normalized);
 });
 
 test('preserves single and blank line breaks in stored Markdown', async () => {
