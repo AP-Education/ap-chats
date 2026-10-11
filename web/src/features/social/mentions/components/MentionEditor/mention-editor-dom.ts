@@ -1,6 +1,5 @@
-import type { ComposerDraft } from '@/features/social/messaging/types';
-
 import { type MentionToken, splitTokens, writeToken } from '../../mention-tokens';
+import type { ComposerDraft } from '../../types';
 
 function serialize(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';

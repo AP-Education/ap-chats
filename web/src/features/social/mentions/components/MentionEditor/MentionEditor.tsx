@@ -4,12 +4,9 @@ import { createPortal } from 'react-dom';
 
 import { useChannels } from '@/features/communities/channels/hooks/useChannels';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
-import {
-  ComposerEditor,
-  type ComposerEditorHandle,
-} from '@/features/social/messaging/components/ComposerEditor/ComposerEditor';
-import { useMessageEditorSlot } from '@/features/social/messaging/MessageEditorSlot';
 
+import { useMessageEditorSlot } from '../../MessageEditorSlot';
+import { ComposerEditor, type ComposerEditorHandle } from '../ComposerEditor/ComposerEditor';
 import { restoreEditor, serializeEditor, tokenChip } from './mention-editor-dom';
 import { SuggestionList } from './SuggestionList';
 import type { Suggestion, SuggestionQuery } from './suggestions';

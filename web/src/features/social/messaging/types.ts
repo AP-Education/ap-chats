@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode, Ref } from 'react';
+import type { ReactNode } from 'react';
 
 import type { MessageReaction } from '../reactions/types';
 import type { Attachment, AttachmentDraft } from './attachments/types';
@@ -127,51 +127,6 @@ export interface PendingAttachmentCommit {
   watchCommitted: (nonce: string, onUpdate: (drafts: AttachmentDraft[]) => void) => () => void;
   uncommit: (nonce: string) => void;
   releaseCommitted: (nonce: string) => void;
-}
-
-// Messaging's extension point for its text input: markdown plus a label
-// dictionary for whatever inline reference tokens (today, @-mentions) the
-// plugged-in editor renders as chips. Messaging owns this contract; mentions
-// is one implementation of it, not the other way around.
-export interface ComposerDraft {
-  markdown: string;
-  labels: Record<string, string>;
-}
-
-export interface ComposerEditorApi {
-  draft: () => ComposerDraft;
-  clear: () => void;
-  focus: () => void;
-  blur: () => void;
-  insertText: (text: string) => void;
-  /** Captures the current caret so a later resumeInput/insertText can restore it even after focus has moved elsewhere. */
-  saveSelection: () => void;
-  /** Disables real DOM input (e.g. while a native keyboard-replacement panel is shown) without moving focus. */
-  suspendInput: () => void;
-  /** Re-enables real input without moving focus — used when a panel closes but the real keyboard will reclaim focus on its own. */
-  releaseInput: () => void;
-  /** Re-enables real input and restores focus, optionally placing the caret at a viewport point. */
-  resumeInput: (point?: { x: number; y: number }) => void;
-  /** Resumes input while placing the caret at the given viewport point. */
-  focusAtPoint: (clientX: number, clientY: number) => void;
-}
-
-export interface ComposerEditorSlotProps {
-  editorRef?: Ref<ComposerEditorApi>;
-  initialDraft?: ComposerDraft;
-  /** Identifies the draft being edited, for an implementation that needs to remount when it changes (e.g. to re-run a mount-time restore). */
-  draftKey?: string;
-  className?: string;
-  editorStyle?: CSSProperties;
-  ariaLabel: string;
-  placeholder?: string;
-  autoFocus?: boolean;
-  onChange?: (draft: ComposerDraft) => void;
-  onSubmit?: () => void;
-  onEscape?: () => void;
-  onPasteFiles?: (files: File[]) => void;
-  /** The strip above the composer where suggestion lists dock; an inline editor has none. */
-  suggestionsHost?: HTMLElement | null;
 }
 
 // What any feature can offer on messages: the conversation gathers them, message rows show them.
