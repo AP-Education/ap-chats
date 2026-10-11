@@ -1,6 +1,9 @@
 import type { CSSProperties } from 'react';
 
-import type { KeyboardGlideMessage } from './components/MessageComposer/native-input';
+import type {
+  KeyboardGlideMessage,
+  KeyboardInsetMessage,
+} from './components/MessageComposer/native-input';
 
 interface GlideMotion {
   shift: number;
@@ -42,6 +45,21 @@ export function glideReducer(phase: GlidePhase, event: GlideEvent): GlidePhase {
     case 'keyboard/glide-end':
       return phase;
   }
+}
+
+/**
+ * A new inset as the glide to it: the page's padding changes once, so its lower parts follow from
+ * the old inset to the new one. An instant change needs no glide.
+ */
+export function insetGlide(
+  { inset, duration, easing }: KeyboardInsetMessage,
+  previous: number,
+): Extract<KeyboardGlideMessage, { type: 'keyboard/glide' }> | null {
+  const travel = inset - previous;
+  if (travel === 0 || duration <= 0) return null;
+
+  const direction = travel > 0 ? 'up' : 'down';
+  return { type: 'keyboard/glide', direction, shift: Math.abs(travel), duration, easing };
 }
 
 /** The phase as the attributes the gliding parts read from the conversation surface. */

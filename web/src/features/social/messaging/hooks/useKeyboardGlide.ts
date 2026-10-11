@@ -6,7 +6,7 @@ import {
   type KeyboardGlideMessage,
   readKeyboardGlide,
 } from '../components/MessageComposer/native-input';
-import { GLIDE_REST, glideReducer, glideSurfaceProps } from '../keyboard-glide';
+import { GLIDE_REST, glideReducer, glideSurfaceProps, insetGlide } from '../keyboard-glide';
 
 // Long enough for the resize that ends a glide to arrive first.
 const RESIZE_WAIT_MS = 150;
@@ -20,11 +20,28 @@ export function useKeyboardGlide(surfaceRef: RefObject<HTMLElement | null>) {
     if (!isNativeShell() || !surface) return;
 
     let expiry: ReturnType<typeof setTimeout> | undefined;
+    let inset = 0;
     const unsubscribe = onNativeMessage<unknown>((value) => {
       const message = readKeyboardGlide(value);
       if (!message) return;
 
       clearTimeout(expiry);
+      if (message.type === 'keyboard/inset') {
+        const glide = insetGlide(message, inset);
+        inset = message.inset;
+        // An instant change lands with the padding; nothing is left in motion.
+        if (!glide) {
+          dispatch({ type: 'expired' });
+          return;
+        }
+
+        dispatch(withSupportedEasing(glide));
+        // The shell pads the page at once for a fall, and once the rise is over for a rise.
+        const wait = glide.direction === 'down' ? 0 : glide.duration;
+        expiry = setTimeout(() => dispatch({ type: 'expired' }), wait + RESIZE_WAIT_MS);
+        return;
+      }
+
       dispatch(withSupportedEasing(message));
       // A rise ends on its own resize; a fall, or the end of one, waits for one briefly.
       const awaitsResize = message.type === 'keyboard/glide-end' || message.direction === 'down';

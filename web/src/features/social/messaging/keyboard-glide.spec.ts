@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { readKeyboardGlide } from './components/MessageComposer/native-input.ts';
-import { GLIDE_REST, glideReducer, glideSurfaceProps } from './keyboard-glide.ts';
+import { GLIDE_REST, glideReducer, glideSurfaceProps, insetGlide } from './keyboard-glide.ts';
 
 const motion = { shift: 302, duration: 250, easing: 'linear(0, 0.4 30%, 0.9 70%, 1)' };
 const glide = (direction: 'up' | 'down') =>
@@ -47,4 +47,23 @@ test('messages from older shells read as rises, and unsafe or malformed parts ar
   assert.deepEqual(unsafe, { type: 'keyboard/glide', direction: 'up', shift: 302, duration: 250 });
 
   assert.equal(readKeyboardGlide({ type: 'keyboard/glide', ...motion, shift: 'far' }), null);
+});
+
+test('a new inset glides from the old one, by how far it moved', () => {
+  const rise = insetGlide({ type: 'keyboard/inset', inset: 302, duration: 250 }, 0);
+  assert.deepEqual(rise, { ...glide('up'), easing: undefined });
+
+  const fall = insetGlide({ type: 'keyboard/inset', ...motion, inset: 257 }, 302);
+  assert.deepEqual(fall, { ...glide('down'), shift: 45 });
+
+  assert.equal(insetGlide({ type: 'keyboard/inset', inset: 0, duration: 0 }, 302), null);
+  assert.equal(insetGlide({ type: 'keyboard/inset', inset: 302, duration: 250 }, 302), null);
+});
+
+test('insets from the shell are read, with an unsafe curve dropped', () => {
+  const inset = { type: 'keyboard/inset', inset: 302, duration: 250, easing: motion.easing };
+  assert.deepEqual(readKeyboardGlide(inset), inset);
+  const uneased = { type: 'keyboard/inset', inset: 302, duration: 250 };
+  assert.deepEqual(readKeyboardGlide({ ...inset, easing: 'linear' }), uneased);
+  assert.equal(readKeyboardGlide({ ...inset, inset: '302' }), null);
 });

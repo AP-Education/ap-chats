@@ -63,18 +63,38 @@ export type KeyboardGlideMessage =
     }
   | { type: 'keyboard/glide-end' };
 
+/** How much of the page's bottom the native input now covers, and how it gets there. */
+export interface KeyboardInsetMessage {
+  type: 'keyboard/inset';
+  inset: number;
+  duration: number;
+  easing?: string;
+}
+
 const GLIDE_EASING = /^(linear\([\d., %]+\)|cubic-bezier\([\d., -]+\))$/;
 
-export function readKeyboardGlide(value: unknown): KeyboardGlideMessage | null {
+export function readKeyboardGlide(
+  value: unknown,
+): KeyboardGlideMessage | KeyboardInsetMessage | null {
   if (!value || typeof value !== 'object') return null;
   const message = value as Record<string, unknown>;
   if (message.type === 'keyboard/glide-end') return { type: 'keyboard/glide-end' };
 
-  const { shift, duration, easing } = message;
+  const { inset, shift, duration, easing } = message;
+  const validEasing = typeof easing === 'string' && GLIDE_EASING.test(easing);
+  if (message.type === 'keyboard/inset') {
+    if (!Number.isFinite(inset) || !Number.isFinite(duration)) return null;
+    return {
+      type: 'keyboard/inset',
+      inset: inset as number,
+      duration: duration as number,
+      ...(validEasing ? { easing } : {}),
+    };
+  }
+
   const isGlide = message.type === 'keyboard/glide';
   if (!isGlide || !Number.isFinite(shift) || !Number.isFinite(duration)) return null;
 
-  const validEasing = typeof easing === 'string' && GLIDE_EASING.test(easing);
   return {
     type: 'keyboard/glide',
     // Shells that predate falling glides announce rises alone.
