@@ -1,13 +1,8 @@
 import { useIsMobile } from '@ap-education/ui';
 import { createContext, type PropsWithChildren, type RefObject, useContext, useState } from 'react';
 
-import type {
-  ActionContext,
-  ActionTarget,
-  ConversationAction,
-} from '@/features/social/conversation/actions';
-
 import type { AttachmentDraft } from '../../attachments/types';
+import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';
 
 interface MessageActionInput {

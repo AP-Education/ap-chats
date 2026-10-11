@@ -31,7 +31,10 @@ export interface MessageHistoryRow {
     pinnedAt: Date;
     pinnedByMemberId: string;
   } | null;
+  /** Members named in the text, for rendering their tags. */
   mentions: Mention[];
+  /** Whether the message reached the viewer, by name or through @everyone. */
+  mentionsViewer: boolean;
   reactions: MessageReaction[];
 }
 

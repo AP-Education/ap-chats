@@ -1,19 +1,15 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
-import { PGlite } from '@electric-sql/pglite';
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { type TransactionalAdapter, TransactionHost } from '@nestjs-cls/transactional';
-import { TransactionalAdapterDrizzleOrm } from '@nestjs-cls/transactional-adapter-drizzle-orm';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import { eq } from 'drizzle-orm';
-import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite';
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import * as schema from '@/database/drizzle/schema';
+import { migratedDatabase, transactionHost } from '@/testing/pglite';
 
 import { DrizzleHistoryRepository } from '../history/repository/drizzle-history.repository';
 import { ReactionDto } from './dto/reaction.dto';
@@ -30,15 +26,9 @@ test('a reaction is one fully qualified emoji', () => {
     assert.equal(accepts(value), false, value);
 });
 
-// Embedded PostgreSQL with the real migrations: no application database is contacted.
 test('reactions on PostgreSQL', async (t) => {
-  const pg = await PGlite.create();
-  const db = drizzle(pg, { schema });
+  const { pg, db } = await migratedDatabase();
   t.after(() => pg.close());
-  for (const migration of readdirSync('drizzle')
-    .filter((name) => name.endsWith('.sql'))
-    .sort())
-    await pg.exec(readFileSync(`drizzle/${migration}`, 'utf8'));
 
   const txHost = transactionHost(db);
   const history = new DrizzleHistoryRepository(txHost as never);
@@ -244,19 +234,3 @@ test('reactions on PostgreSQL', async (t) => {
     assert.deepEqual(left, []);
   });
 });
-
-type TestDatabase = PgliteDatabase<typeof schema>;
-
-function transactionHost(db: TestDatabase) {
-  const adapter = new TransactionalAdapterDrizzleOrm<TestDatabase>({
-    drizzleInstanceToken: Symbol('test-db'),
-  });
-
-  return new TransactionHost<TransactionalAdapter<TestDatabase, TestDatabase, object>>({
-    ...adapter.optionsFactory(db),
-    connectionName: undefined,
-    enableTransactionProxy: false,
-    defaultTxOptions: { isolationLevel: 'read committed' },
-    extraProviderTokens: [],
-  });
-}

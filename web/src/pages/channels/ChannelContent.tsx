@@ -19,8 +19,8 @@ import { useParams } from 'react-router-dom';
 import { ChannelDetail } from '@/features/communities/channels/components/ChannelDetail';
 import { useChannel } from '@/features/communities/channels/hooks/useChannels';
 import { ChannelMembersPanel } from '@/features/communities/memberships/components/ChannelMembersPanel';
-import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
+import { ConversationProvider } from '@/features/social/conversation-scope/store';
 import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
@@ -101,6 +101,7 @@ export default function ChannelContent() {
           composer: {
             ariaLabel: `Написати в #${channel.name}`,
             placeholder: `Написати в #${channel.name}`,
+            mentionEveryone: true,
           },
         }}
       >

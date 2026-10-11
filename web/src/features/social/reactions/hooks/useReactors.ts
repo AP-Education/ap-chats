@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import { listReactors } from '../api/reactions-api';
 

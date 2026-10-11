@@ -1,7 +1,7 @@
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import type { MessageHistoryItem } from '@/features/social/messaging/types';
 import { useWorkspaceMembers } from '@/features/workspaces/hooks/useWorkspaceMembers';
 

@@ -3,10 +3,11 @@ import { message as toast } from 'antd';
 import { createStyles } from 'antd-style';
 import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 
+import { MessageEditorSlotProvider } from '@/features/social/mentions/MessageEditorSlot';
+import type { ComposerEditorApi, ComposerEditorSlotProps } from '@/features/social/mentions/types';
 import { ApiError } from '@/shared/api/http';
 
-import { MessageEditorSlotProvider } from '../../MessageEditorSlot';
-import type { ComposerEditorApi, ComposerEditorSlotProps, MessageHistoryItem } from '../../types';
+import type { MessageHistoryItem } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -75,7 +76,7 @@ export function MessageEditor({ item, onEdit, onClose, minHeight, children }: Me
 
   const save = useCallback(
     async (overwrite = false) => {
-      const markdown = editor.current?.markdown().trim();
+      const markdown = editor.current?.draft().markdown.trim();
       if (markdown === undefined || (!markdown && !item.message.attachments?.length) || saving)
         return;
       setSaving(true);

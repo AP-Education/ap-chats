@@ -1,5 +1,5 @@
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import type { ReactionChangedPayload } from '../types';
 import { useReactionCache } from './useReactionCache';

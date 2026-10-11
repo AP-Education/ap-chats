@@ -2,6 +2,7 @@ import { createStyles } from 'antd-style';
 import { type ReactNode, useMemo, useRef } from 'react';
 
 import { ActiveCallBanner } from '@/features/calls/components/ActiveCallBanner';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import { keyboardGlidePart } from '@/features/social/messaging/keyboard-glide-part';
 import { PinnedMessageBar } from '@/features/social/pins/components/PinnedMessageBar/PinnedMessageBar';
@@ -9,7 +10,6 @@ import { ReactorsDialog } from '@/features/social/reactions/components/ReactorsD
 import { useReactionEvents } from '@/features/social/reactions/hooks/useReactionEvents';
 import type { WorkspaceMember } from '@/features/workspaces/types';
 
-import { useConversationScope } from '../../store';
 import { ConversationFooter } from './ConversationFooter';
 import { ConversationForwarding } from './ConversationForwarding';
 import { ConversationHistoryContent } from './ConversationHistoryContent';

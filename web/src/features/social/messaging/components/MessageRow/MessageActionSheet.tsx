@@ -1,8 +1,9 @@
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
-import type { ActionTarget, ConversationAction } from '@/features/social/conversation/actions';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
+
+import type { ActionTarget, ConversationAction } from '../../types';
 
 const useStyles = createStyles(({ token, css }) => ({
   group: css`

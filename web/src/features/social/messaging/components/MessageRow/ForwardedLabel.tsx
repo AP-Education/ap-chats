@@ -1,7 +1,6 @@
 import { createStyles } from 'antd-style';
 
-import { ForwardIcon } from '@/features/social/conversation/actionIcons';
-
+import { ForwardIcon } from '../../actionIcons';
 import { ForwardedAuthorName } from './ForwardedAuthorName';
 import { useMessageActionScope } from './MessageActionScope';
 

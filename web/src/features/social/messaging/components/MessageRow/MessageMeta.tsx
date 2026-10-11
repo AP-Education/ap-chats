@@ -1,6 +1,7 @@
-import { ClockIcon, PushPinIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import { CheckIcon, ClockIcon, PushPinIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 
+import type { DeliveryStatus } from '../../types';
 import { useMessageActionScope } from './MessageActionScope';
 
 const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
@@ -91,10 +92,9 @@ export type MessageMetaPlacement = 'inline' | 'block' | 'overlay' | 'emoji' | 'r
 
 export function MessageMeta({ placement }: { placement: MessageMetaPlacement }) {
   const { styles, cx } = useStyles();
-  const { item, delivery } = useMessageActionScope();
+  const { item, delivery, isOwn } = useMessageActionScope();
   const createdAt = new Date(item.message.createdAt);
   const editedAt = item.message.editedAt ? new Date(item.message.editedAt) : null;
-  const sending = delivery === 'sending' || delivery === 'uploading';
 
   return (
     <span
@@ -112,15 +112,25 @@ export function MessageMeta({ placement }: { placement: MessageMetaPlacement }) 
       <time dateTime={item.message.createdAt} title={fullFormat.format(createdAt)}>
         {timeFormat.format(createdAt)}
       </time>
-      {sending && <ClockIcon size={12} aria-label="Надсилається" />}
-      {delivery === 'failed' && (
-        <WarningCircleIcon
-          size={14}
-          weight="fill"
-          className={styles.failed}
-          aria-label="Не надіслано"
-        />
-      )}
+      {isOwn && <DeliveryMark delivery={delivery} />}
     </span>
   );
+}
+
+// One glyph of one size on every own message: settling a send swaps the glyph in place,
+// so neither the time nor the bubble moves.
+function DeliveryMark({ delivery }: { delivery: DeliveryStatus | undefined }) {
+  const { styles } = useStyles();
+
+  if (delivery === 'failed')
+    return (
+      <WarningCircleIcon
+        size={14}
+        weight="fill"
+        className={styles.failed}
+        aria-label="Не надіслано"
+      />
+    );
+  if (delivery) return <ClockIcon size={14} aria-label="Надсилається" />;
+  return <CheckIcon size={14} aria-label="Надіслано" />;
 }

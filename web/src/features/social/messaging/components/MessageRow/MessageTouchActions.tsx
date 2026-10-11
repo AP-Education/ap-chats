@@ -9,10 +9,10 @@ import {
   useState,
 } from 'react';
 
-import { ReplyIcon } from '@/features/social/conversation/actionIcons';
 import { QuickReactions } from '@/features/social/reactions/components/QuickReactions/QuickReactions';
 import { ReactionPicker } from '@/features/social/reactions/components/ReactionPicker/ReactionPicker';
 
+import { ReplyIcon } from '../../actionIcons';
 import { groupMessageActions } from './messageActionGroups';
 import type { MessageActionsProps } from './MessageActions';
 import { useMessageActionScope } from './MessageActionScope';

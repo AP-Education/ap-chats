@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { messagingQueryKeys } from '@/features/social/messaging/queryKeys';
 
 import { type HistoryData, type ReactionChange, withReactionChange } from '../reaction-cache';

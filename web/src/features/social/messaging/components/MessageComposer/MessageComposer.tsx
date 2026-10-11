@@ -22,18 +22,14 @@ import {
 } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { useConversation, useConversationScope } from '@/features/social/conversation/store';
+import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
+import { MessageEditorSlotProvider } from '@/features/social/mentions/MessageEditorSlot';
+import type { ComposerEditorApi, ComposerEditorSlotProps } from '@/features/social/mentions/types';
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
 import { randomId } from '@/shared/lib/random-id';
 
 import { useAttachments } from '../../attachments/useAttachments';
-import { MessageEditorSlotProvider } from '../../MessageEditorSlot';
-import type {
-  ComposerEditorApi,
-  ComposerEditorSlotProps,
-  PendingAttachmentCommit,
-  SendMessageCommand,
-} from '../../types';
+import type { PendingAttachmentCommit, SendMessageCommand } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
 import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
@@ -305,10 +301,11 @@ export function MessageComposer({
   }, [blurComposerToken]);
 
   const handleSend = useCallback(() => {
-    const markdown = editableRef.current?.markdown().trim() ?? '';
+    const draft = editableRef.current?.draft();
     if (!canSend) return;
     const input = {
-      markdown,
+      markdown: draft?.markdown.trim() ?? '',
+      labels: draft?.labels,
       ...(intent ? { replyToMessageId: intent.messageId } : {}),
       ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
     };
