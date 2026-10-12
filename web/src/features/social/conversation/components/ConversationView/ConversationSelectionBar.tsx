@@ -12,7 +12,7 @@ const useStyles = createStyles(({ token, css }) => ({
     pointer-events: auto;
 
     @media (max-width: ${token.screenMD}px) {
-      padding: 4px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+      padding: 4px 8px calc(8px + var(--app-inset-bottom, env(safe-area-inset-bottom, 0px)));
     }
   `,
   bar: css`

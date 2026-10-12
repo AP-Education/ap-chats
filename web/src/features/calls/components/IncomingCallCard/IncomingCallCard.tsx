@@ -56,7 +56,7 @@ const useStyles = createStyles(({ token, css }) => ({
       width: 100%;
       height: 100%;
       padding: calc(96px + env(safe-area-inset-top, 0px)) 24px
-        calc(48px + env(safe-area-inset-bottom, 0px));
+        calc(48px + var(--app-inset-bottom, env(safe-area-inset-bottom, 0px)));
       border-radius: 0;
       animation: ${scrimIn} ${token.motionDurationMid} ${token.motionEaseOut};
     }

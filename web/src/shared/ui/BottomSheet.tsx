@@ -10,7 +10,7 @@ const useStyles = createStyles(({ token, css }) => ({
   // The sheet rises from the bottom edge, so its last action stays above the home indicator.
   body: css`
     && {
-      padding: 8px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+      padding: 8px 12px calc(16px + var(--app-inset-bottom, env(safe-area-inset-bottom, 0px)));
     }
   `,
   handle: css`

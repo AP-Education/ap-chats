@@ -15,7 +15,7 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     justify-content: center;
     flex-shrink: 0;
-    padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    padding: 16px 16px calc(24px + var(--app-inset-bottom, env(safe-area-inset-bottom, 0px)));
   `,
   dock: css`
     display: flex;

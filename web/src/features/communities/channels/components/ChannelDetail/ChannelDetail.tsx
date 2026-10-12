@@ -66,7 +66,7 @@ const useStyles = createStyles(({ token, css }) => ({
     padding: 0 ${token.paddingLG}px ${token.paddingSM}px;
 
     @media (max-width: ${token.screenMD}px) {
-      padding: 0 16px calc(8px + env(safe-area-inset-bottom, 0px));
+      padding: 0 16px calc(8px + var(--app-inset-bottom, env(safe-area-inset-bottom, 0px)));
     }
   `,
   joinSurface: css`
