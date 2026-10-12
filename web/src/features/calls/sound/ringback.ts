@@ -1,15 +1,9 @@
-import { scheduleBell } from '@/shared/audio/tone';
+import { scheduleTelephoneTone } from './telephoneTone';
 
-// The old version struck a chord and then went almost silent for over two
-// seconds before the next one — that dead air was the actual problem, not
-// the tone. This keeps a soft, continuously breathing bed underneath so
-// there's never true silence, with a shorter, tighter pulse cadence riding
-// on top instead of a sparse, isolated pluck.
-const DYAD = [523.25, 783.99]; // C5 + G5
-const PULSE_DECAY_SECONDS = 0.5;
-const PULSE_CYCLE_SECONDS = 1.7;
-const BED_FREQUENCY = 261.63; // C4, an octave under the dyad's root
-const BREATHE_HZ = 0.22;
+// The phone-line ringback Telegram plays too: 440 + 480 Hz, two seconds on, four off.
+const RINGBACK_FREQUENCIES = [440, 480];
+const RINGBACK_TONE_SECONDS = 2;
+const RINGBACK_CYCLE_SECONDS = 6;
 
 export interface Ringback {
   start: () => void;
@@ -17,68 +11,33 @@ export interface Ringback {
 }
 
 /** Plays for the caller while a call they started is still ringing, until
- * someone answers (or the call ends) — the ringback, mirroring the
- * ringtone the other side hears. */
+ * someone answers (or the call ends). */
 export function createRingback(context: AudioContext): Ringback {
-  const now = context.currentTime;
   const master = context.createGain();
-  master.gain.setValueAtTime(0, now);
   master.connect(context.destination);
 
-  // A quiet, slowly breathing pad: never silent, so the gap between pulses
-  // reads as calm rather than dead air.
-  const bed = context.createOscillator();
-  bed.type = 'sine';
-  bed.frequency.value = BED_FREQUENCY;
-  const bedGain = context.createGain();
-  bedGain.gain.value = 0.045;
+  let ringTimer: ReturnType<typeof setInterval> | undefined;
 
-  const breathe = context.createOscillator();
-  breathe.frequency.value = BREATHE_HZ;
-  const breatheDepth = context.createGain();
-  breatheDepth.gain.value = 0.02;
-  breathe.connect(breatheDepth);
-  breatheDepth.connect(bedGain.gain);
-
-  bed.connect(bedGain);
-  bedGain.connect(master);
-
-  let pulseTimer: ReturnType<typeof setInterval> | undefined;
-
-  function pulse() {
-    const at = context.currentTime;
-    for (const frequency of DYAD) {
-      scheduleBell(context, master, {
-        frequency,
-        startTime: at,
-        gain: 0.18,
-        decay: PULSE_DECAY_SECONDS,
-      });
-    }
+  function ring() {
+    scheduleTelephoneTone(context, master, {
+      frequencies: RINGBACK_FREQUENCIES,
+      startTime: context.currentTime,
+      duration: RINGBACK_TONE_SECONDS,
+    });
   }
 
   return {
     start() {
-      bed.start();
-      breathe.start();
-      master.gain.linearRampToValueAtTime(0.5, context.currentTime + 0.3);
-      pulse();
-      pulseTimer = setInterval(pulse, PULSE_CYCLE_SECONDS * 1000);
+      ring();
+      ringTimer = setInterval(ring, RINGBACK_CYCLE_SECONDS * 1000);
     },
     stop() {
-      clearInterval(pulseTimer);
+      clearInterval(ringTimer);
       const at = context.currentTime;
-      master.gain.cancelScheduledValues(at);
       master.gain.setValueAtTime(master.gain.value, at);
-      master.gain.linearRampToValueAtTime(0, at + 0.2);
-      setTimeout(() => {
-        bed.stop();
-        breathe.stop();
-        // Disconnects this ringback's own nodes; the shared context itself stays alive for the session.
-        master.disconnect();
-        bedGain.disconnect();
-        breatheDepth.disconnect();
-      }, 260);
+      master.gain.linearRampToValueAtTime(0, at + 0.05);
+      // Disconnects this ringback's own nodes; the shared context itself stays alive for the session.
+      setTimeout(() => master.disconnect(), 100);
     },
   };
 }
