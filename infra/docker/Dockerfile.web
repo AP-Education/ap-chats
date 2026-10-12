@@ -9,6 +9,8 @@ RUN corepack enable
 WORKDIR /app
 # Every workspace manifest keeps the lockfile check honest; only the web app's packages get installed.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+# pnpm reads every patch, even for an install filtered to one app.
+COPY patches ./patches
 COPY web/package.json ./web/
 COPY mobile/package.json ./mobile/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
