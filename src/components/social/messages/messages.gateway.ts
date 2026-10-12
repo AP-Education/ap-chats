@@ -67,8 +67,7 @@ export class MessagesGateway {
     const member = await this.members.findForUser(workspaceId, userId);
     if (!member) throw new WsException('Channel not found');
     try {
-      const access = await this.access.requireReadAccess(member, channelId);
-      if (!access.isMember) throw new WsException('Join this channel first');
+      await this.access.requireReadAccess(member, channelId);
     } catch (error) {
       if (error instanceof ForbiddenException || error instanceof NotFoundException)
         throw new WsException('Channel not found');

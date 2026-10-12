@@ -48,7 +48,7 @@ test('mentions on PostgreSQL', async (t) => {
     await db.insert(schema.channels).values({
       id: channelId,
       workspaceId,
-      kind: 'public',
+      kind: 'channel',
       name: 'General',
       createdByMemberId: people.author,
     });
@@ -162,8 +162,9 @@ test('mentions on PostgreSQL', async (t) => {
       id: randomUUID(),
       workspaceId: randomUUID(),
       kind: 'dm' as const,
-      createdByMemberId: randomUUID(),
       lastEntrySeq: 0n,
+      canPost: true,
+      canManage: false,
     };
 
     await assert.rejects(mentions.requireValid(dm, { memberIds: [], everyone: true }));

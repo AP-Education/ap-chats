@@ -1,6 +1,6 @@
 export interface WorkspaceChannelUnread {
   channelId: string;
-  kind: 'public' | 'private' | 'dm';
+  kind: 'channel' | 'dm';
   lastReadEntrySeq: string;
   unreadCount: number;
 }

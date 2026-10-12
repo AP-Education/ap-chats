@@ -73,7 +73,7 @@ test('push persistence on PostgreSQL', async (t) => {
     await db.insert(schema.channels).values({
       id: ids.channelId,
       workspaceId: ids.workspaceId,
-      kind: 'private',
+      kind: 'channel',
       name: 'Private',
       createdByMemberId: ids.authorId,
     });

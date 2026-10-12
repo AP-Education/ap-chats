@@ -1,8 +1,19 @@
-import { Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Query,
+} from '@nestjs/common';
 
 import { UseAuthGuards } from '@/components/auth';
 
 import { CurrentWorkspaceMember } from './decorators';
+import { ChangeAccessLevelDto } from './dto/change-access-level.dto';
 import { WorkspaceMemberGuard } from './guards';
 import type { WorkspaceMember } from './types';
 import { WorkspaceMembersService } from './workspace-members.service';
@@ -28,6 +39,15 @@ export class WorkspaceMembersController {
     @Param('memberId', ParseUUIDPipe) memberId: string,
   ) {
     return this.members.profile(member, memberId);
+  }
+
+  @Patch(':memberId/access-level')
+  changeAccessLevel(
+    @CurrentWorkspaceMember() member: WorkspaceMember,
+    @Param('memberId', ParseUUIDPipe) memberId: string,
+    @Body() dto: ChangeAccessLevelDto,
+  ): Promise<WorkspaceMember> {
+    return this.members.changeAccessLevel(member, memberId, dto.accessLevel);
   }
 
   @Delete(':userId')

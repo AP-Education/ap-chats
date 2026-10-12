@@ -32,8 +32,8 @@ export class ReadStateFacade {
 
   @Transactional()
   async getState(member: WorkspaceMember, channelId: string): Promise<ChannelReadState | null> {
-    const { channel, isMember } = await this.access.requireReadAccess(member, channelId);
-    return isMember ? this.state(channelId, member.id, channel.lastEntrySeq) : null;
+    const channel = await this.access.requireReadAccess(member, channelId);
+    return this.state(channelId, member.id, channel.lastEntrySeq);
   }
 
   async state(
@@ -75,7 +75,7 @@ export class ReadStateFacade {
     seqText: string,
   ): Promise<MarkReadOutcome> {
     const seq = BigInt(seqText);
-    const channel = await this.access.requirePostAccess(member, channelId);
+    const channel = await this.access.requireReadAccess(member, channelId);
     if (seq > channel.lastEntrySeq)
       throw new BadRequestException('Sequence exceeds channel history');
     if (seq > 0n && !(await this.repository.entryExists(channelId, seq)))

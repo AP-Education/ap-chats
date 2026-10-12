@@ -1,3 +1,6 @@
+export const workspaceAccessLevels = ['owner', 'manager', 'member'] as const;
+export type WorkspaceAccessLevel = (typeof workspaceAccessLevels)[number];
+
 export interface WorkspaceMember {
   id: string;
   workspaceId: string;
@@ -8,7 +11,7 @@ export interface WorkspaceMember {
     displayName: string | null;
     avatarPath: string | null;
   };
-  role: 'owner' | 'member';
+  accessLevel: WorkspaceAccessLevel;
   status: 'active' | 'removed';
   leftAt: Date | null;
   createdAt: Date;

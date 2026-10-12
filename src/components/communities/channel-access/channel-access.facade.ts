@@ -1,9 +1,12 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
+import { isAdministrator } from '@/components/workspaces/access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import type { ChannelAccessSnapshot } from '../channels/types/channel-access.types';
 import { ChannelAccessRepository } from './repository/channel-access.repository';
+
+type ChannelLock = 'update' | 'key share';
 
 @Injectable()
 export class ChannelAccessFacade {
@@ -13,9 +16,10 @@ export class ChannelAccessFacade {
     member: WorkspaceMember,
     channelId: string,
   ): Promise<ChannelAccessSnapshot> {
-    const channel = await this.repository.lockChannel(member.workspaceId, channelId, 'update');
-    if (!channel) throw new NotFoundException('Channel not found');
-    await this.requireParticipation(member, channel);
+    const channel = await this.requireParticipation(member, channelId, 'update');
+    await this.requireReachablePeer(member, channel);
+    if (!channel.canPost) throw new ForbiddenException('You can only read this channel');
+
     return channel;
   }
 
@@ -24,22 +28,14 @@ export class ChannelAccessFacade {
     member: WorkspaceMember,
     channelId: string,
   ): Promise<ChannelAccessSnapshot> {
-    const channel = await this.repository.findChannel(member.workspaceId, channelId);
-    if (!channel) throw new NotFoundException('Channel not found');
-    await this.requireParticipation(member, channel);
+    const channel = await this.requireParticipation(member, channelId);
+    await this.requireReachablePeer(member, channel);
+
     return channel;
   }
 
-  async requireReadAccess(
-    member: WorkspaceMember,
-    channelId: string,
-  ): Promise<{ channel: ChannelAccessSnapshot; isMember: boolean }> {
-    const channel = await this.repository.lockChannel(member.workspaceId, channelId, 'key share');
-    if (!channel) throw new NotFoundException('Channel not found');
-    await this.requireActiveMember(member);
-    const isMember = await this.repository.isChannelMember(channelId, member.id);
-    if (channel.kind !== 'public' && !isMember) throw new NotFoundException('Channel not found');
-    return { channel, isMember };
+  requireReadAccess(member: WorkspaceMember, channelId: string): Promise<ChannelAccessSnapshot> {
+    return this.requireParticipation(member, channelId, 'key share');
   }
 
   /**
@@ -49,12 +45,15 @@ export class ChannelAccessFacade {
   async requireViewAccess(
     member: WorkspaceMember,
     channelId: string,
-  ): Promise<{ channel: ChannelAccessSnapshot; isMember: boolean }> {
-    const channel = await this.repository.findChannel(member.workspaceId, channelId);
+  ): Promise<ChannelAccessSnapshot> {
+    const channel = await this.repository.findParticipation(
+      member.workspaceId,
+      channelId,
+      member.id,
+    );
     if (!channel) throw new NotFoundException('Channel not found');
-    const isMember = await this.repository.isChannelMember(channelId, member.id);
-    if (channel.kind !== 'public' && !isMember) throw new NotFoundException('Channel not found');
-    return { channel, isMember };
+
+    return channel;
   }
 
   async requireForwardAccess(
@@ -62,45 +61,67 @@ export class ChannelAccessFacade {
     sourceChannelId: string,
     targetChannelId: string,
   ): Promise<ChannelAccessSnapshot> {
-    const locked = new Map<string, ChannelAccessSnapshot>();
-    for (const id of [...new Set([sourceChannelId, targetChannelId])].sort()) {
-      const channel = await this.repository.lockChannel(member.workspaceId, id, 'update');
-      if (!channel) throw new NotFoundException('Channel not found');
-      locked.set(id, channel);
-    }
+    // Lock in id order so two forwards between the same channels never deadlock.
+    const locked = new Map<string, ChannelAccessSnapshot | undefined>();
+    for (const id of [...new Set([sourceChannelId, targetChannelId])].sort())
+      locked.set(
+        id,
+        await this.repository.findParticipation(member.workspaceId, id, member.id, 'update'),
+      );
     await this.requireActiveMember(member);
+
     const source = locked.get(sourceChannelId);
     const target = locked.get(targetChannelId);
     if (!source || !target) throw new NotFoundException('Channel not found');
-    if (source.kind !== 'public' && !(await this.repository.isChannelMember(source.id, member.id)))
-      throw new NotFoundException('Channel not found');
-    if (!(await this.repository.isChannelMember(target.id, member.id)))
-      throw new ForbiddenException('Join the destination channel first');
-    if (target.kind === 'dm' && !(await this.repository.isDmPeerActive(target.id, member.id)))
-      throw new ForbiddenException('Direct message participant is unavailable');
+
+    await this.requireReachablePeer(member, target);
+    if (!target.canPost) throw new ForbiddenException('You can only read the destination channel');
+
     return target;
+  }
+
+  /** Channel managers and workspace managers keep order in a channel; a DM has no managers. */
+  manages(member: WorkspaceMember, channel: ChannelAccessSnapshot): boolean {
+    return channel.kind !== 'dm' && (channel.canManage || isAdministrator(member));
   }
 
   requireManager(member: WorkspaceMember, channel: ChannelAccessSnapshot): void {
     if (channel.kind === 'dm')
       throw new ForbiddenException('Direct messages have no channel manager');
-    if (member.role !== 'owner')
-      throw new ForbiddenException('Only the workspace owner can manage channels');
+    if (!this.manages(member, channel))
+      throw new ForbiddenException('Only the channel managers can do this');
   }
 
-  private async requireParticipation(member: WorkspaceMember, channel: ChannelAccessSnapshot) {
+  private async requireParticipation(
+    member: WorkspaceMember,
+    channelId: string,
+    lock?: ChannelLock,
+  ): Promise<ChannelAccessSnapshot> {
+    const channel = await this.repository.findParticipation(
+      member.workspaceId,
+      channelId,
+      member.id,
+      lock,
+    );
+    if (!channel) throw new NotFoundException('Channel not found');
+
     await this.requireActiveMember(member);
 
-    const isMember = await this.repository.isChannelMember(channel.id, member.id);
-    if (!isMember) throw new ForbiddenException('Join this channel first');
+    return channel;
+  }
 
-    const peerGone =
-      channel.kind === 'dm' && !(await this.repository.isDmPeerActive(channel.id, member.id));
-    if (peerGone) throw new ForbiddenException('Direct message participant is unavailable');
+  private async requireReachablePeer(
+    member: WorkspaceMember,
+    channel: ChannelAccessSnapshot,
+  ): Promise<void> {
+    if (channel.kind !== 'dm') return;
+
+    const isPeerActive = await this.repository.isDmPeerActive(channel.id, member.id);
+    if (!isPeerActive) throw new ForbiddenException('Direct message participant is unavailable');
   }
 
   private async requireActiveMember(member: WorkspaceMember): Promise<void> {
-    if (!(await this.repository.isActiveWorkspaceMember(member.workspaceId, member.id)))
-      throw new ForbiddenException('Not a member of this workspace');
+    const isActive = await this.repository.isActiveWorkspaceMember(member.workspaceId, member.id);
+    if (!isActive) throw new ForbiddenException('Not a member of this workspace');
   }
 }

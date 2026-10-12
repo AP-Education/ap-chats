@@ -71,20 +71,13 @@ class FakeChannelAccessRepository extends ChannelAccessRepository {
     super();
   }
 
-  async lockChannel(_workspaceId: string, channelId: string) {
-    return this.channels.get(channelId);
-  }
-
-  async findChannel(_workspaceId: string, channelId: string) {
-    return this.channels.get(channelId);
+  async findParticipation(_workspaceId: string, channelId: string, memberId: string) {
+    const isParticipant = this.membership.get(channelId)?.has(memberId) ?? false;
+    return isParticipant ? this.channels.get(channelId) : undefined;
   }
 
   async isActiveWorkspaceMember() {
     return true;
-  }
-
-  async isChannelMember(channelId: string, memberId: string) {
-    return this.membership.get(channelId)?.has(memberId) ?? false;
   }
 
   async isDmPeerActive() {
@@ -239,7 +232,7 @@ function member(id: string): WorkspaceMember {
     workspaceId: 'workspace-1',
     userProfileId: `profile-${id}`,
     profile: { id: `profile-${id}`, oidcUserId: `${id}-oidc`, displayName: id, avatarPath: null },
-    role: 'member',
+    accessLevel: 'member',
     status: 'active',
     leftAt: null,
     createdAt: new Date(),
@@ -251,15 +244,17 @@ const dm: ChannelAccessSnapshot = {
   id: 'channel-dm',
   workspaceId: 'workspace-1',
   kind: 'dm',
-  createdByMemberId: 'caller',
   lastEntrySeq: 0n,
+  canPost: true,
+  canManage: false,
 };
 const group: ChannelAccessSnapshot = {
   id: 'channel-group',
   workspaceId: 'workspace-1',
-  kind: 'public',
-  createdByMemberId: 'starter',
+  kind: 'channel',
   lastEntrySeq: 0n,
+  canPost: true,
+  canManage: false,
 };
 
 const caller = member('caller');

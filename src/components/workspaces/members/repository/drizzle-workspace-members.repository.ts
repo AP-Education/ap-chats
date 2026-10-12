@@ -5,7 +5,7 @@ import { and, eq, ilike, inArray, ne } from 'drizzle-orm';
 import { userProfiles, workspaceMembers } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
-import type { WorkspaceMember } from '../types';
+import type { WorkspaceAccessLevel, WorkspaceMember } from '../types';
 import { WorkspaceMembersRepository } from './workspace-members.repository';
 
 @Injectable()
@@ -78,6 +78,41 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
     return member && this.toModel(member.member, member.profile);
   }
 
+  async findManyByIds(workspaceId: string, memberIds: string[]): Promise<WorkspaceMember[]> {
+    if (!memberIds.length) return [];
+    const rows = await this.txHost.tx
+      .select({ member: workspaceMembers, profile: userProfiles })
+      .from(workspaceMembers)
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, workspaceId),
+          inArray(workspaceMembers.id, memberIds),
+          eq(workspaceMembers.status, 'active'),
+        ),
+      );
+    return rows.map((row) => this.toModel(row.member, row.profile));
+  }
+
+  async changeAccessLevel(
+    workspaceId: string,
+    memberId: string,
+    accessLevel: WorkspaceAccessLevel,
+  ): Promise<WorkspaceMember | undefined> {
+    const [changed] = await this.txHost.tx
+      .update(workspaceMembers)
+      .set({ accessLevel, updatedAt: new Date() })
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, workspaceId),
+          eq(workspaceMembers.id, memberId),
+          eq(workspaceMembers.status, 'active'),
+        ),
+      )
+      .returning({ id: workspaceMembers.id });
+    return changed && this.findById(workspaceId, changed.id);
+  }
+
   async remove(workspaceId: string, userId: string): Promise<void> {
     await this.txHost.tx
       .update(workspaceMembers)
@@ -111,7 +146,7 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
         displayName: profile.displayName,
         avatarPath: profile.avatarPath,
       },
-      role: row.role,
+      accessLevel: row.accessLevel,
       status: row.status,
       leftAt: row.leftAt,
       createdAt: row.createdAt,

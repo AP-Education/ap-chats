@@ -12,42 +12,38 @@ const actor: WorkspaceMember = {
   workspaceId: 'workspace-1',
   userProfileId: 'profile-1',
   profile: { id: 'profile-1', oidcUserId: 'user-1', displayName: 'User One', avatarPath: null },
-  role: 'member',
+  accessLevel: 'member',
   status: 'active',
   leftAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
 
-function channel(id: string, kind: ChannelAccessSnapshot['kind']): ChannelAccessSnapshot {
+function channel(
+  id: string,
+  kind: ChannelAccessSnapshot['kind'] = 'channel',
+  rights: Partial<Pick<ChannelAccessSnapshot, 'canPost' | 'canManage'>> = {},
+): ChannelAccessSnapshot {
   return {
     id,
     workspaceId: actor.workspaceId,
     kind,
-    createdByMemberId: 'creator',
     lastEntrySeq: 10n,
+    canPost: true,
+    canManage: false,
+    ...rights,
   };
 }
 
-function access(
-  channels: ChannelAccessSnapshot[],
-  memberships: string[],
-  locks: string[] = [],
-  peerActive = true,
-) {
+/** The given channels are the ones the actor participates in. */
+function access(participating: ChannelAccessSnapshot[], locks: string[] = [], peerActive = true) {
   const repository = {
-    async lockChannel(_workspaceId: string, id: string) {
-      locks.push(id);
-      return channels.find((item) => item.id === id);
-    },
-    async findChannel(_workspaceId: string, id: string) {
-      return channels.find((item) => item.id === id);
+    async findParticipation(_workspaceId: string, id: string, _memberId: string, lock?: string) {
+      if (lock) locks.push(id);
+      return participating.find((item) => item.id === id);
     },
     async isActiveWorkspaceMember() {
       return true;
-    },
-    async isChannelMember(id: string) {
-      return memberships.includes(id);
     },
     async isDmPeerActive() {
       return peerActive;
@@ -56,67 +52,53 @@ function access(
   return new ChannelAccessFacade(repository);
 }
 
-test('private channel is hidden from a nonmember', async () => {
-  await assert.rejects(
-    access([channel('private', 'private')], []).requireReadAccess(actor, 'private'),
-    { status: 404 },
-  );
+test('a channel outside the person lists does not exist for them', async () => {
+  await assert.rejects(access([]).requireViewAccess(actor, 'hidden'), { status: 404 });
+  await assert.rejects(access([]).requirePostAccess(actor, 'hidden'), { status: 404 });
 });
 
-test('posting requires channel membership even in a public channel', async () => {
-  await assert.rejects(
-    access([channel('public', 'public')], []).requirePostAccess(actor, 'public'),
-    { status: 403 },
-  );
+test('a read-only participant reads and reacts but cannot post', async () => {
+  const announcements = channel('announcements', 'channel', { canPost: false });
+  const facade = access([announcements]);
+
+  assert.equal((await facade.requireReadAccess(actor, announcements.id)).id, announcements.id);
+  assert.equal((await facade.requireParticipant(actor, announcements.id)).id, announcements.id);
+  await assert.rejects(facade.requirePostAccess(actor, announcements.id), { status: 403 });
 });
 
-test('forwarding locks channels in stable order and checks destination membership', async () => {
+test('viewing takes no row locks', async () => {
   const locks: string[] = [];
-  const facade = access([channel('a', 'public'), channel('z', 'public')], ['a'], locks);
+  await access([channel('general')], locks).requireViewAccess(actor, 'general');
+  assert.deepEqual(locks, []);
+});
+
+test('forwarding locks channels in stable order and needs posting at the destination', async () => {
+  const locks: string[] = [];
+  const facade = access([channel('a'), channel('z')], locks);
   assert.equal((await facade.requireForwardAccess(actor, 'z', 'a')).id, 'a');
   assert.deepEqual(locks, ['a', 'z']);
+
+  const readOnly = access([channel('source'), channel('target', 'channel', { canPost: false })]);
+  await assert.rejects(readOnly.requireForwardAccess(actor, 'source', 'target'), { status: 403 });
 });
 
-test('channel management requires owner role for public and private channels', () => {
-  const facade = access([], []);
-  for (const kind of ['public', 'private'] as const) {
-    const target = channel(kind, kind);
-    assert.throws(() => facade.requireManager(actor, target), { status: 403 });
-    assert.throws(() => facade.requireManager({ ...actor, id: target.createdByMemberId }, target), {
-      status: 403,
-    });
-    assert.doesNotThrow(() => facade.requireManager({ ...actor, role: 'owner' }, target));
-  }
+test('channel managers and workspace managers keep order in a channel', () => {
+  const facade = access([]);
+  const general = channel('general');
+
+  assert.throws(() => facade.requireManager(actor, general), { status: 403 });
+  assert.doesNotThrow(() => facade.requireManager(actor, { ...general, canManage: true }));
+  assert.doesNotThrow(() => facade.requireManager({ ...actor, accessLevel: 'manager' }, general));
 });
 
-test('direct messages require both participants and have no channel manager', async () => {
+test('direct messages need an active peer to post and have no managers', async () => {
   const dm = channel('dm', 'dm');
-  await assert.rejects(access([dm], []).requireReadAccess(actor, dm.id), { status: 404 });
-  await assert.rejects(access([dm], [dm.id], [], false).requirePostAccess(actor, dm.id), {
-    status: 403,
-  });
-  assert.throws(() => access([dm], [dm.id]).requireManager(actor, dm), { status: 403 });
+  await assert.rejects(access([dm], [], false).requirePostAccess(actor, dm.id), { status: 403 });
+  assert.equal(access([dm]).manages({ ...actor, accessLevel: 'owner' }, dm), false);
+  assert.throws(() => access([dm]).requireManager(actor, dm), { status: 403 });
 });
 
 test('forwarding into a direct message requires an active peer', async () => {
-  await assert.rejects(
-    access(
-      [channel('source', 'public'), channel('target', 'dm')],
-      ['target'],
-      [],
-      false,
-    ).requireForwardAccess(actor, 'source', 'target'),
-    { status: 403 },
-  );
-});
-
-test('viewing takes no row locks and hides a private channel from a nonmember', async () => {
-  const locks: string[] = [];
-  const facade = access([channel('public', 'public'), channel('private', 'private')], [], locks);
-  assert.deepEqual(await facade.requireViewAccess(actor, 'public'), {
-    channel: channel('public', 'public'),
-    isMember: false,
-  });
-  await assert.rejects(facade.requireViewAccess(actor, 'private'), { status: 404 });
-  assert.deepEqual(locks, []);
+  const facade = access([channel('source'), channel('target', 'dm')], [], false);
+  await assert.rejects(facade.requireForwardAccess(actor, 'source', 'target'), { status: 403 });
 });

@@ -1,9 +1,14 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Transactional } from '@nestjs-cls/transactional';
 
-import { WorkspaceMembersRepository } from '@/components/workspaces/members/repository';
+import type { AnnounceAccessChanges } from '@/components/workspaces/access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { CommunityAccessService } from '../channel-access';
+import {
+  ChannelAccessSync,
+  ChannelPermissionsRepository,
+  CommunityAccessService,
+} from '../channel-access';
 import { ChannelMembershipsRepository } from './repository';
 import type { ChannelMembership } from './types';
 
@@ -11,58 +16,38 @@ import type { ChannelMembership } from './types';
 export class ChannelMembershipsService {
   constructor(
     private readonly memberships: ChannelMembershipsRepository,
-    private readonly workspaceMembers: WorkspaceMembersRepository,
     private readonly access: CommunityAccessService,
+    private readonly permissions: ChannelPermissionsRepository,
+    private readonly sync: ChannelAccessSync,
   ) {}
 
   async list(member: WorkspaceMember, channelId: string): Promise<ChannelMembership[]> {
-    const channel = await this.access.requireVisibleChannel(
-      member.workspaceId,
-      channelId,
-      member.id,
-    );
-    if (channel.kind === 'dm') throw new NotFoundException('Channel not found');
+    await this.access.requireVisibleChannel(member, channelId);
     return this.memberships.findAllActiveForChannel(channelId);
   }
 
-  join(member: WorkspaceMember, channelId: string): Promise<ChannelMembership> {
-    return this.memberships.joinPublic(member.workspaceId, channelId, member.id);
+  async leave(member: WorkspaceMember, channelId: string): Promise<void> {
+    const announce = await this.stepOut(member, channelId);
+    announce();
   }
 
-  async add(
+  // Only a personal invitation can be turned down; a role or the whole workspace keeps you in.
+  @Transactional()
+  private async stepOut(
     member: WorkspaceMember,
     channelId: string,
-    targetMemberId: string,
-  ): Promise<ChannelMembership> {
-    const channel = await this.access.requireVisibleChannel(
-      member.workspaceId,
-      channelId,
-      member.id,
-    );
-    if (channel.kind === 'dm')
-      throw new ForbiddenException('Direct message participants cannot be changed');
-    await this.access.requireChannelMember(channel, member.id);
-    const target = await this.workspaceMembers.findById(member.workspaceId, targetMemberId);
-    if (!target) throw new NotFoundException('Workspace member not found');
-    return this.memberships.add(member.workspaceId, channelId, target.id);
-  }
+  ): Promise<AnnounceAccessChanges> {
+    await this.access.requireVisibleChannel(member, channelId);
 
-  async remove(member: WorkspaceMember, channelId: string, targetMemberId?: string): Promise<void> {
-    const channel = await this.access.requireVisibleChannel(
-      member.workspaceId,
-      channelId,
-      member.id,
-    );
-    if (channel.kind === 'dm') throw new ForbiddenException('Direct messages cannot be left');
-    const target = targetMemberId ?? member.id;
-    if (target !== member.id) {
-      if (!(await this.access.isChannelMember(channelId, member.id))) {
-        throw new ForbiddenException('Join this channel first');
-      }
-      await this.access.requireManager(channel, member);
-    }
-    if (!(await this.memberships.remove(member.workspaceId, channelId, target))) {
-      throw new NotFoundException('Channel member not found');
-    }
+    const sources = await this.permissions.sourcesOf(channelId, member.id);
+    if (!sources.length) throw new NotFoundException('Channel member not found');
+
+    const isPersonalOnly = sources.every((source) => source.principal === 'member');
+    if (!isPersonalOnly)
+      throw new ConflictException('Your access comes from a role or the whole workspace');
+
+    await this.permissions.revokePersonal(member.workspaceId, channelId, member.id);
+
+    return this.sync.refreshMembers(member.workspaceId, [member.id]);
   }
 }

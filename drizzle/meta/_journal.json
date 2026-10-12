@@ -148,6 +148,20 @@
       "when": 1791651499034,
       "tag": "0020_everyone_mentions",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791805938869,
+      "tag": "0021_channel_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791805939416,
+      "tag": "0022_drop_member_role",
+      "breakpoints": true
     }
   ]
 }

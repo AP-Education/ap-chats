@@ -1,20 +1,15 @@
 import type { ChannelAccessSnapshot } from '../../channels/types/channel-access.types';
 
 export abstract class ChannelAccessRepository {
-  abstract lockChannel(
+  /** The channel as seen by one of its participants; nothing when the person is not one. */
+  abstract findParticipation(
     workspaceId: string,
     channelId: string,
-    strength: 'update' | 'key share',
-  ): Promise<ChannelAccessSnapshot | undefined>;
-
-  abstract findChannel(
-    workspaceId: string,
-    channelId: string,
+    memberId: string,
+    lock?: 'update' | 'key share',
   ): Promise<ChannelAccessSnapshot | undefined>;
 
   abstract isActiveWorkspaceMember(workspaceId: string, memberId: string): Promise<boolean>;
-
-  abstract isChannelMember(channelId: string, memberId: string): Promise<boolean>;
 
   abstract isDmPeerActive(channelId: string, memberId: string): Promise<boolean>;
 }

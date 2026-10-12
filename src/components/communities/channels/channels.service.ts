@@ -4,15 +4,20 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Transactional } from '@nestjs-cls/transactional';
 
+import { type AnnounceAccessChanges, isAdministrator } from '@/components/workspaces/access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
-import { EventPublisher } from '@/globals/publisher/event-publisher';
 
-import { CommunityAccessService } from '../channel-access';
+import { CommunityAccessService } from '../channel-access/community-access.service';
+import { toChannelPermissions } from '../channel-access/permissions/dto/channel-permissions.dto';
+import { ChannelPermissionsRepository } from '../channel-access/permissions/repository/channel-permissions.repository';
+import type { ChannelPermissions } from '../channel-access/permissions/types';
+import { ChannelAccessSync } from '../channel-access/sync/channel-access.sync';
 import { ChannelCategoriesRepository } from '../channel-categories/repository';
+import { channelView } from './channel.view';
 import type { CreateChannelDto } from './dto/create-channel.dto';
 import type { UpdateChannelDto } from './dto/update-channel.dto';
-import { CHANNEL_CREATED_EVENT, ChannelCreatedEvent } from './events/channel-created.event';
 import { ChannelsRepository } from './repository';
 import type { ChannelView } from './types';
 
@@ -22,38 +27,39 @@ export class ChannelsService {
     private readonly channels: ChannelsRepository,
     private readonly categories: ChannelCategoriesRepository,
     private readonly access: CommunityAccessService,
-    private readonly events: EventPublisher,
+    private readonly permissions: ChannelPermissionsRepository,
+    private readonly sync: ChannelAccessSync,
   ) {}
 
-  list(member: WorkspaceMember, scope: 'available' | 'joined'): Promise<ChannelView[]> {
-    return this.channels.findAllForMember(member.workspaceId, member.id, scope);
+  async list(member: WorkspaceMember, scope: 'mine' | 'all'): Promise<ChannelView[]> {
+    if (scope === 'all') this.requireAdministrator(member);
+
+    const channels =
+      scope === 'all'
+        ? await this.channels.findAllAsSeenBy(member.workspaceId, member.id)
+        : await this.channels.findListedFor(member.workspaceId, member.id);
+
+    return channels.map((channel) => channelView(member, channel));
   }
 
-  async get(member: WorkspaceMember, channelId: string): Promise<ChannelView> {
-    const channel = await this.access.requireVisibleChannel(
-      member.workspaceId,
-      channelId,
-      member.id,
-    );
-    if (channel.kind === 'dm') throw new NotFoundException('Channel not found');
-    return { ...channel, isMember: await this.access.isChannelMember(channelId, member.id) };
+  get(member: WorkspaceMember, channelId: string): Promise<ChannelView> {
+    return this.access.requireVisibleChannel(member, channelId);
   }
 
   async create(member: WorkspaceMember, dto: CreateChannelDto): Promise<ChannelView> {
-    if (member.role !== 'owner')
-      throw new ForbiddenException('Only the workspace owner can create channels');
+    this.requireAdministrator(member);
     const name = this.normalizeName(dto.name);
     await this.requireCategory(member.workspaceId, dto.categoryId);
-    const channel = await this.channels.create(member.workspaceId, member.id, {
+
+    const permissions = this.withCreatorManaging(toChannelPermissions(dto.permissions), member);
+    const { channelId, announce } = await this.open(member, {
       name,
-      kind: dto.kind,
       categoryId: dto.categoryId ?? null,
+      permissions,
     });
-    this.events.publish(
-      CHANNEL_CREATED_EVENT,
-      new ChannelCreatedEvent(channel.workspaceId, channel.id, dto.kind),
-    );
-    return { ...channel, isMember: true };
+    announce();
+
+    return this.access.requireVisibleChannel(member, channelId);
   }
 
   async update(
@@ -61,35 +67,62 @@ export class ChannelsService {
     channelId: string,
     dto: UpdateChannelDto,
   ): Promise<ChannelView> {
-    const channel = await this.access.requireVisibleChannel(
-      member.workspaceId,
-      channelId,
-      member.id,
-    );
-    if (channel.kind === 'dm') throw new NotFoundException('Channel not found');
-    await this.access.requireManager(channel, member);
+    await this.access.requireManageableChannel(member, channelId);
     if (dto.name === undefined && dto.categoryId === undefined)
       throw new BadRequestException('No changes provided');
+
     const name = dto.name === undefined ? undefined : this.normalizeName(dto.name);
     if (dto.categoryId) await this.requireCategory(member.workspaceId, dto.categoryId);
+
     const updated = await this.channels.update(member.workspaceId, channelId, {
       ...(name === undefined ? {} : { name }),
       ...(dto.categoryId === undefined ? {} : { categoryId: dto.categoryId }),
     });
     if (!updated) throw new NotFoundException('Channel not found');
-    return { ...updated, isMember: await this.access.isChannelMember(channelId, member.id) };
+
+    return this.access.requireVisibleChannel(member, channelId);
   }
 
   async remove(member: WorkspaceMember, channelId: string): Promise<void> {
-    const channel = await this.access.requireVisibleChannel(
-      member.workspaceId,
-      channelId,
-      member.id,
-    );
-    if (channel.kind === 'dm') throw new NotFoundException('Channel not found');
-    await this.access.requireManager(channel, member);
+    await this.access.requireManageableChannel(member, channelId);
+
     const removed = await this.channels.remove(member.workspaceId, channelId);
     if (!removed) throw new NotFoundException('Channel not found');
+  }
+
+  @Transactional()
+  private async open(
+    creator: WorkspaceMember,
+    values: { name: string; categoryId: string | null; permissions: ChannelPermissions },
+  ): Promise<{ channelId: string; announce: AnnounceAccessChanges }> {
+    const { permissions, ...details } = values;
+    const channel = await this.channels.create(creator.workspaceId, creator.id, details);
+
+    await this.permissions.replace(creator.workspaceId, channel.id, permissions);
+    const announce = await this.sync.refreshChannel(creator.workspaceId, channel.id);
+
+    return { channelId: channel.id, announce };
+  }
+
+  // The creator always manages what they open; they can step back afterwards.
+  private withCreatorManaging(
+    permissions: ChannelPermissions,
+    creator: WorkspaceMember,
+  ): ChannelPermissions {
+    const managesAlready = permissions.manage.some(
+      (principal) => principal.kind === 'member' && principal.memberId === creator.id,
+    );
+    if (managesAlready) return permissions;
+
+    return {
+      ...permissions,
+      manage: [...permissions.manage, { kind: 'member', memberId: creator.id }],
+    };
+  }
+
+  private requireAdministrator(member: WorkspaceMember): void {
+    if (!isAdministrator(member))
+      throw new ForbiddenException('Only workspace managers can do this');
   }
 
   private normalizeName(name: string): string {

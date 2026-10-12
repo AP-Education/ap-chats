@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
+import { isOwner } from '../access/workspace-access';
 import type { WorkspaceMember } from '../members/types';
 import type { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import type { UpdateWorkspaceDto } from './dto/update-workspace.dto';
@@ -29,7 +30,6 @@ export class WorkspacesService {
   }
 
   private assertOwner(member: WorkspaceMember): void {
-    if (member.role !== 'owner')
-      throw new ForbiddenException('Only the workspace owner can do this');
+    if (!isOwner(member)) throw new ForbiddenException('Only the workspace owner can do this');
   }
 }

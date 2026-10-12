@@ -1,6 +1,15 @@
-import { IsIn, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsDefined,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 
-import type { ChannelKind } from '../types';
+import { ChannelPermissionsDto } from '../../channel-access/permissions/dto/channel-permissions.dto';
 
 export class CreateChannelDto {
   @IsString()
@@ -8,10 +17,12 @@ export class CreateChannelDto {
   @MaxLength(80)
   name!: string;
 
-  @IsIn(['public', 'private'])
-  kind!: Exclude<ChannelKind, 'dm'>;
-
   @IsOptional()
   @IsUUID()
   categoryId?: string;
+
+  @IsDefined()
+  @ValidateNested()
+  @Type(() => ChannelPermissionsDto)
+  permissions!: ChannelPermissionsDto;
 }

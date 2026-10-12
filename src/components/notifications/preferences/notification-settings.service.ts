@@ -21,8 +21,7 @@ export class NotificationSettingsService {
 
   @Transactional()
   async get(member: WorkspaceMember, channelId: string): Promise<ChannelNotificationSettings> {
-    const access = await this.access.requireReadAccess(member, channelId);
-    if (!access.isMember) throw new NotFoundException('Channel membership not found');
+    await this.access.requireReadAccess(member, channelId);
     const settings = await this.repository.forMember(channelId, member.id);
     if (!settings) throw new NotFoundException('Channel membership not found');
     return this.toView(settings);
@@ -34,7 +33,7 @@ export class NotificationSettingsService {
     channelId: string,
     command: ChangeNotificationSettings,
   ): Promise<ChannelNotificationSettings> {
-    await this.access.requirePostAccess(member, channelId);
+    await this.access.requireReadAccess(member, channelId);
     const current = await this.repository.forMember(channelId, member.id);
     if (!current) throw new NotFoundException('Channel membership not found');
     const update = this.resolveUpdate(current, command);

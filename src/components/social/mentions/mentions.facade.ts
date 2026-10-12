@@ -21,8 +21,7 @@ export class MentionsFacade {
 
   @Transactional()
   async candidates(member: WorkspaceMember, channelId: string, query: string) {
-    const { isMember } = await this.access.requireReadAccess(member, channelId);
-    if (!isMember) return [];
+    await this.access.requireReadAccess(member, channelId);
     return this.repository.candidates(member.workspaceId, channelId, query.slice(0, 80));
   }
 

@@ -1,4 +1,4 @@
-import type { WorkspaceMember } from '../types';
+import type { WorkspaceAccessLevel, WorkspaceMember } from '../types';
 
 export abstract class WorkspaceMembersRepository {
   abstract findAllForWorkspace(workspaceId: string): Promise<WorkspaceMember[]>;
@@ -9,5 +9,11 @@ export abstract class WorkspaceMembersRepository {
   ): Promise<{ memberId: string; displayName: string | null; avatarPath: string | null }[]>;
   abstract findForUser(workspaceId: string, userId: string): Promise<WorkspaceMember | undefined>;
   abstract findById(workspaceId: string, memberId: string): Promise<WorkspaceMember | undefined>;
+  abstract findManyByIds(workspaceId: string, memberIds: string[]): Promise<WorkspaceMember[]>;
+  abstract changeAccessLevel(
+    workspaceId: string,
+    memberId: string,
+    accessLevel: WorkspaceAccessLevel,
+  ): Promise<WorkspaceMember | undefined>;
   abstract remove(workspaceId: string, userId: string): Promise<void>;
 }

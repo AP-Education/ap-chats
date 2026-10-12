@@ -10,7 +10,6 @@ import {
 import { Transactional } from '@nestjs-cls/transactional';
 
 import { ChannelAccessFacade } from '@/components/communities/channel-access';
-import type { ChannelAccessSnapshot } from '@/components/communities/channels/types/channel-access.types';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventOutbox } from '@/globals/publisher/event-outbox';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
@@ -215,7 +214,7 @@ export class MessagesFacade {
     const channel = await this.access.requirePostAccess(member, channelId);
     const rows = await this.repository.findWithEntries(channelId, ids);
     if (rows.length !== ids.length) throw new NotFoundException('Message not found');
-    const canDeleteOthers = this.isChannelModerator(channel, member);
+    const canDeleteOthers = this.access.manages(member, channel);
     if (rows.some(({ message }) => message.authorMemberId !== member.id && !canDeleteOthers))
       throw new ForbiddenException('Cannot delete another member’s message');
     const pending = rows.filter(({ message }) => !message.deletedAt);
@@ -237,19 +236,6 @@ export class MessagesFacade {
     const message = await this.repository.findById(workspaceId, channelId, id);
     if (!message) throw new NotFoundException('Message not found');
     return message;
-  }
-
-  // A DM has no moderator concept — both participants are equal, so only a
-  // message's own author can delete it there. Elsewhere, a private channel's
-  // creator, a workspace owner, or the channel's own creator can delete
-  // anyone's message.
-  private isChannelModerator(channel: ChannelAccessSnapshot, member: WorkspaceMember): boolean {
-    if (channel.kind === 'dm') return false;
-    return (
-      channel.kind === 'private' ||
-      member.role === 'owner' ||
-      channel.createdByMemberId === member.id
-    );
   }
 
   private quoteMatches(source: string, selection: string): boolean {

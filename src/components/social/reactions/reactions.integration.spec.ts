@@ -59,7 +59,7 @@ test('reactions on PostgreSQL', async (t) => {
     await db.insert(schema.channels).values({
       id: channelId,
       workspaceId,
-      kind: 'public',
+      kind: 'channel',
       name: 'General',
       createdByMemberId: members[0]!.id,
       lastEntrySeq: 1n,

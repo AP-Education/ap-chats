@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { isAdministrator } from '@/components/workspaces/access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import type { CreateChannelCategoryDto } from './dto/create-channel-category.dto';
@@ -21,7 +22,7 @@ export class ChannelCategoriesService {
   }
 
   create(member: WorkspaceMember, dto: CreateChannelCategoryDto): Promise<ChannelCategory> {
-    this.requireOwner(member);
+    this.requireAdministrator(member);
     const name = dto.name.trim();
     if (!name) throw new BadRequestException('Category name cannot be blank');
     return this.categories.create(member.workspaceId, name, dto.position ?? 0);
@@ -32,7 +33,7 @@ export class ChannelCategoriesService {
     categoryId: string,
     dto: UpdateChannelCategoryDto,
   ): Promise<ChannelCategory> {
-    this.requireOwner(member);
+    this.requireAdministrator(member);
     const name = dto.name?.trim();
     if (name === '') throw new BadRequestException('Category name cannot be blank');
     if (name === undefined && dto.position === undefined)
@@ -46,14 +47,14 @@ export class ChannelCategoriesService {
   }
 
   async delete(member: WorkspaceMember, categoryId: string): Promise<void> {
-    this.requireOwner(member);
+    this.requireAdministrator(member);
     if (!(await this.categories.delete(member.workspaceId, categoryId))) {
       throw new NotFoundException('Category not found');
     }
   }
 
-  private requireOwner(member: WorkspaceMember): void {
-    if (member.role !== 'owner')
-      throw new ForbiddenException('Only the workspace owner can manage categories');
+  private requireAdministrator(member: WorkspaceMember): void {
+    if (!isAdministrator(member))
+      throw new ForbiddenException('Only workspace managers can manage categories');
   }
 }

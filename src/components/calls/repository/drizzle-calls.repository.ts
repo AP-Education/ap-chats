@@ -3,7 +3,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, desc, eq, inArray, lt, ne, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import { throwConflictOnUnique } from '@/components/communities/repository/pg-unique-conflict';
+import { throwConflictOnUnique } from '@/database/drizzle/pg-errors';
 import {
   calls,
   channelMemberships,

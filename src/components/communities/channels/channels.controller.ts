@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -19,6 +18,7 @@ import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { ChannelsService } from './channels.service';
 import { CreateChannelDto } from './dto/create-channel.dto';
+import { ListChannelsQueryDto } from './dto/list-channels-query.dto';
 import { UpdateChannelDto } from './dto/update-channel.dto';
 
 @Controller('workspaces/:workspaceId/channels')
@@ -27,10 +27,8 @@ export class ChannelsController {
   constructor(private readonly channels: ChannelsService) {}
 
   @Get()
-  list(@CurrentWorkspaceMember() member: WorkspaceMember, @Query('scope') scope?: string) {
-    if (scope && scope !== 'available' && scope !== 'joined')
-      throw new BadRequestException('Invalid channel scope');
-    return this.channels.list(member, scope === 'joined' ? 'joined' : 'available');
+  list(@CurrentWorkspaceMember() member: WorkspaceMember, @Query() query: ListChannelsQueryDto) {
+    return this.channels.list(member, query.scope ?? 'mine');
   }
 
   @Post()

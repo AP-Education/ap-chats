@@ -40,7 +40,7 @@ test('guard resolves active workspace member and exposes it on request', async (
       displayName: 'User',
       avatarPath: null,
     },
-    role: 'member',
+    accessLevel: 'member',
     status: 'active',
     leftAt: null,
     createdAt: new Date(),
@@ -49,8 +49,8 @@ test('guard resolves active workspace member and exposes it on request', async (
   const request: Record<string, unknown> = {
     principal: { sub: member.profile.oidcUserId },
     params: { workspaceId },
-    body: { role: 'owner' },
-    workspaceMember: { ...member, role: 'owner' },
+    body: { accessLevel: 'owner' },
+    workspaceMember: { ...member, accessLevel: 'owner' },
   };
   const repository = {
     findForUser: async (id: string, userId: string) => {

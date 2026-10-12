@@ -1,17 +1,7 @@
-import type { ChannelMembership } from '../types';
+import type { ChannelMembership, MembershipChanges, MembershipScope } from '../types';
 
 export abstract class ChannelMembershipsRepository {
   abstract findAllActiveForChannel(channelId: string): Promise<ChannelMembership[]>;
-  abstract isMember(channelId: string, memberId: string): Promise<boolean>;
-  abstract joinPublic(
-    workspaceId: string,
-    channelId: string,
-    memberId: string,
-  ): Promise<ChannelMembership>;
-  abstract add(
-    workspaceId: string,
-    channelId: string,
-    memberId: string,
-  ): Promise<ChannelMembership>;
-  abstract remove(workspaceId: string, channelId: string, memberId: string): Promise<boolean>;
+  /** Adds whoever the lists now cover and removes whoever they no longer do. */
+  abstract reconcile(scope: MembershipScope): Promise<MembershipChanges>;
 }

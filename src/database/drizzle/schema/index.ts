@@ -1,6 +1,7 @@
 export * from './calls';
 export * from './channel-categories';
 export * from './channel-entries';
+export * from './channel-grants';
 export * from './channel-memberships';
 export * from './channels';
 export * from './chat-messages';
@@ -11,6 +12,8 @@ export * from './event-outbox';
 export * from './message-mentions';
 export * from './message-pins';
 export * from './message-reactions';
+export * from './role-members';
+export * from './roles';
 export * from './user-profiles';
 export * from './web-push-subscriptions';
 export * from './workspace-members';

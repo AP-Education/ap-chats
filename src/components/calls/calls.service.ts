@@ -85,7 +85,7 @@ export class CallsService {
   }
 
   async active(member: WorkspaceMember, channelId: string, accessToken: string) {
-    const { channel } = await this.channelAccess.requireReadAccess(member, channelId);
+    const channel = await this.channelAccess.requireReadAccess(member, channelId);
     await this.expireStale(member, channel, accessToken);
 
     const call = await this.calls.findActive(channelId);

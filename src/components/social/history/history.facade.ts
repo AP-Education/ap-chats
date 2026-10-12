@@ -23,7 +23,7 @@ export class HistoryFacade {
 
   @Transactional()
   async entry(member: WorkspaceMember, channelId: string, entryId: string) {
-    const { channel } = await this.access.requireViewAccess(member, channelId);
+    const channel = await this.access.requireViewAccess(member, channelId);
 
     const seq = await this.history.entrySeq(channelId, entryId);
     if (seq === null) throw new NotFoundException('Entry not found');
@@ -45,11 +45,9 @@ export class HistoryFacade {
   /** Opens history at the first unread entry or at a linked message; otherwise at the newest. */
   @Transactional()
   async window(member: WorkspaceMember, channelId: string, query: HistoryWindowQueryDto) {
-    const { channel, isMember } = await this.access.requireViewAccess(member, channelId);
+    const channel = await this.access.requireViewAccess(member, channelId);
     const snapshotSeq = channel.lastEntrySeq;
-    const readState = isMember
-      ? await this.readState.state(channelId, member.id, snapshotSeq)
-      : null;
+    const readState = await this.readState.state(channelId, member.id, snapshotSeq);
     const firstUnreadSeq = await this.firstUnreadSeq(channelId, member.id, readState, snapshotSeq);
 
     const target = query.messageId
@@ -94,7 +92,7 @@ export class HistoryFacade {
     if (query.before !== undefined && query.after !== undefined)
       throw new BadRequestException('Use either before or after');
 
-    const { channel, isMember } = await this.access.requireViewAccess(member, channelId);
+    const channel = await this.access.requireViewAccess(member, channelId);
     const ceiling = query.snapshot === undefined ? channel.lastEntrySeq : BigInt(query.snapshot);
     if (ceiling > channel.lastEntrySeq)
       throw new BadRequestException('Snapshot exceeds channel history');
@@ -111,7 +109,7 @@ export class HistoryFacade {
       limit: query.limit ?? PAGE_SIZE,
     });
 
-    const readState = isMember ? await this.readState.state(channelId, member.id, ceiling) : null;
+    const readState = await this.readState.state(channelId, member.id, ceiling);
     const firstUnreadSeq = await this.firstUnreadSeq(channelId, member.id, readState, ceiling);
     const startsMidHistory = Boolean(cursor);
 

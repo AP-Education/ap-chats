@@ -32,7 +32,7 @@ test('call history across workspaces on PostgreSQL', async (t) => {
     await db.insert(schema.channels).values({
       id: general.channelId,
       workspaceId: office,
-      kind: 'public',
+      kind: 'channel',
       name: 'General',
       createdByMemberId: annAtOffice.id,
     });
