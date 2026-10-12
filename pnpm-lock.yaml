@@ -278,6 +278,9 @@ importers:
       react-native:
         specifier: 0.86.3
         version: 0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
+      react-native-bottom-tabs:
+        specifier: 1.4.0
+        version: 1.4.0(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       react-native-keyboard-controller:
         specifier: 1.21.9
         version: 1.21.9(react-native-reanimated@4.5.1(react-native-worklets@0.10.4(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
@@ -290,6 +293,9 @@ importers:
       react-native-svg:
         specifier: 15.15.4
         version: 15.15.4(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      react-native-teleport:
+        specifier: 1.2.2
+        version: 1.2.2(react-dom@19.2.3(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       react-native-webview:
         specifier: 13.17.0
         version: 13.17.0(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
@@ -322,8 +328,8 @@ importers:
   web:
     dependencies:
       '@ap-education/shell-sdk':
-        specifier: ^0.1.1-beta.2
-        version: 0.1.1-beta.2(react@19.2.8)
+        specifier: ^0.1.1-beta.3
+        version: 0.1.1-beta.3(react@19.2.8)
       '@ap-education/ui':
         specifier: ^0.1.1-beta.10
         version: 0.1.1-beta.10(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
@@ -468,8 +474,8 @@ packages:
   '@ap-education/federation@0.1.1-beta.1':
     resolution: {integrity: sha512-WB5Mqht2z/s+2aRnpwdAsJm7CsSObq/QEroe0/GlUIjbcWKx9ehUcHvYTBzUJRsOq0Ck7JQSmJcZN4s/BrdGGQ==, tarball: https://npm.pkg.github.com/download/@ap-education/federation/0.1.1-beta.1/1aca882c1652f49259bfd10bdc45b3252494e89f}
 
-  '@ap-education/shell-sdk@0.1.1-beta.2':
-    resolution: {integrity: sha512-0t/rmCw/66ntS5l7pBzeXxiR5rfRXpOo8uoTTR9Zx0TnqAtFm3t42XkyPOBHY4YscedXlmv05RulPASh3m2PpQ==, tarball: https://npm.pkg.github.com/download/@ap-education/shell-sdk/0.1.1-beta.2/42d548e5059d53cb32aea6e5a463b666b67e8b23}
+  '@ap-education/shell-sdk@0.1.1-beta.3':
+    resolution: {integrity: sha512-ZbaFfKSpi1oAoLjuP7+24CPCdJDUhcm+IQfIYG+g7H7/LnPnm3wE3DNehAmLbNHc+fMtg/pLOc9n237Q4vKWXg==, tarball: https://npm.pkg.github.com/download/@ap-education/shell-sdk/0.1.1-beta.3/32250dbf03dafe8855aff4755f6d474df34f4431}
     peerDependencies:
       react: ^19.0.0
 
@@ -6029,6 +6035,12 @@ packages:
     peerDependencies:
       react: ^19.2.8
 
+  react-freeze@1.0.4:
+    resolution: {integrity: sha512-r4F0Sec0BLxWicc7HEyo2x3/2icUTrRmDjaaRyzzn+7aDyFZliszMDOgLVwSnQnYENOlL1o569Ze2HZefk8clA==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: '>=17.0.0'
+
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
@@ -6043,6 +6055,12 @@ packages:
     peerDependencies:
       '@types/react': '>=18'
       react: '>=18'
+
+  react-native-bottom-tabs@1.4.0:
+    resolution: {integrity: sha512-XGuKHGU2FH1j/Ii7HzFE0+6ejiLs4mrcBRQRJff2g94hRjDZnx+trB+cOFG6z1BHGPLv6CD833S0m+nQuZB9nA==}
+    peerDependencies:
+      react: '*'
+      react-native: '*'
 
   react-native-is-edge-to-edge@1.3.1:
     resolution: {integrity: sha512-NIXU/iT5+ORyCc7p0z2nnlkouYKX425vuU1OEm6bMMtWWR9yvb+Xg5AZmImTKoF9abxCPqrKC3rOZsKzUYgYZA==}
@@ -6074,6 +6092,13 @@ packages:
     resolution: {integrity: sha512-boT/vIRgj6zZKBpfTPJJiYWMbZE9duBMOwPK6kCSTgxsS947IFMOq9OgIFkpWZTB7t229H24pDRkh3W9ZK/J1A==}
     peerDependencies:
       react: '*'
+      react-native: '*'
+
+  react-native-teleport@1.2.2:
+    resolution: {integrity: sha512-ot9G+y7VyvHE9kij4q82IcVikAlL+bgmzKn1O8BdtTgOsrfxQhfQ6I4vJJQla491CbRSHLqwRno8jOwYJocXyA==}
+    peerDependencies:
+      react: '*'
+      react-dom: '*'
       react-native: '*'
 
   react-native-url-polyfill@3.0.0:
@@ -6362,6 +6387,10 @@ packages:
 
   setprototypeof@1.2.0:
     resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
+
+  sf-symbols-typescript@2.2.0:
+    resolution: {integrity: sha512-TPbeg0b7ylrswdGCji8FRGFAKuqbpQlLbL8SOle3j1iHSs5Ob5mhvMAxWN2UItOjgALAB5Zp3fmMfj8mbWvXKw==}
+    engines: {node: '>=10'}
 
   sharp@0.35.4:
     resolution: {integrity: sha512-n++8XWcj+jCOr2IOl7h8LbKnGBDY4aPbmprMONBNFdn0ImXqpGVv5zliDs0V9HbmbCQLpbuo2ej9rAoOQTvMDA==}
@@ -6834,6 +6863,11 @@ packages:
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
+  use-latest-callback@0.2.6:
+    resolution: {integrity: sha512-FvRG9i1HSo0wagmX63Vrm8SnlUU3LMM3WyZkQ76RnslpBrX694AdG4A0zQBx2B3ZifFA0yv/BaEHGBnEax5rZg==}
+    peerDependencies:
+      react: '>=16.8'
+
   use-merge-value@1.2.0:
     resolution: {integrity: sha512-DXgG0kkgJN45TcyoXL49vJnn55LehnrmoHc7MbKi+QDBvr8dsesqws8UlyIWGHMR+JXgxc1nvY+jDGMlycsUcw==}
     peerDependencies:
@@ -7217,7 +7251,7 @@ snapshots:
 
   '@ap-education/federation@0.1.1-beta.1': {}
 
-  '@ap-education/shell-sdk@0.1.1-beta.2(react@19.2.8)':
+  '@ap-education/shell-sdk@0.1.1-beta.3(react@19.2.8)':
     dependencies:
       react: 19.2.8
 
@@ -13724,6 +13758,10 @@ snapshots:
       react: 19.2.8
       scheduler: 0.27.0
 
+  react-freeze@1.0.4(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+
   react-is@16.13.1: {}
 
   react-is@18.3.1: {}
@@ -13747,6 +13785,14 @@ snapshots:
       vfile: 6.0.3
     transitivePeerDependencies:
       - supports-color
+
+  react-native-bottom-tabs@1.4.0(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-freeze: 1.0.4(react@19.2.3)
+      react-native: 0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
+      sf-symbols-typescript: 2.2.0
+      use-latest-callback: 0.2.6(react@19.2.3)
 
   react-native-is-edge-to-edge@1.3.1(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
     dependencies:
@@ -13780,6 +13826,12 @@ snapshots:
       react: 19.2.3
       react-native: 0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
       warn-once: 0.1.1
+
+  react-native-teleport@1.2.2(react-dom@19.2.3(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+      react-native: 0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
 
   react-native-url-polyfill@3.0.0(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)):
     dependencies:
@@ -14163,6 +14215,8 @@ snapshots:
       es-object-atoms: 1.1.2
 
   setprototypeof@1.2.0: {}
+
+  sf-symbols-typescript@2.2.0: {}
 
   sharp@0.35.4(@types/node@24.13.6):
     dependencies:
@@ -14662,6 +14716,10 @@ snapshots:
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
+
+  use-latest-callback@0.2.6(react@19.2.3):
+    dependencies:
+      react: 19.2.3
 
   use-merge-value@1.2.0(react@19.2.8):
     dependencies:

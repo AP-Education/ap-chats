@@ -1,9 +1,17 @@
-import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-education/ui';
+import {
+  ContentState,
+  ContentStateDescription,
+  ContentStateIcon,
+  PanelHeader,
+  PanelTitle,
+} from '@ap-education/ui';
 import { PhoneIcon } from '@phosphor-icons/react';
 import { Button, Segmented } from 'antd';
 import { createStyles } from 'antd-style';
 import { type RefObject, useEffect, useRef, useState } from 'react';
 import { matchPath, useLocation } from 'react-router-dom';
+
+import { PanelHeaderActions } from '@/shared/ui/PanelHeaderActions';
 
 import { useCallHistory } from '../../hooks/useCallHistory';
 import type { CallHistoryFilter } from '../../types';
@@ -11,27 +19,12 @@ import { CallHistoryListSkeleton } from './CallHistoryListSkeleton';
 import { type CallEntryLinkState, CallHistoryRow } from './CallHistoryRow';
 import { groupCallHistory } from './groupCallHistory';
 
-const useStyles = createStyles(({ token, css }) => ({
+const useStyles = createStyles(({ css }) => ({
   root: css`
     display: flex;
     flex-direction: column;
     min-height: 0;
     height: 100%;
-  `,
-  header: css`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 10px 12px 8px 16px;
-
-    @media (max-width: ${token.screenMD}px) {
-      min-height: 44px;
-      padding: 6px 12px 4px;
-    }
-  `,
-  title: css`
-    font-weight: 650;
   `,
   list: css`
     flex: 1;
@@ -56,18 +49,20 @@ export function CallHistoryList({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className={styles.root}>
-      <div className={styles.header}>
-        <span className={styles.title}>Дзвінки</span>
-        <Segmented
-          size="small"
-          value={filter}
-          onChange={(value) => setFilter(value as CallHistoryFilter)}
-          options={[
-            { label: 'Усі', value: 'all' },
-            { label: 'Пропущені', value: 'missed' },
-          ]}
-        />
-      </div>
+      <PanelHeader>
+        <PanelTitle>Дзвінки</PanelTitle>
+        <PanelHeaderActions>
+          <Segmented
+            size="small"
+            value={filter}
+            onChange={(value) => setFilter(value as CallHistoryFilter)}
+            options={[
+              { label: 'Усі', value: 'all' },
+              { label: 'Пропущені', value: 'missed' },
+            ]}
+          />
+        </PanelHeaderActions>
+      </PanelHeader>
       <div ref={listRef} className={styles.list}>
         <CallHistoryResults filter={filter} scrollRoot={listRef} onNavigate={onNavigate} />
       </div>
@@ -115,7 +110,7 @@ function CallHistoryResults({
       </div>
     );
 
-  const openChannelId = matchPath('/direct/:channelId', location.pathname)?.params.channelId;
+  const openChannelId = matchPath('/calls/:channelId', location.pathname)?.params.channelId;
   const openEntries = entries.filter((entry) => entry.latest.channelId === openChannelId);
   const clickedKey = (location.state as CallEntryLinkState | null)?.callEntry;
   const activeKey = (openEntries.find((entry) => entry.key === clickedKey) ?? openEntries[0])?.key;

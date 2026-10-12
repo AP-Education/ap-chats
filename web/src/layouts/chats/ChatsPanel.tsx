@@ -1,16 +1,5 @@
-import {
-  Panel,
-  PanelBody,
-  PanelDivider,
-  PanelHeader,
-  PanelNav,
-  PanelNavItem,
-  useIsMobile,
-} from '@ap-education/ui';
-import { ChatsIcon, ChatTextIcon, PhoneIcon } from '@phosphor-icons/react';
-import { createStyles } from 'antd-style';
-import { type ComponentProps, useState } from 'react';
-import { useHref, useLocation, useNavigate } from 'react-router-dom';
+import { Panel, PanelBody, PanelHeader, useIsMobile } from '@ap-education/ui';
+import { useLocation } from 'react-router-dom';
 
 import { CallHistoryList } from '../../features/calls/components/CallHistoryList/CallHistoryList';
 import { ChannelsSidebar } from '../../features/communities/components/ChannelsSidebar';
@@ -19,151 +8,59 @@ import { DirectMessageList } from '../../features/social/direct-messages/compone
 import { UnreadDirectMessages } from '../../features/social/direct-messages/components/UnreadDirectMessages/UnreadDirectMessages';
 import { WorkspaceHeader } from '../../features/workspaces/components/WorkspaceHeader';
 import { useActiveWorkspace } from '../../features/workspaces/hooks/useActiveWorkspace';
-import { ChannelsNavBadge } from './ChannelsNavBadge';
-import { DirectMessagesNavBadge } from './DirectMessagesNavBadge';
+import { PanelHeaderActions } from '../../shared/ui/PanelHeaderActions';
+import { type ChatsSection, sectionAt } from './sections';
 
-type SidebarSection = 'channels' | 'direct' | 'calls';
-
-const useStyles = createStyles(({ css }) => ({
-  headerActions: css`
-    display: flex;
-    flex-shrink: 0;
-    padding-right: 8px;
-  `,
-}));
-
-const sectionItems: {
-  section: SidebarSection;
-  path?: '/channels' | '/direct';
-  icon: typeof ChatsIcon;
-  label: string;
-}[] = [
-  { section: 'channels', path: '/channels', icon: ChatsIcon, label: 'Чати' },
-  { section: 'direct', path: '/direct', icon: ChatTextIcon, label: 'Особисті' },
-  { section: 'calls', icon: PhoneIcon, label: 'Дзвінки' },
-];
-
-function isWithin(pathname: string, path: string) {
-  return pathname === path || pathname.startsWith(`${path}/`);
-}
-
+/** The list of the page's section: the team's channels, direct messages or calls. */
 export function ChatsPanel() {
-  const { styles } = useStyles();
-  const { pathname, key: locationKey } = useLocation();
-  const { workspace } = useActiveWorkspace();
+  const { pathname } = useLocation();
   const isMobile = useIsMobile();
-  const [chosen, setChosen] = useState<{
-    locationKey: string;
-    section: SidebarSection;
-  } | null>(null);
-  const routeSection =
-    sectionItems.find(({ path }) => path && isWithin(pathname, path))?.section ?? null;
-  // Calls have no route to reflect them, so picking calls survives navigation until another section is picked.
-  const chosenSection =
-    chosen && (chosen.section === 'calls' || chosen.locationKey === locationKey)
-      ? chosen.section
-      : null;
-  const activeSection = chosenSection ?? routeSection;
-  const listSection = activeSection ?? 'channels';
+  const section = sectionAt(pathname);
 
   return (
     <Panel>
-      <PanelHeader>
-        <WorkspaceHeader />
-        <div className={styles.headerActions}>
-          <PushSettings />
-        </div>
-      </PanelHeader>
-      <PanelNav>
-        {sectionItems.map(({ section, path, icon, label }) => {
-          const active = activeSection === section;
-          const badge = workspace && <NavItemBadge section={section} />;
-
-          if (path && !isMobile) {
-            return (
-              <RouteNavItem
-                key={section}
-                to={path}
-                icon={icon}
-                label={label}
-                badge={badge}
-                active={active}
-                onNavigate={() => setChosen(null)}
-              />
-            );
-          }
-
-          return (
-            <PanelNavItem
-              key={section}
-              icon={icon}
-              label={label}
-              badge={badge}
-              active={active}
-              onClick={() => setChosen({ locationKey, section })}
-            />
-          );
-        })}
-      </PanelNav>
-      {workspace && (!isMobile || listSection === 'channels') && <UnreadDirectMessages />}
-      <PanelDivider />
+      {section === 'channels' && <TeamHeader />}
       {isMobile ? (
         <>
-          <PanelBody hidden={listSection !== 'channels'}>
+          <PanelBody hidden={section !== 'channels'}>
             <ChannelsSidebar />
           </PanelBody>
-          {workspace && (
-            <PanelBody hidden={listSection !== 'direct'}>
-              <DirectMessageList workspaceId={workspace.id} />
-            </PanelBody>
-          )}
-          {workspace && (
-            <PanelBody hidden={listSection !== 'calls'}>
-              <CallHistoryList />
-            </PanelBody>
-          )}
+          <PanelBody hidden={section !== 'direct'}>
+            <SectionList section="direct" />
+          </PanelBody>
+          <PanelBody hidden={section !== 'calls'}>
+            <SectionList section="calls" />
+          </PanelBody>
         </>
       ) : (
         <PanelBody>
-          <SectionList section={activeSection} />
+          <SectionList section={section} />
         </PanelBody>
       )}
     </Panel>
   );
 }
 
-function SectionList({ section }: { section: SidebarSection | null }) {
+function TeamHeader() {
+  const { workspace } = useActiveWorkspace();
+
+  return (
+    <>
+      <PanelHeader>
+        <WorkspaceHeader />
+        <PanelHeaderActions>
+          <PushSettings />
+        </PanelHeaderActions>
+      </PanelHeader>
+      {workspace && <UnreadDirectMessages />}
+    </>
+  );
+}
+
+function SectionList({ section }: { section: ChatsSection }) {
   const { workspace } = useActiveWorkspace();
 
   if (workspace && section === 'direct') return <DirectMessageList workspaceId={workspace.id} />;
   if (workspace && section === 'calls') return <CallHistoryList />;
   return <ChannelsSidebar />;
-}
-
-type RouteNavItemProps = Omit<ComponentProps<typeof PanelNavItem>, 'href' | 'onClick'> & {
-  to: string;
-  onNavigate: () => void;
-};
-
-/** A navigation item that is a real link: the router adds the base path to `href`. */
-function RouteNavItem({ to, onNavigate, ...item }: RouteNavItemProps) {
-  const href = useHref(to);
-  const navigate = useNavigate();
-
-  return (
-    <PanelNavItem
-      {...item}
-      href={href}
-      onClick={() => {
-        onNavigate();
-        void navigate(to);
-      }}
-    />
-  );
-}
-
-function NavItemBadge({ section }: { section: SidebarSection }) {
-  if (section === 'channels') return <ChannelsNavBadge />;
-  if (section === 'direct') return <DirectMessagesNavBadge />;
-  return null;
 }

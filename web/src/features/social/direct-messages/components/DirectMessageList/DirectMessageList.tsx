@@ -1,7 +1,10 @@
+import { PanelHeader, PanelTitle } from '@ap-education/ui';
 import { MagnifyingGlassIcon, NotePencilIcon } from '@phosphor-icons/react';
 import { Button, Input } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+
+import { PanelHeaderActions } from '@/shared/ui/PanelHeaderActions';
 
 import { DirectMessageResults } from './DirectMessageResults';
 import { FindPersonDialog } from './FindPersonDialog';
@@ -12,19 +15,6 @@ const useStyles = createStyles(({ token, css }) => ({
     flex-direction: column;
     min-height: 0;
     height: 100%;
-  `,
-  header: css`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px 8px;
-    font-weight: 650;
-
-    @media (max-width: ${token.screenMD}px) {
-      min-height: 44px;
-      padding: 6px 16px 4px;
-      font-size: 16px;
-    }
   `,
   search: css`
     padding: 0 8px 10px;
@@ -53,15 +43,17 @@ export function DirectMessageList({
 
   return (
     <div className={styles.root}>
-      <div className={styles.header}>
-        <span>Розмови</span>
-        <Button
-          type="text"
-          aria-label="Написати колезі"
-          icon={<NotePencilIcon size={22} />}
-          onClick={() => setComposeOpen(true)}
-        />
-      </div>
+      <PanelHeader>
+        <PanelTitle>Розмови</PanelTitle>
+        <PanelHeaderActions>
+          <Button
+            type="text"
+            aria-label="Написати колезі"
+            icon={<NotePencilIcon size={22} />}
+            onClick={() => setComposeOpen(true)}
+          />
+        </PanelHeaderActions>
+      </PanelHeader>
       <div className={styles.search}>
         <Input
           prefix={<MagnifyingGlassIcon size={20} />}

@@ -10,9 +10,14 @@ import { Avatar } from '@/shared/ui/Avatar';
 import { useActiveWorkspace } from '../../hooks/useActiveWorkspace';
 import { WorkspaceFormModal } from '../WorkspaceFormModal';
 
+interface WorkspaceRailProps {
+  /** Whether the page is the team's; from direct messages or calls a workspace leads to its channels. */
+  onTeam: boolean;
+}
+
 // Workspace tiles the Chats application adds to the shell rail. A workspace can be picked
 // from any application: Chats opens where it was left, or at its start for a new workspace.
-export function WorkspaceRail() {
+export function WorkspaceRail({ onTeam }: WorkspaceRailProps) {
   const { workspace, workspaces, isLoading, isError, retry, selectWorkspace } =
     useActiveWorkspace();
   const chatsActive = useIsAppActive();
@@ -26,12 +31,16 @@ export function WorkspaceRail() {
     const changed = workspaceId !== workspace?.id;
     if (changed) selectWorkspace(workspaceId);
 
+    if (!onTeam) {
+      if (chatsActive) void navigate('/channels');
+      else openApp('chats', '/channels');
+      return;
+    }
     if (!chatsActive) {
       openApp('chats', changed ? '/' : undefined);
       return;
     }
-    if (!changed) return;
-    if (pathname.startsWith('/channels/')) void navigate('/channels');
+    if (changed && pathname.startsWith('/channels/')) void navigate('/channels');
   }
 
   if (isLoading) {
@@ -57,7 +66,7 @@ export function WorkspaceRail() {
         <NavTile
           key={item.id}
           label={item.name}
-          active={chatsActive && item.id === workspace?.id}
+          active={chatsActive && onTeam && item.id === workspace?.id}
           onClick={() => handleSelect(item.id)}
         >
           <Avatar
