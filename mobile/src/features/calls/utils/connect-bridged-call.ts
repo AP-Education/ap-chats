@@ -4,7 +4,7 @@ import { leaveCall } from '../api/calls-api';
 import { useNativeCallStore } from '../store/native-call-store';
 import type { NativeCallConnectPayload } from '../types';
 import { syncCurrentAudioRoute } from './audio-route';
-import { playJoinChime } from './call-chimes';
+import { trackCallCues } from './call-cues';
 import { loadCallKitModule } from './callkit-module';
 import { endCallSession } from './end-call';
 import { restoreIncomingSession } from './hydrate-call-session';
@@ -62,6 +62,7 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
       serverCallId: payload.grant.callId,
       metadata: { workspaceId: payload.workspaceId, channelId: payload.channelId },
       caller,
+      group: payload.group,
     });
     useNativeCallStore
       .getState()
@@ -88,7 +89,7 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
       await CallKit.reportOutgoingCallConnected(sessionId);
       if (signal.aborted) return;
       useNativeCallStore.getState().updateCall({ status: 'connected', connectedAt: Date.now() });
-      playJoinChime();
+      session.stopCallCues = trackCallCues(room, session.group);
     } catch (error) {
       if (signal.aborted) return;
       if (__DEV__) console.warn('[calls] outgoing connect failed', error);

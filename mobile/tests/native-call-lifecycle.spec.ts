@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { test, type TestContext } from 'node:test';
 import { runInNewContext } from 'node:vm';
 
+import type { CallEndedReason } from 'expo-callkit-telecom';
 import ts from 'typescript';
 
 import { useNativeCallStore } from '../src/features/calls/store/native-call-store';
@@ -55,6 +56,7 @@ async function flush() {
 function fixture(t: TestContext) {
   const id = 'native-session';
   const steps: string[] = [];
+  const cues: string[] = [];
   const auth = deferred<string>();
   const connection = deferred<void>();
   let connectImmediately = true;
@@ -179,7 +181,14 @@ function fixture(t: TestContext) {
     './session-registry': registry,
     './hydrate-call-session': hydration,
     './livekit-room': mediaFunctions,
-    './call-chimes': { playJoinChime() {}, playLeaveChime() {} },
+    './call-chimes': { playLeaveChime: () => cues.push('leave-chime') },
+    './call-tones': { playBusyTone: () => cues.push('busy-tone') },
+    './call-cues': {
+      trackCallCues: () => {
+        cues.push('track-cues');
+        return () => cues.push('stop-cues');
+      },
+    },
     './audio-route': { syncCurrentAudioRoute() {} },
     './track-remote-participant': { trackRemoteParticipant: () => () => {} },
     './callkit-module': { loadCallKitModule: async () => CallKit },
@@ -203,6 +212,7 @@ function fixture(t: TestContext) {
   });
   return {
     steps,
+    cues,
     auth,
     CallKit,
     media: mediaFunctions,
@@ -210,7 +220,8 @@ function fixture(t: TestContext) {
     answer: () =>
       answering.answerCall({ id, requestId: 'answer-request' } as never, CallKit as never),
     mute: (isMuted: boolean) => muting.setCallMuted({ id, isMuted } as never, CallKit as never),
-    end: (notifyServer = true) => ending.endCallSession({ id }, { notifyServer }),
+    end: (notifyServer = true, reason?: CallEndedReason) =>
+      ending.endCallSession({ id }, { notifyServer, reason }),
     bridge: () => bridging.connectBridgedCall(payload),
     setActive: (value: typeof active) => {
       active = value;
@@ -309,6 +320,32 @@ test('a remote native ending releases media without echoing decline or leave', a
 
   assert.deepEqual(f.steps.slice(-1), ['disconnect']);
   assert.ok(!f.steps.includes('leave') && !f.steps.includes('decline'));
+});
+
+test('a turned-down call ends on the busy tone, any other ending on the leave chime', async (t) => {
+  const declined = fixture(t);
+  declined.auth.resolve('token');
+  await declined.answer();
+  await declined.end(false, 'declinedElsewhere');
+
+  const hungUp = fixture(t);
+  hungUp.auth.resolve('token');
+  await hungUp.answer();
+  await hungUp.end(false, 'remoteEnded');
+
+  assert.deepEqual(declined.cues, ['track-cues', 'stop-cues', 'busy-tone']);
+  assert.deepEqual(hungUp.cues, ['track-cues', 'stop-cues', 'leave-chime']);
+});
+
+test('an outgoing call starts its cues only once media is connected', async (t) => {
+  const f = fixture(t);
+  f.setActive(null);
+  f.auth.resolve('token');
+
+  await f.bridge();
+  await f.end();
+
+  assert.deepEqual(f.cues, ['track-cues', 'stop-cues', 'leave-chime']);
 });
 
 test('a WebView join answers a ringing CallKit session instead of starting an outgoing one', async (t) => {
