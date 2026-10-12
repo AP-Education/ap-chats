@@ -14,7 +14,7 @@
     "icons": "pnpm dlx @vite-pwa/assets-generator@2.0.0 && pnpm dlx @vite-pwa/assets-generator@2.0.0 -c pwa-assets.favicon.mjs"
   },
   "dependencies": {
-    "@ap-education/shell-sdk": "^0.1.1-beta.2",
+    "@ap-education/shell-sdk": "^0.1.1-beta.3",
     "@ap-education/ui": "^0.1.1-beta.10",
     "@emoji-mart/data": "^1.2.1",
     "@livekit/components-react": "^2.9.24",
