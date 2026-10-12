@@ -20,6 +20,3 @@ minimumReleaseAgeExclude:
 allowBuilds:
   esbuild: true
   msgpackr-extract: false
-
-patchedDependencies:
-  react-native-bottom-tabs@1.4.0: patches/react-native-bottom-tabs@1.4.0.patch
