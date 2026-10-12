@@ -5,7 +5,8 @@ import { withViewTransition } from '@/shared/hooks/withViewTransition';
 
 import { useLeaveActiveCall } from '../../hooks/useLeaveActiveCall';
 import { useOutgoingRingback } from '../../hooks/useOutgoingRingback';
-import { playJoinChime, playLeaveChime } from '../../sound/callChimes';
+import { playJoinChime } from '../../sound/callChimes';
+import { announceCallEnd } from '../../sound/callEndCue';
 import type { ActiveCallSession } from '../../store/call-store';
 import { useCallStore } from '../../store/call-store';
 import { CallScreen } from './CallScreen';
@@ -65,7 +66,7 @@ export function ActiveCallOverlay({ session }: ActiveCallOverlayProps) {
         video={false}
         onConnected={playJoinChime}
         onDisconnected={() => {
-          playLeaveChime();
+          announceCallEnd(session, 'ended');
           leaveCall.mutate();
         }}
       >
