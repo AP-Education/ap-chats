@@ -34,7 +34,7 @@ import { forgetLastLocation, loadLastLocation, rememberLocation } from '../api/l
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
 import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
 import { buildBridgeScript } from '../utils/inject-bridge';
-import { pageBottom, pageKeyboardInset } from '../utils/page-inset';
+import { insetBottomScript, pageBottom, pageKeyboardInset } from '../utils/page-inset';
 import { APP_SHELL_USER_AGENT } from '../utils/shell-user-agent';
 import { ConnectionErrorScreen } from './ConnectionErrorScreen';
 import { SetupScreen } from './SetupScreen';
@@ -72,18 +72,19 @@ export function WebViewHost() {
   // Measured rather than assumed: where the page ends depends on the tab it is teleported into.
   const containerRef = useRef<View>(null);
   const pageRef = useRef<View>(null);
-  const pageGap = useRef(0);
+  const [pageGap, setPageGap] = useState(0);
+  // The page's own safe area can't tell its bottom inside a tab: it grows under the tab bar and
+  // empties under the keyboard. Native knows, and writes it into the page's CSS.
+  const insetBottom = insetBottomScript(pageBottom(pageGap, insets.bottom, edgeToEdge).safeArea);
   const room = useRef(0);
-  const lastInset = useRef(0);
   const sendInset = useCallback(
     ({ duration, easing }: InsetMotion) => {
-      const bottom = pageBottom(pageGap.current, insets.bottom, edgeToEdge);
-      lastInset.current = pageKeyboardInset(room.current, bottom);
+      const inset = pageKeyboardInset(room.current, pageBottom(pageGap, insets.bottom, edgeToEdge));
       webViewRef.current?.injectJavaScript(
-        buildBridgeScript({ type: 'keyboard/inset', inset: lastInset.current, duration, easing }),
+        buildBridgeScript({ type: 'keyboard/inset', inset, duration, easing }),
       );
     },
-    [edgeToEdge, insets.bottom],
+    [edgeToEdge, insets.bottom, pageGap],
   );
   const handleRoom = useCallback(
     (next: number, motion: InsetMotion) => {
@@ -96,14 +97,10 @@ export function WebViewHost() {
     containerRef.current?.measureInWindow((_x, containerTop, _width, outerHeight) => {
       pageRef.current?.measureInWindow((_pageX, pageTop, _pageWidth, pageHeight) => {
         const containerBottom = containerTop + outerHeight;
-        const gap = Math.max(0, Math.round(containerBottom - pageTop - pageHeight));
-        if (gap === pageGap.current) return;
-
-        pageGap.current = gap;
-        sendInset(INSTANT);
+        setPageGap(Math.max(0, Math.round(containerBottom - pageTop - pageHeight)));
       });
     });
-  }, [sendInset]);
+  }, []);
   const reservedInset = edgeToEdge ? 0 : insets.bottom;
   const input = useComposerInput(sendInputState, handleRoom, { reservedInset, containerHeight });
   // Opens on the page the person left; unset until the stored one is read, a moment at launch.
@@ -149,17 +146,13 @@ export function WebViewHost() {
 
   useEffect(() => () => useNotificationStore.getState().setWebReady(false), []);
 
-  // A reloaded page starts unpadded.
+  // A reloaded page, or one that now ends elsewhere, takes its geometry at once.
   useEffect(() => {
     if (loadCount === 0) return;
 
-    const message: NativeToWebMessage = {
-      type: 'keyboard/inset',
-      inset: lastInset.current,
-      ...INSTANT,
-    };
-    webViewRef.current?.injectJavaScript(buildBridgeScript(message));
-  }, [loadCount]);
+    webViewRef.current?.injectJavaScript(insetBottom);
+    sendInset(INSTANT);
+  }, [insetBottom, loadCount, sendInset]);
 
   // Settings changes the permission outside the app, so it is re-read on every return.
   useEffect(() => {
@@ -310,7 +303,9 @@ export function WebViewHost() {
                   // ever happens inside this WebView, never on desktop).
                   webViewRef.current?.requestFocus();
                 }}
-                injectedJavaScriptBeforeContentLoaded={__DEV__ ? DEBUG_CONSOLE_SCRIPT : undefined}
+                injectedJavaScriptBeforeContentLoaded={
+                  __DEV__ ? DEBUG_CONSOLE_SCRIPT + insetBottom : insetBottom
+                }
                 onError={(event: WebViewErrorEvent) =>
                   console.error('[webview] onError', event.nativeEvent)
                 }

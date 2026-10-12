@@ -22,3 +22,11 @@ export function pageBottom(
 ): PageBottom {
   return { gap, safeArea: reportsSafeArea ? Math.max(0, homeIndicator - gap) : 0 };
 }
+
+/**
+ * Writes the page's bottom inset into its CSS as `--app-inset-bottom` (the shell's stylesheet reads
+ * it): state rather than a message, so it holds from the first paint, whoever listens and when.
+ */
+export function insetBottomScript(bottom: number): string {
+  return `document.documentElement.style.setProperty('--app-inset-bottom', '${bottom}px');\ntrue;\n`;
+}
