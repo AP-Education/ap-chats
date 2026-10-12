@@ -1,5 +1,5 @@
 import { IconButton, useIsMobile } from '@ap-education/ui';
-import { GearSixIcon, PlusIcon } from '@phosphor-icons/react';
+import { PlusIcon } from '@phosphor-icons/react';
 import { Button, message } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
@@ -9,7 +9,6 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { getLastConversation } from '@/features/social/conversation/lastConversation';
 import { useWorkspaceUnreadStore } from '@/features/social/read-state/workspace-unread-context';
 
-import { ChannelCategoriesModal } from '../../channel-categories/components/ChannelCategoriesModal';
 import { ChannelFormModal } from '../../channels/components/ChannelFormModal';
 import { useChannelActions } from '../../channels/hooks/useChannelActions';
 import type { Channel } from '../../channels/types';
@@ -50,7 +49,7 @@ interface ChannelsListProps {
 
 export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
   const { styles } = useStyles();
-  const { isLoading, isError, retry, isOwner, currentMember, sections, createCategory } =
+  const { isLoading, isError, retry, isAdministrator, sections, createCategory } =
     useChannelSections(workspaceId);
   const { update } = useChannelActions(workspaceId);
   const { unreadByChannel } = useWorkspaceUnreadStore();
@@ -63,7 +62,6 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
     (isMobile ? (getLastConversation(identity, workspaceId, 'channels') ?? undefined) : undefined);
 
   const [creatingChannel, setCreatingChannel] = useState<CreateChannelTarget | null>(null);
-  const [managingCategories, setManagingCategories] = useState(false);
   const [draggingChannel, setDraggingChannel] = useState<Channel | null>(null);
 
   function moveChannel(channel: Channel, categoryId: string | null) {
@@ -90,7 +88,6 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
 
   const sidebarStore = {
     workspaceId,
-    currentMember,
     selectedChannelId,
     openChannelId: routedChannelId,
     unreadByChannel,
@@ -109,7 +106,7 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
         ))}
       </ChannelsSidebarContext.Provider>
 
-      {isOwner && (
+      {isAdministrator && (
         <div className={styles.actions}>
           <div className={styles.headerActions}>
             <IconButton
@@ -123,13 +120,6 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
               isPending={createCategory.isPending}
               onCreate={(name) => createCategory.mutateAsync({ name })}
             />
-            <IconButton
-              size={isMobile ? 36 : 28}
-              aria-label="Керувати категоріями"
-              onClick={() => setManagingCategories(true)}
-            >
-              <GearSixIcon size={18} />
-            </IconButton>
           </div>
         </div>
       )}
@@ -141,13 +131,6 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
         categoryName={creatingChannel?.categoryName ?? 'Без категорії'}
         onClose={() => setCreatingChannel(null)}
       />
-      {isOwner && (
-        <ChannelCategoriesModal
-          workspaceId={workspaceId}
-          open={managingCategories}
-          onClose={() => setManagingCategories(false)}
-        />
-      )}
     </div>
   );
 }

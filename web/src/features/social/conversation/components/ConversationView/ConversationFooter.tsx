@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 
-import { useConversation } from '@/features/social/conversation-scope/store';
+import {
+  useConversation,
+  useConversationPermissions,
+} from '@/features/social/conversation-scope/store';
 import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { MessageComposer } from '@/features/social/messaging/components/MessageComposer';
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
@@ -12,18 +15,13 @@ import type {
 import { isMessageItem } from '@/features/social/messaging/types';
 
 interface ConversationFooterProps {
-  canPost: boolean;
   readOnlyFooter?: ReactNode;
   items: HistoryItem[];
   send: ReturnType<typeof useMessageOperations>['send'];
 }
 
-export function ConversationFooter({
-  canPost,
-  readOnlyFooter,
-  items,
-  send,
-}: ConversationFooterProps) {
+export function ConversationFooter({ readOnlyFooter, items, send }: ConversationFooterProps) {
+  const { canPost } = useConversationPermissions();
   if (!canPost) return <>{readOnlyFooter}</>;
 
   return <WritableConversationFooter items={items} send={send} />;

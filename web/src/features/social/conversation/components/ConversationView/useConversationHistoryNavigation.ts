@@ -10,7 +10,7 @@ import { useActiveConversationReadState } from '@/features/social/read-state/hoo
 
 const emptyPages: HistoryPage[] = [];
 
-export function useConversationHistoryNavigation(canPost: boolean) {
+export function useConversationHistoryNavigation() {
   const { workspaceId, channelId } = useConversationScope();
   const [params, setParams] = useSearchParams();
   const targetMessageId = params.get('message') ?? undefined;
@@ -21,7 +21,7 @@ export function useConversationHistoryNavigation(canPost: boolean) {
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
 
   useActiveConversationReadState(workspaceId, channelId, history.data?.pages[0]);
-  useChannelRealtime(workspaceId, channelId, canPost, historyTargetId);
+  useChannelRealtime(workspaceId, channelId, historyTargetId);
 
   const onJump = useCallback(
     (messageId: string) => {

@@ -19,20 +19,10 @@ const useStyles = createStyles(({ css }) => ({
 
 interface MobileChannelActionsProps extends PropsWithChildren {
   channel: Channel;
-  workspaceId: string;
-  canAddMember: boolean;
-  canManage: boolean;
   onSettings: () => void;
 }
 
-export function MobileChannelActions({
-  channel,
-  workspaceId,
-  canAddMember,
-  canManage,
-  onSettings,
-  children,
-}: MobileChannelActionsProps) {
+export function MobileChannelActions({ channel, onSettings, children }: MobileChannelActionsProps) {
   const { styles } = useStyles();
   const [sheetState, setSheetState] = useState<'idle' | 'open' | 'closed'>('idle');
 
@@ -64,10 +54,7 @@ export function MobileChannelActions({
         <Suspense fallback={null}>
           <ChannelActionSheet
             open={sheetState === 'open'}
-            workspaceId={workspaceId}
             channel={channel}
-            canAddMember={canAddMember}
-            canManage={canManage}
             onClose={() => setSheetState('closed')}
             onSettings={onSettings}
           />

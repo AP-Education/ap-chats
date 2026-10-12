@@ -1,10 +1,13 @@
+import type { RoleBadge } from '@/features/roles/types';
+import type { WorkspaceAccessLevel } from '@/features/workspaces/types';
 import { apiRequest } from '@/shared/api/http';
 
 export interface MemberProfile {
   memberId: string;
   displayName: string | null;
   avatarPath: string | null;
-  role: 'owner' | 'member';
+  accessLevel: WorkspaceAccessLevel;
+  roles: RoleBadge[];
   isSelf: boolean;
 }
 

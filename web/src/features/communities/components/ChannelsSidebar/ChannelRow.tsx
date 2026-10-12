@@ -1,15 +1,12 @@
 import { IconButton, useIsMobile } from '@ap-education/ui';
-import { GearSixIcon, UserPlusIcon } from '@phosphor-icons/react';
-import { Popover } from 'antd';
+import { GearSixIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { canManageChannel } from '../../channel-permissions';
 import { PrivateChannelIcon, PublicChannelIcon } from '../../channels/channelIcons';
 import { ChannelFormModal } from '../../channels/components/ChannelFormModal';
 import type { Channel } from '../../channels/types';
-import { AddChannelMemberControl } from '../../memberships/components/AddChannelMemberControl';
 import { useChannelsSidebarStore } from './channels-sidebar-context';
 import { MobileChannelActions } from './MobileChannelActions';
 
@@ -232,7 +229,6 @@ export function ChannelRow({ channel }: ChannelRowProps) {
   const isMobile = useIsMobile();
   const {
     workspaceId,
-    currentMember,
     selectedChannelId,
     openChannelId,
     unreadByChannel,
@@ -242,10 +238,9 @@ export function ChannelRow({ channel }: ChannelRowProps) {
   } = useChannelsSidebarStore();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const isActive = channel.id === selectedChannelId;
-  const canAddMember = channel.isMember;
-  const canManage = canManageChannel(channel, currentMember);
+  const canManage = channel.canManage;
   const unreadCount = channel.id === openChannelId ? 0 : (unreadByChannel.get(channel.id) ?? 0);
-  const hasActions = canAddMember || canManage;
+  const hasActions = canManage;
 
   const row = (
     <div
@@ -264,10 +259,10 @@ export function ChannelRow({ channel }: ChannelRowProps) {
       onDragEnd={() => setDraggingChannel(null)}
     >
       <Link to={`/channels/${channel.id}`} onClick={onNavigate} className={styles.link}>
-        {channel.kind === 'private' ? (
-          <PrivateChannelIcon size={18} className={styles.icon} />
-        ) : (
+        {channel.isOpen ? (
           <PublicChannelIcon size={18} className={styles.icon} />
+        ) : (
+          <PrivateChannelIcon size={18} className={styles.icon} />
         )}
         <span className={styles.name}>{channel.name}</span>
       </Link>
@@ -284,32 +279,14 @@ export function ChannelRow({ channel }: ChannelRowProps) {
           )}
           {hasActions && (
             <div className={styles.actions} data-role="row-actions">
-              {canAddMember && (
-                <Popover
-                  trigger="click"
-                  placement="right"
-                  content={<AddChannelMemberControl workspaceId={workspaceId} channel={channel} />}
-                >
-                  <IconButton
-                    size={28}
-                    className={styles.action}
-                    aria-label={`Додати учасника до ${channel.name}`}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <UserPlusIcon size={20} />
-                  </IconButton>
-                </Popover>
-              )}
-              {canManage && (
-                <IconButton
-                  size={28}
-                  className={styles.action}
-                  aria-label={`Налаштування каналу ${channel.name}`}
-                  onClick={() => setSettingsOpen(true)}
-                >
-                  <GearSixIcon size={20} />
-                </IconButton>
-              )}
+              <IconButton
+                size={28}
+                className={styles.action}
+                aria-label={`Налаштування каналу ${channel.name}`}
+                onClick={() => setSettingsOpen(true)}
+              >
+                <GearSixIcon size={20} />
+              </IconButton>
             </div>
           )}
         </div>
@@ -328,13 +305,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
   if (!isMobile || !hasActions) return row;
 
   return (
-    <MobileChannelActions
-      channel={channel}
-      workspaceId={workspaceId}
-      canAddMember={canAddMember}
-      canManage={canManage}
-      onSettings={() => setSettingsOpen(true)}
-    >
+    <MobileChannelActions channel={channel} onSettings={() => setSettingsOpen(true)}>
       {row}
     </MobileChannelActions>
   );

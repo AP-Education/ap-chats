@@ -45,23 +45,14 @@ const useStyles = createStyles(({ css }) => ({
 }));
 
 interface ConversationViewProps {
-  canPost: boolean;
-  canManage: boolean;
-  canPin?: boolean;
   currentMember: WorkspaceMember | undefined;
   readOnlyFooter?: ReactNode;
 }
 
-export function ConversationView({
-  canPost,
-  canManage,
-  canPin = canManage,
-  currentMember,
-  readOnlyFooter,
-}: ConversationViewProps) {
+export function ConversationView({ currentMember, readOnlyFooter }: ConversationViewProps) {
   const { styles, cx } = useStyles();
   const { workspaceId, channelId, title, avatarPath } = useConversationScope();
-  const navigation = useConversationHistoryNavigation(canPost);
+  const navigation = useConversationHistoryNavigation();
   const author = useMemo(
     () => ({
       memberId: currentMember?.id ?? '',
@@ -75,9 +66,6 @@ export function ConversationView({
   const interaction = useConversationActions({
     items: navigation.items,
     memberId: currentMember?.id,
-    canManage,
-    canPin,
-    canPost,
     operations,
   });
   const historyReady =
@@ -99,7 +87,7 @@ export function ConversationView({
         operations={operations}
       />
       <div ref={topRef} className={styles.top}>
-        <PinnedMessageBar canUnpin={canPin && canPost} onJump={navigation.onJump} />
+        <PinnedMessageBar onJump={navigation.onJump} />
         <ActiveCallBanner
           workspaceId={workspaceId}
           channelId={channelId}
@@ -112,7 +100,6 @@ export function ConversationView({
         {/* Hidden rather than unmounted while selecting, so a draft and its uploads live on. */}
         <div hidden={interaction.selectedItems.length > 0}>
           <ConversationFooter
-            canPost={canPost}
             readOnlyFooter={readOnlyFooter}
             items={navigation.items}
             send={operations.send}

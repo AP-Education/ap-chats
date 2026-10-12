@@ -5,8 +5,12 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { useConnection } from '@/features/realtime/stores/realtime-context';
 
-import { refreshChannelInventory } from './channel-inventory-cache';
-import type { CommunityServerToClientEvents } from './types';
+import { refreshChannelInventory, refreshChannelRights } from './channel-inventory-cache';
+import type {
+  ChannelAccessEvent,
+  CommunityServerToClientEvents,
+  WorkspaceAccessEvent,
+} from './types';
 
 export function ChannelListRealtime() {
   const { identity } = useQueryAuth();
@@ -26,10 +30,36 @@ export function ChannelListRealtime() {
     void refreshChannelInventory(queryClient, identity);
   }, [identity, queryClient, socket]);
 
-  useSocketEvent<CommunityServerToClientEvents>('communities:changed', (event) => {
-    if (!identity || event.type !== 'communities.channel.created') return;
-    void refreshChannelInventory(queryClient, identity, event.workspaceId);
-  });
+  useSocketEvent<CommunityServerToClientEvents>(
+    'communities:channel-granted',
+    (event: ChannelAccessEvent) => {
+      if (identity) void refreshChannelInventory(queryClient, identity, event.workspaceId);
+    },
+  );
+
+  useSocketEvent<CommunityServerToClientEvents>(
+    'communities:channel-revoked',
+    (event: ChannelAccessEvent) => {
+      if (!identity) return;
+      void refreshChannelInventory(queryClient, identity, event.workspaceId);
+      void refreshChannelRights(queryClient, identity, event.workspaceId, event.channelId);
+    },
+  );
+
+  useSocketEvent<CommunityServerToClientEvents>(
+    'communities:channel-permissions-changed',
+    (event: ChannelAccessEvent) => {
+      if (identity)
+        void refreshChannelRights(queryClient, identity, event.workspaceId, event.channelId);
+    },
+  );
+
+  useSocketEvent<CommunityServerToClientEvents>(
+    'communities:access-changed',
+    (event: WorkspaceAccessEvent) => {
+      if (identity) void refreshChannelRights(queryClient, identity, event.workspaceId);
+    },
+  );
 
   useSocketEvent('session:ready', refreshSessionInventory);
 

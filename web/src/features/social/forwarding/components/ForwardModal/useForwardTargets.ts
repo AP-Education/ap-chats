@@ -13,7 +13,7 @@ export type ForwardScope = 'all' | 'direct' | 'channels';
 
 export function useForwardTargets(workspaceId: string) {
   const { token, identity } = useQueryAuth();
-  const channels = useChannels(workspaceId, 'joined');
+  const channels = useChannels(workspaceId);
   const conversations = useDirectMessages();
   const [scope, setScope] = useState<ForwardScope>('all');
   const [search, setSearch] = useState('');
@@ -45,13 +45,13 @@ export function useForwardTargets(workspaceId: string) {
       disabled: !item.participant.active,
     }));
   const joined: ForwardTargetOption[] = (channels.data ?? [])
-    .filter((channel) => channel.isMember && matches(channel.name))
+    .filter((channel) => channel.canPost && matches(channel.name))
     .map((channel) => ({
       kind: 'channel',
       id: channel.id,
       name: channel.name,
-      detail: channel.kind === 'private' ? 'Приватний канал' : 'Канал',
-      private: channel.kind === 'private',
+      detail: channel.isOpen ? 'Канал' : 'Закритий канал',
+      private: !channel.isOpen,
     }));
   const colleagues: ForwardTargetOption[] =
     searchTerm && searchTerm === search.trim() && people.data

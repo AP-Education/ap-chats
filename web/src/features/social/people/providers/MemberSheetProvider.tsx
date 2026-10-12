@@ -8,6 +8,9 @@ import { memberProfileLabel } from '../components/MemberProfile/memberProfileLab
 import { type MemberSheet, MemberSheetContext } from '../stores/member-sheet-context';
 import type { MemberSummary } from '../types';
 
+// The profile and its role list swap in place, so the sheet must not jump between them.
+const MEMBER_SHEET_HEIGHT = 'min(560px, 80dvh)';
+
 // Mounted above the message rows so the sheet's touches never reach their swipe and long-press gestures.
 export function MemberSheetProvider({ children }: PropsWithChildren) {
   // Kept after close so the sheet keeps its content through the exit animation.
@@ -42,6 +45,7 @@ export function MemberSheetProvider({ children }: PropsWithChildren) {
           open={open}
           onClose={close}
           aria-label={memberProfileLabel(member)}
+          height={MEMBER_SHEET_HEIGHT}
           destroyOnHidden
         >
           <MemberCard member={member} onConversationOpen={close} />

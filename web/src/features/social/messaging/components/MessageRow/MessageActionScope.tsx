@@ -70,7 +70,7 @@ export function MessageActionProvider({
         ...value,
         isMobile,
         isOwn: value.item.message.authorMemberId === value.context.memberId,
-        canReact: !value.delivery && value.context.canPost,
+        canReact: !value.delivery && value.context.canReact,
         messageTarget,
         textTarget,
         selectedText,

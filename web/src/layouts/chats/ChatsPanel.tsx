@@ -1,15 +1,12 @@
-import { Panel, PanelBody, PanelHeader, useIsMobile } from '@ap-education/ui';
+import { Panel, PanelBody, useIsMobile } from '@ap-education/ui';
 import { useLocation } from 'react-router-dom';
 
 import { CallHistoryList } from '../../features/calls/components/CallHistoryList/CallHistoryList';
 import { ChannelsSidebar } from '../../features/communities/components/ChannelsSidebar';
-import { PushSettings } from '../../features/notifications/components/PushSettings';
 import { DirectMessageList } from '../../features/social/direct-messages/components/DirectMessageList/DirectMessageList';
-import { UnreadDirectMessages } from '../../features/social/direct-messages/components/UnreadDirectMessages/UnreadDirectMessages';
-import { WorkspaceHeader } from '../../features/workspaces/components/WorkspaceHeader';
 import { useActiveWorkspace } from '../../features/workspaces/hooks/useActiveWorkspace';
-import { PanelHeaderActions } from '../../shared/ui/PanelHeaderActions';
 import { type ChatsSection, sectionAt } from './sections';
+import { TeamHeader } from './TeamHeader';
 
 /** The list of the page's section: the team's channels, direct messages or calls. */
 export function ChatsPanel() {
@@ -38,22 +35,6 @@ export function ChatsPanel() {
         </PanelBody>
       )}
     </Panel>
-  );
-}
-
-function TeamHeader() {
-  const { workspace } = useActiveWorkspace();
-
-  return (
-    <>
-      <PanelHeader>
-        <WorkspaceHeader />
-        <PanelHeaderActions>
-          <PushSettings />
-        </PanelHeaderActions>
-      </PanelHeader>
-      {workspace && <UnreadDirectMessages />}
-    </>
   );
 }
 

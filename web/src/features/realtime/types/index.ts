@@ -8,7 +8,7 @@ export type SocketEventMap = Record<string, (...args: never[]) => unknown>;
 export interface UnreadMutation {
   workspaceId: string;
   channelId: string;
-  kind: 'public' | 'private' | 'dm';
+  kind: 'channel' | 'dm';
   eventId: string;
   operation: 'append' | 'remove';
   subject: 'message' | 'call';

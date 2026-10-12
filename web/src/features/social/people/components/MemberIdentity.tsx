@@ -1,4 +1,5 @@
 import { createStyles } from 'antd-style';
+import type { ReactNode } from 'react';
 
 import { Avatar } from '@/shared/ui/Avatar';
 
@@ -17,6 +18,8 @@ const useStyles = createStyles(({ token, css }) => ({
     line-height: 1.3;
   `,
   detail: css`
+    display: flex;
+    justify-content: center;
     margin: 0;
     color: ${token.colorTextSecondary};
     font-size: 13px;
@@ -26,7 +29,7 @@ const useStyles = createStyles(({ token, css }) => ({
 interface MemberIdentityProps {
   name: string;
   avatarPath: string | null;
-  detail: string;
+  detail: ReactNode;
   headingLevel?: 'h2' | 'h3';
   avatarSize?: number;
 }
@@ -46,7 +49,7 @@ export function MemberIdentity({
         <Avatar path={avatarPath} alt={name} size={avatarSize} shape="circle" />
       </div>
       <Heading className={styles.name}>{name}</Heading>
-      <p className={styles.detail}>{detail}</p>
+      <div className={styles.detail}>{detail}</div>
     </>
   );
 }

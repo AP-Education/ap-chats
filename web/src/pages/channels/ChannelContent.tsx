@@ -103,6 +103,12 @@ export default function ChannelContent() {
             placeholder: `Написати в #${channel.name}`,
             mentionEveryone: true,
           },
+          permissions: {
+            canPost: channel.canPost,
+            canReact: channel.isMember,
+            canManage: channel.canManage,
+            canPin: channel.canManage,
+          },
         }}
       >
         <WorkspaceChannelPresence channelId={channel.id} />

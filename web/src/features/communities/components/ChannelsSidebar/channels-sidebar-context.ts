@@ -1,7 +1,5 @@
 import { createContext, useContext } from 'react';
 
-import type { WorkspaceMember } from '@/features/workspaces/types';
-
 import type { Channel } from '../../channels/types';
 
 export interface CreateChannelTarget {
@@ -11,7 +9,6 @@ export interface CreateChannelTarget {
 
 export interface ChannelsSidebarStore {
   workspaceId: string;
-  currentMember: WorkspaceMember | undefined;
   selectedChannelId: string | undefined;
   openChannelId: string | undefined;
   unreadByChannel: Map<string, number>;

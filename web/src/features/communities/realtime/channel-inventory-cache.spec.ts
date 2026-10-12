@@ -10,16 +10,12 @@ function fixture() {
   return new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
 }
 
-test('a remote creation refreshes another member list and its categories while preserving membership', async () => {
+test('a granted channel refreshes another member list and its categories while preserving membership', async () => {
   const queryClient = fixture();
-  const key = communityQueryKeys.channels('other-member', 'workspace', 'available');
+  const key = communityQueryKeys.channels('other-member', 'workspace', 'mine');
   const categoryKey = communityQueryKeys.categories('other-member', 'workspace');
-  const otherWorkspaceKey = communityQueryKeys.channels(
-    'other-member',
-    'other-workspace',
-    'available',
-  );
-  const otherUserKey = communityQueryKeys.channels('owner', 'workspace', 'available');
+  const otherWorkspaceKey = communityQueryKeys.channels('other-member', 'other-workspace', 'mine');
+  const otherUserKey = communityQueryKeys.channels('owner', 'workspace', 'mine');
   queryClient.setQueryData(key, []);
   queryClient.setQueryData(categoryKey, []);
   queryClient.setQueryData(otherWorkspaceKey, []);
@@ -49,9 +45,9 @@ test('a remote creation refreshes another member list and its categories while p
   }
 });
 
-test('an initial request from before creation cannot overwrite the new channel list', async () => {
+test('an initial request from before the grant cannot overwrite the new channel list', async () => {
   const queryClient = fixture();
-  const key = communityQueryKeys.channels('user', 'workspace', 'available');
+  const key = communityQueryKeys.channels('user', 'workspace', 'mine');
   let finishOld!: (value: unknown[]) => void;
   let requests = 0;
   const observer = new QueryObserver(queryClient, {
@@ -78,15 +74,15 @@ test('an initial request from before creation cannot overwrite the new channel l
   }
 });
 
-test('reconnect invalidates available, joined and category caches in every workspace for this identity', async () => {
+test('reconnect invalidates own, managed and category caches in every workspace for this identity', async () => {
   const queryClient = fixture();
   const keys = ['workspace-a', 'workspace-b'].flatMap((workspaceId) => [
-    communityQueryKeys.channels('user', workspaceId, 'available'),
-    communityQueryKeys.channels('user', workspaceId, 'joined'),
+    communityQueryKeys.channels('user', workspaceId, 'mine'),
+    communityQueryKeys.channels('user', workspaceId, 'all'),
     communityQueryKeys.categories('user', workspaceId),
   ]);
   for (const key of keys) queryClient.setQueryData(key, []);
-  const otherIdentity = communityQueryKeys.channels('other-user', 'workspace-a', 'available');
+  const otherIdentity = communityQueryKeys.channels('other-user', 'workspace-a', 'mine');
   queryClient.setQueryData(otherIdentity, []);
   await refreshChannelInventory(queryClient, 'user');
   for (const key of keys) assert.equal(queryClient.getQueryState(key)?.isInvalidated, true);

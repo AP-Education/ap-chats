@@ -7,7 +7,7 @@ import ts from 'typescript';
 
 import type { CommunityServerToClientEvents } from '../src/features/communities/realtime/types';
 
-type CreatedEvent = Parameters<CommunityServerToClientEvents['communities:changed']>[0];
+type AccessEvent = Parameters<CommunityServerToClientEvents['communities:channel-granted']>[0];
 
 function fixture() {
   let identity: string | undefined = 'viewer';
@@ -15,8 +15,9 @@ function fixture() {
   const socket = { id: 'session-1' };
   const refreshedSession = { current: null };
   const refreshes: { identity: string; workspaceId?: string }[] = [];
+  const rights: { identity: string; workspaceId: string; channelId?: string }[] = [];
   const effects: (() => void)[] = [];
-  const handlers = new Map<string, (event?: CreatedEvent) => void>();
+  const handlers = new Map<string, (event?: AccessEvent) => void>();
   const dependencies: Record<string, unknown> = {
     '@tanstack/react-query': { useQueryClient: () => 'query-client' },
     react: {
@@ -26,7 +27,7 @@ function fixture() {
     },
     '@/features/auth/hooks/useQueryAuth': { useQueryAuth: () => ({ identity }) },
     '@/features/realtime/hooks/useSocketEvent': {
-      useSocketEvent: (type: string, handler: (event?: CreatedEvent) => void) =>
+      useSocketEvent: (type: string, handler: (event?: AccessEvent) => void) =>
         handlers.set(type, handler),
     },
     '@/features/realtime/stores/realtime-context': {
@@ -36,6 +37,15 @@ function fixture() {
       refreshChannelInventory: async (client: string, identity: string, workspaceId?: string) => {
         assert.equal(client, 'query-client');
         refreshes.push({ identity, workspaceId });
+      },
+      refreshChannelRights: async (
+        client: string,
+        identity: string,
+        workspaceId: string,
+        channelId?: string,
+      ) => {
+        assert.equal(client, 'query-client');
+        rights.push({ identity, workspaceId, channelId });
       },
     },
   };
@@ -59,8 +69,9 @@ function fixture() {
   return {
     render,
     refreshes,
+    rights,
     flush: () => effects.splice(0).forEach((effect) => effect()),
-    emit: (type: string, event?: CreatedEvent) => {
+    emit: (type: string, event?: AccessEvent) => {
       const handler = handlers.get(type);
       assert.ok(handler, `Missing listener for ${type}`);
       handler(event);
@@ -77,15 +88,26 @@ function fixture() {
   };
 }
 
-test('server channel creation refreshes the receiving user workspace inventory', () => {
+test('a granted channel refreshes the receiving user workspace inventory', () => {
   const f = fixture();
   f.render();
-  f.emit('communities:changed', {
-    type: 'communities.channel.created',
-    workspaceId: 'workspace',
-    channelId: 'new-channel',
-  });
+  f.emit('communities:channel-granted', { workspaceId: 'workspace', channelId: 'new-channel' });
   assert.deepEqual(f.refreshes, [{ identity: 'viewer', workspaceId: 'workspace' }]);
+});
+
+test('changed permissions refresh only that channel, a changed role every open one', () => {
+  const f = fixture();
+  f.render();
+  f.emit('communities:channel-permissions-changed', {
+    workspaceId: 'workspace',
+    channelId: 'announcements',
+  });
+  f.emit('communities:access-changed', { workspaceId: 'workspace' } as AccessEvent);
+  assert.deepEqual(f.rights, [
+    { identity: 'viewer', workspaceId: 'workspace', channelId: 'announcements' },
+    { identity: 'viewer', workspaceId: 'workspace', channelId: undefined },
+  ]);
+  assert.deepEqual(f.refreshes, []);
 });
 
 test('connect and session readiness refresh inventories only once per connection', () => {
@@ -143,11 +165,7 @@ test('signed-out clients do not refresh a previous user inventory', () => {
   f.setIdentity(undefined);
   f.render();
   f.flush();
-  f.emit('communities:changed', {
-    type: 'communities.channel.created',
-    workspaceId: 'workspace',
-    channelId: 'new-channel',
-  });
+  f.emit('communities:channel-granted', { workspaceId: 'workspace', channelId: 'new-channel' });
   f.emit('session:ready');
   assert.deepEqual(f.refreshes, []);
 });

@@ -140,6 +140,7 @@ export interface ActionContext {
   canManage: boolean;
   canPin: boolean;
   canPost: boolean;
+  canReact: boolean;
 }
 
 export interface ActionCommands {
