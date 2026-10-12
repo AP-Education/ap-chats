@@ -34,6 +34,7 @@ import { forgetLastLocation, loadLastLocation, rememberLocation } from '../api/l
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
 import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
 import { buildBridgeScript } from '../utils/inject-bridge';
+import { pageBottom, pageKeyboardInset } from '../utils/page-inset';
 import { APP_SHELL_USER_AGENT } from '../utils/shell-user-agent';
 import { ConnectionErrorScreen } from './ConnectionErrorScreen';
 import { SetupScreen } from './SetupScreen';
@@ -68,20 +69,43 @@ export function WebViewHost() {
   const sendInputState = useCallback((state: ComposerInputState) => {
     webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'composer/state', ...state }));
   }, []);
-  // The page already keeps clear of the home indicator (iOS) or sits above the reserved inset
-  // (Android), so it pads only for what covers more than that.
+  // Measured rather than assumed: where the page ends depends on the tab it is teleported into.
+  const containerRef = useRef<View>(null);
+  const pageRef = useRef<View>(null);
+  const pageGap = useRef(0);
+  const room = useRef(0);
   const lastInset = useRef(0);
   const sendInset = useCallback(
-    (room: number, { duration, easing }: InsetMotion) => {
-      lastInset.current = Math.max(0, room - insets.bottom);
+    ({ duration, easing }: InsetMotion) => {
+      const bottom = pageBottom(pageGap.current, insets.bottom, edgeToEdge);
+      lastInset.current = pageKeyboardInset(room.current, bottom);
       webViewRef.current?.injectJavaScript(
         buildBridgeScript({ type: 'keyboard/inset', inset: lastInset.current, duration, easing }),
       );
     },
-    [insets.bottom],
+    [edgeToEdge, insets.bottom],
   );
+  const handleRoom = useCallback(
+    (next: number, motion: InsetMotion) => {
+      room.current = next;
+      sendInset(motion);
+    },
+    [sendInset],
+  );
+  const measurePage = useCallback(() => {
+    containerRef.current?.measureInWindow((_x, containerTop, _width, outerHeight) => {
+      pageRef.current?.measureInWindow((_pageX, pageTop, _pageWidth, pageHeight) => {
+        const containerBottom = containerTop + outerHeight;
+        const gap = Math.max(0, Math.round(containerBottom - pageTop - pageHeight));
+        if (gap === pageGap.current) return;
+
+        pageGap.current = gap;
+        sendInset(INSTANT);
+      });
+    });
+  }, [sendInset]);
   const reservedInset = edgeToEdge ? 0 : insets.bottom;
-  const input = useComposerInput(sendInputState, sendInset, { reservedInset, containerHeight });
+  const input = useComposerInput(sendInputState, handleRoom, { reservedInset, containerHeight });
   // Opens on the page the person left; unset until the stored one is read, a moment at launch.
   const [startUrl, setStartUrl] = useState<string>();
 
@@ -132,8 +156,7 @@ export function WebViewHost() {
     const message: NativeToWebMessage = {
       type: 'keyboard/inset',
       inset: lastInset.current,
-      duration: 0,
-      easing: 'linear',
+      ...INSTANT,
     };
     webViewRef.current?.injectJavaScript(buildBridgeScript(message));
   }, [loadCount]);
@@ -240,62 +263,68 @@ export function WebViewHost() {
   return (
     // NativeMiniCallBar claims the top inset itself while it shows above this view.
     <SafeAreaView
+      ref={containerRef}
       style={[styles.container, { backgroundColor: palette.surface }]}
       edges={edgeToEdge || miniCallBarVisible ? [] : ['top']}
-      onLayout={(event) => setContainerHeight(event.nativeEvent.layout.height)}
+      onLayout={(event) => {
+        setContainerHeight(event.nativeEvent.layout.height);
+        measurePage();
+      }}
     >
       <MessageNotificationSound request={messageSoundRequest} />
       <View style={[styles.webviewWrapper, { paddingBottom: reservedInset }]}>
         {startUrl && (
           <Portal hostName={tabBar?.activeId} style={styles.page}>
-            <WebView<object>
-              ref={webViewRef}
-              source={{ uri: startUrl }}
-              style={[styles.webview, { backgroundColor: palette.surface }]}
-              // The page keeps its size under the keyboard and pads itself by `keyboard/inset`;
-              // WKWebView would otherwise shift and resize it a beat behind the keyboard.
-              removeIosKeyboardObserver
-              hideKeyboardAccessoryView
-              // An app screen, not a document: no pinch zoom (Android; iOS follows the page viewport).
-              setBuiltInZoomControls={false}
-              webviewDebuggingEnabled={inspectable}
-              keyboardDisplayRequiresUserAction={false}
-              automaticallyAdjustContentInsets={false}
-              contentInsetAdjustmentBehavior="never"
-              scrollEnabled={false}
-              bounces={false}
-              onLoadStart={() => {
-                input.close();
-                // Hidden rather than dropped: the page lives inside a tab's host until it reloads.
-                setTabBar((current) => current && { ...current, visible: false });
-                useNotificationStore.getState().setWebReady(false);
-              }}
-              applicationNameForUserAgent={APP_SHELL_USER_AGENT}
-              onNavigationStateChange={(event) => rememberLocation(event.url, webUrl)}
-              onMessage={handleMessage}
-              onLoadEnd={() => {
-                setLoadCount((count) => count + 1);
-                // WKWebView doesn't reliably become first responder on its own —
-                // without this, the very first tap anywhere after a (re)load gets
-                // consumed establishing focus instead of reaching its target,
-                // which reads as "the button needs two taps" (confirmed: only
-                // ever happens inside this WebView, never on desktop).
-                webViewRef.current?.requestFocus();
-              }}
-              injectedJavaScriptBeforeContentLoaded={__DEV__ ? DEBUG_CONSOLE_SCRIPT : undefined}
-              onError={(event: WebViewErrorEvent) =>
-                console.error('[webview] onError', event.nativeEvent)
-              }
-              onHttpError={(event: WebViewHttpErrorEvent) =>
-                console.error('[webview] onHttpError', event.nativeEvent)
-              }
-              onContentProcessDidTerminate={(event: WebViewTerminatedEvent) =>
-                console.error('[webview] render process terminated', event.nativeEvent)
-              }
-              renderError={() => (
-                <ConnectionErrorScreen onRetry={() => webViewRef.current?.reload()} />
-              )}
-            />
+            <View ref={pageRef} style={styles.page} onLayout={measurePage} collapsable={false}>
+              <WebView<object>
+                ref={webViewRef}
+                source={{ uri: startUrl }}
+                style={[styles.webview, { backgroundColor: palette.surface }]}
+                // The page keeps its size under the keyboard and pads itself by `keyboard/inset`;
+                // WKWebView would otherwise shift and resize it a beat behind the keyboard.
+                removeIosKeyboardObserver
+                hideKeyboardAccessoryView
+                // An app screen, not a document: no pinch zoom (Android; iOS follows the page viewport).
+                setBuiltInZoomControls={false}
+                webviewDebuggingEnabled={inspectable}
+                keyboardDisplayRequiresUserAction={false}
+                automaticallyAdjustContentInsets={false}
+                contentInsetAdjustmentBehavior="never"
+                scrollEnabled={false}
+                bounces={false}
+                onLoadStart={() => {
+                  input.close();
+                  // Hidden rather than dropped: the page lives inside a tab's host until it reloads.
+                  setTabBar((current) => current && { ...current, visible: false });
+                  useNotificationStore.getState().setWebReady(false);
+                }}
+                applicationNameForUserAgent={APP_SHELL_USER_AGENT}
+                onNavigationStateChange={(event) => rememberLocation(event.url, webUrl)}
+                onMessage={handleMessage}
+                onLoadEnd={() => {
+                  setLoadCount((count) => count + 1);
+                  // WKWebView doesn't reliably become first responder on its own —
+                  // without this, the very first tap anywhere after a (re)load gets
+                  // consumed establishing focus instead of reaching its target,
+                  // which reads as "the button needs two taps" (confirmed: only
+                  // ever happens inside this WebView, never on desktop).
+                  webViewRef.current?.requestFocus();
+                }}
+                injectedJavaScriptBeforeContentLoaded={__DEV__ ? DEBUG_CONSOLE_SCRIPT : undefined}
+                onError={(event: WebViewErrorEvent) =>
+                  console.error('[webview] onError', event.nativeEvent)
+                }
+                onHttpError={(event: WebViewHttpErrorEvent) =>
+                  console.error('[webview] onHttpError', event.nativeEvent)
+                }
+                onContentProcessDidTerminate={(event: WebViewTerminatedEvent) =>
+                  console.error('[webview] render process terminated', event.nativeEvent)
+                }
+                renderError={() => (
+                  <ConnectionErrorScreen onRetry={() => webViewRef.current?.reload()} />
+                )}
+              />
+            </View>
           </Portal>
         )}
         {tabBar && (
@@ -321,6 +350,8 @@ export function WebViewHost() {
     </SafeAreaView>
   );
 }
+
+const INSTANT: InsetMotion = { duration: 0, easing: 'linear' };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
