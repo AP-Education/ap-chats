@@ -80,7 +80,7 @@ function fixture({
     },
     { window },
   );
-  hook.useMessageNotificationSound('workspace', openChannelId);
+  hook.useMessageNotificationSound(openChannelId);
   return {
     push,
     page,
@@ -150,13 +150,21 @@ test('muted messages never play', () => {
 });
 
 // Presence silences the OS alert for every workspace, so the open app has to speak for them all.
-test('another workspace plays even while the same channel is open here', () => {
+test('another workspace plays while a conversation is open here', () => {
   const f = fixture({ openChannelId: 'channel' });
   f.push.enabled = true;
 
-  f.receive({ workspaceId: 'another-workspace' });
+  f.receive({ workspaceId: 'another-workspace', channelId: 'another-channel' });
 
   assert.equal(f.sounds.length, 1);
+});
+
+test('an open conversation from another workspace stays quiet', () => {
+  const f = fixture({ openChannelId: 'channel' });
+
+  f.receive({ workspaceId: 'another-workspace' });
+
+  assert.deepEqual(f.sounds, []);
 });
 
 test('the native shell plays its own sound without creating Web Audio', () => {

@@ -37,7 +37,7 @@ export function useCallSignalListener(): void {
     });
     // Only DM calls ever show in the calls tab, but a channel call's signal
     // costs nothing extra to ignore versus filtering channelKind here too.
-    queryClient.invalidateQueries({ queryKey: callHistoryKey(identity, signal.workspaceId) });
+    queryClient.invalidateQueries({ queryKey: callHistoryKey(identity) });
   }
 
   // The call's status (ringing/active/ended/declined) lives on its timeline

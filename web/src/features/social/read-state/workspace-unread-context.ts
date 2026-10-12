@@ -10,6 +10,7 @@ export interface WorkspaceUnreadStore {
 
 export function createWorkspaceUnreadStore(
   channels: ChannelUnread[] | undefined,
+  directElsewhere: ChannelUnread[] = [],
 ): WorkspaceUnreadStore {
   const unreadByChannel = new Map<string, number>();
   let channelTotal = 0;
@@ -18,6 +19,10 @@ export function createWorkspaceUnreadStore(
     unreadByChannel.set(channel.channelId, channel.unreadCount);
     if (channel.kind === 'dm') directTotal += channel.unreadCount;
     else channelTotal += channel.unreadCount;
+  }
+  for (const conversation of directElsewhere) {
+    unreadByChannel.set(conversation.channelId, conversation.unreadCount);
+    directTotal += conversation.unreadCount;
   }
   return { unreadByChannel, channelTotal, directTotal };
 }

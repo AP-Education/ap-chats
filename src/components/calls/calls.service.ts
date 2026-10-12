@@ -92,11 +92,10 @@ export class CallsService {
     return call ? this.toView(call) : null;
   }
 
-  async list(member: WorkspaceMember, filter: CallHistoryFilter, before?: string) {
+  async list(userId: string, filter: CallHistoryFilter, before?: string) {
     const cursor = before ? decodeHistoryCursor(before) : undefined;
-    const rows = await this.calls.listForMember(
-      member.workspaceId,
-      member.id,
+    const rows = await this.calls.listForUser(
+      userId,
       filter,
       cursor ? { startedAt: new Date(cursor.startedAt), id: cursor.id } : undefined,
       HISTORY_PAGE_SIZE,
@@ -304,7 +303,7 @@ export class CallsService {
     };
   }
 
-  private toHistoryView(row: Awaited<ReturnType<CallsRepository['listForMember']>>[number]) {
-    return { ...this.toView(row), participant: row.participant };
+  private toHistoryView(row: Awaited<ReturnType<CallsRepository['listForUser']>>[number]) {
+    return { ...this.toView(row), workspaceId: row.workspaceId, participant: row.participant };
   }
 }

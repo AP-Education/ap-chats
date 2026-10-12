@@ -64,17 +64,18 @@ function NoConversationSelected() {
 
 export default function DirectMessagePage() {
   const { styles } = useStyles();
-  const { id: workspaceId } = useRequiredWorkspace();
+  const { id: activeWorkspaceId } = useRequiredWorkspace();
   const { channelId } = useParams<{ channelId: string }>();
-  const conversation = useDirectMessage(workspaceId, channelId);
+  const conversation = useDirectMessage(channelId);
   const unavailable = useTrackConversation(
     'direct',
-    workspaceId,
+    activeWorkspaceId,
     channelId,
     conversation,
     '/direct',
   );
-  const { byId, currentMember } = useWorkspaceMemberLabels(workspaceId);
+  // A conversation belongs to people rather than to the active workspace, so it names its own.
+  const { byId, currentMember } = useWorkspaceMemberLabels(conversation.data?.workspaceId);
 
   if (!channelId) return <NoConversationSelected />;
   if (conversation.isPending) return <Page />;
@@ -104,7 +105,7 @@ export default function DirectMessagePage() {
     );
   }
 
-  const { participant } = conversation.data;
+  const { participant, workspaceId } = conversation.data;
   const name = participant.displayName ?? 'Ім’я недоступне';
   return (
     <Page>

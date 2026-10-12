@@ -1,20 +1,17 @@
 import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 
-import { UseAuthGuards } from '@/components/auth';
-import { CurrentWorkspaceMember } from '@/components/workspaces/members/decorators';
-import { WorkspaceMemberGuard } from '@/components/workspaces/members/guards';
-import type { WorkspaceMember } from '@/components/workspaces/members/types';
+import { type AuthenticatedUser, CurrentUser, UseAuthGuards } from '@/components/auth';
 
 import { CallsService } from './calls.service';
 
-@Controller('workspaces/:workspaceId/calls')
-@UseAuthGuards(WorkspaceMemberGuard('param', 'workspaceId'))
+@Controller('calls')
+@UseAuthGuards()
 export class CallsHistoryController {
   constructor(private readonly calls: CallsService) {}
 
   @Get()
   list(
-    @CurrentWorkspaceMember() member: WorkspaceMember,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('filter') filter?: string,
     @Query('before') before?: string,
   ) {
@@ -22,6 +19,6 @@ export class CallsHistoryController {
       throw new BadRequestException('Invalid calls filter');
     }
 
-    return this.calls.list(member, filter === 'missed' ? 'missed' : 'all', before);
+    return this.calls.list(user.sub, filter === 'missed' ? 'missed' : 'all', before);
   }
 }

@@ -131,13 +131,14 @@ export class DrizzleCallsRepository extends CallsRepository {
     return rows.map((row) => row.oidcUserId);
   }
 
-  async listForMember(
-    workspaceId: string,
-    memberId: string,
+  async listForUser(
+    userId: string,
     filter: CallHistoryFilter,
     cursor: { startedAt: Date; id: string } | undefined,
     limit: number,
   ) {
+    const viewer = alias(workspaceMembers, 'call_history_viewer');
+    const viewerProfile = alias(userProfiles, 'call_history_viewer_profile');
     const first = alias(workspaceMembers, 'call_history_first');
     const second = alias(workspaceMembers, 'call_history_second');
     const firstProfile = alias(userProfiles, 'call_history_first_profile');
@@ -145,6 +146,7 @@ export class DrizzleCallsRepository extends CallsRepository {
     const rows = await this.txHost.tx
       .select({
         call: calls,
+        viewerId: viewer.id,
         first: {
           id: first.id,
           status: first.status,
@@ -160,19 +162,24 @@ export class DrizzleCallsRepository extends CallsRepository {
       })
       .from(calls)
       .innerJoin(directMessages, eq(directMessages.channelId, calls.channelId))
+      .innerJoin(
+        viewer,
+        or(
+          eq(viewer.id, directMessages.firstMemberId),
+          eq(viewer.id, directMessages.secondMemberId),
+        ),
+      )
+      .innerJoin(viewerProfile, eq(viewerProfile.id, viewer.userProfileId))
       .innerJoin(first, eq(first.id, directMessages.firstMemberId))
       .innerJoin(second, eq(second.id, directMessages.secondMemberId))
       .innerJoin(firstProfile, eq(firstProfile.id, first.userProfileId))
       .innerJoin(secondProfile, eq(secondProfile.id, second.userProfileId))
       .where(
         and(
-          eq(calls.workspaceId, workspaceId),
-          or(
-            eq(directMessages.firstMemberId, memberId),
-            eq(directMessages.secondMemberId, memberId),
-          ),
+          eq(viewerProfile.oidcUserId, userId),
+          eq(viewer.status, 'active'),
           filter === 'missed'
-            ? and(eq(calls.status, 'missed'), ne(calls.startedByMemberId, memberId))
+            ? and(eq(calls.status, 'missed'), ne(calls.startedByMemberId, viewer.id))
             : undefined,
           cursor
             ? or(
@@ -185,7 +192,7 @@ export class DrizzleCallsRepository extends CallsRepository {
       .orderBy(desc(calls.startedAt), desc(calls.id))
       .limit(limit + 1);
     return rows.map((row) => {
-      const other = row.first.id === memberId ? row.second : row.first;
+      const other = row.first.id === row.viewerId ? row.second : row.first;
       return {
         ...row.call,
         participant: {

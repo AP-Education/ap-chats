@@ -14,7 +14,7 @@ export type ForwardScope = 'all' | 'direct' | 'channels';
 export function useForwardTargets(workspaceId: string) {
   const { token, identity } = useQueryAuth();
   const channels = useChannels(workspaceId, 'joined');
-  const conversations = useDirectMessages(workspaceId);
+  const conversations = useDirectMessages();
   const [scope, setScope] = useState<ForwardScope>('all');
   const [search, setSearch] = useState('');
   const searchTerm = useDebouncedValue(search.trim(), 180);
@@ -28,7 +28,11 @@ export function useForwardTargets(workspaceId: string) {
   });
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const matches = (name: string) => name.toLocaleLowerCase().includes(normalizedSearch);
-  const directItems = conversations.data?.pages.flatMap((page) => page.items) ?? [];
+  // A message can only be forwarded within its own workspace.
+  const directItems =
+    conversations.data?.pages
+      .flatMap((page) => page.items)
+      .filter((item) => item.workspaceId === workspaceId) ?? [];
   const directMemberIds = new Set(directItems.map((item) => item.participant.memberId));
   const direct: ForwardTargetOption[] = directItems
     .filter((item) => matches(item.participant.displayName ?? ''))

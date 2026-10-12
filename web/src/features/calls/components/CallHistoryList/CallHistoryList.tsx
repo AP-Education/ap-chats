@@ -49,13 +49,7 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-export function CallHistoryList({
-  workspaceId,
-  onNavigate,
-}: {
-  workspaceId: string;
-  onNavigate?: () => void;
-}) {
+export function CallHistoryList({ onNavigate }: { onNavigate?: () => void }) {
   const { styles } = useStyles();
   const [filter, setFilter] = useState<CallHistoryFilter>('all');
   const listRef = useRef<HTMLDivElement>(null);
@@ -75,31 +69,24 @@ export function CallHistoryList({
         />
       </div>
       <div ref={listRef} className={styles.list}>
-        <CallHistoryResults
-          workspaceId={workspaceId}
-          filter={filter}
-          scrollRoot={listRef}
-          onNavigate={onNavigate}
-        />
+        <CallHistoryResults filter={filter} scrollRoot={listRef} onNavigate={onNavigate} />
       </div>
     </div>
   );
 }
 
 function CallHistoryResults({
-  workspaceId,
   filter,
   scrollRoot,
   onNavigate,
 }: {
-  workspaceId: string;
   filter: CallHistoryFilter;
   scrollRoot: RefObject<HTMLDivElement | null>;
   onNavigate?: () => void;
 }) {
   const { styles } = useStyles();
   const location = useLocation();
-  const history = useCallHistory(workspaceId, filter);
+  const history = useCallHistory(filter);
 
   if (history.isPending) return <CallHistoryListSkeleton />;
   if (history.isError && !history.data)
@@ -139,7 +126,6 @@ function CallHistoryResults({
         <CallHistoryRow
           key={entry.key}
           entry={entry}
-          workspaceId={workspaceId}
           active={entry.key === activeKey}
           onNavigate={onNavigate}
         />

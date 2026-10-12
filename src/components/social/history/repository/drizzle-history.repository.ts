@@ -188,14 +188,18 @@ export class DrizzleHistoryRepository extends HistoryRepository {
       'avatarPath', ${userProfiles.avatarPath}
     )`;
 
-    return this.txHost.tx
-      .select({ mentions: sql<Mention[]>`coalesce(json_agg(${mention}), '[]')`.as('mentions') })
-      .from(messageMentions)
-      .innerJoin(workspaceMembers, eq(workspaceMembers.id, messageMentions.memberId))
-      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
-      // @everyone fans out to the whole channel; only members named in the text become tags.
-      .where(and(eq(messageMentions.messageId, chatMessages.id), eq(messageMentions.via, 'direct')))
-      .as('message_mention_list');
+    return (
+      this.txHost.tx
+        .select({ mentions: sql<Mention[]>`coalesce(json_agg(${mention}), '[]')`.as('mentions') })
+        .from(messageMentions)
+        .innerJoin(workspaceMembers, eq(workspaceMembers.id, messageMentions.memberId))
+        .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
+        // @everyone fans out to the whole channel; only members named in the text become tags.
+        .where(
+          and(eq(messageMentions.messageId, chatMessages.id), eq(messageMentions.via, 'direct')),
+        )
+        .as('message_mention_list')
+    );
   }
 
   // Reached through @everyone the viewer is not among the tags, so it is asked on its own.

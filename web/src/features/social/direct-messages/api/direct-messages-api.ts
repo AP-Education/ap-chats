@@ -34,26 +34,18 @@ export interface PersonResult {
 
 export function listDirectMessages(
   token: string,
-  workspaceId: string,
   before?: string,
 ): Promise<{ items: DirectMessage[]; nextCursor: string | null }> {
   const suffix = before ? `?before=${encodeURIComponent(before)}` : '';
-  return apiRequest(`/api/workspaces/${workspaceId}/direct-messages${suffix}`, token);
+  return apiRequest(`/api/direct-messages${suffix}`, token);
 }
 
-export function listUnreadDirectMessages(
-  token: string,
-  workspaceId: string,
-): Promise<UnreadDirectMessage[]> {
-  return apiRequest(`/api/workspaces/${workspaceId}/direct-messages/unread`, token);
+export function listUnreadDirectMessages(token: string): Promise<UnreadDirectMessage[]> {
+  return apiRequest('/api/direct-messages/unread', token);
 }
 
-export function getDirectMessage(
-  token: string,
-  workspaceId: string,
-  channelId: string,
-): Promise<DirectMessage> {
-  return apiRequest(`/api/workspaces/${workspaceId}/direct-messages/${channelId}`, token);
+export function getDirectMessage(token: string, channelId: string): Promise<DirectMessage> {
+  return apiRequest(`/api/direct-messages/${channelId}`, token);
 }
 
 export function openDirectMessage(

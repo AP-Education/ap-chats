@@ -38,9 +38,25 @@ function isUniqueViolation(error: unknown): boolean {
   return false;
 }
 
+function participatesIn(viewerIds: string[]) {
+  return or(
+    inArray(directMessages.firstMemberId, viewerIds),
+    inArray(directMessages.secondMemberId, viewerIds),
+  );
+}
+
 @Injectable()
 export class DirectMessagesService {
   constructor(private readonly txHost: TransactionHost<DrizzleTransactionAdapter>) {}
+
+  // One conversation per pair of people: an existing one in any shared workspace is reused.
+  async open(member: WorkspaceMember, targetMemberId: string) {
+    const sharedId = await this.findSharedConversation(member, targetMemberId);
+    if (!sharedId) return this.findOrCreate(member, targetMemberId);
+
+    const viewerIds = await this.memberIdsOf(member.profile.oidcUserId);
+    return this.find(viewerIds, sharedId);
+  }
 
   async findOrCreate(member: WorkspaceMember, targetMemberId: string) {
     if (member.id === targetMemberId)
@@ -59,7 +75,7 @@ export class DirectMessagesService {
     if (!target.length) throw new NotFoundException('Workspace member not found');
 
     const existing = await this.findPair(member.workspaceId, firstMemberId!, secondMemberId!);
-    if (existing) return this.get(member, existing);
+    if (existing) return this.find([member.id], existing);
     try {
       const channelId = await this.createPair(
         member.workspaceId,
@@ -68,12 +84,12 @@ export class DirectMessagesService {
         firstMemberId!,
         secondMemberId!,
       );
-      return this.get(member, channelId);
+      return this.find([member.id], channelId);
     } catch (error) {
       if (!isUniqueViolation(error)) throw error;
       const channelId = await this.findPair(member.workspaceId, firstMemberId!, secondMemberId!);
       if (!channelId) throw error;
-      return this.get(member, channelId);
+      return this.find([member.id], channelId);
     }
   }
 
@@ -109,31 +125,18 @@ export class DirectMessagesService {
     return channel.id;
   }
 
-  async get(member: WorkspaceMember, channelId: string) {
-    const [row] = await this.baseQuery(member.id).where(
-      and(
-        eq(directMessages.channelId, channelId),
-        eq(directMessages.workspaceId, member.workspaceId),
-        or(
-          eq(directMessages.firstMemberId, member.id),
-          eq(directMessages.secondMemberId, member.id),
-        ),
-      ),
-    );
-    if (!row) throw new NotFoundException('Direct message not found');
-    return this.toView(row, member.id);
+  async get(userId: string, channelId: string) {
+    const viewerIds = await this.memberIdsOf(userId);
+    return this.find(viewerIds, channelId);
   }
 
-  async list(member: WorkspaceMember, before?: string) {
+  async list(userId: string, before?: string) {
     const cursor = before ? decodeCursor(before) : null;
-    const rows = await this.baseQuery(member.id)
+    const viewerIds = await this.memberIdsOf(userId);
+    const rows = await this.baseQuery(viewerIds)
       .where(
         and(
-          eq(directMessages.workspaceId, member.workspaceId),
-          or(
-            eq(directMessages.firstMemberId, member.id),
-            eq(directMessages.secondMemberId, member.id),
-          ),
+          participatesIn(viewerIds),
           gt(channels.lastEntrySeq, 0n),
           cursor
             ? or(
@@ -148,7 +151,7 @@ export class DirectMessagesService {
     const page = rows.slice(0, 50);
     const last = page.at(-1);
     return {
-      items: page.map((row) => this.toView(row, member.id)),
+      items: page.map((row) => this.toView(row)),
       nextCursor:
         rows.length > 50 && last
           ? Buffer.from(
@@ -158,7 +161,8 @@ export class DirectMessagesService {
     };
   }
 
-  async unread(member: WorkspaceMember) {
+  async unread(userId: string) {
+    const viewerIds = await this.memberIdsOf(userId);
     const unreadEntry = alias(channelEntries, 'dm_unread_entry');
     const unreadMessage = alias(chatMessages, 'dm_unread_message');
     const hasUnread = this.txHost.tx
@@ -169,7 +173,7 @@ export class DirectMessagesService {
         and(
           eq(unreadEntry.channelId, channels.id),
           gt(unreadEntry.seq, channelMemberships.lastReadEntrySeq),
-          ne(unreadMessage.authorMemberId, member.id),
+          ne(unreadMessage.authorMemberId, channelMemberships.memberId),
           isNull(unreadMessage.deletedAt),
         ),
       );
@@ -183,12 +187,8 @@ export class DirectMessagesService {
       .innerJoin(directMessages, eq(directMessages.channelId, channels.id))
       .where(
         and(
-          eq(channelMemberships.workspaceId, member.workspaceId),
-          eq(channelMemberships.memberId, member.id),
-          or(
-            eq(directMessages.firstMemberId, member.id),
-            eq(directMessages.secondMemberId, member.id),
-          ),
+          inArray(channelMemberships.memberId, viewerIds),
+          participatesIn(viewerIds),
           exists(hasUnread),
         ),
       )
@@ -209,33 +209,24 @@ export class DirectMessagesService {
           channelMemberships,
           and(
             eq(channelMemberships.channelId, channelEntries.channelId),
-            eq(channelMemberships.memberId, member.id),
+            inArray(channelMemberships.memberId, viewerIds),
           ),
         )
         .where(
           and(
             inArray(channelEntries.channelId, ids),
             gt(channelEntries.seq, channelMemberships.lastReadEntrySeq),
-            ne(chatMessages.authorMemberId, member.id),
+            ne(chatMessages.authorMemberId, channelMemberships.memberId),
             isNull(chatMessages.deletedAt),
           ),
         )
         .groupBy(channelEntries.channelId),
-      this.baseQuery(member.id).where(
-        and(
-          eq(directMessages.workspaceId, member.workspaceId),
-          inArray(directMessages.channelId, ids),
-          or(
-            eq(directMessages.firstMemberId, member.id),
-            eq(directMessages.secondMemberId, member.id),
-          ),
-        ),
+      this.baseQuery(viewerIds).where(
+        and(inArray(directMessages.channelId, ids), participatesIn(viewerIds)),
       ),
     ]);
     const countById = new Map(counts.map((row) => [row.channelId, row.unreadCount]));
-    const viewById = new Map(
-      conversations.map((row) => [row.channel.id, this.toView(row, member.id)]),
-    );
+    const viewById = new Map(conversations.map((row) => [row.channel.id, this.toView(row)]));
     return candidates.flatMap(({ channelId }) => {
       const view = viewById.get(channelId);
       const unreadCount = countById.get(channelId);
@@ -257,12 +248,67 @@ export class DirectMessagesService {
     return row?.channelId;
   }
 
+  private async findSharedConversation(member: WorkspaceMember, targetMemberId: string) {
+    const [target] = await this.txHost.tx
+      .select({ userProfileId: workspaceMembers.userProfileId })
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, member.workspaceId),
+          eq(workspaceMembers.id, targetMemberId),
+          eq(workspaceMembers.status, 'active'),
+        ),
+      );
+    if (!target) return undefined;
+
+    const people = [member.userProfileId, target.userProfileId];
+    const first = alias(workspaceMembers, 'dm_shared_first');
+    const second = alias(workspaceMembers, 'dm_shared_second');
+    const [shared] = await this.txHost.tx
+      .select({ channelId: directMessages.channelId })
+      .from(directMessages)
+      .innerJoin(channels, eq(channels.id, directMessages.channelId))
+      .innerJoin(first, eq(first.id, directMessages.firstMemberId))
+      .innerJoin(second, eq(second.id, directMessages.secondMemberId))
+      .where(
+        and(
+          inArray(first.userProfileId, people),
+          eq(first.status, 'active'),
+          inArray(second.userProfileId, people),
+          eq(second.status, 'active'),
+        ),
+      )
+      .orderBy(
+        sql`${directMessages.workspaceId} = ${member.workspaceId} desc`,
+        desc(channels.updatedAt),
+      )
+      .limit(1);
+    return shared?.channelId;
+  }
+
+  private async memberIdsOf(userId: string) {
+    const rows = await this.txHost.tx
+      .select({ id: workspaceMembers.id })
+      .from(workspaceMembers)
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
+      .where(and(eq(userProfiles.oidcUserId, userId), eq(workspaceMembers.status, 'active')));
+    return rows.map((row) => row.id);
+  }
+
+  private async find(viewerIds: string[], channelId: string) {
+    const [row] = await this.baseQuery(viewerIds).where(
+      and(eq(directMessages.channelId, channelId), participatesIn(viewerIds)),
+    );
+    if (!row) throw new NotFoundException('Direct message not found');
+    return this.toView(row);
+  }
+
   async updateMute(
     member: WorkspaceMember,
     channelId: string,
     mode: 'unmute' | 'hour' | 'day' | 'indefinite',
   ) {
-    await this.get(member, channelId);
+    await this.find([member.id], channelId);
     const mutedUntil =
       mode === 'hour'
         ? new Date(Date.now() + 60 * 60 * 1000)
@@ -279,10 +325,10 @@ export class DirectMessagesService {
           eq(channelMemberships.memberId, member.id),
         ),
       );
-    return this.get(member, channelId);
+    return this.find([member.id], channelId);
   }
 
-  private baseQuery(viewerId: string) {
+  private baseQuery(viewerIds: string[]) {
     const first = alias(workspaceMembers, 'dm_first');
     const second = alias(workspaceMembers, 'dm_second');
     const firstProfile = alias(userProfiles, 'dm_first_profile');
@@ -291,6 +337,7 @@ export class DirectMessagesService {
     return this.txHost.tx
       .select({
         channel: channels,
+        viewerId: viewerMembership.memberId,
         notification: {
           muted: viewerMembership.notificationsMuted,
           mutedUntil: viewerMembership.mutedUntil,
@@ -319,7 +366,10 @@ export class DirectMessagesService {
       .innerJoin(channels, and(eq(channels.id, directMessages.channelId), eq(channels.kind, 'dm')))
       .innerJoin(
         viewerMembership,
-        and(eq(viewerMembership.channelId, channels.id), eq(viewerMembership.memberId, viewerId)),
+        and(
+          eq(viewerMembership.channelId, channels.id),
+          inArray(viewerMembership.memberId, viewerIds),
+        ),
       )
       .innerJoin(first, eq(first.id, directMessages.firstMemberId))
       .innerJoin(second, eq(second.id, directMessages.secondMemberId))
@@ -338,9 +388,8 @@ export class DirectMessagesService {
 
   private toView(
     row: Awaited<ReturnType<ReturnType<DirectMessagesService['baseQuery']>['execute']>>[number],
-    viewerId: string,
   ) {
-    const other = row.first.id === viewerId ? row.second : row.first;
+    const other = row.first.id === row.viewerId ? row.second : row.first;
     return {
       id: row.channel.id,
       workspaceId: row.channel.workspaceId,
