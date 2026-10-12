@@ -81,6 +81,7 @@ function fixture(t: TestContext) {
     workspaceId: 'workspace',
     channelId: 'channel',
     title: 'Caller',
+    group: false,
     grant: {
       callId: 'server-call',
       roomName: 'room',
