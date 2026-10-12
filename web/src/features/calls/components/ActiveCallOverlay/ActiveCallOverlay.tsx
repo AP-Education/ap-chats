@@ -5,10 +5,10 @@ import { withViewTransition } from '@/shared/hooks/withViewTransition';
 
 import { useLeaveActiveCall } from '../../hooks/useLeaveActiveCall';
 import { useOutgoingRingback } from '../../hooks/useOutgoingRingback';
-import { playJoinChime } from '../../sound/callChimes';
 import { announceCallEnd } from '../../sound/callEndCue';
 import type { ActiveCallSession } from '../../store/call-store';
 import { useCallStore } from '../../store/call-store';
+import { CallPresenceCues } from './CallPresenceCues';
 import { CallScreen } from './CallScreen';
 import { MiniCallBar } from './MiniCallBar';
 import { useCallDuration } from './useCallDuration';
@@ -64,13 +64,13 @@ export function ActiveCallOverlay({ session }: ActiveCallOverlayProps) {
         connect
         audio
         video={false}
-        onConnected={playJoinChime}
         onDisconnected={() => {
           announceCallEnd(session, 'ended');
           leaveCall.mutate();
         }}
       >
         <RoomAudioRenderer />
+        <CallPresenceCues group={session.calleeAvatarPath === undefined} />
         {minimized ? (
           <MiniCallBar
             title={session.title}
