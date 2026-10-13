@@ -1,5 +1,7 @@
 import type { StoredNotificationSettings } from '../preferences/types';
-import type { NotificationEventKind } from '../types';
+
+export type NotificationEventKind =
+  'message.created' | 'message.forwarded' | 'message.deleted' | 'call.created';
 
 export interface NotificationDecision {
   kind: NotificationEventKind;

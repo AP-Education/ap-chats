@@ -37,6 +37,10 @@ const member: WorkspaceMember = {
   updatedAt: new Date(),
 };
 
+function publisher(publish: EventPublisher['publish']): EventPublisher {
+  return { publish, record: () => assert.fail('Channel creation records no events') };
+}
+
 function makeService(
   remove: () => Promise<boolean>,
   target: Channel = channel,
@@ -50,9 +54,12 @@ function makeService(
   const access = new CommunityAccessService(repository, {
     isMember: async () => true,
   } as unknown as ChannelMembershipsRepository);
-  return new ChannelsService(repository, {} as ChannelCategoriesRepository, access, {
-    publish: () => {},
-  } as EventPublisher);
+  return new ChannelsService(
+    repository,
+    {} as ChannelCategoriesRepository,
+    access,
+    publisher(() => {}),
+  );
 }
 
 test('workspace owner can delete a public channel', async () => {
@@ -148,7 +155,7 @@ for (const kind of ['public', 'private'] as const) {
       repository,
       {} as ChannelCategoriesRepository,
       {} as CommunityAccessService,
-      { publish: () => assert.fail('Forbidden creation must not announce a channel') },
+      publisher(() => assert.fail('Forbidden creation must not announce a channel')),
     );
 
     await assert.rejects(service.create(member, { name: 'New channel', kind }), ForbiddenException);
@@ -168,12 +175,10 @@ for (const kind of ['public', 'private'] as const) {
       repository,
       {} as ChannelCategoriesRepository,
       {} as CommunityAccessService,
-      {
-        publish: (key, event) => {
-          assert.equal(writes, 1);
-          published.push({ key, event });
-        },
-      },
+      publisher((key, event) => {
+        assert.equal(writes, 1);
+        published.push({ key, event });
+      }),
     );
 
     const created = await service.create(
@@ -201,7 +206,7 @@ test('failed channel creation does not publish an inventory change', async () =>
     } as unknown as ChannelsRepository,
     {} as ChannelCategoriesRepository,
     {} as CommunityAccessService,
-    { publish: () => assert.fail('Failed creation must not be announced') },
+    publisher(() => assert.fail('Failed creation must not be announced')),
   );
   await assert.rejects(
     service.create(

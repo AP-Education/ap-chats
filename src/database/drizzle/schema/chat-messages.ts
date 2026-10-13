@@ -12,10 +12,20 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import type { Attachment } from '@/components/social/messages/attachments/types';
-
 import { channels } from './channels';
 import { workspaceMembers } from './workspace-members';
+
+/** A file as a message keeps it; the schema owns this shape so storage depends on no component. */
+export interface StoredAttachment {
+  id: string;
+  name: string;
+  size: number;
+  mediaType: string;
+  preview: 'image' | 'video' | 'audio' | null;
+  width: number | null;
+  height: number | null;
+  description: string | null;
+}
 
 export const chatMessages = pgTable(
   'chat_messages',
@@ -25,7 +35,7 @@ export const chatMessages = pgTable(
     channelId: uuid('channel_id').notNull(),
     authorMemberId: uuid('author_member_id').notNull(),
     contentMarkdown: text('content_markdown').notNull(),
-    attachments: jsonb('attachments').$type<Attachment[]>().notNull().default([]),
+    attachments: jsonb('attachments').$type<StoredAttachment[]>().notNull().default([]),
     contentVersion: integer('content_version').notNull().default(1),
     revision: integer('revision').notNull().default(1),
     replyToMessageId: uuid('reply_to_message_id'),

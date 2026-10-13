@@ -6,16 +6,15 @@ import { eq } from 'drizzle-orm';
 
 import * as schema from '@/database/drizzle/schema';
 import { seedConversations } from '@/testing/conversations';
+import { directMessageServices } from '@/testing/direct-messages';
 import { migratedDatabase, transactionHost } from '@/testing/pglite';
-
-import { DirectMessagesService } from './direct-messages.service';
 
 // Embedded PostgreSQL with the real migrations: no application database is contacted.
 test('direct messages across workspaces on PostgreSQL', async (t) => {
   const { pg, db } = await migratedDatabase();
   t.after(() => pg.close());
 
-  const directMessages = new DirectMessagesService(transactionHost(db) as never);
+  const { inbox, conversations } = directMessageServices(transactionHost(db));
   const seed = seedConversations(db);
 
   await t.test('lists conversations from every workspace the person is in', async () => {
@@ -31,7 +30,7 @@ test('direct messages across workspaces on PostgreSQL', async (t) => {
     await seed.post(withBob, bobAtOffice);
     await seed.post(withCat, catAtClient);
 
-    const page = await directMessages.list(ann.oidcUserId);
+    const page = await inbox.list(ann.oidcUserId);
 
     assert.deepEqual(
       page.items.map((item) => [item.workspaceId, item.participant.displayName]),
@@ -59,15 +58,15 @@ test('direct messages across workspaces on PostgreSQL', async (t) => {
       .set({ status: 'removed' })
       .where(eq(schema.workspaceMembers.id, annAtClient.id));
 
-    const opened = await directMessages.get(ann.oidcUserId, atOffice.channelId);
-    const listed = await directMessages.list(ann.oidcUserId);
+    const opened = await inbox.get(ann.oidcUserId, atOffice.channelId);
+    const listed = await inbox.list(ann.oidcUserId);
 
     assert.equal(opened.participant.displayName, 'Bob');
     assert.deepEqual(
       listed.items.map((item) => item.id),
       [atOffice.channelId],
     );
-    await assert.rejects(directMessages.get(ann.oidcUserId, atClient.channelId), NotFoundException);
+    await assert.rejects(inbox.get(ann.oidcUserId, atClient.channelId), NotFoundException);
   });
 
   await t.test('gathers unread conversations from every workspace', async () => {
@@ -86,7 +85,7 @@ test('direct messages across workspaces on PostgreSQL', async (t) => {
     await seed.post(withCat, catAtClient);
     await seed.post(withCat, annAtClient);
 
-    const unread = await directMessages.unread(ann.oidcUserId);
+    const unread = await inbox.unread(ann.oidcUserId);
 
     assert.deepEqual(
       unread.map((item) => [item.participant.displayName, item.unreadCount]),
@@ -109,7 +108,7 @@ test('direct messages across workspaces on PostgreSQL', async (t) => {
     const annAtClient = await seed.join(client, ann);
     const bobAtClient = await seed.join(client, bob);
 
-    const opened = await directMessages.open(annAtClient, bobAtClient.id);
+    const opened = await conversations.open(annAtClient, bobAtClient.id);
     const pairsAtClient = await db
       .select()
       .from(schema.directMessages)
@@ -132,8 +131,26 @@ test('direct messages across workspaces on PostgreSQL', async (t) => {
     const atOffice = await seed.conversation(await seed.join(office, ann), bobAtOffice);
     await seed.post(atOffice, bobAtOffice);
 
-    const opened = await directMessages.open(annAtClient, bobAtClient.id);
+    const opened = await conversations.open(annAtClient, bobAtClient.id);
 
     assert.equal(opened.id, atClient.channelId);
+  });
+
+  await t.test('a conversation mutes by the same rules as any channel', async () => {
+    const ann = await seed.person('Ann');
+    const bob = await seed.person('Bob');
+    const office = await seed.workspace();
+    const annAtOffice = await seed.join(office, ann);
+    const { channelId } = await seed.conversation(annAtOffice, await seed.join(office, bob));
+    await db
+      .update(schema.channelMemberships)
+      .set({ notificationLevel: 'none' })
+      .where(eq(schema.channelMemberships.memberId, annAtOffice.id));
+
+    const silenced = await inbox.get(ann.oidcUserId, channelId);
+    assert.equal(silenced.notification.isMuted, true, 'hearing nothing reads as muted');
+
+    const unmuted = await conversations.mute(annAtOffice, channelId, 'unmute');
+    assert.equal(unmuted.notification.isMuted, false, 'unmuting brings the sound back');
   });
 });

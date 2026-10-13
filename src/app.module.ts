@@ -6,18 +6,19 @@ import { BootstrapModule } from '@/components/bootstrap';
 import { CallsModule } from '@/components/calls';
 import { CommunitiesModule } from '@/components/communities';
 import { DevicesModule } from '@/components/devices';
-import { DirectMessagesModule } from '@/components/direct-messages/direct-messages.module';
+import { DirectMessagesModule } from '@/components/direct-messages';
 import { NotificationsModule } from '@/components/notifications';
-import { SocialModule } from '@/components/social/social.module';
+import { SocialModule } from '@/components/social';
 import { UploadsModule } from '@/components/uploads';
 import { UserProfilesModule } from '@/components/user-profiles/user-profiles.module';
+import { VoipPushModule } from '@/components/voip-push';
 import { WorkspacesModule } from '@/components/workspaces';
 import { DrizzleModule } from '@/database/drizzle';
 import { TransactionalDrizzleModule } from '@/database/drizzle/transactional-drizzle.module';
 import { AppConfigModule } from '@/globals/config';
 import { HttpExceptionFilter } from '@/globals/filters/http-exception.filter';
 import { LoggerModule } from '@/globals/logger';
-import { PublisherModule } from '@/globals/publisher/publisher.module';
+import { PublisherModule } from '@/globals/publisher';
 import { HealthController } from '@/health/health.controller';
 
 @Module({
@@ -38,6 +39,7 @@ import { HealthController } from '@/health/health.controller';
     SocialModule,
     BootstrapModule,
     CallsModule,
+    VoipPushModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],

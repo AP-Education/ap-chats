@@ -1,2 +1,2 @@
-export * from './messages.facade';
 export * from './messages.module';
+export * from './messages.service';

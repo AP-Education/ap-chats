@@ -16,12 +16,12 @@ import { WorkspaceMemberGuard } from '@/components/workspaces/members/guards';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { ReactionDto, ReactorsQueryDto } from './dto/reaction.dto';
-import { ReactionsFacade } from './reactions.facade';
+import { ReactionsService } from './reactions.service';
 
 @Controller('workspaces/:workspaceId/channels/:channelId/messages/:messageId/reactions')
 @UseAuthGuards(WorkspaceMemberGuard('param', 'workspaceId'))
 export class ReactionsController {
-  constructor(private readonly reactions: ReactionsFacade) {}
+  constructor(private readonly reactions: ReactionsService) {}
 
   @Get()
   whoReacted(

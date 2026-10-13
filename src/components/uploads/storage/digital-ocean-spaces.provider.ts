@@ -15,14 +15,13 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Injectable } from '@nestjs/common';
 
-import {
-  DOWNLOAD_URL_SECONDS,
-  type StoredPart,
-  UPLOAD_URL_SECONDS,
-} from '@/components/social/messages/attachments/types';
 import { AppConfigService } from '@/globals/config';
 
 import { NoSuchUploadError, StorageProvider } from './storage.provider';
+import type { StoredPart } from './types';
+
+const UPLOAD_URL_SECONDS = 15 * 60;
+const DOWNLOAD_URL_SECONDS = 15 * 60;
 
 function isNoSuchUpload(error: unknown): boolean {
   return error instanceof Error && error.name === 'NoSuchUpload';
