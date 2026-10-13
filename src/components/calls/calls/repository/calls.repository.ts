@@ -34,7 +34,7 @@ export abstract class CallsRepository {
   abstract sweepStale(channelId: string, olderThan: Date): Promise<CallRecord | undefined>;
 
   /**
-   * oidcUserId of every active member of the channel, for ring delivery.
+   * oidcUserId of every channel member still active in the workspace, for ring delivery.
    * `excludeMemberId` leaves out the member who triggered the notification
    * (a deliberate action, whose own UI already updates locally); pass `null`
    * to notify everyone, for an automatic event like a ring timing out, which

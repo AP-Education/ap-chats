@@ -123,6 +123,7 @@ export class DrizzleCallsRepository extends CallsRepository {
       .where(
         and(
           eq(channelMemberships.channelId, channelId),
+          eq(workspaceMembers.status, 'active'),
           excludeMemberId === null ? undefined : ne(channelMemberships.memberId, excludeMemberId),
         ),
       );
