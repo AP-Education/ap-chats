@@ -90,24 +90,22 @@
 
 Кожен контекст (`communities`, `workspaces`) має кореневий модуль, який лише збирає підмодулі. Підмодуль, що має бути головним для свого імені, лежить у теці-дублікаті (`channel-access/channel-access`). Barrel підмодуля віддає його модуль і те, що модуль експортує; типи й DTO імпортуються прямим шляхом. Залежності йдуть від атомів до молекул без циклів.
 
-| Підмодуль                        | Відповідає за                                                                       | Залежить від                                  |
-| -------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------- |
-| `communities/channels`           | Сам канал: назва, категорія, вид; як його бачить людина                             | workspaces/access                             |
-| `communities/channel-categories` | Категорії                                                                           | workspaces/access                             |
-| `communities/channel-audience`   | Кому доставляти події каналу                                                        |                                               |
-| `channel-access/channel-access`  | `ChannelAccessPolicy`: дії з вмістом каналу, у транзакції дії                       | channels                                      |
-| `channel-access/visibility`      | `ChannelVisibility`: чи бачить людина канал у структурі та чи керує ним             | channels                                      |
-| `channel-access/sync`            | Перерахунок участі за списками й ролями, подія `communities.channel.access-changed` | workspaces/access                             |
-| `channel-access/permissions`     | Три списки каналу, вихід з персонального запрошення                                 | sync, visibility                              |
-| `channel-access/notices`         | Хто про що дізнається після перерахунку (`accessNotices`), доставка в Socket.IO     | channel-audience, workspaces/members          |
-| `communities/memberships`        | Учасники каналу                                                                     | visibility, permissions                       |
-| `communities/channel-directory`  | Молекула: список каналів, відкриття разом зі списками, зміна, видалення             | channels, categories, visibility, permissions |
-| `workspaces/access`              | Рівні та `requireAccessLevel`, реєстр `MemberAccessProjections`                     |                                               |
-| `workspaces/members`             | Хто в workspace і на якому рівні, профіль людини, `WorkspaceMemberGuard`            | access                                        |
-| `workspaces/roles`               | Каталог ролей: назва, колір, порядок, видалення; `RolesFacade` для інших модулів    | access, members                               |
-| `workspaces/role-members`        | Склад ролей: хто в ролі, вступ і вихід разом із перерахунком доступу                | access, members, roles                        |
-| `workspaces/workspaces`          | Самі workspace: створити, перелічити свої, змінити, видалити                        | access, members                               |
+| Підмодуль                        | Відповідає за                                                                                                                                          | Залежить від                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| `communities/channels`           | Сам канал: назва, категорія, вид; як його бачить людина                                                                                                | workspaces/access                    |
+| `communities/channel-categories` | Категорії                                                                                                                                              | workspaces/access                    |
+| `communities/channel-audience`   | Кому доставляти події каналу                                                                                                                           |                                      |
+| `channel-access/channel-access`  | `ChannelAccessPolicy`: дії з вмістом каналу, у транзакції дії                                                                                          | channels                             |
+| `channel-access/sync`            | Перерахунок участі за списками, ролями й людьми; хто про що дізнається (`accessNotices`) і доставка в Socket.IO; звʼязує порт `MemberAccessProjection` | channel-audience, workspaces/members |
+| `channel-access/permissions`     | Три списки каналу, вихід з персонального запрошення; `ChannelVisibility`: чи бачить людина канал і чи керує ним                                        | channels, sync                       |
+| `communities/memberships`        | Учасники каналу                                                                                                                                        | permissions                          |
+| `communities/channel-directory`  | Молекула: список каналів, відкриття разом зі списками, зміна, видалення                                                                                | channels, categories, permissions    |
+| `workspaces/access`              | Рівні та `requireAccessLevel`, порт `MemberAccessProjection` для всього, що залежить від ролей                                                         |                                      |
+| `workspaces/members`             | Хто в workspace і на якому рівні, профіль людини, `WorkspaceMemberGuard`                                                                               | access                               |
+| `workspaces/roles`               | Каталог ролей: назва, колір, порядок, видалення; `RolesFacade` для інших модулів                                                                       | access, members                      |
+| `workspaces/role-members`        | Склад ролей: хто в ролі, вступ і вихід разом із перерахунком доступу                                                                                   | access, members, roles               |
+| `workspaces/workspaces`          | Самі workspace: створити, перелічити свої, змінити, видалити                                                                                           | access, members                      |
 
-Ролі не знають про канали: `ChannelAccessSync` реєструється в `MemberAccessProjections`, а ролі й вихід із workspace звертаються лише до реєстру. Хто має роль, визначає лише view `active_role_members`: з нього читають кількість людей у ролі, склад, бейджі профілю, списки каналу, групи учасників і згадки ролі.
+Ролі не знають про канали: ролі й вихід із workspace викликають порт `MemberAccessProjection`, а глобальний `ChannelAccessSyncModule` звʼязує його з `ChannelAccessSync`. Без цього звʼязування застосунок не стартує, тож перерахунок не можна мовчки загубити. Хто має роль, визначає лише view `active_role_members`: з нього читають кількість людей у ролі, склад, бейджі профілю, списки каналу, групи учасників і згадки ролі.
 
 Повідомлення, pins, forwarding та read-state належать окремому [Social API](social-api.md).

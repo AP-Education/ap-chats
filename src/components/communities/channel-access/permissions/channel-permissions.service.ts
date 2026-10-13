@@ -5,7 +5,7 @@ import type { AnnounceAccessChanges } from '@/components/workspaces/access/types
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { ChannelAccessSync } from '../sync';
-import { ChannelVisibility } from '../visibility';
+import { ChannelVisibility } from './channel-visibility.service';
 import { ChannelPermissionsRepository } from './repository/channel-permissions.repository';
 import type { ChannelPermissions, ChannelPermissionsView } from './types';
 
@@ -45,6 +45,11 @@ export class ChannelPermissionsService {
     await this.permissions.replace(workspaceId, channelId, permissions);
 
     return this.sync.refreshChannel(workspaceId, channelId);
+  }
+
+  /** Everyone in the channel loses it; runs in the transaction that deletes it, announcing after commit. */
+  close(workspaceId: string, channelId: string): Promise<AnnounceAccessChanges> {
+    return this.sync.closeChannel(workspaceId, channelId);
   }
 
   async leave(member: WorkspaceMember, channelId: string): Promise<void> {

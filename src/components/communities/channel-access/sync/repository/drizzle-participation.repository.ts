@@ -27,6 +27,18 @@ export class DrizzleParticipationRepository extends ParticipationRepository {
     return { granted, revoked };
   }
 
+  participants(workspaceId: string, channelId: string): Promise<ChannelMemberPair[]> {
+    return this.txHost.tx
+      .select({ channelId: channelMemberships.channelId, memberId: channelMemberships.memberId })
+      .from(channelMemberships)
+      .where(
+        and(
+          eq(channelMemberships.workspaceId, workspaceId),
+          eq(channelMemberships.channelId, channelId),
+        ),
+      );
+  }
+
   private revokeUnlisted(scope: ParticipationScope): Promise<ChannelMemberPair[]> {
     const inScope =
       'channelIds' in scope

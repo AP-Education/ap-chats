@@ -1,5 +1,5 @@
-import type { ChannelAccessChangedEvent } from '../sync/channel-access-changed.event';
-import type { ChannelMemberPair } from '../sync/types';
+import type { ChannelAccessChangedEvent } from './channel-access-changed.event';
+import type { ChannelMemberPair } from './types';
 
 export type AccessNotice =
   | { event: 'communities:channel-granted'; memberId: string; channelId: string }

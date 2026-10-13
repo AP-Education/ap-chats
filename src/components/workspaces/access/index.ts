@@ -1,4 +1,4 @@
-export { MemberAccessProjections } from './member-access-projections';
+export { MemberAccessProjection } from './member-access-projection';
 export {
   hasAccessLevel,
   isAdministrator,
@@ -6,4 +6,3 @@ export {
   outranks,
   requireAccessLevel,
 } from './workspace-access';
-export { WorkspaceAccessModule } from './workspace-access.module';

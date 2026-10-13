@@ -6,9 +6,9 @@ import type { AnnounceAccessChanges } from '@/components/workspaces/access/types
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { ChannelPermissionsService } from '../channel-access/permissions';
+import { ChannelVisibility } from '../channel-access/permissions';
 import { toChannelPermissions } from '../channel-access/permissions/dto/channel-permissions.dto';
 import type { ChannelPermissions } from '../channel-access/permissions/types';
-import { ChannelVisibility } from '../channel-access/visibility';
 import { ChannelCategoriesRepository } from '../channel-categories';
 import { ChannelsRepository } from '../channels';
 import { channelView } from '../channels/channel.view';
@@ -74,10 +74,8 @@ export class ChannelDirectoryService {
   }
 
   async remove(member: WorkspaceMember, channelId: string): Promise<void> {
-    await this.visibility.requireManageable(member, channelId);
-
-    const removed = await this.channels.remove(member.workspaceId, channelId);
-    if (!removed) throw new NotFoundException('Channel not found');
+    const announce = await this.close(member, channelId);
+    announce();
   }
 
   // The channel, its lists and everyone they reach commit together, or none of them do.
@@ -96,6 +94,18 @@ export class ChannelDirectoryService {
     const announce = await this.permissions.assign(creator.workspaceId, channel.id, permissions);
 
     return { channelId: channel.id, announce };
+  }
+
+  // Everyone in the channel learns it is gone, so their sidebars and open pages let go of it.
+  @Transactional()
+  private async close(member: WorkspaceMember, channelId: string): Promise<AnnounceAccessChanges> {
+    await this.visibility.requireManageable(member, channelId);
+
+    const announce = await this.permissions.close(member.workspaceId, channelId);
+    const removed = await this.channels.remove(member.workspaceId, channelId);
+    if (!removed) throw new NotFoundException('Channel not found');
+
+    return announce;
   }
 
   // The creator always manages what they open; they can step back afterwards.

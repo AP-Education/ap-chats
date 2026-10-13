@@ -4,10 +4,11 @@ import { AuthModule } from '@/components/auth';
 import { WorkspaceMembersModule } from '@/components/workspaces/members';
 import { DrizzleModule } from '@/database/drizzle';
 
+import { ChannelsModule } from '../../channels';
 import { ChannelAccessSyncModule } from '../sync';
-import { ChannelVisibilityModule } from '../visibility';
 import { ChannelPermissionsController } from './channel-permissions.controller';
 import { ChannelPermissionsService } from './channel-permissions.service';
+import { ChannelVisibility } from './channel-visibility.service';
 import { ChannelPermissionsRepository } from './repository/channel-permissions.repository';
 import { DrizzleChannelPermissionsRepository } from './repository/drizzle-channel-permissions.repository';
 
@@ -17,13 +18,14 @@ import { DrizzleChannelPermissionsRepository } from './repository/drizzle-channe
     DrizzleModule,
     WorkspaceMembersModule,
     ChannelAccessSyncModule,
-    ChannelVisibilityModule,
+    ChannelsModule,
   ],
   controllers: [ChannelPermissionsController],
   providers: [
     ChannelPermissionsService,
+    ChannelVisibility,
     { provide: ChannelPermissionsRepository, useClass: DrizzleChannelPermissionsRepository },
   ],
-  exports: [ChannelPermissionsService],
+  exports: [ChannelPermissionsService, ChannelVisibility],
 })
 export class ChannelPermissionsModule {}

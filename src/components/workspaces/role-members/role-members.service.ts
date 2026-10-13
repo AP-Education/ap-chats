@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { MemberAccessProjections, requireAccessLevel } from '../access';
+import { MemberAccessProjection, requireAccessLevel } from '../access';
 import type { AnnounceAccessChanges } from '../access/types';
 import type { MemberSummary, WorkspaceMember } from '../members/types';
 import { RolesFacade } from '../roles/roles.facade';
@@ -13,7 +13,7 @@ export class RoleMembersService {
   constructor(
     private readonly roleMembers: RoleMembersRepository,
     private readonly roles: RolesFacade,
-    private readonly projections: MemberAccessProjections,
+    private readonly dependents: MemberAccessProjection,
   ) {}
 
   async list(member: WorkspaceMember, roleId: string): Promise<MemberSummary[]> {
@@ -46,7 +46,7 @@ export class RoleMembersService {
 
     const addedIds = await this.roleMembers.enroll(workspaceId, roleId, memberIds);
 
-    return this.projections.refreshMembers(workspaceId, addedIds);
+    return this.dependents.refreshMembers(workspaceId, addedIds);
   }
 
   @Transactional()
@@ -60,7 +60,7 @@ export class RoleMembersService {
     const wasHolder = await this.roleMembers.release(workspaceId, roleId, memberId);
     if (!wasHolder) throw new NotFoundException('Role member not found');
 
-    return this.projections.refreshMembers(workspaceId, [memberId]);
+    return this.dependents.refreshMembers(workspaceId, [memberId]);
   }
 
   private async requireRole(workspaceId: string, roleId: string): Promise<void> {

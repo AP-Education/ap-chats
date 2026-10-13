@@ -1,16 +1,15 @@
 import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access/channel-access.policy';
 import { DrizzleChannelAccessRepository } from '@/components/communities/channel-access/channel-access/repository/drizzle-channel-access.repository';
 import { ChannelPermissionsService } from '@/components/communities/channel-access/permissions/channel-permissions.service';
+import { ChannelVisibility } from '@/components/communities/channel-access/permissions/channel-visibility.service';
 import { DrizzleChannelPermissionsRepository } from '@/components/communities/channel-access/permissions/repository/drizzle-channel-permissions.repository';
 import { ChannelAccessSync } from '@/components/communities/channel-access/sync/channel-access.sync';
 import { DrizzleParticipationRepository } from '@/components/communities/channel-access/sync/repository/drizzle-participation.repository';
-import { ChannelVisibility } from '@/components/communities/channel-access/visibility/channel-visibility.service';
 import { DrizzleChannelCategoriesRepository } from '@/components/communities/channel-categories/repository';
 import { ChannelDirectoryService } from '@/components/communities/channel-directory/channel-directory.service';
 import { DrizzleChannelsRepository } from '@/components/communities/channels/repository';
 import { ChannelMembershipsService } from '@/components/communities/memberships/channel-memberships.service';
 import { DrizzleChannelMembershipsRepository } from '@/components/communities/memberships/repository';
-import { MemberAccessProjections } from '@/components/workspaces/access';
 import { DrizzleWorkspaceMembersRepository } from '@/components/workspaces/members/repository';
 import { WorkspaceMembersService } from '@/components/workspaces/members/workspace-members.service';
 import { DrizzleRoleMembersRepository } from '@/components/workspaces/role-members/repository/drizzle-role-members.repository';
@@ -42,10 +41,7 @@ export class RecordedEvents extends EventPublisher {
 export function channelAccessOnPostgres(db: TestDatabase) {
   const tx = transactionHost(db) as never;
   const events = new RecordedEvents();
-  const projections = new MemberAccessProjections();
-
-  const sync = new ChannelAccessSync(new DrizzleParticipationRepository(tx), events, projections);
-  sync.onModuleInit();
+  const sync = new ChannelAccessSync(new DrizzleParticipationRepository(tx), events);
 
   const rolesRepository = new DrizzleRolesRepository(tx);
   const channelsRepository = new DrizzleChannelsRepository(tx);
@@ -58,12 +54,12 @@ export function channelAccessOnPostgres(db: TestDatabase) {
 
   return {
     events,
-    people: new WorkspaceMembersService(new DrizzleWorkspaceMembersRepository(tx), projections),
-    roles: new RolesService(rolesRepository, projections),
+    people: new WorkspaceMembersService(new DrizzleWorkspaceMembersRepository(tx), sync),
+    roles: new RolesService(rolesRepository, sync),
     roleMembers: new RoleMembersService(
       new DrizzleRoleMembersRepository(tx),
       new RolesFacade(rolesRepository),
-      projections,
+      sync,
     ),
     directory: new ChannelDirectoryService(
       channelsRepository,

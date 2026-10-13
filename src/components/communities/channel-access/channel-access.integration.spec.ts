@@ -205,6 +205,16 @@ test('channel access on PostgreSQL', async (t) => {
     await assert.rejects(people.remove(manager, owner.profile.oidcUserId), { status: 403 });
   });
 
+  await t.test('deleting a channel tells everyone in it that it is gone', async () => {
+    const { owner, designer, recruiter, open } = await office();
+    const project = await open('project', { post: [person(designer), person(recruiter)] });
+
+    await directory.remove(owner, project.id);
+
+    const revoked = (lastAccessChange()?.revoked ?? []).map((pair) => pair.memberId).sort();
+    assert.deepEqual(revoked, [owner.id, designer.id, recruiter.id].sort());
+  });
+
   await t.test('direct messages are left as they are', async () => {
     const { owner, designer, recruiter } = await office();
     const conversation = await seed.conversation(designer, recruiter);

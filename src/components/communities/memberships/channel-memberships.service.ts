@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { ChannelVisibility } from '../channel-access/visibility';
+import { ChannelVisibility } from '../channel-access/permissions';
 import { ChannelMembershipsRepository } from './repository';
 import type { ChannelMembership } from './types';
 

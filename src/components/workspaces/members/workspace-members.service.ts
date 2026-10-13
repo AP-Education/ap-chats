@@ -9,7 +9,7 @@ import { Transactional } from '@nestjs-cls/transactional';
 import {
   isAdministrator,
   isOwner,
-  MemberAccessProjections,
+  MemberAccessProjection,
   outranks,
   requireAccessLevel,
 } from '../access';
@@ -21,7 +21,7 @@ import type { MemberProfile, MemberSummary, WorkspaceMember } from './types';
 export class WorkspaceMembersService {
   constructor(
     private readonly workspaceMembersRepository: WorkspaceMembersRepository,
-    private readonly projections: MemberAccessProjections,
+    private readonly dependents: MemberAccessProjection,
   ) {}
 
   findAllForWorkspace(member: WorkspaceMember): Promise<WorkspaceMember[]> {
@@ -89,7 +89,7 @@ export class WorkspaceMembersService {
 
     await this.workspaceMembersRepository.remove(actor.workspaceId, targetUserId);
 
-    return this.projections.refreshMembers(actor.workspaceId, [target.id]);
+    return this.dependents.refreshMembers(actor.workspaceId, [target.id]);
   }
 
   private async requireOutranked(

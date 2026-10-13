@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { MemberAccessProjections, requireAccessLevel } from '../access';
+import { MemberAccessProjection, requireAccessLevel } from '../access';
 import type { AnnounceAccessChanges } from '../access/types';
 import type { WorkspaceMember } from '../members/types';
 import type { CreateRoleDto } from './dto/create-role.dto';
@@ -14,7 +14,7 @@ import type { Role } from './types';
 export class RolesService {
   constructor(
     private readonly roles: RolesRepository,
-    private readonly projections: MemberAccessProjections,
+    private readonly dependents: MemberAccessProjection,
   ) {}
 
   list(member: WorkspaceMember): Promise<Role[]> {
@@ -60,6 +60,6 @@ export class RolesService {
     const formerHolderIds = await this.roles.remove(workspaceId, roleId);
     if (!formerHolderIds) throw new NotFoundException('Role not found');
 
-    return this.projections.refreshMembers(workspaceId, formerHolderIds);
+    return this.dependents.refreshMembers(workspaceId, formerHolderIds);
   }
 }

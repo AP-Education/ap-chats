@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { ChannelAccessChangedEvent } from '../sync/channel-access-changed.event';
 import { accessNotices } from './access-notices';
+import { ChannelAccessChangedEvent } from './channel-access-changed.event';
 
 const workspaceId = 'workspace';
 

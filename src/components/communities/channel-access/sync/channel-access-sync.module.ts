@@ -1,19 +1,28 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 
-import { WorkspaceAccessModule } from '@/components/workspaces/access';
+import { MemberAccessProjection } from '@/components/workspaces/access';
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
 import { DrizzleModule } from '@/database/drizzle';
 
+import { ChannelAudienceModule } from '../../channel-audience';
 import { ChannelAccessSync } from './channel-access.sync';
+import { ChannelAccessNoticesHandler } from './channel-access-notices.handler';
 import { DrizzleParticipationRepository } from './repository/drizzle-participation.repository';
 import { ParticipationRepository } from './repository/participation.repository';
 
-/** Recalculates participation whenever lists or roles change; registers itself with roles. */
+/**
+ * Recalculates participation when lists, roles or people change, and tells people what changed.
+ * Global because roles and workspace membership, in another context, depend on its port.
+ */
+@Global()
 @Module({
-  imports: [DrizzleModule, WorkspaceAccessModule],
+  imports: [DrizzleModule, WorkspaceMembersModule, ChannelAudienceModule],
   providers: [
     ChannelAccessSync,
+    ChannelAccessNoticesHandler,
+    { provide: MemberAccessProjection, useExisting: ChannelAccessSync },
     { provide: ParticipationRepository, useClass: DrizzleParticipationRepository },
   ],
-  exports: [ChannelAccessSync],
+  exports: [ChannelAccessSync, MemberAccessProjection],
 })
 export class ChannelAccessSyncModule {}
