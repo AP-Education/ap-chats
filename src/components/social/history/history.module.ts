@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
-import { ChannelAccessModule } from '@/components/communities/channel-access';
-import { WorkspacesModule } from '@/components/workspaces';
+import { ChannelAccessPolicyModule } from '@/components/communities/channel-access/channel-access';
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
 
 import { ReadStateModule } from '../read-state';
 import { HistoryController } from './history.controller';
@@ -11,7 +11,7 @@ import { DrizzleHistoryRepository } from './repository/drizzle-history.repositor
 import { HistoryRepository } from './repository/history.repository';
 
 @Module({
-  imports: [AuthModule, ChannelAccessModule, WorkspacesModule, ReadStateModule],
+  imports: [AuthModule, ChannelAccessPolicyModule, WorkspaceMembersModule, ReadStateModule],
   controllers: [HistoryController],
   providers: [HistoryService, { provide: HistoryRepository, useClass: DrizzleHistoryRepository }],
 })

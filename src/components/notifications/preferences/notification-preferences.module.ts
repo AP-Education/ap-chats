@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
-import { ChannelAccessModule } from '@/components/communities/channel-access';
-import { WorkspacesModule } from '@/components/workspaces';
+import { ChannelAccessPolicyModule } from '@/components/communities/channel-access/channel-access';
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
 import { DrizzleModule } from '@/database/drizzle';
 
 import { NotificationSettingsService } from './notification-settings.service';
@@ -11,7 +11,7 @@ import { DrizzleNotificationSettingsRepository } from './repository/drizzle-noti
 import { NotificationSettingsRepository } from './repository/notification-settings.repository';
 
 @Module({
-  imports: [AuthModule, ChannelAccessModule, WorkspacesModule, DrizzleModule],
+  imports: [AuthModule, ChannelAccessPolicyModule, WorkspaceMembersModule, DrizzleModule],
   controllers: [NotificationsController],
   providers: [
     NotificationSettingsService,

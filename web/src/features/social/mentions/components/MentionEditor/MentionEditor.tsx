@@ -3,6 +3,7 @@ import { type ComponentProps, useImperativeHandle, useRef, useState } from 'reac
 import { createPortal } from 'react-dom';
 
 import { useChannels } from '@/features/communities/channels/hooks/useChannels';
+import { useRoles } from '@/features/roles/hooks/useRoles';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import { useMessageEditorSlot } from '../../MessageEditorSlot';
@@ -66,6 +67,7 @@ export function MentionEditor() {
   const { styles, cx } = useStyles();
   const { workspaceId, composer } = useConversationScope();
   const channels = useChannels(workspaceId);
+  const { query: roles } = useRoles(workspaceId);
   const composerRef = useRef<ComposerEditorHandle>(null);
   // Reseeded in onMount whenever the inner ComposerEditor remounts (a new
   // draftKey) rather than only once: this component instance outlives that,
@@ -82,7 +84,7 @@ export function MentionEditor() {
   // TODO(everyone): every outgoing @everyone, picked or typed, passes here; confirm before a big channel.
   function currentMarkdown() {
     const markdown = serializeEditor(composerRef.current?.rootElement() ?? null);
-    return composer.mentionEveryone ? tokenizeTypedEveryone(markdown) : markdown;
+    return composer.groupMentions ? tokenizeTypedEveryone(markdown) : markdown;
   }
 
   function currentDraft() {
@@ -191,13 +193,13 @@ export function MentionEditor() {
         onMount={(root) => {
           const draft = initialDraft ?? { markdown: '', labels: {} };
           labels.current = draft.labels;
-          // A message being edited carries no channel names; the cached channel list has them.
-          const channelNames = Object.fromEntries(
-            (channels.data ?? []).map(({ id, name }) => [id, name]),
+          // A message being edited carries no channel or role names; the cached lists have them.
+          const listedNames = Object.fromEntries(
+            [...(channels.data ?? []), ...(roles.data ?? [])].map(({ id, name }) => [id, name]),
           );
           restoreEditor(
             root,
-            { ...draft, labels: { ...channelNames, ...draft.labels } },
+            { ...draft, labels: { ...listedNames, ...draft.labels } },
             styles.chip,
           );
         }}

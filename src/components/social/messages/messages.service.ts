@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import type { ChannelAccessSnapshot } from '@/components/communities/channels/types/channel-access.types';
+import type { ChannelAccessSnapshot } from '@/components/communities/channel-access/channel-access/types';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import type { NormalizedMessageContent } from '../content/message-markdown';

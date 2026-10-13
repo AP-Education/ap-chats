@@ -123,6 +123,12 @@ export default function DirectMessagePage() {
             placeholder: `Повідомлення для ${name}`,
             autoFocus: true,
           },
+          permissions: {
+            canPost: participant.active,
+            canReact: participant.active,
+            canManage: false,
+            canPin: participant.active,
+          },
         }}
       >
         <WorkspaceChannelPresence channelId={channelId} />
@@ -137,12 +143,7 @@ export default function DirectMessagePage() {
           </PageActions>
         </PageHeader>
         <PageBody transparent>
-          <ConversationView
-            canPost={participant.active}
-            canManage={false}
-            canPin={participant.active}
-            currentMember={currentMember}
-          />
+          <ConversationView currentMember={currentMember} />
         </PageBody>
       </ConversationProvider>
       <PageAside>

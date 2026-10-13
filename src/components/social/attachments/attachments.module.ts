@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
-import { ChannelAccessModule } from '@/components/communities/channel-access';
+import { ChannelAccessPolicyModule } from '@/components/communities/channel-access/channel-access';
 import { StorageModule } from '@/components/uploads/storage';
-import { WorkspacesModule } from '@/components/workspaces';
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
 
 import { MessagesModule } from '../messages';
 import { AttachmentDownloadsService } from './attachment-downloads.service';
@@ -17,7 +17,13 @@ import { UploadPolicy } from './upload-policy';
 import { UploadsService } from './uploads.service';
 
 @Module({
-  imports: [AuthModule, WorkspacesModule, ChannelAccessModule, StorageModule, MessagesModule],
+  imports: [
+    AuthModule,
+    WorkspaceMembersModule,
+    ChannelAccessPolicyModule,
+    StorageModule,
+    MessagesModule,
+  ],
   controllers: [ChatUploadsController],
   providers: [
     UploadsService,

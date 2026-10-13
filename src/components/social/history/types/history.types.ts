@@ -31,8 +31,10 @@ export interface MessageHistoryRow {
   } | null;
   /** Members named in the text, for rendering their tags. */
   mentions: Mention[];
-  /** Whether the message reached the viewer, by name or through @everyone. */
+  /** Whether the message reached the viewer, by name, through a role or through @everyone. */
   mentionsViewer: boolean;
+  /** The roles through which it reached the viewer, so those tags read as theirs. */
+  rolesMentioningViewer: string[];
   reactions: MessageReaction[];
 }
 

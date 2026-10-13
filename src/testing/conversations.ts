@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 
 import type { CallStatus } from '@/components/calls/calls/types';
+import type { WorkspaceAccessLevel } from '@/components/workspaces/access/types';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import * as schema from '@/database/drizzle/schema';
 
@@ -45,11 +46,11 @@ export function seedConversations(db: TestDatabase) {
     async join(
       workspaceId: string,
       person: Person,
-      role: WorkspaceMember['role'] = 'member',
+      accessLevel: WorkspaceAccessLevel = 'member',
     ): Promise<WorkspaceMember> {
       const [member] = await db
         .insert(schema.workspaceMembers)
-        .values({ workspaceId, userProfileId: person.id, role })
+        .values({ workspaceId, userProfileId: person.id, accessLevel })
         .returning();
       return {
         ...member!,
@@ -86,7 +87,10 @@ export function seedConversations(db: TestDatabase) {
       return { workspaceId, channelId, seq: 0n };
     },
 
-    /** A public or private channel its creator and the given members belong to. */
+    /**
+     * A channel its creator manages and the given members belong to; everyone may post in a
+     * public one, only those members in a private one.
+     */
     async channel(
       creator: WorkspaceMember,
       kind: 'public' | 'private',
@@ -97,11 +101,31 @@ export function seedConversations(db: TestDatabase) {
       await db.insert(schema.channels).values({
         id: channelId,
         workspaceId,
-        kind,
+        kind: 'channel',
         name: `${kind}-${channelId.slice(0, 8)}`,
         createdByMemberId: creator.id,
         updatedAt: tick(),
       });
+
+      const posters =
+        kind === 'public'
+          ? [{ principal: 'everyone' as const }]
+          : members.map(({ id }) => ({ principal: 'member' as const, memberId: id }));
+      await db.insert(schema.channelGrants).values([
+        {
+          workspaceId,
+          channelId,
+          capability: 'manage',
+          principal: 'member',
+          memberId: creator.id,
+        },
+        ...posters.map((poster) => ({
+          workspaceId,
+          channelId,
+          capability: 'post' as const,
+          ...poster,
+        })),
+      ]);
       await db
         .insert(schema.channelMemberships)
         .values([creator, ...members].map(({ id }) => ({ workspaceId, channelId, memberId: id })));

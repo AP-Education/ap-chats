@@ -1,37 +1,32 @@
-import { ChatTextIcon } from '@phosphor-icons/react';
-import { useQuery } from '@tanstack/react-query';
-import { Button, message as toast, Skeleton } from 'antd';
+import { useIsMobile } from '@ap-education/ui';
+import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useReducer } from 'react';
 
-import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { CallIcon } from '@/features/calls/callIcons';
-import { useOpenDirectMessage } from '@/features/social/direct-messages/hooks/useOpenDirectMessage';
 import { useActiveWorkspace } from '@/features/workspaces/hooks/useActiveWorkspace';
+import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
+import { isWorkspaceAdministrator, isWorkspaceOwner } from '@/features/workspaces/workspace-access';
 import { ApiError } from '@/shared/api/http';
 
-import { getMemberProfile } from '../../api/member-profile-api';
+import { useMemberProfile } from '../../hooks/useMemberProfile';
+import { useMemberRoleAssignments } from '../../hooks/useMemberRoleAssignments';
+import { MemberCardContext, type MemberCardScope } from '../../stores/member-card-context';
 import type { MemberSummary } from '../../types';
-import { MemberIdentity } from '../MemberIdentity';
+import { memberCardView } from './member-card-view';
+import { MemberCardActions } from './MemberCardActions';
+import { MemberCardDetail } from './MemberCardDetail';
+import { MemberCardFrame } from './MemberCardFrame';
+import { MemberRoleSection } from './MemberRoleSection';
+import { MemberRolesView } from './MemberRolesView';
 
-const useStyles = createStyles(({ token, css }) => ({
-  card: css`
-    box-sizing: border-box;
-    padding: 22px;
-    color: ${token.colorText};
-    text-align: center;
-  `,
-  actions: css`
-    display: flex;
-    gap: 8px;
-    margin-top: 20px;
-  `,
-  message: css`
-    flex: 1;
-  `,
+const useStyles = createStyles(({ css }) => ({
   loading: css`
     margin-top: 20px;
   `,
 }));
+
+// The phone sheet has the room the wide-screen profile panel has, so it shows the same avatar.
+const SHEET_AVATAR_SIZE = 180;
 
 interface MemberCardProps {
   member: MemberSummary;
@@ -40,53 +35,59 @@ interface MemberCardProps {
 
 export function MemberCard({ member, onConversationOpen }: MemberCardProps) {
   const { styles } = useStyles();
+  const isMobile = useIsMobile();
   const { workspace } = useActiveWorkspace();
-  const { token, identity } = useQueryAuth();
-  const profile = useQuery({
-    queryKey: ['member-profile', identity, workspace?.id, member.memberId],
-    queryFn: () => getMemberProfile(token as string, workspace!.id, member.memberId),
-    enabled: Boolean(token && workspace),
-    refetchOnMount: 'always',
-  });
-  const { open, opening } = useOpenDirectMessage(workspace?.id ?? '');
+  const workspaceId = workspace?.id ?? '';
+  const profile = useMemberProfile(workspace?.id, member.memberId);
+  const { currentMember } = useWorkspaceMemberLabels(workspace?.id);
+  const { toggleRole } = useMemberRoleAssignments(workspaceId, member.memberId);
+  const [view, dispatch] = useReducer(memberCardView, 'profile');
+
   const name = profile.data
     ? (profile.data.displayName ?? 'Ім’я недоступне')
     : (member.displayName ?? 'Ім’я недоступне');
   const avatarPath = profile.data ? profile.data.avatarPath : member.avatarPath;
+  const isSelf = profile.data?.isSelf ?? false;
   const unavailable =
     !workspace || (profile.error instanceof ApiError && [403, 404].includes(profile.error.status));
+  const scope: MemberCardScope = {
+    workspaceId,
+    memberId: member.memberId,
+    profile: profile.data,
+    isLoading: profile.isPending,
+    unavailable,
+    canChangeLevel: isWorkspaceOwner(currentMember) && !isSelf,
+    canManageRoles: isWorkspaceAdministrator(currentMember) && !unavailable,
+    assignedRoleIds: new Set(profile.data?.roles.map((role) => role.id)),
+    toggleRole,
+  };
 
-  let detail = 'Учасник простору';
-  if (profile.data?.role === 'owner') detail = 'Власник простору';
-  else if (unavailable) detail = 'Учасник недоступний';
+  if (view === 'roles')
+    return (
+      <MemberCardContext.Provider value={scope}>
+        <MemberRolesView name={name} onBack={() => dispatch({ type: 'backToProfile' })} />
+      </MemberCardContext.Provider>
+    );
 
   return (
-    <div className={styles.card}>
-      <MemberIdentity name={name} avatarPath={avatarPath} detail={detail} />
-      {profile.isPending && (
-        <div className={styles.loading} aria-label="Завантажуємо профіль" role="status">
-          <Skeleton.Button active block size="small" />
-        </div>
-      )}
-      {!profile.isPending && !profile.data?.isSelf && (
-        <div className={styles.actions}>
-          <Button
-            type="primary"
-            className={styles.message}
-            icon={<ChatTextIcon size={20} />}
-            loading={opening}
-            disabled={unavailable}
-            onClick={() => {
-              void open(member.memberId).then(onConversationOpen, () =>
-                toast.error('Не вдалося відкрити розмову.'),
-              );
-            }}
-          >
-            Написати
-          </Button>
-          <Button icon={<CallIcon size={20} />} aria-label="Подзвонити" disabled />
-        </div>
-      )}
-    </div>
+    <MemberCardContext.Provider value={scope}>
+      <MemberCardFrame
+        name={name}
+        avatarPath={avatarPath}
+        detail={<MemberCardDetail />}
+        avatarSize={isMobile ? SHEET_AVATAR_SIZE : undefined}
+      >
+        {profile.isPending ? (
+          <div className={styles.loading} aria-label="Завантажуємо профіль" role="status">
+            <Skeleton.Button active block size="small" />
+          </div>
+        ) : (
+          <>
+            <MemberRoleSection onManageRoles={() => dispatch({ type: 'manageRoles' })} />
+            {!isSelf && <MemberCardActions onConversationOpen={onConversationOpen} />}
+          </>
+        )}
+      </MemberCardFrame>
+    </MemberCardContext.Provider>
   );
 }

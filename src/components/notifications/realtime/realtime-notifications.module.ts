@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { ChannelAudienceModule } from '@/components/communities/channel-audience';
-import { ChannelsRepositoryModule } from '@/components/communities/channels';
+import { ChannelsModule } from '@/components/communities/channels';
 import { MentionsModule } from '@/components/social/mentions';
 import { RealtimeTransportModule } from '@/globals/realtime';
 
@@ -13,7 +13,7 @@ import { RealtimeNotificationEventsHandler } from './realtime-notification-event
 @Module({
   imports: [
     ChannelAudienceModule,
-    ChannelsRepositoryModule,
+    ChannelsModule,
     MentionsModule,
     RealtimeTransportModule,
     NotificationPolicyModule,

@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
-import { ChannelAccessModule } from '@/components/communities/channel-access';
-import { WorkspacesModule } from '@/components/workspaces';
+import { ChannelAccessPolicyModule } from '@/components/communities/channel-access/channel-access';
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
 
 import { ReadStateController } from './read-state.controller';
 import { ReadStateService } from './read-state.service';
@@ -11,7 +11,7 @@ import { ReadStateRepository } from './repository/read-state.repository';
 import { WorkspaceReadStateController } from './workspace-read-state.controller';
 
 @Module({
-  imports: [AuthModule, ChannelAccessModule, WorkspacesModule],
+  imports: [AuthModule, ChannelAccessPolicyModule, WorkspaceMembersModule],
   controllers: [ReadStateController, WorkspaceReadStateController],
   providers: [
     ReadStateService,

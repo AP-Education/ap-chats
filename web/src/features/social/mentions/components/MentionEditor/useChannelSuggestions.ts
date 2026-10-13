@@ -15,7 +15,7 @@ function channelSuggestion(channel: Channel): Suggestion {
     key: channel.id,
     token: { kind: 'channel', id: channel.id },
     label: channel.name,
-    visual: { icon: channel.kind === 'private' ? PrivateChannelIcon : PublicChannelIcon },
+    visual: { icon: channel.isOpen ? PublicChannelIcon : PrivateChannelIcon },
   };
 }
 

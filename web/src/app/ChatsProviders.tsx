@@ -4,13 +4,10 @@ import { type PropsWithChildren, useContext } from 'react';
 
 import { UserProfileSync } from '../features/auth/components/UserProfileSync/UserProfileSync';
 import { ApiAuthSession } from '../features/auth/providers/ApiAuthSession';
-import { ChannelListRealtime } from '../features/communities/realtime/ChannelListRealtime';
-import { AttentionReporter } from '../features/notifications/components/AttentionReporter';
-import { NotificationDismissal } from '../features/notifications/components/NotificationDismissal';
-import { PushNavigation } from '../features/notifications/components/PushNavigation';
-import { PushSubscriptionSync } from '../features/notifications/components/PushSubscriptionSync';
+import { CommunitiesProvider } from '../features/communities/providers/CommunitiesProvider';
+import { NotificationsProvider } from '../features/notifications/providers/NotificationsProvider';
 import { RealtimeProvider } from '../features/realtime/providers/RealtimeProvider';
-import { MemberSheetProvider } from '../features/social/people/providers/MemberSheetProvider';
+import { PeopleProvider } from '../features/social/people/providers/PeopleProvider';
 import { WorkspaceUnreadContext } from '../features/social/read-state/workspace-unread-context';
 import { ActiveWorkspaceProvider } from '../features/workspaces/providers/ActiveWorkspaceProvider';
 import { personalTab, teamTab } from '../layouts/chats/sections';
@@ -46,16 +43,14 @@ export function ChatsProviders({ children }: PropsWithChildren) {
         <ApiAuthSession />
         <UserProfileSync />
         <RealtimeProvider>
-          <ChannelListRealtime />
           <ActiveWorkspaceProvider>
             <WorkspaceUnreadScope>
               <UnreadBadges />
-              <PushSubscriptionSync />
-              <AttentionReporter />
-              <NotificationDismissal />
-              <PushNavigation>
-                <MemberSheetProvider>{children}</MemberSheetProvider>
-              </PushNavigation>
+              <CommunitiesProvider>
+                <PeopleProvider>
+                  <NotificationsProvider>{children}</NotificationsProvider>
+                </PeopleProvider>
+              </CommunitiesProvider>
             </WorkspaceUnreadScope>
           </ActiveWorkspaceProvider>
         </RealtimeProvider>

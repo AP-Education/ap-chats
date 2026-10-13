@@ -1,5 +1,6 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
+import { requireAccessLevel } from '../access';
 import type { WorkspaceMember } from '../members/types';
 import type { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import type { UpdateWorkspaceDto } from './dto/update-workspace.dto';
@@ -18,18 +19,15 @@ export class WorkspacesService {
     return this.workspacesRepository.findAllForMember(userId);
   }
 
-  update(member: WorkspaceMember, dto: UpdateWorkspaceDto): Promise<Workspace> {
-    this.assertOwner(member);
+  async update(member: WorkspaceMember, dto: UpdateWorkspaceDto): Promise<Workspace> {
+    requireAccessLevel(member, 'owner');
+
     return this.workspacesRepository.update(member.workspaceId, dto);
   }
 
   async delete(member: WorkspaceMember): Promise<void> {
-    this.assertOwner(member);
-    await this.workspacesRepository.delete(member.workspaceId);
-  }
+    requireAccessLevel(member, 'owner');
 
-  private assertOwner(member: WorkspaceMember): void {
-    if (member.role !== 'owner')
-      throw new ForbiddenException('Only the workspace owner can do this');
+    await this.workspacesRepository.delete(member.workspaceId);
   }
 }

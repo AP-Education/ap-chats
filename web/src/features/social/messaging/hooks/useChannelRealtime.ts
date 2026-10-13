@@ -23,7 +23,6 @@ const CREATED_EVENT_TYPES = new Set([
 export function useChannelRealtime(
   workspaceId: string,
   channelId: string,
-  isMember: boolean,
   targetMessageId?: string,
 ) {
   const { token, identity } = useQueryAuth();
@@ -38,12 +37,11 @@ export function useChannelRealtime(
   useEffect(() => {
     if (!socket || status !== 'connected') return;
     refreshHistoryWindow(queryClient, key);
-    if (!isMember) return;
     socket.emit('social:watch', { workspaceId, channelId });
     return () => {
       socket.emit('social:unwatch', { workspaceId, channelId });
     };
-  }, [socket, status, workspaceId, channelId, isMember, queryClient, key]);
+  }, [socket, status, workspaceId, channelId, queryClient, key]);
 
   useSocketEvent('social:changed', (event) => {
     if (event.workspaceId !== workspaceId || event.channelId !== channelId || !token) return;

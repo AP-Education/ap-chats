@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
 import { NotificationPreferencesModule } from '@/components/notifications/preferences';
-import { WorkspacesModule } from '@/components/workspaces';
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
 
 import { DirectInboxModule } from '../inbox';
 import { DirectConversationsService } from './direct-conversations.service';
@@ -11,7 +11,7 @@ import { DrizzleDirectConversationsRepository } from './repository/drizzle-direc
 import { WorkspaceDirectMessagesController } from './workspace-direct-messages.controller';
 
 @Module({
-  imports: [AuthModule, WorkspacesModule, DirectInboxModule, NotificationPreferencesModule],
+  imports: [AuthModule, WorkspaceMembersModule, DirectInboxModule, NotificationPreferencesModule],
   controllers: [WorkspaceDirectMessagesController],
   providers: [
     DirectConversationsService,

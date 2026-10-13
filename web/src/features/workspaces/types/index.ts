@@ -21,6 +21,8 @@ export interface UploadedFile {
   url: string;
 }
 
+export type WorkspaceAccessLevel = 'owner' | 'manager' | 'member';
+
 export interface WorkspaceMember {
   id: string;
   workspaceId: string;
@@ -31,7 +33,7 @@ export interface WorkspaceMember {
     displayName: string | null;
     avatarPath: string | null;
   };
-  role: 'owner' | 'member';
+  accessLevel: WorkspaceAccessLevel;
   status: 'active' | 'removed';
   leftAt: string | null;
   createdAt: string;

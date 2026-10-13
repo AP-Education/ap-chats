@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 
-import { ChannelAccessModule } from '@/components/communities/channel-access';
+import { ChannelAccessPolicyModule } from '@/components/communities/channel-access/channel-access';
 import { ChannelAudienceModule } from '@/components/communities/channel-audience';
-import { WorkspacesModule } from '@/components/workspaces';
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
 import { RealtimeTransportModule } from '@/globals/realtime';
 
 import { ChannelBroadcast } from './channel-broadcast';
@@ -11,7 +11,12 @@ import { SocialEventsRelay } from './social-events.relay';
 import { SocialRealtimeGateway } from './social-realtime.gateway';
 
 @Module({
-  imports: [RealtimeTransportModule, WorkspacesModule, ChannelAccessModule, ChannelAudienceModule],
+  imports: [
+    RealtimeTransportModule,
+    WorkspaceMembersModule,
+    ChannelAccessPolicyModule,
+    ChannelAudienceModule,
+  ],
   providers: [ChannelBroadcast, ChannelWatchService, SocialRealtimeGateway, SocialEventsRelay],
   exports: [ChannelBroadcast],
 })

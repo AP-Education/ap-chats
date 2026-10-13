@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventPublisher, nothingToAnnounce } from '@/globals/publisher';
 import type { Announce } from '@/globals/publisher/types';
@@ -21,7 +21,7 @@ import { PinsService } from '../pins';
 @Injectable()
 export class DeleteMessagesService {
   constructor(
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly messages: MessagesService,
     private readonly pins: PinsService,
     private readonly events: EventPublisher,
@@ -37,7 +37,7 @@ export class DeleteMessagesService {
   @Transactional()
   private async remove(actor: WorkspaceMember, channelId: string, ids: string[]) {
     const channel = await this.access.requirePostAccess(actor, channelId);
-    const moderates = this.access.moderates(actor, channel);
+    const moderates = this.access.manages(actor, channel);
 
     const deleted = await this.messages.remove(actor, channelId, { ids, moderates });
     await this.pins.removeForMessages(deleted.map(({ id }) => id));

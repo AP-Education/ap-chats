@@ -10,7 +10,7 @@ test('allows a blank caption only when the caller explicitly permits attachment 
   assert.deepEqual(await markdown.normalize('   ', true), {
     markdown: '',
     plainText: '',
-    mentions: { memberIds: [], everyone: false },
+    mentions: { memberIds: [], roleIds: [], everyone: false },
   });
 });
 
@@ -34,7 +34,7 @@ test('rejects executable links, unsupported syntax, and blank messages', async (
 
 test('does not index text that only resembles a mention', async () => {
   const result = await markdown.normalize('`@Alex` and @Alex');
-  assert.deepEqual(result.mentions, { memberIds: [], everyone: false });
+  assert.deepEqual(result.mentions, { memberIds: [], roleIds: [], everyone: false });
 });
 
 test('reads :mention[everyone] as a mention of the whole channel, but not inside code', async () => {
@@ -42,7 +42,7 @@ test('reads :mention[everyone] as a mention of the whole channel, but not inside
 
   assert.equal(result.markdown, 'Heads up :mention[everyone]');
   assert.equal(result.plainText, 'Heads up @everyone\n');
-  assert.deepEqual(result.mentions, { memberIds: [], everyone: true });
+  assert.deepEqual(result.mentions, { memberIds: [], roleIds: [], everyone: true });
   assert.equal((await markdown.normalize(':mention[Everyone]')).markdown, ':mention[everyone]');
   assert.equal(
     (await markdown.normalize(':mention[everyone]next')).markdown,
@@ -52,11 +52,23 @@ test('reads :mention[everyone] as a mention of the whole channel, but not inside
   await assert.rejects(markdown.normalize(':mention[team]'));
 });
 
+test('reads :role[id] as a mention of everyone in that role', async () => {
+  const result = await markdown.normalize('Ask :role[123E4567-E89B-42D3-A456-426614174000]');
+
+  assert.equal(result.markdown, 'Ask :role[123e4567-e89b-42d3-a456-426614174000]');
+  assert.deepEqual(result.mentions, {
+    memberIds: [],
+    roleIds: ['123e4567-e89b-42d3-a456-426614174000'],
+    everyone: false,
+  });
+  await assert.rejects(markdown.normalize(':role[design]'));
+});
+
 test('keeps a channel link as markup without mentioning anyone', async () => {
   const result = await markdown.normalize('See :channel[123E4567-E89B-42D3-A456-426614174000]');
 
   assert.equal(result.markdown, 'See :channel[123e4567-e89b-42d3-a456-426614174000]');
-  assert.deepEqual(result.mentions, { memberIds: [], everyone: false });
+  assert.deepEqual(result.mentions, { memberIds: [], roleIds: [], everyone: false });
   await assert.rejects(markdown.normalize(':channel[general]'));
 });
 

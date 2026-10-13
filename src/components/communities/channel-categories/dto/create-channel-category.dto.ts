@@ -1,9 +1,9 @@
-import { IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsInt, IsOptional, Max, Min } from 'class-validator';
+
+import { TrimmedName } from '@/globals/validation/trimmed-name.decorator';
 
 export class CreateChannelCategoryDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(80)
+  @TrimmedName()
   name!: string;
 
   @IsOptional()

@@ -101,7 +101,14 @@ export default function ChannelContent() {
           composer: {
             ariaLabel: `Написати в #${channel.name}`,
             placeholder: `Написати в #${channel.name}`,
-            mentionEveryone: true,
+            groupMentions: true,
+          },
+          permissions: {
+            canPost: channel.canPost,
+            canReact: channel.isMember,
+            canManage: channel.canManage,
+            // Pinning changes the channel, so it needs the right to post as well as to manage.
+            canPin: channel.canManage && channel.canPost,
           },
         }}
       >

@@ -22,12 +22,13 @@ import { ConversationView } from '@/features/social/conversation/components/Conv
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { ApiError } from '@/shared/api/http';
 
-import { canManageChannel } from '../../../channel-permissions';
 import { useChannelMembership } from '../../../memberships/hooks/useChannelMembership';
 import { ChannelNotificationsPopover } from '../../../notifications/components/Popover';
 import { PrivateChannelIcon, PublicChannelIcon } from '../../channelIcons';
+import { useChannelDialogs } from '../../stores/channel-dialogs-context';
 import type { Channel } from '../../types';
-import { ChannelFormModal } from '../ChannelFormModal';
+import { ReadOnlyChannelFooter } from './ReadOnlyChannelFooter';
+import { UnlistedChannelNotice } from './UnlistedChannelNotice';
 
 const useStyles = createStyles(({ token, css }) => ({
   titleButton: css`
@@ -60,39 +61,6 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  `,
-  joinFooter: css`
-    flex-shrink: 0;
-    padding: 0 ${token.paddingLG}px ${token.paddingSM}px;
-
-    @media (max-width: ${token.screenMD}px) {
-      padding: 0 16px calc(8px + var(--app-inset-bottom, env(safe-area-inset-bottom, 0px)));
-    }
-  `,
-  joinSurface: css`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    min-height: 58px;
-    padding: 8px 10px 8px 18px;
-    border: 1px solid ${token.colorPrimaryBorder};
-    border-radius: 12px;
-    background: ${token.colorPrimaryBg};
-    color: ${token.colorTextSecondary};
-    pointer-events: auto;
-
-    @media (max-width: ${token.screenMD}px) {
-      gap: 8px;
-      padding-left: 12px;
-    }
-  `,
-  joinHint: css`
-    min-width: 0;
-    font-size: ${token.fontSize}px;
-  `,
-  joinButton: css`
-    flex-shrink: 0;
   `,
   sizeNotice: css`
     flex-shrink: 0;
@@ -139,8 +107,11 @@ function ChannelTitle({ channel, canManage, onSettings, onLeave }: ChannelTitleP
       danger: true,
     });
 
-  const channelIcon =
-    channel.kind === 'private' ? <PrivateChannelIcon size={22} /> : <PublicChannelIcon size={22} />;
+  const channelIcon = channel.isOpen ? (
+    <PublicChannelIcon size={22} />
+  ) : (
+    <PrivateChannelIcon size={22} />
+  );
   const title = (
     <>
       {channelIcon}
@@ -170,28 +141,6 @@ function ChannelTitle({ channel, canManage, onSettings, onLeave }: ChannelTitleP
         {title}
       </button>
     </Dropdown>
-  );
-}
-
-interface JoinChannelFooterProps {
-  channel: Channel;
-  pending: boolean;
-  onJoin: () => void;
-}
-
-function JoinChannelFooter({ channel, pending, onJoin }: JoinChannelFooterProps) {
-  const { styles } = useStyles();
-  if (channel.isMember || channel.kind !== 'public') return null;
-
-  return (
-    <div className={styles.joinFooter}>
-      <div className={styles.joinSurface}>
-        <span className={styles.joinHint}>Приєднайтеся до каналу, щоб написати повідомлення</span>
-        <Button type="primary" className={styles.joinButton} loading={pending} onClick={onJoin}>
-          Приєднатися
-        </Button>
-      </div>
-    </div>
   );
 }
 
@@ -230,14 +179,15 @@ export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailPr
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { currentMember } = useWorkspaceMemberLabels(workspaceId);
-  const { query: membersQuery, join, leave } = useChannelMembership(workspaceId, channel.id);
-  const [editing, setEditing] = useState(false);
+  const { query: membersQuery, leave } = useChannelMembership(workspaceId, channel.id);
+  const dialogs = useChannelDialogs();
   const [sizeNoticeVisible, setSizeNoticeVisible] = useState(false);
-  const canManage = canManageChannel(channel, currentMember);
+  const canManage = channel.canManage;
   const call = useCallAction(workspaceId, channel.id, channel.name);
   const callTitle = callActionLabel(call, 'Дзвінок у каналі');
   const memberCount = membersQuery.data?.length ?? 0;
   const isLargeChannel = memberCount > LARGE_CHANNEL_MEMBER_THRESHOLD;
+  const openSettings = () => dialogs.openSettings(workspaceId, channel.id);
 
   function handleCall() {
     // Only pause for a call about to start fresh: joining one already
@@ -255,19 +205,13 @@ export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailPr
     call.onClick();
   }
 
-  function handleJoin() {
-    join.mutate(undefined, {
-      onError: () => message.error('Не вдалося приєднатися до каналу.'),
-    });
-  }
-
   function handleLeave() {
     leave.mutate(undefined, {
       onSuccess: () => navigate('/channels'),
       onError: (error) =>
         message.error(
           error instanceof ApiError && error.status === 409
-            ? 'Ви єдиний учасник приватного каналу. Спершу додайте когось іншого.'
+            ? 'Ви в каналі через роль або всю компанію, тому вийти не можна. Його можна заглушити.'
             : 'Не вдалося вийти з каналу.',
         ),
     });
@@ -281,7 +225,7 @@ export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailPr
           <ChannelTitle
             channel={channel}
             canManage={canManage}
-            onSettings={() => setEditing(true)}
+            onSettings={openSettings}
             onLeave={handleLeave}
           />
         </PageTitle>
@@ -297,7 +241,7 @@ export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailPr
           <PageAction
             active={call.inCall || call.joinable}
             aria-label={callTitle}
-            disabled={call.busy || call.pending || !channel.isMember}
+            disabled={call.busy || call.pending || !channel.canPost}
             onClick={handleCall}
           >
             {call.pending ? <LoadingIcon size={22} /> : <CallIcon size={22} />}
@@ -316,21 +260,13 @@ export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailPr
             onDismiss={() => setSizeNoticeVisible(false)}
           />
         )}
-        <ConversationView
-          canPost={channel.isMember}
-          canManage={canManage}
-          currentMember={currentMember}
-          readOnlyFooter={
-            <JoinChannelFooter channel={channel} pending={join.isPending} onJoin={handleJoin} />
-          }
-        />
-        {canManage && (
-          <ChannelFormModal
-            workspaceId={workspaceId}
-            channel={channel}
-            open={editing}
-            onClose={() => setEditing(false)}
+        {channel.isMember ? (
+          <ConversationView
+            currentMember={currentMember}
+            readOnlyFooter={<ReadOnlyChannelFooter />}
           />
+        ) : (
+          <UnlistedChannelNotice onSettings={openSettings} />
         )}
       </PageBody>
     </>

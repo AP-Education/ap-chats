@@ -27,21 +27,16 @@ export const conversationActions = [
 interface UseConversationActionsInput {
   items: HistoryItem[];
   memberId: string | undefined;
-  canManage: boolean;
-  canPin: boolean;
-  canPost: boolean;
   operations: ReturnType<typeof useMessageOperations>;
 }
 
 export function useConversationActions({
   items,
   memberId,
-  canManage,
-  canPin,
-  canPost,
   operations,
 }: UseConversationActionsInput) {
-  const { workspaceId, channelId } = useConversationScope();
+  const { workspaceId, channelId, permissions } = useConversationScope();
+  const { canPost, canReact, canManage, canPin } = permissions;
   const pins = usePinActions(workspaceId, channelId);
   const [forwardItems, setForwardItems] = useState<MessageHistoryItem[]>([]);
   const [reactionsMessageId, setReactionsMessageId] = useState<string | null>(null);
@@ -59,8 +54,8 @@ export function useConversationActions({
     [items, reactionsMessageId],
   );
   const actionContext = useMemo(
-    () => ({ memberId, canManage, canPin, canPost }),
-    [memberId, canManage, canPin, canPost],
+    () => ({ memberId, canPost, canReact, canManage, canPin }),
+    [memberId, canPost, canReact, canManage, canPin],
   );
 
   const commands: ActionCommands = {

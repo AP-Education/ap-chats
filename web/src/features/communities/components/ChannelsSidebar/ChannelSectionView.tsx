@@ -3,6 +3,7 @@ import { PlusIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
+import { useChannelDialogs } from '../../channels/stores/channel-dialogs-context';
 import { ChannelRow } from './ChannelRow';
 import { useChannelsSidebarStore } from './channels-sidebar-context';
 import { type ChannelSectionData, UNCATEGORIZED } from './useChannelSections';
@@ -63,7 +64,8 @@ interface ChannelSectionViewProps {
 
 export function ChannelSectionView({ section }: ChannelSectionViewProps) {
   const { styles, cx } = useStyles();
-  const { requestCreateChannel, draggingChannel, moveChannel } = useChannelsSidebarStore();
+  const { workspaceId, draggingChannel, moveChannel } = useChannelsSidebarStore();
+  const dialogs = useChannelDialogs();
   const [dropActive, setDropActive] = useState(false);
   const isUncategorized = section.id === UNCATEGORIZED;
   const categoryId = isUncategorized ? null : section.id;
@@ -82,7 +84,8 @@ export function ChannelSectionView({ section }: ChannelSectionViewProps) {
             className={styles.add}
             aria-label={`Створити канал у категорії ${section.name}`}
             onClick={() => {
-              requestCreateChannel({
+              dialogs.create({
+                workspaceId,
                 categoryId: section.id,
                 categoryName: section.name,
               });

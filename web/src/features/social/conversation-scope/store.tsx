@@ -19,6 +19,17 @@ interface ConversationState {
 }
 
 const ConversationContext = createContext<StoreApi<ConversationState> | null>(null);
+
+/** What the viewer may do here; the page that opens the conversation decides it once. */
+export interface ConversationPermissions {
+  canPost: boolean;
+  /** Reading is enough to react, so a read-only channel still allows it. */
+  canReact: boolean;
+  canManage: boolean;
+  /** Pin and unpin; already includes whatever posting the page requires for it. */
+  canPin: boolean;
+}
+
 export interface ConversationScope {
   workspaceId: string;
   channelId: string;
@@ -30,9 +41,10 @@ export interface ConversationScope {
     ariaLabel: string;
     placeholder: string;
     autoFocus?: boolean;
-    /** Offers @everyone, which only a channel has; a DM has no one else to reach. */
-    mentionEveryone?: boolean;
+    /** Offers @everyone and roles, which reach a group; only a channel has one. */
+    groupMentions?: boolean;
   };
+  permissions: ConversationPermissions;
 }
 const ConversationScopeContext = createContext<ConversationScope | null>(null);
 
@@ -71,6 +83,10 @@ export function useConversationScope(): ConversationScope {
   const scope = useContext(ConversationScopeContext);
   if (!scope) throw new Error('ConversationProvider is missing');
   return scope;
+}
+
+export function useConversationPermissions(): ConversationPermissions {
+  return useConversationScope().permissions;
 }
 
 export function useConversation<T>(selector: (state: ConversationState) => T): T {

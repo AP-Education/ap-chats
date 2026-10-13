@@ -6,6 +6,7 @@ import { useConversationScope } from '@/features/social/conversation-scope/store
 import { apiRequest } from '@/shared/api/http';
 
 import type { Suggestion, SuggestionGroup, SuggestionQuery } from './suggestions';
+import { useRoleSuggestions } from './useRoleSuggestions';
 
 interface MentionableMember {
   memberId: string;
@@ -37,10 +38,11 @@ function matchesEveryone(text: string) {
   return EVERYONE_ALIASES.some((alias) => alias.startsWith(typed));
 }
 
-/** After `@`: members of the conversation, and @everyone where the conversation offers it. */
+/** After `@`: members of the conversation, then roles and @everyone where it offers them. */
 export function usePeopleSuggestions(query: SuggestionQuery | null): SuggestionGroup | null {
   const { workspaceId, channelId, composer } = useConversationScope();
   const { token } = useQueryAuth();
+  const roles = useRoleSuggestions(query);
   const text = query?.trigger === '@' ? query.text : null;
   const members = useQuery({
     queryKey: ['mention-candidates', workspaceId, channelId, text],
@@ -57,7 +59,11 @@ export function usePeopleSuggestions(query: SuggestionQuery | null): SuggestionG
 
   if (text === null) return null;
 
-  const items = (members.data ?? []).map(memberSuggestion);
-  if (composer.mentionEveryone && matchesEveryone(text)) items.push(everyone);
-  return { heading: 'Учасники', ariaLabel: 'Згадати людину', items };
+  const items = [...(members.data ?? []).map(memberSuggestion), ...roles];
+  if (composer.groupMentions && matchesEveryone(text)) items.push(everyone);
+  return {
+    heading: roles.length ? 'Учасники та ролі' : 'Учасники',
+    ariaLabel: 'Згадати людину або роль',
+    items,
+  };
 }

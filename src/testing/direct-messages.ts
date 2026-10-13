@@ -1,5 +1,5 @@
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
-import { DrizzleChannelAccessRepository } from '@/components/communities/channel-access/repository/drizzle-channel-access.repository';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
+import { DrizzleChannelAccessRepository } from '@/components/communities/channel-access/channel-access/repository/drizzle-channel-access.repository';
 import { DirectConversationsService } from '@/components/direct-messages/conversations';
 import { DrizzleDirectConversationsRepository } from '@/components/direct-messages/conversations/repository/drizzle-direct-conversations.repository';
 import { DirectInboxService } from '@/components/direct-messages/inbox';
@@ -12,7 +12,7 @@ import type { transactionHost } from './pglite';
 /** Direct messages over one embedded database, composed as the app composes them. */
 export function directMessageServices(
   host: ReturnType<typeof transactionHost>,
-  access = new ChannelAccessFacade(new DrizzleChannelAccessRepository(host as never)),
+  access = new ChannelAccessPolicy(new DrizzleChannelAccessRepository(host as never)),
 ) {
   const txHost = host as never;
   const inbox = new DirectInboxService(new DrizzleDirectInboxRepository(txHost));

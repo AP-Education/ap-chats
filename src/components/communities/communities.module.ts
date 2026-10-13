@@ -2,17 +2,19 @@ import { Module } from '@nestjs/common';
 
 import { ChannelAccessModule } from './channel-access';
 import { ChannelAudienceModule } from './channel-audience';
-import { ChannelCategoriesModule } from './channel-categories/channel-categories.module';
-import { ChannelsModule } from './channels/channels.module';
-import { ChannelMembershipsModule } from './memberships/channel-memberships.module';
+import { ChannelCategoriesModule } from './channel-categories';
+import { ChannelDirectoryModule } from './channel-directory';
+import { ChannelsModule } from './channels';
+import { ChannelMembershipsModule } from './memberships';
 
 @Module({
   imports: [
-    ChannelAccessModule,
-    ChannelAudienceModule,
-    ChannelCategoriesModule,
     ChannelsModule,
+    ChannelCategoriesModule,
+    ChannelAudienceModule,
+    ChannelAccessModule,
     ChannelMembershipsModule,
+    ChannelDirectoryModule,
   ],
 })
 export class CommunitiesModule {}

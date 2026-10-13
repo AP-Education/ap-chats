@@ -36,10 +36,59 @@ export interface NormalizedMessageContent {
 
 interface CollectedMentions {
   memberIds: Set<string>;
+  roleIds: Set<string>;
   everyone: boolean;
 }
 
-// Inline references: a member or the whole channel is mentioned, a channel is only linked to.
+const noMentions = (): CollectedMentions => ({
+  memberIds: new Set(),
+  roleIds: new Set(),
+  everyone: false,
+});
+
+type ReadReference = (value: string, mentions: CollectedMentions) => string;
+
+function requireId(value: string, message = 'Invalid mention') {
+  if (!uuidPattern.test(value)) throw new BadRequestException(message);
+}
+
+// Each inline reference: what it mentions and how it reads as plain text. The client keeps the
+// same grammar in web/src/features/social/mentions/mention-tokens.ts.
+const references = new Map<string, ReadReference>([
+  [
+    'mention',
+    (value, mentions) => {
+      if (value !== 'everyone') throw new BadRequestException('Invalid mention');
+      mentions.everyone = true;
+      return '@everyone';
+    },
+  ],
+  [
+    'member',
+    (value, mentions) => {
+      requireId(value);
+      mentions.memberIds.add(value);
+      return `@${value}`;
+    },
+  ],
+  [
+    'role',
+    (value, mentions) => {
+      requireId(value);
+      mentions.roleIds.add(value);
+      return `@${value}`;
+    },
+  ],
+  // A channel is only linked to, so it mentions no one.
+  [
+    'channel',
+    (value) => {
+      requireId(value, 'Invalid channel link');
+      return `#${value}`;
+    },
+  ],
+]);
+
 function readDirective(node: MarkdownNode, mentions: CollectedMentions, plain: string[]): void {
   if (Object.keys(node.attributes ?? {}).length)
     throw new BadRequestException('Unsupported Markdown directive');
@@ -49,24 +98,9 @@ function readDirective(node: MarkdownNode, mentions: CollectedMentions, plain: s
   const value = label.value?.toLowerCase() ?? '';
   label.value = value;
 
-  switch (node.name) {
-    case 'mention':
-      if (value !== 'everyone') throw new BadRequestException('Invalid mention');
-      mentions.everyone = true;
-      plain.push('@everyone');
-      return;
-    case 'member':
-      if (!uuidPattern.test(value)) throw new BadRequestException('Invalid mention');
-      mentions.memberIds.add(value);
-      plain.push(`@${value}`);
-      return;
-    case 'channel':
-      if (!uuidPattern.test(value)) throw new BadRequestException('Invalid channel link');
-      plain.push(`#${value}`);
-      return;
-    default:
-      throw new BadRequestException('Unsupported Markdown directive');
-  }
+  const read = node.name ? references.get(node.name) : undefined;
+  if (!read) throw new BadRequestException('Unsupported Markdown directive');
+  plain.push(read(value, mentions));
 }
 
 function validateTree(node: MarkdownNode, mentions: CollectedMentions, plain: string[]): void {
@@ -103,11 +137,7 @@ async function markdownProcessor() {
 export async function messagePlainText(markdown: string): Promise<string> {
   const processor = await markdownProcessor();
   const plain: string[] = [];
-  validateTree(
-    processor.parse(markdown) as MarkdownNode,
-    { memberIds: new Set(), everyone: false },
-    plain,
-  );
+  validateTree(processor.parse(markdown) as MarkdownNode, noMentions(), plain);
   return plain.join('');
 }
 
@@ -123,7 +153,7 @@ export class MessageMarkdownService {
 
     const processor = await markdownProcessor();
     const tree = processor.parse(normalizedSource);
-    const mentions: CollectedMentions = { memberIds: new Set(), everyone: false };
+    const mentions = noMentions();
     const plain: string[] = [];
     validateTree(tree as MarkdownNode, mentions, plain);
     const markdown = processor.stringify(tree).trim();
@@ -134,7 +164,11 @@ export class MessageMarkdownService {
     return {
       markdown,
       plainText: plain.join(''),
-      mentions: { memberIds: [...mentions.memberIds], everyone: mentions.everyone },
+      mentions: {
+        memberIds: [...mentions.memberIds],
+        roleIds: [...mentions.roleIds],
+        everyone: mentions.everyone,
+      },
     };
   }
 }

@@ -12,6 +12,10 @@ export const communityQueryKeys = {
   ) => ['channel', identity, workspaceId, channelId] as const,
   categories: (identity: string | undefined, workspaceId: string | undefined) =>
     ['channel-categories', identity, workspaceId] as const,
+  memberLists: (identity: string | undefined, workspaceId: string | undefined) =>
+    ['channel-members', identity, workspaceId] as const,
   members: (identity: string | undefined, workspaceId: string, channelId: string | undefined) =>
     ['channel-members', identity, workspaceId, channelId] as const,
+  permissions: (identity: string | undefined, workspaceId: string, channelId: string | undefined) =>
+    ['channel-permissions', identity, workspaceId, channelId] as const,
 };

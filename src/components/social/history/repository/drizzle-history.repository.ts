@@ -11,6 +11,7 @@ import {
   messagePins,
   messageReactions,
   messageReactionSummaries,
+  messageRoleMentions,
   userProfiles,
   workspaceMembers,
 } from '@/database/drizzle/schema';
@@ -133,6 +134,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         pin: messagePins,
         mentions: mentions.mentions,
         mentionsViewer: this.viewerMentioned(viewerMemberId),
+        rolesMentioningViewer: this.rolesMentioningViewer(viewerMemberId),
         reactions: reactions.reactions,
         call: calls,
         startedByProfile: {
@@ -211,6 +213,14 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     )`;
   }
 
+  private rolesMentioningViewer(viewerMemberId: string) {
+    return sql<string[]>`coalesce((
+      select array_agg(${messageRoleMentions.roleId}::text) from ${messageRoleMentions}
+      where ${messageRoleMentions.messageId} = ${chatMessages.id}
+        and ${messageRoleMentions.memberId} = ${viewerMemberId}
+    ), '{}')`;
+  }
+
   private reactionsOfMessage(viewerMemberId: string) {
     const summary = messageReactionSummaries;
     const viewerReacted = sql`exists (
@@ -278,6 +288,7 @@ function toHistoryRow(
     pin: row.pin,
     mentions: row.mentions ?? [],
     mentionsViewer: row.mentionsViewer,
+    rolesMentioningViewer: row.rolesMentioningViewer ?? [],
     reactions: row.reactions ?? [],
   };
 }

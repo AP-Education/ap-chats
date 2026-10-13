@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import { StorageProvider } from '@/components/uploads/storage';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
@@ -30,7 +30,7 @@ interface Reservation {
 @Injectable()
 export class UploadsService {
   constructor(
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly repository: ChatUploadsRepository,
     private readonly storage: StorageProvider,
     private readonly policy: UploadPolicy,
@@ -57,7 +57,7 @@ export class UploadsService {
   }
 
   async signPart(member: WorkspaceMember, channelId: string, id: string, number: number) {
-    await this.access.requireParticipant(member, channelId);
+    await this.access.requirePostRight(member, channelId);
     const upload = requireOwnUpload(await this.repository.find(id), member, channelId);
     requireUploading(upload);
 
@@ -99,7 +99,7 @@ export class UploadsService {
   @Transactional()
   private async reserve(member: WorkspaceMember, channelId: string, reservation: Reservation) {
     await this.repository.lockOwner(member.id);
-    await this.access.requireParticipant(member, channelId);
+    await this.access.requirePostRight(member, channelId);
     this.policy.requireReservationCapacity(
       await this.repository.reservations(member.id),
       reservation.size,

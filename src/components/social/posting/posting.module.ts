@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
-import { ChannelAccessModule } from '@/components/communities/channel-access';
-import { WorkspacesModule } from '@/components/workspaces';
+import { ChannelAccessPolicyModule } from '@/components/communities/channel-access/channel-access';
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
 
 import { AttachmentsModule } from '../attachments';
 import { ContentModule } from '../content';
@@ -17,8 +17,8 @@ import { SendMessageService } from './send-message.service';
 @Module({
   imports: [
     AuthModule,
-    WorkspacesModule,
-    ChannelAccessModule,
+    WorkspaceMembersModule,
+    ChannelAccessPolicyModule,
     ContentModule,
     MessagesModule,
     AttachmentsModule,

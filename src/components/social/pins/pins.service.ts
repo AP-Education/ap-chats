@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventPublisher, nothingToAnnounce } from '@/globals/publisher';
 
@@ -14,7 +14,7 @@ import { PinsRepository } from './repository/pins.repository';
 @Injectable()
 export class PinsService {
   constructor(
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly messages: MessagesService,
     private readonly repository: PinsRepository,
     private readonly events: EventPublisher,
@@ -22,7 +22,7 @@ export class PinsService {
 
   @Transactional()
   async list(member: WorkspaceMember, channelId: string) {
-    await this.access.requireReadAccess(member, channelId);
+    await this.access.requireViewAccess(member, channelId);
     return this.repository.list(channelId);
   }
 

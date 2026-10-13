@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import { WorkspaceMembersRepository } from '@/components/workspaces/members/repository';
 
 /** Only a channel's own members follow it live; anyone else learns nothing, not even that it exists. */
@@ -9,7 +9,7 @@ import { WorkspaceMembersRepository } from '@/components/workspaces/members/repo
 export class ChannelWatchService {
   constructor(
     private readonly members: WorkspaceMembersRepository,
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
   ) {}
 
   @Transactional()
@@ -18,8 +18,8 @@ export class ChannelWatchService {
     if (!member) return false;
 
     try {
-      const { isMember } = await this.access.requireReadAccess(member, channelId);
-      return isMember;
+      await this.access.requireViewAccess(member, channelId);
+      return true;
     } catch (error) {
       const isRefusal = error instanceof ForbiddenException || error instanceof NotFoundException;
       if (isRefusal) return false;

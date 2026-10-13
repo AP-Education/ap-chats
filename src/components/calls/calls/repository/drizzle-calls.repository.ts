@@ -3,13 +3,13 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, eq, inArray, lt, ne } from 'drizzle-orm';
 
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
+import { throwConflictOnUnique } from '@/database/drizzle/pg-errors';
 import {
   calls,
   channelMemberships,
   userProfiles,
   workspaceMembers,
 } from '@/database/drizzle/schema';
-import { throwConflictOnUnique } from '@/database/drizzle/unique-violation';
 
 import type { CallRecord } from '../types';
 import { CallsRepository } from './calls.repository';

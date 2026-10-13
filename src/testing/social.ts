@@ -1,8 +1,8 @@
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
-import { DrizzleChannelAccessRepository } from '@/components/communities/channel-access/repository/drizzle-channel-access.repository';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
+import { DrizzleChannelAccessRepository } from '@/components/communities/channel-access/channel-access/repository/drizzle-channel-access.repository';
 import { DrizzleChatUploadsRepository } from '@/components/social/attachments/repository/drizzle-chat-uploads.repository';
 import { UploadPolicy } from '@/components/social/attachments/upload-policy';
 import { UploadsService } from '@/components/social/attachments/uploads.service';
@@ -22,6 +22,8 @@ import { MessageComposer } from '@/components/social/posting/message-composer';
 import { SendMessageService } from '@/components/social/posting/send-message.service';
 import { ReactionsService } from '@/components/social/reactions/reactions.service';
 import { DrizzleReactionsRepository } from '@/components/social/reactions/repository/drizzle-reactions.repository';
+import { DrizzleRolesRepository } from '@/components/workspaces/roles/repository';
+import { RolesFacade } from '@/components/workspaces/roles/roles.facade';
 import { AppConfigService } from '@/globals/config';
 import { validateConfig } from '@/globals/config/config.schema';
 import { DrizzleEventOutboxRepository } from '@/globals/publisher/repository/drizzle-event-outbox.repository';
@@ -54,9 +56,13 @@ export function socialServices(
     txHost,
   );
   const access = (overrides.access ??
-    new ChannelAccessFacade(new DrizzleChannelAccessRepository(txHost))) as ChannelAccessFacade;
+    new ChannelAccessPolicy(new DrizzleChannelAccessRepository(txHost))) as ChannelAccessPolicy;
   const markdown = new MessageMarkdownService();
-  const mentions = new MentionsService(new DrizzleMentionsRepository(txHost), access);
+  const mentions = new MentionsService(
+    new DrizzleMentionsRepository(txHost),
+    access,
+    new RolesFacade(new DrizzleRolesRepository(txHost)),
+  );
   const messages = new MessagesService(
     new DrizzleMessagesRepository(txHost),
     new EntriesFacade(new DrizzleEntriesRepository(txHost)),

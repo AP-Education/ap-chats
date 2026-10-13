@@ -37,8 +37,10 @@ export interface MessageHistoryItem {
   forwardedFrom: MessageAuthor | null;
   pin: { pinnedAt: string; pinnedByMemberId: string } | null;
   mentions?: { memberId: string; displayName: string | null; avatarPath: string | null }[];
-  /** Whether the message reached the viewer, by name or through @everyone. */
+  /** Whether the message reached the viewer, by name, through a role or through @everyone. */
   mentionsMe?: boolean;
+  /** The roles through which it reached the viewer. */
+  rolesMentioningMe?: string[];
   reactions?: MessageReaction[];
 }
 
@@ -140,6 +142,7 @@ export interface ActionContext {
   canManage: boolean;
   canPin: boolean;
   canPost: boolean;
+  canReact: boolean;
 }
 
 export interface ActionCommands {

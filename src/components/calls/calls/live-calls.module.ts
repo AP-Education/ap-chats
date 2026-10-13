@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
-import { ChannelAccessModule } from '@/components/communities/channel-access';
+import { ChannelAccessPolicyModule } from '@/components/communities/channel-access/channel-access';
 import { EntriesModule } from '@/components/social/entries';
 import { SocialRealtimeModule } from '@/components/social/realtime';
-import { WorkspacesModule } from '@/components/workspaces';
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
 import { RealtimeTransportModule } from '@/globals/realtime';
 
 import { CallEventsRelay } from './call-events.relay';
@@ -22,8 +22,8 @@ import { DrizzleCallsRepository } from './repository/drizzle-calls.repository';
 @Module({
   imports: [
     AuthModule,
-    WorkspacesModule,
-    ChannelAccessModule,
+    WorkspaceMembersModule,
+    ChannelAccessPolicyModule,
     EntriesModule,
     SocialRealtimeModule,
     RealtimeTransportModule,

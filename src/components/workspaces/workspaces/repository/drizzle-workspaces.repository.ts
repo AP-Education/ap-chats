@@ -39,7 +39,7 @@ export class DrizzleWorkspacesRepository extends WorkspacesRepository {
     await this.txHost.tx.insert(workspaceMembers).values({
       workspaceId: workspace.id,
       userProfileId: existingProfile.id,
-      role: 'owner',
+      accessLevel: 'owner',
     });
     return this.toModel(workspace);
   }

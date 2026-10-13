@@ -4,22 +4,18 @@ import { test } from 'node:test';
 import { QueryClient, QueryObserver } from '@tanstack/react-query';
 
 import { communityQueryKeys } from '../queryKeys';
-import { refreshChannelInventory } from './channel-inventory-cache';
+import { refreshChannelInventory, refreshChannelRights } from './channel-inventory-cache';
 
 function fixture() {
   return new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
 }
 
-test('a remote creation refreshes another member list and its categories while preserving membership', async () => {
+test('a granted channel refreshes another member list and its categories while preserving membership', async () => {
   const queryClient = fixture();
-  const key = communityQueryKeys.channels('other-member', 'workspace', 'available');
+  const key = communityQueryKeys.channels('other-member', 'workspace', 'mine');
   const categoryKey = communityQueryKeys.categories('other-member', 'workspace');
-  const otherWorkspaceKey = communityQueryKeys.channels(
-    'other-member',
-    'other-workspace',
-    'available',
-  );
-  const otherUserKey = communityQueryKeys.channels('owner', 'workspace', 'available');
+  const otherWorkspaceKey = communityQueryKeys.channels('other-member', 'other-workspace', 'mine');
+  const otherUserKey = communityQueryKeys.channels('owner', 'workspace', 'mine');
   queryClient.setQueryData(key, []);
   queryClient.setQueryData(categoryKey, []);
   queryClient.setQueryData(otherWorkspaceKey, []);
@@ -49,9 +45,9 @@ test('a remote creation refreshes another member list and its categories while p
   }
 });
 
-test('an initial request from before creation cannot overwrite the new channel list', async () => {
+test('an initial request from before the grant cannot overwrite the new channel list', async () => {
   const queryClient = fixture();
-  const key = communityQueryKeys.channels('user', 'workspace', 'available');
+  const key = communityQueryKeys.channels('user', 'workspace', 'mine');
   let finishOld!: (value: unknown[]) => void;
   let requests = 0;
   const observer = new QueryObserver(queryClient, {
@@ -78,18 +74,78 @@ test('an initial request from before creation cannot overwrite the new channel l
   }
 });
 
-test('reconnect invalidates available, joined and category caches in every workspace for this identity', async () => {
+test('reconnect invalidates own, managed and category caches in every workspace for this identity', async () => {
   const queryClient = fixture();
   const keys = ['workspace-a', 'workspace-b'].flatMap((workspaceId) => [
-    communityQueryKeys.channels('user', workspaceId, 'available'),
-    communityQueryKeys.channels('user', workspaceId, 'joined'),
+    communityQueryKeys.channels('user', workspaceId, 'mine'),
+    communityQueryKeys.channels('user', workspaceId, 'all'),
     communityQueryKeys.categories('user', workspaceId),
   ]);
   for (const key of keys) queryClient.setQueryData(key, []);
-  const otherIdentity = communityQueryKeys.channels('other-user', 'workspace-a', 'available');
+  const otherIdentity = communityQueryKeys.channels('other-user', 'workspace-a', 'mine');
   queryClient.setQueryData(otherIdentity, []);
   await refreshChannelInventory(queryClient, 'user');
   for (const key of keys) assert.equal(queryClient.getQueryState(key)?.isInvalidated, true);
   assert.equal(queryClient.getQueryState(otherIdentity)?.isInvalidated, false);
   queryClient.clear();
+});
+
+/** An open channel or list kept on screen, counting how often it asks the server again. */
+function onScreen(queryClient: QueryClient, queryKey: readonly unknown[]) {
+  queryClient.setQueryData(queryKey, []);
+  const fetched = { count: 0 };
+  const observer = new QueryObserver(queryClient, {
+    queryKey,
+    queryFn: async () => {
+      fetched.count++;
+      return [];
+    },
+    staleTime: Infinity,
+  });
+  return { fetched, stop: observer.subscribe(() => {}) };
+}
+
+test('new lists on a channel refetch it if open, and leave the channel lists for their next use', async () => {
+  const queryClient = fixture();
+  const announcements = onScreen(
+    queryClient,
+    communityQueryKeys.channel('viewer', 'workspace', 'announcements'),
+  );
+  const general = onScreen(
+    queryClient,
+    communityQueryKeys.channel('viewer', 'workspace', 'general'),
+  );
+  const sidebar = onScreen(queryClient, communityQueryKeys.channels('viewer', 'workspace', 'mine'));
+  try {
+    await refreshChannelRights(queryClient, 'viewer', 'workspace', 'announcements');
+
+    assert.equal(announcements.fetched.count, 1);
+    assert.equal(general.fetched.count, 0);
+    assert.equal(sidebar.fetched.count, 0);
+    const sidebarKey = communityQueryKeys.channels('viewer', 'workspace', 'mine');
+    assert.equal(queryClient.getQueryState(sidebarKey)?.isInvalidated, true);
+  } finally {
+    for (const view of [announcements, general, sidebar]) view.stop();
+    queryClient.clear();
+  }
+});
+
+test("a change to someone's roles refetches every open channel of that workspace only", async () => {
+  const queryClient = fixture();
+  const general = onScreen(
+    queryClient,
+    communityQueryKeys.channel('viewer', 'workspace', 'general'),
+  );
+  const design = onScreen(queryClient, communityQueryKeys.channel('viewer', 'workspace', 'design'));
+  const elsewhere = onScreen(queryClient, communityQueryKeys.channel('viewer', 'other', 'general'));
+  try {
+    await refreshChannelRights(queryClient, 'viewer', 'workspace');
+
+    assert.equal(general.fetched.count, 1);
+    assert.equal(design.fetched.count, 1);
+    assert.equal(elsewhere.fetched.count, 0);
+  } finally {
+    for (const view of [general, design, elsewhere]) view.stop();
+    queryClient.clear();
+  }
 });

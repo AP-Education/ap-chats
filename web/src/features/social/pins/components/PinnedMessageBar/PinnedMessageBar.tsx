@@ -4,6 +4,7 @@ import { message as toast, Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
+import { useConversationPermissions } from '@/features/social/conversation-scope/store';
 import { ReplyExcerpt } from '@/features/social/messaging/components/ReplyExcerpt/ReplyExcerpt';
 
 import { PinnedMessages } from '../PinnedMessages/PinnedMessages';
@@ -57,12 +58,12 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 interface PinnedMessageBarProps {
-  canUnpin: boolean;
   onJump: (messageId: string) => void;
 }
 
-export function PinnedMessageBar({ canUnpin, onJump }: PinnedMessageBarProps) {
+export function PinnedMessageBar({ onJump }: PinnedMessageBarProps) {
   const { styles } = useStyles();
+  const { canPin: canUnpin } = useConversationPermissions();
   const [listOpen, setListOpen] = useState(false);
   const bar = usePinnedMessageBar();
 

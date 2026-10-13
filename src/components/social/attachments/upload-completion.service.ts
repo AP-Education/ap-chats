@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import { NoSuchUploadError, StorageProvider } from '@/components/uploads/storage';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
@@ -20,7 +20,7 @@ const COMPLETION_LEASE_MS = 30 * 60 * 1000;
 @Injectable()
 export class UploadCompletionService {
   constructor(
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly repository: ChatUploadsRepository,
     private readonly storage: StorageProvider,
     private readonly preview: AttachmentPreviewService,
@@ -65,7 +65,7 @@ export class UploadCompletionService {
 
   @Transactional()
   private async lease(member: WorkspaceMember, channelId: string, id: string) {
-    await this.access.requireParticipant(member, channelId);
+    await this.access.requirePostRight(member, channelId);
     const upload = requireOwnUpload(await this.repository.lock(id), member, channelId);
     if (isFinished(upload)) return upload;
 
@@ -87,7 +87,7 @@ export class UploadCompletionService {
     lease: ChatUpload,
     metadata: Attachment,
   ): Promise<void> {
-    await this.access.requireParticipant(member, channelId);
+    await this.access.requirePostRight(member, channelId);
     const upload = requireOwnUpload(await this.repository.lock(lease.id), member, channelId);
     const holdsLease =
       upload.state === 'uploading' && upload.processingToken === lease.processingToken;

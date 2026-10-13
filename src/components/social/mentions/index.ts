@@ -1,2 +1,2 @@
-export * from './mentions.module';
-export * from './mentions.service';
+export { MentionsModule } from './mentions.module';
+export { MentionsService } from './mentions.service';

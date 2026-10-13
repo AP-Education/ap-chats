@@ -13,7 +13,7 @@ import { unreadDirectMessagesKey, workspaceUnreadKey } from '../queryKeys';
 
 export interface ChannelUnread {
   channelId: string;
-  kind: 'public' | 'private' | 'dm';
+  kind: 'channel' | 'dm';
   lastReadEntrySeq: string;
   unreadCount: number;
 }

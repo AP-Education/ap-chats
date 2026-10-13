@@ -2,7 +2,8 @@ import { apiRequest, jsonInit } from '@/shared/api/http';
 
 import type { Channel, CreateChannelInput, UpdateChannelInput } from '../types';
 
-export type ChannelScope = 'available' | 'joined';
+/** `all` lists every channel of the workspace and is for its managers only. */
+export type ChannelScope = 'mine' | 'all';
 
 function channelUrl(workspaceId: string, channelId?: string): string {
   return `/api/workspaces/${workspaceId}/channels${channelId ? `/${channelId}` : ''}`;
@@ -11,9 +12,9 @@ function channelUrl(workspaceId: string, channelId?: string): string {
 export function listChannels(
   token: string,
   workspaceId: string,
-  scope: ChannelScope = 'available',
+  scope: ChannelScope = 'mine',
 ): Promise<Channel[]> {
-  const query = scope === 'joined' ? '?scope=joined' : '';
+  const query = scope === 'all' ? '?scope=all' : '';
   return apiRequest(`${channelUrl(workspaceId)}${query}`, token);
 }
 

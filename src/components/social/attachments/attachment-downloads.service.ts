@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import { StorageProvider } from '@/components/uploads/storage';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
@@ -13,7 +13,7 @@ export type DownloadVariant = 'download' | 'preview' | 'thumbnail';
 @Injectable()
 export class AttachmentDownloadsService {
   constructor(
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly messages: MessagesService,
     private readonly repository: ChatUploadsRepository,
     private readonly storage: StorageProvider,

@@ -1,3 +1,5 @@
+import type { WorkspaceAccessLevel } from '../../access/types';
+
 export interface WorkspaceMember {
   id: string;
   workspaceId: string;
@@ -8,7 +10,7 @@ export interface WorkspaceMember {
     displayName: string | null;
     avatarPath: string | null;
   };
-  role: 'owner' | 'member';
+  accessLevel: WorkspaceAccessLevel;
   status: 'active' | 'removed';
   leftAt: Date | null;
   createdAt: Date;

@@ -2,6 +2,7 @@ import { useIsMobile } from '@ap-education/ui';
 import { createStyles, keyframes } from 'antd-style';
 import { useLayoutEffect, useRef } from 'react';
 
+import { RoleDot } from '@/features/roles/components/RoleDot';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { Suggestion, SuggestionGroup } from './suggestions';
@@ -196,6 +197,13 @@ function SuggestionVisual({ suggestion: { label, visual } }: { suggestion: Sugge
 
   if ('avatarPath' in visual)
     return <Avatar path={visual.avatarPath} alt={label} size={size} shape="circle" />;
+
+  if ('roleColor' in visual)
+    return (
+      <span className={styles.badge} style={{ width: size, height: size }}>
+        <RoleDot color={visual.roleColor} />
+      </span>
+    );
 
   const Icon = visual.icon;
   return (

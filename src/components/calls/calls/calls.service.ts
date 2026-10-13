@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { nothingToAnnounce } from '@/globals/publisher';
 
@@ -16,7 +16,7 @@ const OK = { ok: true } as const;
 @Injectable()
 export class CallsService {
   constructor(
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly lifecycle: CallLifecycle,
     private readonly placement: CallPlacement,
     private readonly provider: CallProvider,
@@ -26,7 +26,8 @@ export class CallsService {
     if (!this.provider.isConfigured)
       throw new ServiceUnavailableException('Calls are not configured');
 
-    const channel = await this.access.requireParticipant(member, channelId);
+    // Calls go with the right to post, so a read-only participant cannot ring the channel.
+    const channel = await this.access.requirePostRight(member, channelId);
     await this.lifecycle.ringOut(member, channel, accessToken);
 
     const { call, announce } = await this.dial(member, channelId, accessToken);
@@ -36,7 +37,7 @@ export class CallsService {
   }
 
   async active(member: WorkspaceMember, channelId: string, accessToken: string) {
-    const { channel } = await this.access.requireViewAccess(member, channelId);
+    const channel = await this.access.requireViewAccess(member, channelId);
     await this.lifecycle.ringOut(member, channel, accessToken);
 
     const call = await this.lifecycle.live(channelId);
@@ -44,7 +45,8 @@ export class CallsService {
   }
 
   async join(member: WorkspaceMember, channelId: string, callId: string, accessToken: string) {
-    const { channel, call } = await this.own(member, channelId, callId);
+    const channel = await this.access.requirePostRight(member, channelId);
+    const call = await this.lifecycle.find(channel, callId);
 
     // Nobody may have polled since the ring ran out, so answering must not revive it.
     const missed = await this.lifecycle.ringOut(member, channel, accessToken);
@@ -91,7 +93,7 @@ export class CallsService {
     return this.placement.place(member, channel, accessToken);
   }
 
-  // Participation, not read access: a non-member reader of a public channel must not get a media credential.
+  // Declining or leaving needs only participation; joining needs the right to post.
   private async own(member: WorkspaceMember, channelId: string, callId: string) {
     const channel = await this.access.requireParticipant(member, channelId);
     const call = await this.lifecycle.find(channel, callId);

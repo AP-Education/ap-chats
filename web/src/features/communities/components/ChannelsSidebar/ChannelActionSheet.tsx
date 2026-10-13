@@ -1,11 +1,9 @@
-import { ArrowLeftIcon, GearSixIcon, UserPlusIcon } from '@phosphor-icons/react';
+import { GearSixIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
-import { useState } from 'react';
 
 import { BottomSheet } from '@/shared/ui/BottomSheet';
 
 import type { Channel } from '../../channels/types';
-import { AddChannelMemberControl } from '../../memberships/components/AddChannelMemberControl';
 
 const useStyles = createStyles(({ token, css }) => ({
   action: css`
@@ -31,75 +29,37 @@ const useStyles = createStyles(({ token, css }) => ({
     color: ${token.colorText};
     font-weight: 650;
   `,
-  picker: css`
-    padding: 4px 12px 8px;
-  `,
 }));
 
 interface ChannelActionSheetProps {
   open: boolean;
-  workspaceId: string;
   channel: Channel;
-  canAddMember: boolean;
-  canManage: boolean;
   onClose: () => void;
   onSettings: () => void;
 }
 
 export function ChannelActionSheet({
   open,
-  workspaceId,
   channel,
-  canAddMember,
-  canManage,
   onClose,
   onSettings,
 }: ChannelActionSheetProps) {
   const { styles } = useStyles();
-  const [view, setView] = useState<'actions' | 'members'>('actions');
-
-  function close() {
-    setView('actions');
-    onClose();
-  }
 
   return (
-    <BottomSheet open={open} onClose={close} aria-label={`Дії каналу ${channel.name}`}>
-      {view === 'members' ? (
-        <>
-          <button type="button" className={styles.action} onClick={() => setView('actions')}>
-            <ArrowLeftIcon size={20} />
-            Назад до дій
-          </button>
-          <div className={styles.heading}>Додати учасника до {channel.name}</div>
-          <div className={styles.picker}>
-            <AddChannelMemberControl workspaceId={workspaceId} channel={channel} size="middle" />
-          </div>
-        </>
-      ) : (
-        <>
-          <div className={styles.heading}>{channel.name}</div>
-          {canAddMember && (
-            <button type="button" className={styles.action} onClick={() => setView('members')}>
-              <UserPlusIcon size={20} />
-              Додати учасника
-            </button>
-          )}
-          {canManage && (
-            <button
-              type="button"
-              className={styles.action}
-              onClick={() => {
-                close();
-                onSettings();
-              }}
-            >
-              <GearSixIcon size={20} />
-              Налаштування каналу
-            </button>
-          )}
-        </>
-      )}
+    <BottomSheet open={open} onClose={onClose} aria-label={`Дії каналу ${channel.name}`}>
+      <div className={styles.heading}>{channel.name}</div>
+      <button
+        type="button"
+        className={styles.action}
+        onClick={() => {
+          onClose();
+          onSettings();
+        }}
+      >
+        <GearSixIcon size={20} />
+        Налаштування каналу
+      </button>
     </BottomSheet>
   );
 }

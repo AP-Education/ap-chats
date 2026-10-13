@@ -1,12 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
-import { and, asc, eq, inArray, isNotNull, or } from 'drizzle-orm';
+import { TransactionHost } from '@nestjs-cls/transactional';
+import { and, asc, eq, sql } from 'drizzle-orm';
 
-import { channelMemberships, channels } from '@/database/drizzle/schema';
+import { throwConflictOnUnique } from '@/database/drizzle/pg-errors';
+import {
+  channelGrants,
+  channelMemberAccess,
+  channelMemberships,
+  channels,
+} from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
-import { throwConflictOnUnique } from '@/database/drizzle/unique-violation';
 
-import type { Channel, ChannelView } from '../types';
+import type { Channel, ListedChannel } from '../types';
 import { ChannelsRepository } from './channels.repository';
 
 @Injectable()
@@ -15,40 +20,25 @@ export class DrizzleChannelsRepository extends ChannelsRepository {
     super();
   }
 
-  async findAllForMember(
-    workspaceId: string,
-    memberId: string,
-    scope: 'available' | 'joined',
-  ): Promise<ChannelView[]> {
-    const rows = await this.txHost.tx
-      .select({ channel: channels, membership: channelMemberships })
-      .from(channels)
-      .leftJoin(
+  async findListedFor(workspaceId: string, memberId: string): Promise<ListedChannel[]> {
+    const rows = await this.selectAsSeenBy(memberId)
+      .innerJoin(
         channelMemberships,
         and(
           eq(channelMemberships.channelId, channels.id),
           eq(channelMemberships.memberId, memberId),
         ),
       )
-      .where(
-        and(
-          eq(channels.workspaceId, workspaceId),
-          scope === 'joined'
-            ? and(
-                inArray(channels.kind, ['public', 'private']),
-                isNotNull(channelMemberships.memberId),
-              )
-            : or(
-                eq(channels.kind, 'public'),
-                and(eq(channels.kind, 'private'), isNotNull(channelMemberships.memberId)),
-              ),
-        ),
-      )
+      .where(and(eq(channels.workspaceId, workspaceId), eq(channels.kind, 'channel')))
       .orderBy(asc(channels.name));
-    return rows.map(({ channel, membership }) => ({
-      ...this.toModel(channel),
-      isMember: !!membership,
-    }));
+    return rows.map((row) => this.toListed(row));
+  }
+
+  async findAllAsSeenBy(workspaceId: string, memberId: string): Promise<ListedChannel[]> {
+    const rows = await this.selectAsSeenBy(memberId)
+      .where(and(eq(channels.workspaceId, workspaceId), eq(channels.kind, 'channel')))
+      .orderBy(asc(channels.name));
+    return rows.map((row) => this.toListed(row));
   }
 
   async findById(workspaceId: string, channelId: string): Promise<Channel | undefined> {
@@ -59,21 +49,32 @@ export class DrizzleChannelsRepository extends ChannelsRepository {
     return channel && this.toModel(channel);
   }
 
-  @Transactional()
+  async findAsSeenBy(
+    workspaceId: string,
+    channelId: string,
+    memberId: string,
+  ): Promise<ListedChannel | undefined> {
+    const [row] = await this.selectAsSeenBy(memberId).where(
+      and(
+        eq(channels.workspaceId, workspaceId),
+        eq(channels.id, channelId),
+        eq(channels.kind, 'channel'),
+      ),
+    );
+    return row && this.toListed(row);
+  }
+
   async create(
     workspaceId: string,
     creatorMemberId: string,
-    values: { name: string; kind: Channel['kind']; categoryId: string | null },
+    values: { name: string; categoryId: string | null },
   ): Promise<Channel> {
     try {
       const [channel] = await this.txHost.tx
         .insert(channels)
-        .values({ workspaceId, createdByMemberId: creatorMemberId, ...values })
+        .values({ workspaceId, createdByMemberId: creatorMemberId, kind: 'channel', ...values })
         .returning();
       if (!channel) throw new Error('Channel insert did not return a row');
-      await this.txHost.tx
-        .insert(channelMemberships)
-        .values({ workspaceId, channelId: channel.id, memberId: creatorMemberId });
       return this.toModel(channel);
     } catch (error) {
       return throwConflictOnUnique(error, 'Channel name already exists');
@@ -103,6 +104,38 @@ export class DrizzleChannelsRepository extends ChannelsRepository {
       .where(and(eq(channels.workspaceId, workspaceId), eq(channels.id, channelId)))
       .returning({ id: channels.id });
     return Boolean(removed);
+  }
+
+  private selectAsSeenBy(memberId: string) {
+    const isOpen = sql<boolean>`exists (select 1 from ${channelGrants} where ${channelGrants.channelId} = ${channels.id} and ${channelGrants.principal} = 'everyone')`;
+
+    return this.txHost.tx
+      .select({
+        channel: channels,
+        isOpen,
+        canPost: channelMemberAccess.canPost,
+        canManage: channelMemberAccess.canManage,
+      })
+      .from(channels)
+      .leftJoin(
+        channelMemberAccess,
+        and(
+          eq(channelMemberAccess.channelId, channels.id),
+          eq(channelMemberAccess.memberId, memberId),
+        ),
+      )
+      .$dynamic();
+  }
+
+  private toListed(row: {
+    channel: typeof channels.$inferSelect;
+    isOpen: boolean;
+    canPost: boolean | null;
+    canManage: boolean | null;
+  }): ListedChannel {
+    const listed =
+      row.canPost === null ? null : { canPost: row.canPost, canManage: row.canManage ?? false };
+    return { ...this.toModel(row.channel), isOpen: row.isOpen, listed };
   }
 
   private toModel(row: typeof channels.$inferSelect): Channel {

@@ -1,27 +1,12 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from '@/components/auth';
-import { DrizzleModule } from '@/database/drizzle';
+import { WorkspaceMembersModule } from './members/workspace-members.module';
+import { RoleMembersModule } from './role-members/role-members.module';
+import { RolesModule } from './roles/roles.module';
+import { WorkspaceRegistryModule } from './workspaces/workspace-registry.module';
 
-import {
-  DrizzleWorkspaceMembersRepository,
-  WorkspaceMembersRepository,
-} from './members/repository';
-import { WorkspaceMembersController } from './members/workspace-members.controller';
-import { WorkspaceMembersService } from './members/workspace-members.service';
-import { DrizzleWorkspacesRepository, WorkspacesRepository } from './workspaces/repository';
-import { WorkspacesController } from './workspaces/workspaces.controller';
-import { WorkspacesService } from './workspaces/workspaces.service';
-
+/** Brings workspaces into the app; others import the part they use. */
 @Module({
-  imports: [DrizzleModule, AuthModule],
-  controllers: [WorkspacesController, WorkspaceMembersController],
-  providers: [
-    WorkspacesService,
-    { provide: WorkspacesRepository, useClass: DrizzleWorkspacesRepository },
-    WorkspaceMembersService,
-    { provide: WorkspaceMembersRepository, useClass: DrizzleWorkspaceMembersRepository },
-  ],
-  exports: [WorkspaceMembersRepository],
+  imports: [WorkspaceRegistryModule, WorkspaceMembersModule, RolesModule, RoleMembersModule],
 })
 export class WorkspacesModule {}
