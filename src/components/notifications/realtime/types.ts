@@ -1,6 +1,6 @@
 import type { ChannelKind } from '@/components/communities/channels/types';
 
-import type { NotificationEventKind } from '../types';
+import type { NotificationEventKind } from '../policy/types';
 
 export interface UnreadEntryChange {
   seq: string;

@@ -4,10 +4,4 @@ export const RealtimeRooms = {
   user(userId: string): string {
     return `user:${userId}`;
   },
-  socialChannel(workspaceId: string, channelId: string): string {
-    return `social:workspace:${workspaceId}:channel:${channelId}`;
-  },
-  conversation(conversationId: string): string {
-    return `conversation:${conversationId}`;
-  },
 } as const;

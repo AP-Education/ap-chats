@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
+  ArrayUnique,
   IsArray,
   IsDefined,
   IsIn,
@@ -32,6 +33,7 @@ export class ForwardMessagesDto {
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(100)
+  @ArrayUnique()
   @IsUUID('all', { each: true })
   messageIds!: string[];
 }

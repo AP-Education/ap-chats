@@ -3,7 +3,7 @@ import http2 from 'node:http2';
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { importPKCS8, SignJWT } from 'jose';
 
-import type { CallSignalPayload } from '@/components/calls/events/call-signal.event';
+import type { CallSignalPayload } from '@/components/calls/calls/events/call-signal.event';
 import type { DeviceRecord } from '@/components/devices';
 import { AppConfigService } from '@/globals/config';
 

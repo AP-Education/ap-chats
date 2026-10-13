@@ -1,15 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
+import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import {
-  chatMessages,
   messageReactions,
   messageReactionSummaries,
   userProfiles,
   workspaceMembers,
 } from '@/database/drizzle/schema';
-import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 import type { ReactedMessage, ReactionSummary, Reactor } from '../types/reaction.types';
 import { ReactionsRepository } from './reactions.repository';
@@ -18,21 +17,6 @@ import { ReactionsRepository } from './reactions.repository';
 export class DrizzleReactionsRepository extends ReactionsRepository {
   constructor(private readonly txHost: TransactionHost<DrizzleTransactionAdapter>) {
     super();
-  }
-
-  async isLiveMessage({ workspaceId, channelId, messageId }: ReactedMessage): Promise<boolean> {
-    const [message] = await this.txHost.tx
-      .select({ id: chatMessages.id })
-      .from(chatMessages)
-      .where(
-        and(
-          eq(chatMessages.workspaceId, workspaceId),
-          eq(chatMessages.channelId, channelId),
-          eq(chatMessages.id, messageId),
-          isNull(chatMessages.deletedAt),
-        ),
-      );
-    return message !== undefined;
   }
 
   async emojisOn(messageId: string): Promise<string[]> {

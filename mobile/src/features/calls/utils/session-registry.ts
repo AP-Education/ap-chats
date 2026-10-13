@@ -15,12 +15,15 @@ export interface TrackedSession {
   serverCallId: string;
   metadata: TrackedSessionMetadata;
   caller: CallParticipant;
+  /** A channel call rather than a DM, where people may come and go while it runs. */
+  group: boolean;
   abortController: AbortController;
   answerRequestId?: string;
   room?: Room;
   /** Unsubscribes trackRemoteParticipant's room listeners — called once, from
    * endCallSession, alongside the room disconnect itself. */
   stopTrackingRemote?: () => void;
+  stopCallCues?: () => void;
 }
 
 // Keyed by the OS-assigned CallSession id — the one thing every

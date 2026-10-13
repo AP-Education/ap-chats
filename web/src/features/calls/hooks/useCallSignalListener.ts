@@ -7,6 +7,7 @@ import { getCallEntry } from '@/features/social/messaging/api/messages-api';
 import { mergeHistoryItem } from '@/features/social/messaging/history-cache';
 
 import { type CallSignal, callSignalSchema } from '../schemas';
+import { announceCallEnd } from '../sound/callEndCue';
 import { useCallStore } from '../store/call-store';
 import type { CallServerToClientEvents } from '../types';
 import { activeCallQueryKey } from './useActiveCall';
@@ -76,6 +77,7 @@ export function useCallSignalListener(): void {
     if (!signal) return;
     clearIncoming(signal.callId);
     if (active?.callId === signal.callId) {
+      announceCallEnd(active, 'declined');
       clearActive();
       toast.info('Дзвінок відхилено.');
     }
@@ -89,7 +91,10 @@ export function useCallSignalListener(): void {
     clearIncoming(signal.callId);
     // The call screen closing and the leave chime already say this; a toast
     // on top is redundant.
-    if (active?.callId === signal.callId) clearActive();
+    if (active?.callId === signal.callId) {
+      announceCallEnd(active, 'ended');
+      clearActive();
+    }
     invalidate(signal);
     refreshEntry(signal);
   });
@@ -99,6 +104,7 @@ export function useCallSignalListener(): void {
     if (!signal) return;
     clearIncoming(signal.callId);
     if (active?.callId === signal.callId) {
+      announceCallEnd(active, 'ended');
       clearActive();
       toast.info('Не відповіли.');
     }

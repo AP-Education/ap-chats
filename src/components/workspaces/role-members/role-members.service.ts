@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
+import type { Announce } from '@/globals/publisher/types';
+
 import { MemberAccessProjection, requireAccessLevel } from '../access';
-import type { AnnounceAccessChanges } from '../access/types';
 import type { MemberSummary, WorkspaceMember } from '../members/types';
 import { RolesFacade } from '../roles/roles.facade';
 import { RoleMembersRepository } from './repository/role-members.repository';
@@ -41,7 +42,7 @@ export class RoleMembersService {
     workspaceId: string,
     roleId: string,
     memberIds: string[],
-  ): Promise<AnnounceAccessChanges> {
+  ): Promise<Announce> {
     await this.requireRole(workspaceId, roleId);
 
     const addedIds = await this.roleMembers.enroll(workspaceId, roleId, memberIds);
@@ -50,11 +51,7 @@ export class RoleMembersService {
   }
 
   @Transactional()
-  private async release(
-    workspaceId: string,
-    roleId: string,
-    memberId: string,
-  ): Promise<AnnounceAccessChanges> {
+  private async release(workspaceId: string, roleId: string, memberId: string): Promise<Announce> {
     await this.requireRole(workspaceId, roleId);
 
     const wasHolder = await this.roleMembers.release(workspaceId, roleId, memberId);

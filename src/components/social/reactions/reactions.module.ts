@@ -2,21 +2,19 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
 import { ChannelAccessPolicyModule } from '@/components/communities/channel-access/channel-access';
-import { ChannelAudienceModule } from '@/components/communities/channel-audience';
 import { WorkspaceMembersModule } from '@/components/workspaces/members';
 
+import { MessagesModule } from '../messages';
 import { ReactionsController } from './reactions.controller';
-import { ReactionsFacade } from './reactions.facade';
-import { ReactionsGateway } from './reactions.gateway';
+import { ReactionsService } from './reactions.service';
 import { DrizzleReactionsRepository } from './repository/drizzle-reactions.repository';
 import { ReactionsRepository } from './repository/reactions.repository';
 
 @Module({
-  imports: [AuthModule, ChannelAccessPolicyModule, ChannelAudienceModule, WorkspaceMembersModule],
+  imports: [AuthModule, WorkspaceMembersModule, ChannelAccessPolicyModule, MessagesModule],
   controllers: [ReactionsController],
   providers: [
-    ReactionsFacade,
-    ReactionsGateway,
+    ReactionsService,
     { provide: ReactionsRepository, useClass: DrizzleReactionsRepository },
   ],
 })

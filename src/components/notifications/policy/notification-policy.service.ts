@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
+import { isMuted } from '../preferences/notification-settings.rules';
 import type { StoredNotificationSettings } from '../preferences/types';
 import type { NotificationDecision } from './types';
 
 @Injectable()
 export class NotificationPolicyService {
   messageLevel(settings: StoredNotificationSettings): 'all' | 'mentions' | 'none' {
-    if (settings.notificationsMuted || settings.level === 'none') return 'none';
-    if (settings.mutedUntil && settings.mutedUntil > new Date()) return 'none';
+    if (isMuted(settings)) return 'none';
     return settings.level === 'mentions' ? 'mentions' : 'all';
   }
 

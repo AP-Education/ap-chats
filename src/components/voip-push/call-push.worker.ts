@@ -4,7 +4,7 @@ import {
   CALL_SIGNAL_EVENT,
   type CallSignalEvent,
   type CallSignalPayload,
-} from '@/components/calls/events/call-signal.event';
+} from '@/components/calls/calls/events/call-signal.event';
 import { NativePushTargetsStrategy } from '@/components/devices';
 import { AppConfigService } from '@/globals/config';
 import { JobQueue } from '@/globals/jobs/job-queue';

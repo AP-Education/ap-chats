@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { ChannelAudienceFacade } from '@/components/communities/channel-audience';
 import { ChannelsRepository } from '@/components/communities/channels';
-import { MentionsFacade } from '@/components/social/mentions';
+import { MentionsService } from '@/components/social/mentions';
 import { Logger } from '@/globals/logger';
 import { RealtimePublisher } from '@/globals/realtime';
 
@@ -15,7 +15,7 @@ export class RealtimeNotificationDeliveryService {
   constructor(
     private readonly audience: ChannelAudienceFacade,
     private readonly channels: ChannelsRepository,
-    private readonly mentions: MentionsFacade,
+    private readonly mentions: MentionsService,
     private readonly settings: NotificationSettingsService,
     private readonly policy: NotificationPolicyService,
     private readonly realtime: RealtimePublisher,

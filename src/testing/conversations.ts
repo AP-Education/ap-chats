@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { eq } from 'drizzle-orm';
 
-import type { CallStatus } from '@/components/calls/types';
+import type { CallStatus } from '@/components/calls/calls/types';
 import type { WorkspaceAccessLevel } from '@/components/workspaces/access/types';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import * as schema from '@/database/drizzle/schema';
@@ -84,6 +84,51 @@ export function seedConversations(db: TestDatabase) {
         { workspaceId, channelId, memberId: first.id },
         { workspaceId, channelId, memberId: second.id },
       ]);
+      return { workspaceId, channelId, seq: 0n };
+    },
+
+    /**
+     * A channel its creator manages and the given members belong to; everyone may post in a
+     * public one, only those members in a private one.
+     */
+    async channel(
+      creator: WorkspaceMember,
+      kind: 'public' | 'private',
+      members: WorkspaceMember[] = [],
+    ): Promise<Conversation> {
+      const { workspaceId } = creator;
+      const channelId = randomUUID();
+      await db.insert(schema.channels).values({
+        id: channelId,
+        workspaceId,
+        kind: 'channel',
+        name: `${kind}-${channelId.slice(0, 8)}`,
+        createdByMemberId: creator.id,
+        updatedAt: tick(),
+      });
+
+      const posters =
+        kind === 'public'
+          ? [{ principal: 'everyone' as const }]
+          : members.map(({ id }) => ({ principal: 'member' as const, memberId: id }));
+      await db.insert(schema.channelGrants).values([
+        {
+          workspaceId,
+          channelId,
+          capability: 'manage',
+          principal: 'member',
+          memberId: creator.id,
+        },
+        ...posters.map((poster) => ({
+          workspaceId,
+          channelId,
+          capability: 'post' as const,
+          ...poster,
+        })),
+      ]);
+      await db
+        .insert(schema.channelMemberships)
+        .values([creator, ...members].map(({ id }) => ({ workspaceId, channelId, memberId: id })));
       return { workspaceId, channelId, seq: 0n };
     },
 

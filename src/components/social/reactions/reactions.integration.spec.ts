@@ -10,12 +10,11 @@ import { eq } from 'drizzle-orm';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import * as schema from '@/database/drizzle/schema';
 import { migratedDatabase, transactionHost } from '@/testing/pglite';
+import { socialServices } from '@/testing/social';
 
 import { DrizzleHistoryRepository } from '../history/repository/drizzle-history.repository';
 import { ReactionDto } from './dto/reaction.dto';
 import { REACTION_CHANGED_EVENT, ReactionChangedEvent } from './events/reaction-changed.event';
-import { ReactionsFacade } from './reactions.facade';
-import { DrizzleReactionsRepository } from './repository/drizzle-reactions.repository';
 
 test('a reaction is one fully qualified emoji', () => {
   const accepts = (emoji: string) =>
@@ -32,7 +31,7 @@ test('reactions on PostgreSQL', async (t) => {
 
   const txHost = transactionHost(db);
   const history = new DrizzleHistoryRepository(txHost as never);
-  const access = { requireReactAccess: async () => {}, requireViewAccess: async () => {} };
+  const access = { requireParticipant: async () => {}, requireViewAccess: async () => {} };
 
   /** A channel with one message and the given number of people in its workspace. */
   async function conversation(people = 2) {
@@ -75,12 +74,7 @@ test('reactions on PostgreSQL', async (t) => {
     });
     await db.insert(schema.channelEntries).values({ workspaceId, channelId, messageId, seq: 1n });
 
-    const published: { key: string; event: unknown }[] = [];
-    const reactions = new ReactionsFacade(
-      access as never,
-      new DrizzleReactionsRepository(txHost as never),
-      { publish: (key: string, event: unknown) => published.push({ key, event }) },
-    );
+    const { reactions, published } = socialServices(txHost, { access });
     const person = (index: number) => ({ id: members[index]!.id, workspaceId }) as WorkspaceMember;
     const react = (who: number, emoji: string) =>
       reactions.react(person(who), channelId, messageId, emoji);
@@ -192,7 +186,7 @@ test('reactions on PostgreSQL', async (t) => {
         added,
         reaction,
       );
-      return { key: REACTION_CHANGED_EVENT, event };
+      return { name: REACTION_CHANGED_EVENT, event };
     };
     assert.deepEqual(chat.published, [
       change(author, true, [author]),

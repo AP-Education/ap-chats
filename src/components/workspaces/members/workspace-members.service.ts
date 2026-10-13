@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
+import type { Announce } from '@/globals/publisher/types';
+
 import {
   isAdministrator,
   isOwner,
@@ -13,7 +15,7 @@ import {
   outranks,
   requireAccessLevel,
 } from '../access';
-import type { AnnounceAccessChanges, WorkspaceAccessLevel } from '../access/types';
+import type { WorkspaceAccessLevel } from '../access/types';
 import { WorkspaceMembersRepository } from './repository';
 import type { MemberProfile, MemberSummary, WorkspaceMember } from './types';
 
@@ -78,10 +80,7 @@ export class WorkspaceMembersService {
 
   // Whoever leaves the workspace leaves its channels in the same step.
   @Transactional()
-  private async dismiss(
-    actor: WorkspaceMember,
-    targetUserId: string,
-  ): Promise<AnnounceAccessChanges> {
+  private async dismiss(actor: WorkspaceMember, targetUserId: string): Promise<Announce> {
     const isSelf = actor.profile.oidcUserId === targetUserId;
     const target = isSelf ? actor : await this.requireOutranked(actor, targetUserId);
     if (isSelf && isOwner(actor))

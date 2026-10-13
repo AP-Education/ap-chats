@@ -5,12 +5,12 @@ import { CurrentWorkspaceMember } from '@/components/workspaces/members/decorato
 import { WorkspaceMemberGuard } from '@/components/workspaces/members/guards';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { MentionsFacade } from './mentions.facade';
+import { MentionsService } from './mentions.service';
 
 @Controller('workspaces/:workspaceId')
 @UseAuthGuards(WorkspaceMemberGuard('param', 'workspaceId'))
 export class MentionsController {
-  constructor(private readonly mentions: MentionsFacade) {}
+  constructor(private readonly mentions: MentionsService) {}
 
   @Get('channels/:channelId/mention-candidates')
   candidates(

@@ -1,8 +1,8 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import type { AnnounceAccessChanges } from '@/components/workspaces/access/types';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
+import type { Announce } from '@/globals/publisher/types';
 
 import { ChannelAccessSync } from '../sync';
 import { ChannelVisibility } from './channel-visibility.service';
@@ -41,14 +41,14 @@ export class ChannelPermissionsService {
     workspaceId: string,
     channelId: string,
     permissions: ChannelPermissions,
-  ): Promise<AnnounceAccessChanges> {
+  ): Promise<Announce> {
     await this.permissions.replace(workspaceId, channelId, permissions);
 
     return this.sync.refreshChannel(workspaceId, channelId);
   }
 
   /** Everyone in the channel loses it; runs in the transaction that deletes it, announcing after commit. */
-  close(workspaceId: string, channelId: string): Promise<AnnounceAccessChanges> {
+  close(workspaceId: string, channelId: string): Promise<Announce> {
     return this.sync.closeChannel(workspaceId, channelId);
   }
 
@@ -62,7 +62,7 @@ export class ChannelPermissionsService {
     member: WorkspaceMember,
     channelId: string,
     permissions: ChannelPermissions,
-  ): Promise<AnnounceAccessChanges> {
+  ): Promise<Announce> {
     await this.visibility.requireManageable(member, channelId);
 
     return this.assign(member.workspaceId, channelId, permissions);
@@ -70,10 +70,7 @@ export class ChannelPermissionsService {
 
   // Only a personal invitation can be turned down; a role or the whole workspace keeps you in.
   @Transactional()
-  private async declineInvitation(
-    member: WorkspaceMember,
-    channelId: string,
-  ): Promise<AnnounceAccessChanges> {
+  private async declineInvitation(member: WorkspaceMember, channelId: string): Promise<Announce> {
     await this.visibility.requireVisible(member, channelId);
 
     const sources = await this.permissions.sourcesOf(channelId, member.id);

@@ -2,8 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Transactional } from '@nestjs-cls/transactional';
 
 import { requireAccessLevel } from '@/components/workspaces/access';
-import type { AnnounceAccessChanges } from '@/components/workspaces/access/types';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
+import type { Announce } from '@/globals/publisher/types';
 
 import { ChannelPermissionsService } from '../channel-access/permissions';
 import { ChannelVisibility } from '../channel-access/permissions';
@@ -18,7 +18,7 @@ import type { UpdateChannelDto } from './dto/update-channel.dto';
 
 interface OpenedChannel {
   channelId: string;
-  announce: AnnounceAccessChanges;
+  announce: Announce;
 }
 
 /** The workspace's channels as people find and run them: listing, opening, renaming, closing. */
@@ -98,7 +98,7 @@ export class ChannelDirectoryService {
 
   // Everyone in the channel learns it is gone, so their sidebars and open pages let go of it.
   @Transactional()
-  private async close(member: WorkspaceMember, channelId: string): Promise<AnnounceAccessChanges> {
+  private async close(member: WorkspaceMember, channelId: string): Promise<Announce> {
     await this.visibility.requireManageable(member, channelId);
 
     const announce = await this.permissions.close(member.workspaceId, channelId);

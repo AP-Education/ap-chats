@@ -18,6 +18,7 @@ import { DrizzleRolesRepository } from '@/components/workspaces/roles/repository
 import { RolesFacade } from '@/components/workspaces/roles/roles.facade';
 import { RolesService } from '@/components/workspaces/roles/roles.service';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
+import type { Announce } from '@/globals/publisher/types';
 
 import { type TestDatabase, transactionHost } from './pglite';
 
@@ -27,6 +28,10 @@ export class RecordedEvents extends EventPublisher {
 
   publish<T>(key: string, event: T): void {
     this.published.push({ key, event });
+  }
+
+  async record<T extends object>(key: string, event: T): Promise<Announce> {
+    return () => this.publish(key, event);
   }
 
   lastOf<T>(key: string): T | undefined {

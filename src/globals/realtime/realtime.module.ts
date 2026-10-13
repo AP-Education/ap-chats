@@ -3,7 +3,7 @@ import { Global, Module } from '@nestjs/common';
 import { RealtimePublisher } from './realtime.publisher';
 import { SocketIoRealtimePublisher } from './socket-io-realtime.publisher';
 
-// Infrastructure shared by future chat and notification components.
+// Socket delivery any component can use; rooms and payloads belong to the component that sends them.
 @Global()
 @Module({
   providers: [

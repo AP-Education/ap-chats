@@ -3,11 +3,6 @@ import type { MessagePin, PinnedMessage } from '../types/pin.types';
 export abstract class PinsRepository {
   abstract list(channelId: string): Promise<PinnedMessage[]>;
   abstract find(channelId: string, messageId: string): Promise<MessagePin | null>;
-  abstract messageIsAvailable(
-    workspaceId: string,
-    channelId: string,
-    messageId: string,
-  ): Promise<boolean>;
   abstract insert(
     workspaceId: string,
     channelId: string,

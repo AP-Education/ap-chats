@@ -11,7 +11,7 @@ import { DrizzleRolesRepository } from '@/components/workspaces/roles/repository
 import * as schema from '@/database/drizzle/schema';
 import { migratedDatabase, transactionHost } from '@/testing/pglite';
 
-import { MentionsFacade } from './mentions.facade';
+import { MentionsService } from './mentions.service';
 import { DrizzleMentionsRepository } from './repository/drizzle-mentions.repository';
 
 test('mentions on PostgreSQL', async (t) => {
@@ -19,7 +19,7 @@ test('mentions on PostgreSQL', async (t) => {
   t.after(() => pg.close());
 
   const txHost = transactionHost(db);
-  const mentions = new MentionsFacade(
+  const mentions = new MentionsService(
     new DrizzleMentionsRepository(txHost as never),
     {} as never,
     new RolesFacade(new DrizzleRolesRepository(txHost as never)),

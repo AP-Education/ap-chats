@@ -1,6 +1,6 @@
 import type {
   CreateMessageRecord,
-  ForwardMessageRecord,
+  ForwardedCopy,
   MessageModel,
   MessageWithSeq,
 } from '../types/message.types';
@@ -11,6 +11,11 @@ export abstract class MessagesRepository {
     authorMemberId: string,
     clientNonce: string,
   ): Promise<MessageModel | null>;
+  abstract findByNonces(
+    channelId: string,
+    authorMemberId: string,
+    clientNonces: string[],
+  ): Promise<MessageWithSeq[]>;
   abstract findById(
     workspaceId: string,
     channelId: string,
@@ -20,13 +25,13 @@ export abstract class MessagesRepository {
   abstract findWithEntries(channelId: string, ids: string[]): Promise<MessageWithSeq[]>;
   abstract entrySeq(messageId: string): Promise<bigint>;
   abstract insert(data: CreateMessageRecord): Promise<MessageModel>;
-  abstract insertForwardBatch(
-    workspaceId: string,
-    channelId: string,
-    authorMemberId: string,
-    sources: ForwardMessageRecord[],
-    requestDigest: string,
-  ): Promise<MessageModel[]>;
+  abstract insertForwarded(input: {
+    workspaceId: string;
+    channelId: string;
+    authorMemberId: string;
+    copies: ForwardedCopy[];
+    requestDigest: string;
+  }): Promise<MessageModel[]>;
   abstract updateContent(id: string, markdown: string, nextRevision: number): Promise<MessageModel>;
   abstract tombstone(ids: string[]): Promise<void>;
 }

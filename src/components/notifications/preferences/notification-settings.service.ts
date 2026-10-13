@@ -1,14 +1,14 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
 import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
+import { isMuted, settingsAfter } from './notification-settings.rules';
 import { NotificationSettingsRepository } from './repository/notification-settings.repository';
 import type {
   ChangeNotificationSettings,
   ChannelNotificationSettings,
-  NotificationSettingsUpdate,
   StoredNotificationSettings,
 } from './types';
 
@@ -36,8 +36,11 @@ export class NotificationSettingsService {
     await this.access.requireMembership(member, channelId);
     const current = await this.repository.forMember(channelId, member.id);
     if (!current) throw new NotFoundException('Channel membership not found');
-    const update = this.resolveUpdate(current, command);
-    const saved = await this.repository.update(channelId, member.id, update);
+    const saved = await this.repository.update(
+      channelId,
+      member.id,
+      settingsAfter(current, command),
+    );
     if (!saved) throw new NotFoundException('Channel membership not found');
     return this.toView(saved);
   }
@@ -46,45 +49,11 @@ export class NotificationSettingsService {
     return this.repository.forChannel(channelId);
   }
 
-  private resolveUpdate(
-    current: StoredNotificationSettings,
-    command: ChangeNotificationSettings,
-  ): NotificationSettingsUpdate {
-    switch (command.type) {
-      case 'level':
-        if (!command.level) throw new BadRequestException('Notification level is required');
-        return { level: command.level, notificationsMuted: false, mutedUntil: null };
-      case 'mute':
-        if (!command.duration) throw new BadRequestException('Mute duration is required');
-        if (command.duration === 'indefinite') {
-          return {
-            level: current.level === 'none' ? 'default' : current.level,
-            notificationsMuted: true,
-            mutedUntil: null,
-          };
-        }
-        return {
-          level: current.level === 'none' ? 'default' : current.level,
-          notificationsMuted: false,
-          mutedUntil: new Date(Date.now() + (command.duration === 'hour' ? 3_600_000 : 86_400_000)),
-        };
-      case 'unmute':
-        return {
-          level: current.level === 'none' ? 'default' : current.level,
-          notificationsMuted: false,
-          mutedUntil: null,
-        };
-    }
-  }
-
   private toView(settings: StoredNotificationSettings): ChannelNotificationSettings {
     return {
       level: settings.level,
       mutedUntil: settings.mutedUntil?.toISOString() ?? null,
-      isMuted:
-        settings.notificationsMuted ||
-        settings.level === 'none' ||
-        Boolean(settings.mutedUntil && settings.mutedUntil > new Date()),
+      isMuted: isMuted(settings),
     };
   }
 }

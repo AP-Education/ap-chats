@@ -40,7 +40,7 @@ export class ChannelAccessPolicy {
   }
 
   /** No channel lock: changes outside history (reactions) never queue behind messages being sent. */
-  async requireReactAccess(
+  async requireParticipant(
     member: WorkspaceMember,
     channelId: string,
   ): Promise<ChannelAccessSnapshot> {
@@ -50,6 +50,18 @@ export class ChannelAccessPolicy {
     return channel;
   }
 
+  /** The right to post, without holding the channel: for work that prepares a post, such as files and calls. */
+  async requirePostRight(
+    member: WorkspaceMember,
+    channelId: string,
+  ): Promise<ChannelAccessSnapshot> {
+    const channel = await this.requireParticipant(member, channelId);
+    if (!channel.canPost) throw new ForbiddenException('You can only read this channel');
+
+    return channel;
+  }
+
+  /** Appending to the history: holds the channel row, so entries keep their order. */
   async requirePostAccess(
     member: WorkspaceMember,
     channelId: string,

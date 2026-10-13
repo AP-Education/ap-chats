@@ -1,8 +1,9 @@
-import type { CallEndedEvent } from 'expo-callkit-telecom';
+import type { CallEndedEvent, CallEndedReason } from 'expo-callkit-telecom';
 
 import { declineCall, leaveCall } from '../api/calls-api';
 import { useNativeCallStore } from '../store/native-call-store';
 import { playLeaveChime } from './call-chimes';
+import { playBusyTone } from './call-tones';
 import { requireAccessToken } from './require-access-token';
 import { untrackSession } from './session-registry';
 
@@ -10,7 +11,7 @@ import { untrackSession } from './session-registry';
  * backend; system reports of remote endings only clean up the local session. */
 export async function endCallSession(
   event: Pick<CallEndedEvent, 'id'>,
-  { notifyServer = true }: { notifyServer?: boolean } = {},
+  { notifyServer = true, reason }: { notifyServer?: boolean; reason?: CallEndedReason } = {},
 ): Promise<void> {
   const current = useNativeCallStore.getState().call;
   const wasRinging = current?.sessionId === event.id && current.status === 'ringing';
@@ -20,9 +21,12 @@ export async function endCallSession(
 
   try {
     session.stopTrackingRemote?.();
+    session.stopCallCues?.();
     if (session.room) {
       await session.room.disconnect();
-      playLeaveChime();
+      // A turned-down call sounds like a busy line, as on any phone.
+      if (reason === 'declinedElsewhere') playBusyTone();
+      else playLeaveChime();
     }
   } catch (error) {
     if (__DEV__) console.warn('[calls] media cleanup failed', error);

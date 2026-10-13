@@ -121,7 +121,7 @@ test('channel access on PostgreSQL', async (t) => {
     const announcements = await open('announcements', { view: [everyone], post: [role(hr.id)] });
 
     await policy.requireViewAccess(designer, announcements.id);
-    await policy.requireReactAccess(designer, announcements.id);
+    await policy.requireParticipant(designer, announcements.id);
     await assert.rejects(policy.requirePostAccess(designer, announcements.id), { status: 403 });
     await policy.requirePostAccess(recruiter, announcements.id);
   });

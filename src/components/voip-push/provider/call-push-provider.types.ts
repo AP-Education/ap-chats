@@ -1,4 +1,4 @@
-import type { CallSignalPayload } from '@/components/calls/events/call-signal.event';
+import type { CallSignalPayload } from '@/components/calls/calls/events/call-signal.event';
 import type { DeviceRecord } from '@/components/devices';
 
 // One instance per platform, both always present — unlike CallProvider, there is no

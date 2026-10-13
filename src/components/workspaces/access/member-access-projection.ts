@@ -1,4 +1,4 @@
-import type { AnnounceAccessChanges } from './types';
+import type { Announce } from '@/globals/publisher/types';
 
 /**
  * What depends on people's roles, such as who is in which channel. Roles and workspace membership
@@ -6,5 +6,5 @@ import type { AnnounceAccessChanges } from './types';
  * fails at startup instead of silently skipping the recalculation.
  */
 export abstract class MemberAccessProjection {
-  abstract refreshMembers(workspaceId: string, memberIds: string[]): Promise<AnnounceAccessChanges>;
+  abstract refreshMembers(workspaceId: string, memberIds: string[]): Promise<Announce>;
 }

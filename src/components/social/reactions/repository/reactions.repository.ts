@@ -1,7 +1,6 @@
 import type { ReactedMessage, ReactionSummary, Reactor } from '../types/reaction.types';
 
 export abstract class ReactionsRepository {
-  abstract isLiveMessage(message: ReactedMessage): Promise<boolean>;
   abstract emojisOn(messageId: string): Promise<string[]>;
   /** False when the member already had this reaction. */
   abstract add(message: ReactedMessage, emoji: string, memberId: string): Promise<boolean>;

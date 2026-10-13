@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
+import type { Announce } from '@/globals/publisher/types';
+
 import { MemberAccessProjection, requireAccessLevel } from '../access';
-import type { AnnounceAccessChanges } from '../access/types';
 import type { WorkspaceMember } from '../members/types';
 import type { CreateRoleDto } from './dto/create-role.dto';
 import type { UpdateRoleDto } from './dto/update-role.dto';
@@ -56,7 +57,7 @@ export class RolesService {
 
   // Whatever the role gave its people goes with it, in the same step.
   @Transactional()
-  private async dissolve(workspaceId: string, roleId: string): Promise<AnnounceAccessChanges> {
+  private async dissolve(workspaceId: string, roleId: string): Promise<Announce> {
     const formerHolderIds = await this.roles.remove(workspaceId, roleId);
     if (!formerHolderIds) throw new NotFoundException('Role not found');
 

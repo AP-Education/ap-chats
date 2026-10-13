@@ -62,7 +62,7 @@ test('a read-only participant reads, reacts and keeps their place but cannot pos
   const policy = access([announcements]);
 
   assert.equal((await policy.requireViewAccess(actor, announcements.id)).id, announcements.id);
-  assert.equal((await policy.requireReactAccess(actor, announcements.id)).id, announcements.id);
+  assert.equal((await policy.requireParticipant(actor, announcements.id)).id, announcements.id);
   assert.equal((await policy.requireMembership(actor, announcements.id)).id, announcements.id);
   await assert.rejects(policy.requirePostAccess(actor, announcements.id), { status: 403 });
 });

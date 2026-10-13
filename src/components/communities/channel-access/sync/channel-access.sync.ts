@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
 import { MemberAccessProjection } from '@/components/workspaces/access';
-import type { AnnounceAccessChanges } from '@/components/workspaces/access/types';
-import { EventPublisher } from '@/globals/publisher/event-publisher';
+import { EventPublisher, nothingToAnnounce } from '@/globals/publisher/event-publisher';
+import type { Announce } from '@/globals/publisher/types';
 
 import {
   CHANNEL_ACCESS_CHANGED_EVENT,
@@ -21,35 +21,32 @@ export class ChannelAccessSync extends MemberAccessProjection {
     super();
   }
 
-  refreshChannel(workspaceId: string, channelId: string): Promise<AnnounceAccessChanges> {
+  refreshChannel(workspaceId: string, channelId: string): Promise<Announce> {
     return this.refresh({ workspaceId, channelIds: [channelId] });
   }
 
-  refreshMembers(workspaceId: string, memberIds: string[]): Promise<AnnounceAccessChanges> {
+  refreshMembers(workspaceId: string, memberIds: string[]): Promise<Announce> {
     return this.refresh({ workspaceId, memberIds });
   }
 
   /** Everyone in the channel loses it; runs before it is deleted, in the same transaction. */
-  async closeChannel(workspaceId: string, channelId: string): Promise<AnnounceAccessChanges> {
+  async closeChannel(workspaceId: string, channelId: string): Promise<Announce> {
     const revoked = await this.participation.participants(workspaceId, channelId);
 
     return this.announce({ workspaceId, channelIds: [channelId] }, { granted: [], revoked });
   }
 
-  private async refresh(scope: ParticipationScope): Promise<AnnounceAccessChanges> {
+  private async refresh(scope: ParticipationScope): Promise<Announce> {
     const ids = 'channelIds' in scope ? scope.channelIds : scope.memberIds;
-    if (!ids.length) return () => {};
+    if (!ids.length) return nothingToAnnounce;
 
     const changes = await this.participation.reconcile(scope);
 
     return this.announce(scope, changes);
   }
 
-  private announce(
-    scope: ParticipationScope,
-    changes: ParticipationChanges,
-  ): AnnounceAccessChanges {
+  private announce(scope: ParticipationScope, changes: ParticipationChanges): Promise<Announce> {
     const event = new ChannelAccessChangedEvent(scope, changes);
-    return () => this.events.publish(CHANNEL_ACCESS_CHANGED_EVENT, event);
+    return this.events.record(CHANNEL_ACCESS_CHANGED_EVENT, event);
   }
 }

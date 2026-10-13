@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { CallSignalPayload } from '@/components/calls/events/call-signal.event';
+import type { CallSignalPayload } from '@/components/calls/calls/events/call-signal.event';
 
 import { buildIncomingCallEvent } from './incoming-call-event';
 

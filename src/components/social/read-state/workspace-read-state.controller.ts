@@ -5,12 +5,12 @@ import { CurrentWorkspaceMember } from '@/components/workspaces/members/decorato
 import { WorkspaceMemberGuard } from '@/components/workspaces/members/guards';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { ReadStateFacade } from './read-state.facade';
+import { ReadStateService } from './read-state.service';
 
 @Controller('workspaces/:workspaceId/read-state')
 @UseAuthGuards(WorkspaceMemberGuard('param', 'workspaceId'))
 export class WorkspaceReadStateController {
-  constructor(private readonly readState: ReadStateFacade) {}
+  constructor(private readonly readState: ReadStateService) {}
 
   @Get()
   list(@CurrentWorkspaceMember() member: WorkspaceMember) {

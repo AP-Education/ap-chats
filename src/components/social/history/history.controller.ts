@@ -6,12 +6,12 @@ import { WorkspaceMemberGuard } from '@/components/workspaces/members/guards';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { HistoryQueryDto, HistoryWindowQueryDto } from './dto/history-query.dto';
-import { HistoryFacade } from './history.facade';
+import { HistoryService } from './history.service';
 
 @Controller('workspaces/:workspaceId/channels/:channelId/messages')
 @UseAuthGuards(WorkspaceMemberGuard('param', 'workspaceId'))
 export class HistoryController {
-  constructor(private readonly history: HistoryFacade) {}
+  constructor(private readonly history: HistoryService) {}
 
   @Get('window')
   window(

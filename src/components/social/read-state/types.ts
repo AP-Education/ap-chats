@@ -9,8 +9,3 @@ export interface ChannelReadState {
   lastReadEntrySeq: string;
   unreadCount: number;
 }
-
-export interface MarkReadOutcome {
-  state: ChannelReadState;
-  advanced: boolean;
-}
