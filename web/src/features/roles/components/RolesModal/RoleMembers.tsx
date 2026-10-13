@@ -7,6 +7,7 @@ import { useWorkspaceMembers } from '@/features/workspaces/hooks/useWorkspaceMem
 import { compareNames } from '@/shared/lib/compare-names';
 
 import { useRoleMembers } from '../../hooks/useRoleMembers';
+import { useRoleMembership } from '../../hooks/useRoleMembership';
 import { RoleMemberList } from './RoleMemberList';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -27,11 +28,12 @@ interface RoleMembersProps {
 
 export function RoleMembers({ workspaceId, roleId }: RoleMembersProps) {
   const { styles } = useStyles();
-  const { query, add, remove } = useRoleMembers(workspaceId, roleId);
+  const members = useRoleMembers(workspaceId, roleId);
+  const { add, remove } = useRoleMembership(workspaceId);
   const workspaceMembers = useWorkspaceMembers(workspaceId);
   const [picked, setPicked] = useState<string[]>([]);
 
-  const inRole = new Set((query.data ?? []).map((member) => member.memberId));
+  const inRole = new Set((members.data ?? []).map((member) => member.memberId));
   const candidates = (workspaceMembers.data ?? [])
     .filter((member) => !inRole.has(member.id))
     .map((member) => ({
@@ -41,16 +43,22 @@ export function RoleMembers({ workspaceId, roleId }: RoleMembersProps) {
     .sort((a, b) => compareNames(a.label, b.label));
 
   function addPicked() {
-    add.mutate(picked, {
-      onSuccess: () => setPicked([]),
-      onError: () => void message.error('Не вдалося додати людей до ролі.'),
-    });
+    add.mutate(
+      { roleId, memberIds: picked },
+      {
+        onSuccess: () => setPicked([]),
+        onError: () => void message.error('Не вдалося додати людей до ролі.'),
+      },
+    );
   }
 
   function removeMember(memberId: string) {
-    remove.mutate(memberId, {
-      onError: () => void message.error('Не вдалося прибрати людину з ролі.'),
-    });
+    remove.mutate(
+      { roleId, memberId },
+      {
+        onError: () => void message.error('Не вдалося прибрати людину з ролі.'),
+      },
+    );
   }
 
   return (
@@ -77,7 +85,7 @@ export function RoleMembers({ workspaceId, roleId }: RoleMembersProps) {
           Додати
         </Button>
       </div>
-      <RoleMemberList members={query.data} onRemove={removeMember} />
+      <RoleMemberList members={members.data} onRemove={removeMember} />
     </div>
   );
 }

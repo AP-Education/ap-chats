@@ -1,11 +1,8 @@
 import { useIsMobile } from '@ap-education/ui';
-import { useQueryClient } from '@tanstack/react-query';
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { useReducer } from 'react';
 
-import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { AccessLevelBadge } from '@/features/workspaces/components/AccessLevelBadge';
 import { useActiveWorkspace } from '@/features/workspaces/hooks/useActiveWorkspace';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { isWorkspaceAdministrator, isWorkspaceOwner } from '@/features/workspaces/workspace-access';
@@ -13,10 +10,11 @@ import { ApiError } from '@/shared/api/http';
 
 import { useMemberProfile } from '../../hooks/useMemberProfile';
 import { useMemberRoleAssignments } from '../../hooks/useMemberRoleAssignments';
-import { peopleQueryKeys } from '../../queryKeys';
+import { MemberCardContext, type MemberCardScope } from '../../stores/member-card-context';
 import type { MemberSummary } from '../../types';
 import { memberCardView } from './member-card-view';
 import { MemberCardActions } from './MemberCardActions';
+import { MemberCardDetail } from './MemberCardDetail';
 import { MemberCardFrame } from './MemberCardFrame';
 import { MemberRoleSection } from './MemberRoleSection';
 import { MemberRolesView } from './MemberRolesView';
@@ -38,8 +36,6 @@ interface MemberCardProps {
 export function MemberCard({ member, onConversationOpen }: MemberCardProps) {
   const { styles } = useStyles();
   const isMobile = useIsMobile();
-  const { identity } = useQueryAuth();
-  const queryClient = useQueryClient();
   const { workspace } = useActiveWorkspace();
   const workspaceId = workspace?.id ?? '';
   const profile = useMemberProfile(workspace?.id, member.memberId);
@@ -51,72 +47,47 @@ export function MemberCard({ member, onConversationOpen }: MemberCardProps) {
     ? (profile.data.displayName ?? 'Ім’я недоступне')
     : (member.displayName ?? 'Ім’я недоступне');
   const avatarPath = profile.data ? profile.data.avatarPath : member.avatarPath;
+  const isSelf = profile.data?.isSelf ?? false;
   const unavailable =
     !workspace || (profile.error instanceof ApiError && [403, 404].includes(profile.error.status));
-  const roles = profile.data?.roles ?? [];
-  const isSelf = profile.data?.isSelf ?? false;
-  const canManageRoles = isWorkspaceAdministrator(currentMember);
+  const scope: MemberCardScope = {
+    workspaceId,
+    memberId: member.memberId,
+    profile: profile.data,
+    isLoading: profile.isPending,
+    unavailable,
+    canChangeLevel: isWorkspaceOwner(currentMember) && !isSelf,
+    canManageRoles: isWorkspaceAdministrator(currentMember) && !unavailable,
+    assignedRoleIds: new Set(profile.data?.roles.map((role) => role.id)),
+    toggleRole,
+  };
 
   if (view === 'roles')
     return (
-      <MemberRolesView
-        workspaceId={workspaceId}
-        name={name}
-        assignedRoleIds={new Set(roles.map((role) => role.id))}
-        onToggle={toggleRole}
-        onBack={() => dispatch({ type: 'backToProfile' })}
-      />
+      <MemberCardContext.Provider value={scope}>
+        <MemberRolesView name={name} onBack={() => dispatch({ type: 'backToProfile' })} />
+      </MemberCardContext.Provider>
     );
 
-  const detail = profile.isPending ? (
-    ''
-  ) : unavailable || !profile.data ? (
-    'Учасник недоступний'
-  ) : (
-    <AccessLevelBadge
-      workspaceId={workspaceId}
-      memberId={member.memberId}
-      accessLevel={profile.data.accessLevel}
-      editable={isWorkspaceOwner(currentMember) && !isSelf}
-      onChanged={() =>
-        void queryClient.invalidateQueries({
-          queryKey: peopleQueryKeys.profile(identity, workspaceId, member.memberId),
-        })
-      }
-    />
-  );
-
   return (
-    <MemberCardFrame
-      name={name}
-      avatarPath={avatarPath}
-      detail={detail}
-      avatarSize={isMobile ? SHEET_AVATAR_SIZE : undefined}
-    >
-      {profile.isPending ? (
-        <div className={styles.loading} aria-label="Завантажуємо профіль" role="status">
-          <Skeleton.Button active block size="small" />
-        </div>
-      ) : (
-        <>
-          <MemberRoleSection
-            workspaceId={workspaceId}
-            roles={roles}
-            canManage={canManageRoles && !unavailable}
-            isMobile={isMobile}
-            onToggle={toggleRole}
-            onManageRoles={() => dispatch({ type: 'manageRoles' })}
-          />
-          {!isSelf && (
-            <MemberCardActions
-              workspaceId={workspaceId}
-              memberId={member.memberId}
-              unavailable={unavailable}
-              onConversationOpen={onConversationOpen}
-            />
-          )}
-        </>
-      )}
-    </MemberCardFrame>
+    <MemberCardContext.Provider value={scope}>
+      <MemberCardFrame
+        name={name}
+        avatarPath={avatarPath}
+        detail={<MemberCardDetail />}
+        avatarSize={isMobile ? SHEET_AVATAR_SIZE : undefined}
+      >
+        {profile.isPending ? (
+          <div className={styles.loading} aria-label="Завантажуємо профіль" role="status">
+            <Skeleton.Button active block size="small" />
+          </div>
+        ) : (
+          <>
+            <MemberRoleSection onManageRoles={() => dispatch({ type: 'manageRoles' })} />
+            {!isSelf && <MemberCardActions onConversationOpen={onConversationOpen} />}
+          </>
+        )}
+      </MemberCardFrame>
+    </MemberCardContext.Provider>
   );
 }

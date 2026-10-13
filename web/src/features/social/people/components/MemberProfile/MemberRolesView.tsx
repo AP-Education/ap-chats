@@ -3,7 +3,8 @@ import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { RolePicker } from '@/features/roles/components/RolePicker';
-import type { RoleBadge } from '@/features/roles/types';
+
+import { useMemberCard } from '../../stores/member-card-context';
 
 const useStyles = createStyles(({ token, css }) => ({
   view: css`
@@ -31,22 +32,14 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 interface MemberRolesViewProps {
-  workspaceId: string;
   name: string;
-  assignedRoleIds: ReadonlySet<string>;
-  onToggle: (role: RoleBadge, assigned: boolean) => void;
   onBack: () => void;
 }
 
 // On a phone the sheet swaps the profile for this list instead of stacking a popover on it.
-export function MemberRolesView({
-  workspaceId,
-  name,
-  assignedRoleIds,
-  onToggle,
-  onBack,
-}: MemberRolesViewProps) {
+export function MemberRolesView({ name, onBack }: MemberRolesViewProps) {
   const { styles } = useStyles();
+  const { workspaceId, assignedRoleIds, toggleRole } = useMemberCard();
 
   return (
     <div className={styles.view}>
@@ -59,7 +52,11 @@ export function MemberRolesView({
         />
         <span className={styles.title}>Ролі: {name}</span>
       </div>
-      <RolePicker workspaceId={workspaceId} assignedRoleIds={assignedRoleIds} onToggle={onToggle} />
+      <RolePicker
+        workspaceId={workspaceId}
+        assignedRoleIds={assignedRoleIds}
+        onToggle={toggleRole}
+      />
     </div>
   );
 }

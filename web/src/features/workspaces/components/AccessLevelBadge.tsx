@@ -1,11 +1,7 @@
 import { CaretDownIcon, CheckIcon } from '@phosphor-icons/react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Dropdown, type MenuProps, message } from 'antd';
+import { Dropdown, type MenuProps } from 'antd';
 import { createStyles } from 'antd-style';
 
-import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-
-import { changeAccessLevel } from '../api/workspace-members-api';
 import type { WorkspaceAccessLevel } from '../types';
 import { accessLevelLabels } from '../workspace-access';
 
@@ -70,41 +66,18 @@ const levels: { level: WorkspaceAccessLevel; hint: string }[] = [
 ];
 
 interface AccessLevelBadgeProps {
-  workspaceId: string;
-  memberId: string;
   accessLevel: WorkspaceAccessLevel;
   /** Only owners change levels, and never their own. */
   editable: boolean;
-  onChanged?: () => void;
+  onChange?: (level: WorkspaceAccessLevel) => void;
 }
 
-export function AccessLevelBadge({
-  workspaceId,
-  memberId,
-  accessLevel,
-  editable,
-  onChanged,
-}: AccessLevelBadgeProps) {
+/** A person's access level, and for the owner the menu to change it. */
+export function AccessLevelBadge({ accessLevel, editable, onChange }: AccessLevelBadgeProps) {
   const { styles, cx } = useStyles();
-  const { token, identity } = useQueryAuth();
-  const queryClient = useQueryClient();
+  const badgeClass = cx(styles.badge, accessLevel !== 'member' && styles.manager);
 
-  const change = useMutation({
-    mutationFn: (level: WorkspaceAccessLevel) =>
-      changeAccessLevel(token as string, workspaceId, memberId, level),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ['workspace-members', identity, workspaceId],
-      });
-      onChanged?.();
-    },
-    onError: () => void message.error('Не вдалося змінити рівень доступу.'),
-  });
-
-  const shown = change.isPending ? change.variables : accessLevel;
-  const badgeClass = cx(styles.badge, shown !== 'member' && styles.manager);
-
-  if (!editable) return <span className={badgeClass}>{accessLevelLabels[shown]}</span>;
+  if (!editable) return <span className={badgeClass}>{accessLevelLabels[accessLevel]}</span>;
 
   const items: MenuProps['items'] = levels.map(({ level, hint }) => ({
     key: level,
@@ -112,7 +85,7 @@ export function AccessLevelBadge({
       <span className={styles.option}>
         <span className={styles.optionLabel}>{accessLevelLabels[level]}</span>
         <span className={styles.optionHint}>{hint}</span>
-        {level === shown && <CheckIcon size={16} weight="bold" className={styles.check} />}
+        {level === accessLevel && <CheckIcon size={16} weight="bold" className={styles.check} />}
       </span>
     ),
   }));
@@ -123,16 +96,16 @@ export function AccessLevelBadge({
       menu={{
         items,
         onClick: ({ key }) => {
-          if (key !== shown) change.mutate(key as WorkspaceAccessLevel);
+          if (key !== accessLevel) onChange?.(key as WorkspaceAccessLevel);
         },
       }}
     >
       <button
         type="button"
         className={cx(badgeClass, styles.editable)}
-        aria-label={`Рівень доступу: ${accessLevelLabels[shown]}. Змінити`}
+        aria-label={`Рівень доступу: ${accessLevelLabels[accessLevel]}. Змінити`}
       >
-        {accessLevelLabels[shown]}
+        {accessLevelLabels[accessLevel]}
         <CaretDownIcon size={12} weight="bold" />
       </button>
     </Dropdown>

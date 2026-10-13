@@ -2,19 +2,32 @@
 // grammar in src/components/social/messages/content/message-markdown.ts.
 
 export type MentionToken =
-  { kind: 'member'; id: string } | { kind: 'channel'; id: string } | { kind: 'everyone' };
+  | { kind: 'member'; id: string }
+  | { kind: 'role'; id: string }
+  | { kind: 'channel'; id: string }
+  | { kind: 'everyone' };
+
+type ReferenceKind = Exclude<MentionToken['kind'], 'everyone'>;
+
+// Every kind of reference by id, with how it reads: a new kind is added here and rendered once.
+const references: Record<ReferenceKind, { sigil: '@' | '#'; unnamed: string }> = {
+  member: { sigil: '@', unnamed: 'учасник' },
+  role: { sigil: '@', unnamed: 'роль' },
+  channel: { sigil: '#', unnamed: 'канал' },
+};
 
 export const EVERYONE_TOKEN = ':mention[everyone]';
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const uuidPattern = new RegExp(`^${UUID}$`);
-const tokenPattern = new RegExp(`:(member|channel)\\[(${UUID})\\]|:mention\\[everyone\\]`, 'g');
+const tokenPattern = new RegExp(
+  `:(${Object.keys(references).join('|')})\\[(${UUID})\\]|:mention\\[everyone\\]`,
+  'g',
+);
 
-const previewWords: Record<MentionToken['kind'], string> = {
-  member: '@учасник',
-  channel: '#канал',
-  everyone: '@everyone',
-};
+function isReferenceKind(name: unknown): name is ReferenceKind {
+  return typeof name === 'string' && Object.hasOwn(references, name);
+}
 
 export function writeToken(token: MentionToken): string {
   return token.kind === 'everyone' ? EVERYONE_TOKEN : `:${token.kind}[${token.id}]`;
@@ -23,8 +36,31 @@ export function writeToken(token: MentionToken): string {
 /** The reference a parsed text directive stands for, or null when it is not one. */
 export function readToken(name: string | undefined, label: string): MentionToken | null {
   if (name === 'mention' && label === 'everyone') return { kind: 'everyone' };
-  if ((name === 'member' || name === 'channel') && uuidPattern.test(label))
-    return { kind: name, id: label };
+  if (isReferenceKind(name) && uuidPattern.test(label)) return { kind: name, id: label };
+  return null;
+}
+
+/** How a reference reads as text: by its name where known, otherwise by what it is. */
+export function tokenText(token: MentionToken, name?: string): string {
+  if (token.kind === 'everyone') return '@everyone';
+  const { sigil, unnamed } = references[token.kind];
+  return `${sigil}${name ?? unnamed}`;
+}
+
+/** The attributes a rendered reference carries, read back by `tokenFromAttributes`. */
+export function tokenAttributes(token: MentionToken): Record<string, string> {
+  return token.kind === 'everyone'
+    ? { 'data-mention': token.kind }
+    : { 'data-mention': token.kind, 'data-mention-id': token.id };
+}
+
+export function tokenFromAttributes(
+  attributes: Record<string, unknown> | undefined,
+): MentionToken | null {
+  const kind = attributes?.['data-mention'];
+  const id = attributes?.['data-mention-id'];
+  if (kind === 'everyone') return { kind };
+  if (isReferenceKind(kind) && typeof id === 'string') return { kind, id };
   return null;
 }
 
@@ -35,8 +71,7 @@ export function splitTokens(markdown: string): (string | MentionToken)[] {
 
   for (const match of markdown.matchAll(tokenPattern)) {
     const [written, kind, id] = match;
-    const token: MentionToken =
-      kind === 'member' || kind === 'channel' ? { kind, id: id! } : { kind: 'everyone' };
+    const token: MentionToken = isReferenceKind(kind) ? { kind, id: id! } : { kind: 'everyone' };
     parts.push(markdown.slice(start, match.index), token);
     start = match.index + written.length;
   }
@@ -47,7 +82,7 @@ export function splitTokens(markdown: string): (string | MentionToken)[] {
 /** One line of the markdown with its references read as words, without resolving names. */
 export function previewText(markdown: string): string {
   return splitTokens(markdown)
-    .map((part) => (typeof part === 'string' ? part : previewWords[part.kind]))
+    .map((part) => (typeof part === 'string' ? part : tokenText(part)))
     .join('')
     .replace(/\s+/gu, ' ');
 }

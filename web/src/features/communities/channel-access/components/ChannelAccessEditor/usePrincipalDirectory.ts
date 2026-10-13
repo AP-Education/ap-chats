@@ -17,7 +17,14 @@ const everyone: PrincipalDetails = {
   name: 'Уся компанія',
 };
 
-export function usePrincipalDirectory(workspaceId: string) {
+/** Everyone a channel's lists can name, and how to show whoever they already name. */
+export interface PrincipalDirectory {
+  known: PrincipalDetails[];
+  describe: (principal: Principal) => PrincipalDetails;
+  isLoading: boolean;
+}
+
+export function usePrincipalDirectory(workspaceId: string): PrincipalDirectory {
   const { query: roles } = useRoles(workspaceId);
   const members = useWorkspaceMembers(workspaceId);
 

@@ -1,8 +1,10 @@
+import { useIsMobile } from '@ap-education/ui';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 
 import type { RoleBadge } from '@/features/roles/types';
 
+import { useMemberCard } from '../../stores/member-card-context';
 import { AddRolePopover } from './AddRolePopover';
 import { MemberRoleChips } from './MemberRoleChips';
 
@@ -25,35 +27,19 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 interface MemberRoleSectionProps {
-  workspaceId: string;
-  roles: RoleBadge[];
-  /** Workspace managers give and take roles here. */
-  canManage: boolean;
-  isMobile: boolean;
-  onToggle: (role: RoleBadge, assigned: boolean) => void;
+  /** On a phone, managing roles opens their own view in place of the profile. */
   onManageRoles: () => void;
 }
 
-export function MemberRoleSection({
-  workspaceId,
-  roles,
-  canManage,
-  isMobile,
-  onToggle,
-  onManageRoles,
-}: MemberRoleSectionProps) {
+export function MemberRoleSection({ onManageRoles }: MemberRoleSectionProps) {
   const { styles } = useStyles();
-  if (!roles.length && !canManage) return null;
+  const isMobile = useIsMobile();
+  const { profile, canManageRoles, toggleRole } = useMemberCard();
+  const roles = profile?.roles ?? [];
+  if (!roles.length && !canManageRoles) return null;
 
-  const assignedRoleIds = new Set(roles.map((role) => role.id));
-  const removeRole = canManage ? (role: RoleBadge) => onToggle(role, false) : undefined;
-  const addOnDesktop = canManage && !isMobile && (
-    <AddRolePopover
-      workspaceId={workspaceId}
-      assignedRoleIds={assignedRoleIds}
-      onToggle={onToggle}
-    />
-  );
+  const removeRole = canManageRoles ? (role: RoleBadge) => toggleRole(role, false) : undefined;
+  const addOnDesktop = canManageRoles && !isMobile && <AddRolePopover />;
 
   return (
     <section className={styles.section} aria-label="Ролі">
@@ -61,7 +47,7 @@ export function MemberRoleSection({
       <MemberRoleChips roles={roles} onRemove={removeRole}>
         {addOnDesktop}
       </MemberRoleChips>
-      {canManage && isMobile && (
+      {canManageRoles && isMobile && (
         <Button size="small" onClick={onManageRoles}>
           Керувати ролями
         </Button>

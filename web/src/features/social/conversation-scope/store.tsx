@@ -26,6 +26,7 @@ export interface ConversationPermissions {
   /** Reading is enough to react, so a read-only channel still allows it. */
   canReact: boolean;
   canManage: boolean;
+  /** Pin and unpin; already includes whatever posting the page requires for it. */
   canPin: boolean;
 }
 
@@ -40,8 +41,8 @@ export interface ConversationScope {
     ariaLabel: string;
     placeholder: string;
     autoFocus?: boolean;
-    /** Offers @everyone, which only a channel has; a DM has no one else to reach. */
-    mentionEveryone?: boolean;
+    /** Offers @everyone and roles, which reach a group; only a channel has one. */
+    groupMentions?: boolean;
   };
   permissions: ConversationPermissions;
 }

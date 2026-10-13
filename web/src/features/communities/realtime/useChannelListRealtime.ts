@@ -6,27 +6,26 @@ import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { useConnection } from '@/features/realtime/stores/realtime-context';
 
 import { refreshChannelInventory, refreshChannelRights } from './channel-inventory-cache';
+import { type InventorySession, isNewSession } from './inventory-session';
 import type {
   ChannelAccessEvent,
   CommunityServerToClientEvents,
   WorkspaceAccessEvent,
 } from './types';
 
-export function ChannelListRealtime() {
+/** Keeps the person's channel lists in step with the access changes the server announces. */
+export function useChannelListRealtime(): void {
   const { identity } = useQueryAuth();
   const { socket, status } = useConnection();
   const queryClient = useQueryClient();
-  const refreshedSession = useRef<{ identity: string; socketId: string } | null>(null);
+  const refreshedSession = useRef<InventorySession | null>(null);
 
   const refreshSessionInventory = useCallback(() => {
     if (!identity || !socket?.id) return;
-    if (
-      refreshedSession.current?.identity === identity &&
-      refreshedSession.current.socketId === socket.id
-    )
-      return;
+    const session = { identity, socketId: socket.id };
+    if (!isNewSession(refreshedSession.current, session)) return;
 
-    refreshedSession.current = { identity, socketId: socket.id };
+    refreshedSession.current = session;
     void refreshChannelInventory(queryClient, identity);
   }, [identity, queryClient, socket]);
 
@@ -65,10 +64,8 @@ export function ChannelListRealtime() {
 
   useEffect(() => {
     if (status === 'connected') {
-      // The initial session:ready can arrive before this component subscribes.
+      // The initial session:ready can arrive before this hook subscribes.
       refreshSessionInventory();
     }
   }, [refreshSessionInventory, status]);
-
-  return null;
 }

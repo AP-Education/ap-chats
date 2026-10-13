@@ -1,5 +1,12 @@
 import type { CSSProperties, Ref } from 'react';
 
+/** A person named in a message, as history returns them for their tag. */
+export interface MentionLabel {
+  memberId: string;
+  displayName: string | null;
+  avatarPath?: string | null;
+}
+
 // A message's text as the editor holds it: markdown plus the names of the references it shows as chips.
 export interface ComposerDraft {
   markdown: string;

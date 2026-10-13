@@ -25,8 +25,8 @@ import { ApiError } from '@/shared/api/http';
 import { useChannelMembership } from '../../../memberships/hooks/useChannelMembership';
 import { ChannelNotificationsPopover } from '../../../notifications/components/Popover';
 import { PrivateChannelIcon, PublicChannelIcon } from '../../channelIcons';
+import { useChannelDialogs } from '../../stores/channel-dialogs-context';
 import type { Channel } from '../../types';
-import { ChannelFormModal } from '../ChannelFormModal';
 import { ReadOnlyChannelFooter } from './ReadOnlyChannelFooter';
 import { UnlistedChannelNotice } from './UnlistedChannelNotice';
 
@@ -180,13 +180,14 @@ export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailPr
   const navigate = useNavigate();
   const { currentMember } = useWorkspaceMemberLabels(workspaceId);
   const { query: membersQuery, leave } = useChannelMembership(workspaceId, channel.id);
-  const [editing, setEditing] = useState(false);
+  const dialogs = useChannelDialogs();
   const [sizeNoticeVisible, setSizeNoticeVisible] = useState(false);
   const canManage = channel.canManage;
   const call = useCallAction(workspaceId, channel.id, channel.name);
   const callTitle = callActionLabel(call, 'Дзвінок у каналі');
   const memberCount = membersQuery.data?.length ?? 0;
   const isLargeChannel = memberCount > LARGE_CHANNEL_MEMBER_THRESHOLD;
+  const openSettings = () => dialogs.openSettings(workspaceId, channel.id);
 
   function handleCall() {
     // Only pause for a call about to start fresh: joining one already
@@ -224,7 +225,7 @@ export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailPr
           <ChannelTitle
             channel={channel}
             canManage={canManage}
-            onSettings={() => setEditing(true)}
+            onSettings={openSettings}
             onLeave={handleLeave}
           />
         </PageTitle>
@@ -265,15 +266,7 @@ export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailPr
             readOnlyFooter={<ReadOnlyChannelFooter />}
           />
         ) : (
-          <UnlistedChannelNotice onSettings={() => setEditing(true)} />
-        )}
-        {canManage && (
-          <ChannelFormModal
-            workspaceId={workspaceId}
-            channel={channel}
-            open={editing}
-            onClose={() => setEditing(false)}
-          />
+          <UnlistedChannelNotice onSettings={openSettings} />
         )}
       </PageBody>
     </>

@@ -61,9 +61,7 @@ export function ChannelAccessEditor({
   return (
     <AccessEntryList
       entries={entries}
-      describe={directory.describe}
-      known={directory.known}
-      isLoading={directory.isLoading}
+      directory={directory}
       disabled={disabled}
       onOpen={(key) => dispatch({ type: 'open', key })}
       onAdd={add}

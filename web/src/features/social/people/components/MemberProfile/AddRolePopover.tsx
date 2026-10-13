@@ -3,7 +3,8 @@ import { Popover } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { RolePicker } from '@/features/roles/components/RolePicker';
-import type { RoleBadge } from '@/features/roles/types';
+
+import { useMemberCard } from '../../stores/member-card-context';
 
 const useStyles = createStyles(({ token, css }) => ({
   trigger: css`
@@ -33,14 +34,9 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-interface AddRolePopoverProps {
-  workspaceId: string;
-  assignedRoleIds: ReadonlySet<string>;
-  onToggle: (role: RoleBadge, assigned: boolean) => void;
-}
-
-export function AddRolePopover({ workspaceId, assignedRoleIds, onToggle }: AddRolePopoverProps) {
+export function AddRolePopover() {
   const { styles } = useStyles();
+  const { workspaceId, assignedRoleIds, toggleRole } = useMemberCard();
 
   return (
     <Popover
@@ -53,7 +49,7 @@ export function AddRolePopover({ workspaceId, assignedRoleIds, onToggle }: AddRo
           <RolePicker
             workspaceId={workspaceId}
             assignedRoleIds={assignedRoleIds}
-            onToggle={onToggle}
+            onToggle={toggleRole}
             autoFocus
           />
         </div>

@@ -5,6 +5,8 @@ import { createStyles } from 'antd-style';
 import { CallIcon } from '@/features/calls/callIcons';
 import { useOpenDirectMessage } from '@/features/social/direct-messages/hooks/useOpenDirectMessage';
 
+import { useMemberCard } from '../../stores/member-card-context';
+
 const useStyles = createStyles(({ css }) => ({
   // Rests at the bottom of a fixed-height sheet, within reach of the thumb.
   actions: css`
@@ -19,18 +21,11 @@ const useStyles = createStyles(({ css }) => ({
 }));
 
 interface MemberCardActionsProps {
-  workspaceId: string;
-  memberId: string;
-  unavailable: boolean;
   onConversationOpen: () => void;
 }
 
-export function MemberCardActions({
-  workspaceId,
-  memberId,
-  unavailable,
-  onConversationOpen,
-}: MemberCardActionsProps) {
+export function MemberCardActions({ onConversationOpen }: MemberCardActionsProps) {
+  const { workspaceId, memberId, unavailable } = useMemberCard();
   const { styles } = useStyles();
   const { open, opening } = useOpenDirectMessage(workspaceId);
 

@@ -9,11 +9,11 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { getLastConversation } from '@/features/social/conversation/lastConversation';
 import { useWorkspaceUnreadStore } from '@/features/social/read-state/workspace-unread-context';
 
-import { ChannelFormModal } from '../../channels/components/ChannelFormModal';
 import { useChannelActions } from '../../channels/hooks/useChannelActions';
+import { useChannelDialogs } from '../../channels/stores/channel-dialogs-context';
 import type { Channel } from '../../channels/types';
 import { CategoryQuickCreate } from './CategoryQuickCreate';
-import { ChannelsSidebarContext, type CreateChannelTarget } from './channels-sidebar-context';
+import { ChannelsSidebarContext } from './channels-sidebar-context';
 import { ChannelSectionView } from './ChannelSectionView';
 import { ChannelsSidebarLoading } from './ChannelsSidebarLoading';
 import { useChannelSections } from './useChannelSections';
@@ -61,7 +61,7 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
     routedChannelId ??
     (isMobile ? (getLastConversation(identity, workspaceId, 'channels') ?? undefined) : undefined);
 
-  const [creatingChannel, setCreatingChannel] = useState<CreateChannelTarget | null>(null);
+  const dialogs = useChannelDialogs();
   const [draggingChannel, setDraggingChannel] = useState<Channel | null>(null);
 
   function moveChannel(channel: Channel, categoryId: string | null) {
@@ -92,7 +92,6 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
     openChannelId: routedChannelId,
     unreadByChannel,
     onNavigate,
-    requestCreateChannel: setCreatingChannel,
     draggingChannel,
     setDraggingChannel,
     moveChannel,
@@ -112,7 +111,7 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
             <IconButton
               size={isMobile ? 36 : 28}
               aria-label="Створити канал"
-              onClick={() => setCreatingChannel({ categoryName: 'Без категорії' })}
+              onClick={() => dialogs.create({ workspaceId, categoryName: 'Без категорії' })}
             >
               <PlusIcon size={20} />
             </IconButton>
@@ -123,14 +122,6 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
           </div>
         </div>
       )}
-
-      <ChannelFormModal
-        workspaceId={workspaceId}
-        open={creatingChannel !== null}
-        categoryId={creatingChannel?.categoryId}
-        categoryName={creatingChannel?.categoryName ?? 'Без категорії'}
-        onClose={() => setCreatingChannel(null)}
-      />
     </div>
   );
 }

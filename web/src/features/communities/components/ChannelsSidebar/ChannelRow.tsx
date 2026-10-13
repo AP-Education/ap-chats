@@ -1,11 +1,10 @@
 import { IconButton, useIsMobile } from '@ap-education/ui';
 import { GearSixIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { PrivateChannelIcon, PublicChannelIcon } from '../../channels/channelIcons';
-import { ChannelFormModal } from '../../channels/components/ChannelFormModal';
+import { useChannelDialogs } from '../../channels/stores/channel-dialogs-context';
 import type { Channel } from '../../channels/types';
 import { useChannelsSidebarStore } from './channels-sidebar-context';
 import { MobileChannelActions } from './MobileChannelActions';
@@ -236,11 +235,12 @@ export function ChannelRow({ channel }: ChannelRowProps) {
     setDraggingChannel,
     draggingChannel,
   } = useChannelsSidebarStore();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const dialogs = useChannelDialogs();
   const isActive = channel.id === selectedChannelId;
   const canManage = channel.canManage;
   const unreadCount = channel.id === openChannelId ? 0 : (unreadByChannel.get(channel.id) ?? 0);
   const hasActions = canManage;
+  const openSettings = () => dialogs.openSettings(workspaceId, channel.id);
 
   const row = (
     <div
@@ -283,7 +283,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
                 size={28}
                 className={styles.action}
                 aria-label={`Налаштування каналу ${channel.name}`}
-                onClick={() => setSettingsOpen(true)}
+                onClick={openSettings}
               >
                 <GearSixIcon size={20} />
               </IconButton>
@@ -291,21 +291,13 @@ export function ChannelRow({ channel }: ChannelRowProps) {
           )}
         </div>
       )}
-      {canManage && (
-        <ChannelFormModal
-          workspaceId={workspaceId}
-          channel={channel}
-          open={settingsOpen}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
     </div>
   );
 
   if (!isMobile || !hasActions) return row;
 
   return (
-    <MobileChannelActions channel={channel} onSettings={() => setSettingsOpen(true)}>
+    <MobileChannelActions channel={channel} onSettings={openSettings}>
       {row}
     </MobileChannelActions>
   );

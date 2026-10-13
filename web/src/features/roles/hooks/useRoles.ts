@@ -7,10 +7,10 @@ import {
 } from '@tanstack/react-query';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { communityQueryKeys } from '@/features/communities/queryKeys';
 
 import { createRole, deleteRole, listRoles, reorderRoles, updateRole } from '../api/roles-api';
 import { roleQueryKeys } from '../queryKeys';
+import { roleChangeKey } from '../role-changes';
 import type { Role, RoleInput } from '../types';
 
 interface UpdateRoleParams {
@@ -31,13 +31,6 @@ export function useRoles(workspaceId: string | undefined): RolesResult {
   const queryClient = useQueryClient();
   const queryKey = roleQueryKeys.roles(identity, workspaceId);
 
-  // Hoist, order and colour decide how channel members are grouped and coloured.
-  function refreshMemberLists() {
-    void queryClient.invalidateQueries({
-      queryKey: communityQueryKeys.memberLists(identity, workspaceId),
-    });
-  }
-
   const query = useQuery({
     queryKey,
     queryFn: () => listRoles(token as string, workspaceId as string),
@@ -51,18 +44,22 @@ export function useRoles(workspaceId: string | undefined): RolesResult {
     },
   });
 
+  // Name, colour, hoist, order and deletion change how people are shown and what roles open.
+  const changeKey = roleChangeKey(identity, workspaceId as string);
+
   const update = useMutation({
+    mutationKey: changeKey,
     mutationFn: ({ roleId, input }: UpdateRoleParams) =>
       updateRole(token as string, workspaceId as string, roleId, input),
     onSuccess: (updated) => {
       queryClient.setQueryData<Role[]>(queryKey, (roles) =>
         roles?.map((role) => (role.id === updated.id ? updated : role)),
       );
-      refreshMemberLists();
     },
   });
 
   const reorder = useMutation({
+    mutationKey: changeKey,
     mutationFn: (roleIds: string[]) =>
       reorderRoles(token as string, workspaceId as string, roleIds),
     onMutate: async (roleIds) => {
@@ -77,20 +74,16 @@ export function useRoles(workspaceId: string | undefined): RolesResult {
     },
     onSuccess: (roles) => {
       queryClient.setQueryData(queryKey, roles);
-      refreshMemberLists();
     },
   });
 
-  // Deleting a role closes the channels it opened, so the channel lists change too.
   const remove = useMutation({
+    mutationKey: changeKey,
     mutationFn: (roleId: string) => deleteRole(token as string, workspaceId as string, roleId),
     onSuccess: (_result, roleId) => {
       queryClient.setQueryData<Role[]>(queryKey, (roles) =>
         roles?.filter((role) => role.id !== roleId),
       );
-      void queryClient.invalidateQueries({
-        queryKey: communityQueryKeys.channelLists(identity, workspaceId),
-      });
     },
   });
 

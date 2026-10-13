@@ -2,33 +2,26 @@ import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkDirective from 'remark-directive';
 
-import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
-
-import { ChannelReference } from './ChannelReference';
+import { reachesViewer, type ViewerReach } from '../../mention-reach';
+import { tokenFromAttributes } from '../../mention-tokens';
+import type { MentionLabel } from '../../types';
 import { mentionDirective } from './mention-directive';
-import { MentionChipText, useMentionChipStyles } from './MentionChip';
-
-export interface MentionLabel {
-  memberId: string;
-  displayName: string | null;
-  avatarPath?: string | null;
-}
+import { MentionReference } from './MentionReference';
 
 interface MessageMarkdownProps {
   markdown: string;
   mentions?: MentionLabel[];
   inline?: boolean;
-  /** The current viewer's own member id — highlights a mention of them distinctly. */
-  viewerMemberId?: string;
+  /** How the message reached the viewer, so the references that did read as theirs. */
+  viewer?: ViewerReach;
 }
 
 export function MessageMarkdown({
   markdown,
   mentions = [],
   inline = false,
-  viewerMemberId,
+  viewer,
 }: MessageMarkdownProps) {
-  const { styles, cx } = useMentionChipStyles();
   const people = new Map(mentions.map((mention) => [mention.memberId, mention]));
 
   return (
@@ -67,46 +60,15 @@ export function MessageMarkdown({
           ),
         br: () => (inline ? <> </> : <br />),
         span: ({ node, children }) => {
-          if (node?.properties?.['data-mention'] === 'everyone')
-            return (
-              <span className={styles.mention}>
-                <MentionChipText>@everyone</MentionChipText>
-              </span>
-            );
-
-          const channelId = node?.properties?.['data-channel-id'];
-          if (typeof channelId === 'string')
-            return <ChannelReference channelId={channelId} inline={inline} />;
-
-          const memberId = String(node?.properties?.['data-member-id'] ?? '');
-          if (!memberId) return <span>{children}</span>;
-          const person = people.get(memberId);
-          const name = person?.displayName ?? 'учасник';
-          const isMe = memberId === viewerMemberId;
-          const mentionClass = cx(styles.mention, isMe && styles.mentionMe);
-          if (inline || !person)
-            return (
-              <span className={mentionClass}>
-                <MentionChipText>@{name}</MentionChipText>
-              </span>
-            );
+          const token = tokenFromAttributes(node?.properties);
+          if (!token) return <span>{children}</span>;
           return (
-            <MemberProfileTrigger
-              member={{
-                memberId,
-                displayName: person.displayName,
-                avatarPath: person.avatarPath ?? null,
-              }}
-            >
-              <button
-                type="button"
-                className={cx(mentionClass, styles.mentionTrigger, isMe && styles.mentionMeTrigger)}
-                onPointerDown={(event) => event.stopPropagation()}
-                onContextMenu={(event) => event.stopPropagation()}
-              >
-                <MentionChipText>@{name}</MentionChipText>
-              </button>
-            </MemberProfileTrigger>
+            <MentionReference
+              token={token}
+              people={people}
+              inline={inline}
+              mine={reachesViewer(token, viewer)}
+            />
           );
         },
       }}

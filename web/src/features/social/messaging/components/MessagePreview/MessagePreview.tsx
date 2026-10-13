@@ -1,7 +1,5 @@
-import {
-  type MentionLabel,
-  MessageMarkdown,
-} from '@/features/social/mentions/components/MessageMarkdown/MessageMarkdown';
+import { MessageMarkdown } from '@/features/social/mentions/components/MessageMarkdown/MessageMarkdown';
+import type { MentionLabel } from '@/features/social/mentions/types';
 
 export function MessagePreview({
   markdown,

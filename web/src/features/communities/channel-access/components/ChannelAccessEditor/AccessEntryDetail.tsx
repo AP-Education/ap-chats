@@ -3,6 +3,7 @@ import { Button, Switch, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { type AccessEntry, grants, switchCapability } from '../../access-entries';
+import { capabilityLabels } from '../../capability-labels';
 import { channelCapabilities, type ChannelCapability } from '../../types';
 import { PrincipalLabel } from './PrincipalLabel';
 import type { PrincipalDetails } from './usePrincipalDirectory';
@@ -55,15 +56,6 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-const rights: Record<ChannelCapability, { label: string; hint: string }> = {
-  view: { label: 'Бачить', hint: 'Читає історію, реагує й отримує сповіщення.' },
-  post: { label: 'Пише', hint: 'Пише повідомлення, відповідає в тредах і починає дзвінки.' },
-  manage: {
-    label: 'Керує',
-    hint: 'Змінює канал і доступ до нього, прибирає чужі повідомлення.',
-  },
-};
-
 interface AccessEntryDetailProps {
   entry: AccessEntry;
   details: PrincipalDetails;
@@ -98,13 +90,13 @@ export function AccessEntryDetail({
         {channelCapabilities.map((capability) => (
           <li key={capability} className={styles.right}>
             <span className={styles.text}>
-              <span className={styles.label}>{rights[capability].label}</span>
+              <span className={styles.label}>{capabilityLabels[capability].label}</span>
               <Typography.Text type="secondary" className={styles.hint}>
-                {rights[capability].hint}
+                {capabilityLabels[capability].hint}
               </Typography.Text>
             </span>
             <Switch
-              aria-label={rights[capability].label}
+              aria-label={capabilityLabels[capability].label}
               checked={grants(entry.level, capability)}
               disabled={disabled}
               onChange={(enabled) =>

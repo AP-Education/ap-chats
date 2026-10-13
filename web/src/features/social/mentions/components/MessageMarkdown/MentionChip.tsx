@@ -47,6 +47,11 @@ export const useMentionChipStyles = createStyles(({ token, css }) => ({
       color: var(--mention-me-color, #ffd591);
     }
   `,
+  // A role reads in its own color, as on Discord; own bubbles keep their mention ink instead.
+  mentionRole: css`
+    background: var(--mention-role-bg, color-mix(in srgb, var(--role-color) 18%, transparent));
+    color: var(--mention-role-color, var(--role-color));
+  `,
   mentionMeTrigger: css`
     &:hover,
     &:focus-visible {

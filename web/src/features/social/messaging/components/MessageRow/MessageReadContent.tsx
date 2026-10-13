@@ -113,7 +113,11 @@ export function MessageReadContent({
       <MessageMarkdown
         markdown={item.message.markdown}
         mentions={item.mentions}
-        viewerMemberId={context.memberId}
+        viewer={{
+          memberId: context.memberId,
+          mentioned: Boolean(item.mentionsMe),
+          roleIds: item.rolesMentioningMe ?? [],
+        }}
       />
       {meta}
     </div>

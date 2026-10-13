@@ -14,7 +14,7 @@ export interface Suggestion {
   token: MentionToken;
   /** Shown in the row, matched against the query and kept as the chip's label. */
   label: string;
-  visual: { avatarPath: string | null } | { icon: Icon };
+  visual: { avatarPath: string | null } | { icon: Icon } | { roleColor: string | null };
   hint?: string;
 }
 

@@ -63,8 +63,7 @@ interface PinnedMessageBarProps {
 
 export function PinnedMessageBar({ onJump }: PinnedMessageBarProps) {
   const { styles } = useStyles();
-  const { canPin, canPost } = useConversationPermissions();
-  const canUnpin = canPin && canPost;
+  const { canPin: canUnpin } = useConversationPermissions();
   const [listOpen, setListOpen] = useState(false);
   const bar = usePinnedMessageBar();
 

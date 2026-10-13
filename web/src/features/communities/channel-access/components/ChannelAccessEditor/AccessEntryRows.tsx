@@ -3,7 +3,8 @@ import { Typography } from 'antd';
 import { createStyles } from 'antd-style';
 
 import type { AccessEntry } from '../../access-entries';
-import type { ChannelCapability, Principal } from '../../types';
+import { capabilityLabels } from '../../capability-labels';
+import type { Principal } from '../../types';
 import { PrincipalLabel } from './PrincipalLabel';
 import type { PrincipalDetails } from './usePrincipalDirectory';
 
@@ -54,12 +55,6 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-const levelLabels: Record<ChannelCapability, string> = {
-  view: 'Бачить',
-  post: 'Пише',
-  manage: 'Керує',
-};
-
 interface AccessEntryRowsProps {
   entries: AccessEntry[];
   describe: (principal: Principal) => PrincipalDetails;
@@ -92,7 +87,7 @@ export function AccessEntryRows({ entries, describe, disabled, onOpen }: AccessE
               <span className={styles.principal}>
                 <PrincipalLabel details={details} />
               </span>
-              <span className={styles.level}>{levelLabels[entry.level]}</span>
+              <span className={styles.level}>{capabilityLabels[entry.level].label}</span>
               <CaretRightIcon size={16} className={styles.chevron} />
             </button>
           </li>

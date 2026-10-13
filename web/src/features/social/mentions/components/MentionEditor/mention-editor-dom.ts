@@ -1,4 +1,4 @@
-import { type MentionToken, splitTokens, writeToken } from '../../mention-tokens';
+import { type MentionToken, splitTokens, tokenText, writeToken } from '../../mention-tokens';
 import type { ComposerDraft } from '../../types';
 
 function serialize(node: Node): string {
@@ -20,19 +20,13 @@ export function serializeEditor(root: HTMLElement | null): string {
   return root ? [...root.childNodes].map(serialize).join('') : '';
 }
 
-function chipText(token: MentionToken, labels: Record<string, string>) {
-  if (token.kind === 'everyone') return '@everyone';
-  if (token.kind === 'channel') return `#${labels[token.id] ?? 'канал'}`;
-  return `@${labels[token.id] ?? 'учасник'}`;
-}
-
 /** An uneditable chip that serializes back to the token it shows. */
 export function tokenChip(token: MentionToken, labels: Record<string, string>, className: string) {
   const element = document.createElement('span');
   element.contentEditable = 'false';
   element.className = className;
   element.dataset.token = writeToken(token);
-  element.textContent = chipText(token, labels);
+  element.textContent = tokenText(token, token.kind === 'everyone' ? undefined : labels[token.id]);
   return element;
 }
 

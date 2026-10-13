@@ -17,8 +17,7 @@ interface ChannelActionsResult {
   remove: UseMutationResult<void, Error, string>;
 }
 
-// Create/rename/delete — the mutations behind ChannelFormModal and the
-// channel header's manage actions.
+// Create, rename, move and delete: what the channel dialogs and the sidebar do to channels.
 export function useChannelActions(workspaceId: string): ChannelActionsResult {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();

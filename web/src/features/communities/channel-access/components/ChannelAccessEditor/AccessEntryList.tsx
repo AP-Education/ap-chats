@@ -6,7 +6,7 @@ import { principalFromKey, principalKey } from '../../principals';
 import type { Principal } from '../../types';
 import { AccessEntryRows } from './AccessEntryRows';
 import { PrincipalLabel } from './PrincipalLabel';
-import type { PrincipalDetails } from './usePrincipalDirectory';
+import type { PrincipalDirectory } from './usePrincipalDirectory';
 
 const useStyles = createStyles(({ css }) => ({
   add: css`
@@ -16,9 +16,7 @@ const useStyles = createStyles(({ css }) => ({
 
 interface AccessEntryListProps {
   entries: AccessEntry[];
-  describe: (principal: Principal) => PrincipalDetails;
-  known: PrincipalDetails[];
-  isLoading: boolean;
+  directory: PrincipalDirectory;
   disabled?: boolean;
   onOpen: (key: string) => void;
   onAdd: (principal: Principal) => void;
@@ -26,9 +24,7 @@ interface AccessEntryListProps {
 
 export function AccessEntryList({
   entries,
-  describe,
-  known,
-  isLoading,
+  directory,
   disabled,
   onOpen,
   onAdd,
@@ -36,7 +32,7 @@ export function AccessEntryList({
   const { styles } = useStyles();
 
   const listed = new Set(entries.map((entry) => principalKey(entry.principal)));
-  const candidates = known
+  const candidates = directory.known
     .filter((details) => !listed.has(details.key))
     .map((details) => ({
       value: details.key,
@@ -46,7 +42,12 @@ export function AccessEntryList({
 
   return (
     <div>
-      <AccessEntryRows entries={entries} describe={describe} disabled={disabled} onOpen={onOpen} />
+      <AccessEntryRows
+        entries={entries}
+        describe={directory.describe}
+        disabled={disabled}
+        onOpen={onOpen}
+      />
       <Select
         showSearch
         className={styles.add}
@@ -55,7 +56,7 @@ export function AccessEntryList({
         value={null}
         options={candidates}
         optionFilterProp="title"
-        loading={isLoading}
+        loading={directory.isLoading}
         disabled={disabled}
         onChange={(key: string) => onAdd(principalFromKey(key))}
       />
