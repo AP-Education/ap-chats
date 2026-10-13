@@ -1,9 +1,5 @@
 import { message } from 'antd';
 import { useState } from 'react';
-import { useMatch, useNavigate } from 'react-router-dom';
-
-import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { forgetConversation } from '@/features/social/conversation/lastConversation';
 
 import { useChannelPermissions } from '../../channel-access/hooks/useChannelPermissions';
 import type { ChannelPermissions, ChannelPermissionsInput } from '../../channel-access/types';
@@ -50,10 +46,6 @@ export function useChannelSettings(
   const channel = useChannel(workspaceId, channelId).data;
   const permissions = useChannelPermissions(workspaceId, channelId);
   const { update, remove } = useChannelActions(workspaceId);
-  const { identity } = useQueryAuth();
-  const navigate = useNavigate();
-  // Opened from the sidebar too, which sits outside the route tree, so read the URL.
-  const routedChannelId = useMatch('/channels/:channelId')?.params.channelId;
   const [nameError, setNameError] = useState<string>();
 
   async function save(values: ChannelSettingsValues, edited: EditedSettings) {
@@ -75,13 +67,8 @@ export function useChannelSettings(
     }
   }
 
+  // An open page of the channel finds it gone on its own; deleting it only closes the dialog.
   async function deleteChannel() {
-    const isOnScreen = routedChannelId === channelId;
-    if (isOnScreen) {
-      // The channels list reopens the last channel, which must not be this one any more.
-      forgetConversation(identity, workspaceId, 'channels', channelId);
-      navigate('/channels', { replace: true });
-    }
     try {
       await remove.mutateAsync(channelId);
       onDone();

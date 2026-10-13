@@ -115,7 +115,8 @@ export function useChannelActions(workspaceId: string): ChannelActionsResult {
     },
     onError: (_error, _variables, context) => rollback(context),
     onSuccess: (_data, channelId) => {
-      queryClient.removeQueries({
+      // An open page of the channel refetches, reads it as gone and leaves for the list itself.
+      void queryClient.invalidateQueries({
         queryKey: communityQueryKeys.channel(identity, workspaceId, channelId),
       });
       queryClient.removeQueries({

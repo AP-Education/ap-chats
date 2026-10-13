@@ -21,9 +21,11 @@ interface CreateChannelModalProps {
   place: NewChannelPlace;
   open: boolean;
   onClose: () => void;
+  /** After the exit animation, when the dialog can unmount. */
+  onClosed: () => void;
 }
 
-export function CreateChannelModal({ place, open, onClose }: CreateChannelModalProps) {
+export function CreateChannelModal({ place, open, onClose, onClosed }: CreateChannelModalProps) {
   const [form] = Form.useForm<NewChannelValues>();
   const { create } = useChannelActions(place.workspaceId);
   const navigate = useNavigate();
@@ -52,6 +54,7 @@ export function CreateChannelModal({ place, open, onClose }: CreateChannelModalP
     <AdaptiveModal
       open={open}
       onCancel={onClose}
+      afterClose={onClosed}
       onOk={() => form.submit()}
       confirmLoading={create.isPending}
       okText="Створити"

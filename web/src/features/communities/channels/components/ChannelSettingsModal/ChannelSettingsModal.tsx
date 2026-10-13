@@ -16,6 +16,8 @@ interface ChannelSettingsModalProps {
   channelId: string;
   open: boolean;
   onClose: () => void;
+  /** After the exit animation, when the dialog can unmount. */
+  onClosed: () => void;
 }
 
 export function ChannelSettingsModal({
@@ -23,6 +25,7 @@ export function ChannelSettingsModal({
   channelId,
   open,
   onClose,
+  onClosed,
 }: ChannelSettingsModalProps) {
   const [form] = Form.useForm<ChannelSettingsValues>();
   const [section, setSection] = useState<SettingsSection>('general');
@@ -40,6 +43,7 @@ export function ChannelSettingsModal({
     <AdaptiveModal
       open={open}
       onCancel={onClose}
+      afterClose={onClosed}
       onOk={() => form.submit()}
       confirmLoading={settings.isSaving}
       okButtonProps={{ disabled: !loaded || isDeleting }}
