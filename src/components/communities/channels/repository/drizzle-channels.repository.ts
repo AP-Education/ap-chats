@@ -4,8 +4,8 @@ import { and, asc, eq, inArray, isNotNull, or } from 'drizzle-orm';
 
 import { channelMemberships, channels } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
+import { throwConflictOnUnique } from '@/database/drizzle/unique-violation';
 
-import { throwConflictOnUnique } from '../../repository/pg-unique-conflict';
 import type { Channel, ChannelView } from '../types';
 import { ChannelsRepository } from './channels.repository';
 

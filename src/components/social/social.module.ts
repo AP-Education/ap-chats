@@ -1,24 +1,32 @@
 import { Module } from '@nestjs/common';
 
-import { EntriesModule } from './entries/entries.module';
-import { ForwardingModule } from './forwarding/forwarding.module';
-import { HistoryModule } from './history/history.module';
+import { AttachmentsModule } from './attachments';
+import { ContentModule } from './content';
+import { EntriesModule } from './entries';
+import { ForwardingModule } from './forwarding';
+import { HistoryModule } from './history';
 import { MentionsModule } from './mentions';
 import { MessagesModule } from './messages';
-import { PinsModule } from './pins/pins.module';
-import { ReactionsModule } from './reactions/reactions.module';
-import { ReadStateModule } from './read-state/read-state.module';
+import { PinsModule } from './pins';
+import { PostingModule } from './posting';
+import { ReactionsModule } from './reactions';
+import { ReadStateModule } from './read-state';
+import { SocialRealtimeModule } from './realtime';
 
 @Module({
   imports: [
     EntriesModule,
-    MessagesModule,
+    ContentModule,
     MentionsModule,
+    MessagesModule,
+    AttachmentsModule,
     PinsModule,
     ReactionsModule,
     ReadStateModule,
+    PostingModule,
     ForwardingModule,
     HistoryModule,
+    SocialRealtimeModule,
   ],
 })
 export class SocialModule {}

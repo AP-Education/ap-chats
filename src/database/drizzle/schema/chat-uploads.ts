@@ -1,9 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
-import type { Attachment } from '@/components/social/messages/attachments/types';
-
 import { channels } from './channels';
+import type { StoredAttachment } from './chat-messages';
 import { workspaceMembers } from './workspace-members';
 
 export const chatUploads = pgTable(
@@ -24,7 +23,7 @@ export const chatUploads = pgTable(
       .default('uploading'),
     processingToken: uuid('processing_token'),
     processingUntil: timestamp('processing_until', { withTimezone: true }),
-    metadata: jsonb('metadata').$type<Attachment>(),
+    metadata: jsonb('metadata').$type<StoredAttachment>(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   },

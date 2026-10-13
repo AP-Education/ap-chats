@@ -1,3 +1,2 @@
-export * from './mentions.facade';
 export * from './mentions.module';
-export type * from './types';
+export * from './mentions.service';

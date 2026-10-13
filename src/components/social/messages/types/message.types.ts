@@ -1,4 +1,15 @@
-import type { Attachment } from '../attachments/types';
+import type { NormalizedMessageContent } from '../../content/message-markdown';
+
+export interface Attachment {
+  id: string;
+  name: string;
+  size: number;
+  mediaType: string;
+  preview: 'image' | 'video' | 'audio' | null;
+  width: number | null;
+  height: number | null;
+  description: string | null;
+}
 
 // What a fresh post and a forward of it both carry unmodified: what's
 // actually being said, and the token the client used to dedupe/trace it.
@@ -32,6 +43,33 @@ export interface MessageWithSeq {
   seq: bigint;
 }
 
+export interface MessageRef {
+  workspaceId: string;
+  channelId: string;
+  messageId: string;
+}
+
+/** A message ready to post: checked against its channel, its files already claimed. */
+export interface NewMessage {
+  content: NormalizedMessageContent;
+  attachments: Attachment[];
+  replyToMessageId: string | null;
+  quoteText: string | null;
+  clientNonce: string;
+  requestDigest: string;
+}
+
+export interface ForwardedCopy extends MessageContent {
+  sourceMessageId: string;
+  sourceAuthorMemberId: string;
+}
+
+export interface DeletedMessage {
+  id: string;
+  seq: string;
+  authorMemberId: string;
+}
+
 export type CreateMessageRecord = Pick<
   MessageModel,
   | 'workspaceId'
@@ -51,8 +89,3 @@ export type CreateMessageRecord = Pick<
       | 'forwardedFromMemberId'
     >
   >;
-
-export interface ForwardMessageRecord extends MessageContent {
-  sourceMessageId: string;
-  sourceAuthorMemberId: string;
-}

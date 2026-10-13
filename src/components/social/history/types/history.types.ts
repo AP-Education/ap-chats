@@ -1,5 +1,3 @@
-import type { CallRecord } from '@/components/calls/types';
-
 import type { MessageModel } from '../../messages/types/message.types';
 import type { MessageReaction } from '../../reactions/types/reaction.types';
 
@@ -38,11 +36,20 @@ export interface MessageHistoryRow {
   reactions: MessageReaction[];
 }
 
+/** What the timeline shows of a call; the calls component owns the rest of it. */
+export interface TimelineCall {
+  id: string;
+  status: string;
+  startedByMemberId: string;
+  startedAt: Date;
+  endedAt: Date | null;
+}
+
 export interface CallHistoryRow {
   type: 'CALL';
   seq: bigint;
   createdAt: Date;
-  call: CallRecord;
+  call: TimelineCall;
   startedByProfile: Profile;
 }
 

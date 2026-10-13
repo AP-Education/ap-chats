@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { eq } from 'drizzle-orm';
 
-import type { CallStatus } from '@/components/calls/types';
+import type { CallStatus } from '@/components/calls/calls/types';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import * as schema from '@/database/drizzle/schema';
 
@@ -42,10 +42,14 @@ export function seedConversations(db: TestDatabase) {
       return id;
     },
 
-    async join(workspaceId: string, person: Person): Promise<WorkspaceMember> {
+    async join(
+      workspaceId: string,
+      person: Person,
+      role: WorkspaceMember['role'] = 'member',
+    ): Promise<WorkspaceMember> {
       const [member] = await db
         .insert(schema.workspaceMembers)
-        .values({ workspaceId, userProfileId: person.id })
+        .values({ workspaceId, userProfileId: person.id, role })
         .returning();
       return {
         ...member!,
@@ -79,6 +83,28 @@ export function seedConversations(db: TestDatabase) {
         { workspaceId, channelId, memberId: first.id },
         { workspaceId, channelId, memberId: second.id },
       ]);
+      return { workspaceId, channelId, seq: 0n };
+    },
+
+    /** A public or private channel its creator and the given members belong to. */
+    async channel(
+      creator: WorkspaceMember,
+      kind: 'public' | 'private',
+      members: WorkspaceMember[] = [],
+    ): Promise<Conversation> {
+      const { workspaceId } = creator;
+      const channelId = randomUUID();
+      await db.insert(schema.channels).values({
+        id: channelId,
+        workspaceId,
+        kind,
+        name: `${kind}-${channelId.slice(0, 8)}`,
+        createdByMemberId: creator.id,
+        updatedAt: tick(),
+      });
+      await db
+        .insert(schema.channelMemberships)
+        .values([creator, ...members].map(({ id }) => ({ workspaceId, channelId, memberId: id })));
       return { workspaceId, channelId, seq: 0n };
     },
 

@@ -37,7 +37,7 @@ function fixture() {
       toUser: (userId, event, payload) => {
         sent.push({ userId, event, payload });
       },
-      toConversation: () => assert.fail('Inventory events must use authorized user rooms'),
+      toWatchers: () => assert.fail('Inventory events must use authorized user rooms'),
     } satisfies RealtimePublisher,
     { child: () => ({ error: (error: unknown) => errors.push(error) }) } as unknown as Logger,
   );

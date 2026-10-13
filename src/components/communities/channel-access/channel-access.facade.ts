@@ -81,6 +81,13 @@ export class ChannelAccessFacade {
     return target;
   }
 
+  /** Who may remove anyone's messages: the workspace owner and the channel's creator; a DM has nobody. */
+  moderates(member: WorkspaceMember, channel: ChannelAccessSnapshot): boolean {
+    if (channel.kind === 'dm') return false;
+
+    return member.role === 'owner' || channel.createdByMemberId === member.id;
+  }
+
   requireManager(member: WorkspaceMember, channel: ChannelAccessSnapshot): void {
     if (channel.kind === 'dm')
       throw new ForbiddenException('Direct messages have no channel manager');

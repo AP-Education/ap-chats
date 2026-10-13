@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 
+import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import {
   channelEntries,
   chatMessages,
@@ -9,7 +10,6 @@ import {
   userProfiles,
   workspaceMembers,
 } from '@/database/drizzle/schema';
-import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 import type { MessagePin, PinnedMessage } from '../types/pin.types';
 import { PinsRepository } from './pins.repository';
@@ -56,25 +56,6 @@ export class DrizzlePinsRepository extends PinsRepository {
       .from(messagePins)
       .where(and(eq(messagePins.channelId, channelId), eq(messagePins.messageId, messageId)));
     return row ?? null;
-  }
-
-  async messageIsAvailable(
-    workspaceId: string,
-    channelId: string,
-    messageId: string,
-  ): Promise<boolean> {
-    const [row] = await this.txHost.tx
-      .select({ id: chatMessages.id })
-      .from(chatMessages)
-      .where(
-        and(
-          eq(chatMessages.workspaceId, workspaceId),
-          eq(chatMessages.channelId, channelId),
-          eq(chatMessages.id, messageId),
-          isNull(chatMessages.deletedAt),
-        ),
-      );
-    return !!row;
   }
 
   async insert(

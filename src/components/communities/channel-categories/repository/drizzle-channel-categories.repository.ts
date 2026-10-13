@@ -4,8 +4,8 @@ import { and, asc, eq } from 'drizzle-orm';
 
 import { channelCategories, channels } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
+import { throwConflictOnUnique } from '@/database/drizzle/unique-violation';
 
-import { throwConflictOnUnique } from '../../repository/pg-unique-conflict';
 import type { ChannelCategory } from '../types';
 import { ChannelCategoriesRepository } from './channel-categories.repository';
 

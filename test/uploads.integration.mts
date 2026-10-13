@@ -6,9 +6,7 @@ import { createRequire } from 'node:module';
 import { Readable } from 'node:stream';
 
 import { CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
-import { ServiceUnavailableException, type Type, ValidationPipe } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
-import { FastifyAdapter } from '@nestjs/platform-fastify';
+import type { Type } from '@nestjs/common';
 import { Pool } from 'pg';
 import sharp from 'sharp';
 
@@ -32,6 +30,13 @@ Object.assign(process.env, {
 // test in this repo, does not — so this one black-box test needs the real
 // tsc build output rather than a transpile-only run against src.
 const require = createRequire(import.meta.url);
+// Nest itself is required too: an ESM import would load a second copy of @nestjs/core beside the
+// one dist requires, and its injector then fails to resolve its own ApplicationConfig.
+const { ServiceUnavailableException, ValidationPipe } =
+  require('@nestjs/common') as typeof import('@nestjs/common');
+const { NestFactory } = require('@nestjs/core') as typeof import('@nestjs/core');
+const { FastifyAdapter } =
+  require('@nestjs/platform-fastify') as typeof import('@nestjs/platform-fastify');
 const { AppModule } = require('../dist/app.module.js') as { AppModule: Type };
 const { migrateDatabase } = require('../dist/database/drizzle/migrate-database.js') as {
   migrateDatabase: (connectionString: string) => Promise<void>;
@@ -43,11 +48,11 @@ const { AccountsTokenVerifier } =
     }>;
   };
 const { UploadCleanupService } =
-  require('../dist/components/social/messages/attachments/upload-cleanup.service.js') as {
+  require('../dist/components/social/attachments/upload-cleanup.service.js') as {
     UploadCleanupService: Type<{ sweep: () => Promise<void> }>;
   };
 const { AttachmentPreviewService } =
-  require('../dist/components/social/messages/attachments/attachment-preview.service.js') as {
+  require('../dist/components/social/attachments/attachment-preview.service.js') as {
     AttachmentPreviewService: Type<{ inspect: (...args: unknown[]) => Promise<unknown> }>;
   };
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });

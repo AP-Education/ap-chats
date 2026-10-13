@@ -1,0 +1,22 @@
+import { Module } from '@nestjs/common';
+
+import { AuthModule } from '@/components/auth';
+import { NotificationPreferencesModule } from '@/components/notifications/preferences';
+import { WorkspacesModule } from '@/components/workspaces';
+
+import { DirectInboxModule } from '../inbox';
+import { DirectConversationsService } from './direct-conversations.service';
+import { DirectConversationsRepository } from './repository/direct-conversations.repository';
+import { DrizzleDirectConversationsRepository } from './repository/drizzle-direct-conversations.repository';
+import { WorkspaceDirectMessagesController } from './workspace-direct-messages.controller';
+
+@Module({
+  imports: [AuthModule, WorkspacesModule, DirectInboxModule, NotificationPreferencesModule],
+  controllers: [WorkspaceDirectMessagesController],
+  providers: [
+    DirectConversationsService,
+    { provide: DirectConversationsRepository, useClass: DrizzleDirectConversationsRepository },
+  ],
+  exports: [DirectConversationsService],
+})
+export class DirectConversationsModule {}

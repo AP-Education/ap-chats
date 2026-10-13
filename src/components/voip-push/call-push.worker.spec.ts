@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import {
   CallSignalEvent,
   type CallSignalPayload,
-} from '@/components/calls/events/call-signal.event';
+} from '@/components/calls/calls/events/call-signal.event';
 import { NativePushTargetsStrategy } from '@/components/devices';
 import { tokenFingerprint } from '@/components/devices/targets/credential-fingerprint';
 
