@@ -101,14 +101,14 @@ export class DigitalOceanSpacesProvider extends StorageProvider {
   }
 
   async listParts(key: string, uploadId: string): Promise<StoredPart[]> {
-    const result = await this.client.send(
-      new ListPartsCommand({
-        Bucket: this.bucket,
-        Key: key,
-        UploadId: uploadId,
-        MaxParts: 100,
-      }),
-    );
+    const result = await this.client
+      .send(
+        new ListPartsCommand({ Bucket: this.bucket, Key: key, UploadId: uploadId, MaxParts: 100 }),
+      )
+      .catch((error: unknown) => {
+        if (isNoSuchUpload(error)) throw new NoSuchUploadError(uploadId);
+        throw error;
+      });
     if (result.IsTruncated) throw new Error('Unexpected multipart part count');
     return (result.Parts ?? []).map((part) => {
       if (!part.PartNumber || part.Size === undefined || !part.ETag)

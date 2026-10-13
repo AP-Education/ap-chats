@@ -2,7 +2,7 @@ import type { Readable } from 'node:stream';
 
 import type { StoredPart } from './types';
 
-/** The multipart session completeMultipart() was asked to finish no longer exists (already completed or aborted). */
+/** The multipart session no longer exists: it was already completed or aborted. */
 export class NoSuchUploadError extends Error {}
 
 export abstract class StorageProvider {
