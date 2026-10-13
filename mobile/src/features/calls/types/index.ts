@@ -26,6 +26,8 @@ export interface NativeCallConnectPayload {
   channelId: string;
   title: string;
   calleeAvatarPath?: string | null;
+  /** A channel call rather than a DM; the avatar can't tell them apart once it crosses the bridge. */
+  group: boolean;
   grant: CallJoinGrant;
 }
 

@@ -33,7 +33,7 @@ export function CallSession() {
         CallKit.addCallAnsweredListener((event) => void answerCall(event, CallKit)),
         CallKit.addCallEndedListener((event) => void endCallSession(event)),
         CallKit.addReportedCallEndedListener(
-          (event) => void endCallSession(event, { notifyServer: false }),
+          (event) => void endCallSession(event, { notifyServer: false, reason: event.reason }),
         ),
         CallKit.addCallSessionRemovedListener(
           (event) => void endCallSession(event, { notifyServer: false }),

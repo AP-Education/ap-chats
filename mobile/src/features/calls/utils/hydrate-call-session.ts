@@ -14,6 +14,7 @@ export function restoreIncomingSession(session: CallSession): void {
     serverCallId: incoming.serverCallId,
     metadata,
     caller: incoming.caller,
+    group: metadata.channelKind !== 'dm',
   });
   useNativeCallStore.getState().setCall({
     sessionId: session.id,

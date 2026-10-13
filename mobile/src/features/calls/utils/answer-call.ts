@@ -3,7 +3,7 @@ import type { CallAnsweredEvent } from 'expo-callkit-telecom';
 import { joinCall } from '../api/calls-api';
 import { useNativeCallStore } from '../store/native-call-store';
 import { syncCurrentAudioRoute } from './audio-route';
-import { playJoinChime } from './call-chimes';
+import { trackCallCues } from './call-cues';
 import type { loadCallKitModule } from './callkit-module';
 import { endCallSession } from './end-call';
 import { hydrateCallSession } from './hydrate-call-session';
@@ -62,7 +62,7 @@ export async function answerCall(
       status: 'connected',
       connectedAt: Date.now(),
     });
-    playJoinChime();
+    session.stopCallCues = trackCallCues(room, session.group);
   } catch (error) {
     if (session?.abortController.signal.aborted) return;
     if (__DEV__) console.warn('[calls] answer failed', error);
