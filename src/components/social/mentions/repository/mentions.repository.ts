@@ -1,7 +1,7 @@
 import type { MentionedMessage } from '../types';
 
 export abstract class MentionsRepository {
-  /** Everyone a message reached, whether named directly or through @everyone. */
+  /** Everyone a message reached, whether named directly, through a role or through @everyone. */
   abstract mentionedMemberIds(messageIds: string[]): Promise<string[]>;
   abstract candidates(
     workspaceId: string,
@@ -15,7 +15,9 @@ export abstract class MentionsRepository {
   ): Promise<boolean>;
   /** Drops every recipient of the message and records these as named directly. */
   abstract replaceDirect(message: MentionedMessage, memberIds: string[]): Promise<void>;
-  /** Adds the channel's other active members, keeping anyone already named directly. */
+  /** Adds the roles' people who are in the channel and records which roles reached each. */
+  abstract addRoles(message: MentionedMessage, roleIds: string[]): Promise<void>;
+  /** Adds the channel's other active members, keeping anyone already reached. */
   abstract addEveryone(message: MentionedMessage): Promise<void>;
   abstract removeForMessages(ids: string[]): Promise<void>;
 }

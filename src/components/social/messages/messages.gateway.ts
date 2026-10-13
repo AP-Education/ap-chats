@@ -12,7 +12,7 @@ import { Transactional } from '@nestjs-cls/transactional';
 import type { Namespace, Socket } from 'socket.io';
 
 import type { AuthenticatedUser } from '@/components/auth';
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import { ChannelAudienceFacade } from '@/components/communities/channel-audience';
 import { WorkspaceMembersRepository } from '@/components/workspaces/members/repository';
 import { Logger } from '@/globals/logger';
@@ -37,7 +37,7 @@ export class MessagesGateway {
 
   constructor(
     private readonly members: WorkspaceMembersRepository,
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly audience: ChannelAudienceFacade,
     private readonly logger: Logger,
   ) {}
@@ -67,7 +67,7 @@ export class MessagesGateway {
     const member = await this.members.findForUser(workspaceId, userId);
     if (!member) throw new WsException('Channel not found');
     try {
-      await this.access.requireReadAccess(member, channelId);
+      await this.access.requireViewAccess(member, channelId);
     } catch (error) {
       if (error instanceof ForbiddenException || error instanceof NotFoundException)
         throw new WsException('Channel not found');

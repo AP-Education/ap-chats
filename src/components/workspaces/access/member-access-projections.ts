@@ -1,12 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-export type AnnounceAccessChanges = () => void;
-
-/** A resource that keeps its own per-person access list, derived from roles. */
-export interface MemberAccessProjection {
-  /** Runs inside the transaction that changed the people's roles; announcing waits for its commit. */
-  refreshMembers(workspaceId: string, memberIds: string[]): Promise<AnnounceAccessChanges>;
-}
+import type { AnnounceAccessChanges, MemberAccessProjection } from './types';
 
 /** Lets roles stay unaware of which resources depend on them. */
 @Injectable()

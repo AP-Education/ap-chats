@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventOutbox } from '@/globals/publisher/event-outbox';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
@@ -38,7 +38,7 @@ import type { ForwardMessageRecord, MessageModel } from './types/message.types';
 @Injectable()
 export class MessagesFacade {
   constructor(
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly entries: EntriesFacade,
     private readonly pins: PinsFacade,
     private readonly mentions: MentionsFacade,

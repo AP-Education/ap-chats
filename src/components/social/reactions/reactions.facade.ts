@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
 
@@ -25,7 +25,7 @@ interface ReactionChange {
 @Injectable()
 export class ReactionsFacade {
   constructor(
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly repository: ReactionsRepository,
     private readonly events: EventPublisher,
   ) {}
@@ -75,7 +75,7 @@ export class ReactionsFacade {
     message: ReactedMessage,
     emoji: string,
   ): Promise<ReactionChange> {
-    await this.access.requireParticipant(member, message.channelId);
+    await this.access.requireReactAccess(member, message.channelId);
     await this.requireLiveMessage(message);
     await this.requireRoomFor(message.messageId, emoji);
 
@@ -90,7 +90,7 @@ export class ReactionsFacade {
     message: ReactedMessage,
     emoji: string,
   ): Promise<ReactionChange> {
-    await this.access.requireParticipant(member, message.channelId);
+    await this.access.requireReactAccess(member, message.channelId);
     await this.requireLiveMessage(message);
 
     const changed = await this.repository.remove(message.messageId, emoji, member.id);

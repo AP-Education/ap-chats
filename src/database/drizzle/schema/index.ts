@@ -9,6 +9,7 @@ export * from './chat-uploads';
 export * from './devices';
 export * from './direct-messages';
 export * from './event-outbox';
+export * from './live-conversations';
 export * from './message-mentions';
 export * from './message-pins';
 export * from './message-reactions';

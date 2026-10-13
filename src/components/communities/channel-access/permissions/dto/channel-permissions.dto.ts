@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, IsArray, ValidateNested } from 'class-validator';
 
-import { PrincipalDto, toPrincipal } from '@/components/workspaces/access';
+import { PrincipalDto, toPrincipal } from '@/components/workspaces/access/dto/principal.dto';
 
 import type { ChannelPermissions } from '../types';
 

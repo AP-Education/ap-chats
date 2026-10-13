@@ -3,9 +3,9 @@ import { beforeEach, test } from 'node:test';
 
 import { ConflictException } from '@nestjs/common';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
-import { ChannelAccessRepository } from '@/components/communities/channel-access/repository/channel-access.repository';
-import type { ChannelAccessSnapshot } from '@/components/communities/channels/types/channel-access.types';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
+import { ChannelAccessRepository } from '@/components/communities/channel-access/channel-access/repository/channel-access.repository';
+import type { ChannelAccessSnapshot } from '@/components/communities/channel-access/channel-access/types';
 import { EntriesFacade } from '@/components/social/entries/entries.facade';
 import { EntriesRepository } from '@/components/social/entries/repository/entries.repository';
 import type { ChannelEntry } from '@/components/social/entries/types/entry.types';
@@ -294,7 +294,7 @@ beforeEach(() => {
   );
   provider = new FakeCallProvider();
   realtime = new FakeRealtimePublisher();
-  const channelAccess = new ChannelAccessFacade(
+  const channelAccess = new ChannelAccessPolicy(
     new FakeChannelAccessRepository(
       new Map([
         [dm.id, dm],

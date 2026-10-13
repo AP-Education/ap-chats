@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, eq, ilike, inArray, ne } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, ne } from 'drizzle-orm';
 
-import { userProfiles, workspaceMembers } from '@/database/drizzle/schema';
+import { activeRoleMembers, userProfiles, workspaceMembers } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
-import type { WorkspaceAccessLevel, WorkspaceMember } from '../types';
+import type { WorkspaceAccessLevel } from '../../access/types';
+import type { MemberSummary, RoleBadge, WorkspaceMember } from '../types';
 import { WorkspaceMembersRepository } from './workspace-members.repository';
 
 @Injectable()
@@ -25,7 +26,7 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
     return rows.map((row) => this.toModel(row.member, row.profile));
   }
 
-  search(workspaceId: string, viewerId: string, query: string) {
+  search(workspaceId: string, viewerId: string, query: string): Promise<MemberSummary[]> {
     const escaped = query.replace(/[\\%_]/gu, '\\$&');
     return this.txHost.tx
       .select({
@@ -92,6 +93,23 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
         ),
       );
     return rows.map((row) => this.toModel(row.member, row.profile));
+  }
+
+  roleBadgesOf(workspaceId: string, memberId: string): Promise<RoleBadge[]> {
+    return this.txHost.tx
+      .select({
+        id: activeRoleMembers.roleId,
+        name: activeRoleMembers.name,
+        color: activeRoleMembers.color,
+      })
+      .from(activeRoleMembers)
+      .where(
+        and(
+          eq(activeRoleMembers.workspaceId, workspaceId),
+          eq(activeRoleMembers.memberId, memberId),
+        ),
+      )
+      .orderBy(asc(activeRoleMembers.position), asc(activeRoleMembers.name));
   }
 
   async changeAccessLevel(

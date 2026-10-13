@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { ChannelAccessFacade } from '@/components/communities/channel-access';
+import type { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import type { ChannelAudienceFacade } from '@/components/communities/channel-audience';
 import type { WorkspaceMembersRepository } from '@/components/workspaces/members/repository';
 import type { Logger } from '@/globals/logger';
@@ -30,7 +30,7 @@ test('sends a channel invalidation only to currently authorized sockets', async 
   } as ChannelAudienceFacade;
   const gateway = new MessagesGateway(
     {} as WorkspaceMembersRepository,
-    {} as ChannelAccessFacade,
+    {} as ChannelAccessPolicy,
     audience,
     {} as Logger,
   );

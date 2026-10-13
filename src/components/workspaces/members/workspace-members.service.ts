@@ -4,36 +4,42 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Transactional } from '@nestjs-cls/transactional';
 
-import { isAdministrator, isOwner, outranks } from '../access/workspace-access';
-import { RolesRepository } from '../roles/repository';
+import {
+  isAdministrator,
+  isOwner,
+  MemberAccessProjections,
+  outranks,
+  requireAccessLevel,
+} from '../access';
+import type { AnnounceAccessChanges, WorkspaceAccessLevel } from '../access/types';
 import { WorkspaceMembersRepository } from './repository';
-import type { WorkspaceAccessLevel, WorkspaceMember } from './types';
+import type { MemberProfile, MemberSummary, WorkspaceMember } from './types';
 
 @Injectable()
 export class WorkspaceMembersService {
   constructor(
     private readonly workspaceMembersRepository: WorkspaceMembersRepository,
-    private readonly roles: RolesRepository,
+    private readonly projections: MemberAccessProjections,
   ) {}
 
   findAllForWorkspace(member: WorkspaceMember): Promise<WorkspaceMember[]> {
     return this.workspaceMembersRepository.findAllForWorkspace(member.workspaceId);
   }
 
-  search(member: WorkspaceMember, query: string) {
-    return this.workspaceMembersRepository.search(
-      member.workspaceId,
-      member.id,
-      query.trim().slice(0, 80),
-    );
+  async search(member: WorkspaceMember, query: string): Promise<MemberSummary[]> {
+    const text = query.trim().slice(0, 80);
+    if (!text) return [];
+
+    return this.workspaceMembersRepository.search(member.workspaceId, member.id, text);
   }
 
-  async profile(viewer: WorkspaceMember, memberId: string) {
+  async profile(viewer: WorkspaceMember, memberId: string): Promise<MemberProfile> {
     const member = await this.workspaceMembersRepository.findById(viewer.workspaceId, memberId);
     if (!member) throw new NotFoundException('Workspace member not found');
 
-    const roles = await this.roles.badgesOf(viewer.workspaceId, member.id);
+    const roles = await this.workspaceMembersRepository.roleBadgesOf(viewer.workspaceId, member.id);
 
     return {
       memberId: member.id,
@@ -50,11 +56,10 @@ export class WorkspaceMembersService {
     memberId: string,
     accessLevel: WorkspaceAccessLevel,
   ): Promise<WorkspaceMember> {
-    if (!isOwner(owner))
-      throw new ForbiddenException('Only a workspace owner can change access levels');
+    requireAccessLevel(owner, 'owner');
     // Owners never change themselves, so a workspace always keeps at least one.
-    if (memberId === owner.id)
-      throw new ConflictException('Owners cannot change their own access level');
+    const isSelf = memberId === owner.id;
+    if (isSelf) throw new ConflictException('Owners cannot change their own access level');
 
     const changed = await this.workspaceMembersRepository.changeAccessLevel(
       owner.workspaceId,
@@ -67,22 +72,40 @@ export class WorkspaceMembersService {
   }
 
   async remove(member: WorkspaceMember, targetUserId: string): Promise<void> {
-    const isSelf = member.profile.oidcUserId === targetUserId;
-    if (isSelf && isOwner(member))
+    const announce = await this.dismiss(member, targetUserId);
+    announce();
+  }
+
+  // Whoever leaves the workspace leaves its channels in the same step.
+  @Transactional()
+  private async dismiss(
+    actor: WorkspaceMember,
+    targetUserId: string,
+  ): Promise<AnnounceAccessChanges> {
+    const isSelf = actor.profile.oidcUserId === targetUserId;
+    const target = isSelf ? actor : await this.requireOutranked(actor, targetUserId);
+    if (isSelf && isOwner(actor))
       throw new ConflictException('Owner cannot leave a workspace; delete it instead');
 
-    if (!isSelf) {
-      const target = await this.workspaceMembersRepository.findForUser(
-        member.workspaceId,
-        targetUserId,
-      );
-      if (!target) throw new NotFoundException('Workspace member not found');
+    await this.workspaceMembersRepository.remove(actor.workspaceId, targetUserId);
 
-      const mayRemove = isAdministrator(member) && outranks(member, target);
-      if (!mayRemove)
-        throw new ForbiddenException('Only someone with a higher access level can remove a member');
-    }
+    return this.projections.refreshMembers(actor.workspaceId, [target.id]);
+  }
 
-    await this.workspaceMembersRepository.remove(member.workspaceId, targetUserId);
+  private async requireOutranked(
+    actor: WorkspaceMember,
+    targetUserId: string,
+  ): Promise<WorkspaceMember> {
+    const target = await this.workspaceMembersRepository.findForUser(
+      actor.workspaceId,
+      targetUserId,
+    );
+    if (!target) throw new NotFoundException('Workspace member not found');
+
+    const mayRemove = isAdministrator(actor) && outranks(actor, target);
+    if (!mayRemove)
+      throw new ForbiddenException('Only someone with a higher access level can remove a member');
+
+    return target;
   }
 }

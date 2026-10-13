@@ -1,3 +1,2 @@
-export * from './mentions.facade';
-export * from './mentions.module';
-export type * from './types';
+export { MentionsFacade } from './mentions.facade';
+export { MentionsModule } from './mentions.module';

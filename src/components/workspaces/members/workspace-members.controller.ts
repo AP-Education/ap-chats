@@ -30,7 +30,7 @@ export class WorkspaceMembersController {
 
   @Get('search')
   search(@CurrentWorkspaceMember() member: WorkspaceMember, @Query('q') query = '') {
-    return query.trim() ? this.members.search(member, query) : [];
+    return this.members.search(member, query);
   }
 
   @Get(':memberId')

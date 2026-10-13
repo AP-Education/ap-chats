@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, desc, eq, gt, gte, isNull, lte, ne, or, type SQL, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, gte, isNull, lte, ne, type SQL, sql } from 'drizzle-orm';
 
-import { activeDmPair } from '@/components/communities/channel-access';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import {
   channelEntries,
   channelMemberships,
   channels,
   chatMessages,
+  liveConversations,
   messageMentions,
   userProfiles,
   workspaceMembers,
@@ -31,13 +31,8 @@ export class DrizzlePushAudienceRepository extends PushAudienceRepository {
     const [row] = await this.txHost.tx
       .select({ name: channels.name, kind: channels.kind, lastSeq: channels.lastEntrySeq })
       .from(channels)
-      .where(
-        and(
-          eq(channels.id, scope.channelId),
-          eq(channels.workspaceId, scope.workspaceId),
-          or(ne(channels.kind, 'dm'), activeDmPair(channels.id)),
-        ),
-      );
+      .innerJoin(liveConversations, eq(liveConversations.channelId, channels.id))
+      .where(and(eq(channels.id, scope.channelId), eq(channels.workspaceId, scope.workspaceId)));
     return row;
   }
 

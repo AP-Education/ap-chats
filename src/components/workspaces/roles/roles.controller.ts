@@ -16,7 +16,6 @@ import { UseAuthGuards } from '@/components/auth';
 import { CurrentWorkspaceMember } from '../members/decorators';
 import { WorkspaceMemberGuard } from '../members/guards';
 import type { WorkspaceMember } from '../members/types';
-import { AddRoleMembersDto } from './dto/add-role-members.dto';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { ReorderRolesDto } from './dto/reorder-roles.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
@@ -58,33 +57,5 @@ export class RolesController {
     @Param('roleId', ParseUUIDPipe) roleId: string,
   ): Promise<void> {
     return this.roles.remove(member, roleId);
-  }
-
-  @Get(':roleId/members')
-  members(
-    @CurrentWorkspaceMember() member: WorkspaceMember,
-    @Param('roleId', ParseUUIDPipe) roleId: string,
-  ) {
-    return this.roles.members(member, roleId);
-  }
-
-  @Post(':roleId/members')
-  @HttpCode(204)
-  addMembers(
-    @CurrentWorkspaceMember() member: WorkspaceMember,
-    @Param('roleId', ParseUUIDPipe) roleId: string,
-    @Body() dto: AddRoleMembersDto,
-  ): Promise<void> {
-    return this.roles.addMembers(member, roleId, dto.memberIds);
-  }
-
-  @Delete(':roleId/members/:memberId')
-  @HttpCode(204)
-  removeMember(
-    @CurrentWorkspaceMember() member: WorkspaceMember,
-    @Param('roleId', ParseUUIDPipe) roleId: string,
-    @Param('memberId', ParseUUIDPipe) memberId: string,
-  ): Promise<void> {
-    return this.roles.removeMember(member, roleId, memberId);
   }
 }

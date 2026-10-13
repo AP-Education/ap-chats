@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { and, asc, eq, sql } from 'drizzle-orm';
 
-import type { Principal } from '@/components/workspaces/access';
+import type { Principal } from '@/components/workspaces/access/types';
 import { throwNotFoundOnMissingReference } from '@/database/drizzle/pg-errors';
 import {
   channelAccessSources,

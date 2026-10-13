@@ -1,1 +1,1 @@
-export type { Role, RoleBadge, RoleMember } from './role.types';
+export type { Role } from './role.types';

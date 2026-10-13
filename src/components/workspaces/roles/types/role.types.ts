@@ -12,16 +12,3 @@ export interface Role {
   createdAt: Date;
   updatedAt: Date;
 }
-
-/** How a role shows next to a person, as on their profile. */
-export interface RoleBadge {
-  id: string;
-  name: string;
-  color: string | null;
-}
-
-export interface RoleMember {
-  memberId: string;
-  displayName: string | null;
-  avatarPath: string | null;
-}

@@ -3,10 +3,10 @@ import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 
 import { throwConflictOnUnique } from '@/database/drizzle/pg-errors';
-import { roleMembers, roles, userProfiles, workspaceMembers } from '@/database/drizzle/schema';
+import { activeRoleMembers, roles } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
-import type { Role, RoleBadge, RoleMember } from '../types';
+import type { Role } from '../types';
 import { RolesRepository } from './roles.repository';
 
 @Injectable()
@@ -27,6 +27,14 @@ export class DrizzleRolesRepository extends RolesRepository {
       and(eq(roles.workspaceId, workspaceId), eq(roles.id, roleId)),
     );
     return row && this.toModel(row.role, row.memberCount);
+  }
+
+  async countInWorkspace(workspaceId: string, roleIds: string[]): Promise<number> {
+    const [row] = await this.txHost.tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(roles)
+      .where(and(eq(roles.workspaceId, workspaceId), inArray(roles.id, roleIds)));
+    return row?.count ?? 0;
   }
 
   async create(workspaceId: string, values: { name: string; color: string | null }): Promise<Role> {
@@ -78,15 +86,6 @@ export class DrizzleRolesRepository extends RolesRepository {
       .where(eq(roles.workspaceId, workspaceId));
   }
 
-  badgesOf(workspaceId: string, memberId: string): Promise<RoleBadge[]> {
-    return this.txHost.tx
-      .select({ id: roles.id, name: roles.name, color: roles.color })
-      .from(roleMembers)
-      .innerJoin(roles, eq(roles.id, roleMembers.roleId))
-      .where(and(eq(roleMembers.workspaceId, workspaceId), eq(roleMembers.memberId, memberId)))
-      .orderBy(asc(roles.position), asc(roles.name));
-  }
-
   @Transactional()
   async remove(workspaceId: string, roleId: string): Promise<string[] | undefined> {
     const [role] = await this.txHost.tx
@@ -96,84 +95,21 @@ export class DrizzleRolesRepository extends RolesRepository {
       .for('update');
     if (!role) return undefined;
 
-    const formerMembers = await this.txHost.tx
-      .select({ memberId: roleMembers.memberId })
-      .from(roleMembers)
-      .where(eq(roleMembers.roleId, roleId));
+    const formerHolders = await this.txHost.tx
+      .select({ memberId: activeRoleMembers.memberId })
+      .from(activeRoleMembers)
+      .where(eq(activeRoleMembers.roleId, roleId));
 
     await this.txHost.tx.delete(roles).where(eq(roles.id, roleId));
 
-    return formerMembers.map(({ memberId }) => memberId);
-  }
-
-  members(workspaceId: string, roleId: string): Promise<RoleMember[]> {
-    return this.txHost.tx
-      .select({
-        memberId: workspaceMembers.id,
-        displayName: userProfiles.displayName,
-        avatarPath: userProfiles.avatarPath,
-      })
-      .from(roleMembers)
-      .innerJoin(workspaceMembers, eq(workspaceMembers.id, roleMembers.memberId))
-      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
-      .where(
-        and(
-          eq(roleMembers.workspaceId, workspaceId),
-          eq(roleMembers.roleId, roleId),
-          eq(workspaceMembers.status, 'active'),
-        ),
-      )
-      .orderBy(asc(userProfiles.displayName));
-  }
-
-  async addMembers(workspaceId: string, roleId: string, memberIds: string[]): Promise<string[]> {
-    const added = await this.txHost.tx
-      .insert(roleMembers)
-      .select(
-        this.txHost.tx
-          .select({
-            workspaceId: workspaceMembers.workspaceId,
-            roleId: sql<string>`${roleId}::uuid`.as('role_id'),
-            memberId: workspaceMembers.id,
-            createdAt: sql<Date>`now()`.as('created_at'),
-          })
-          .from(workspaceMembers)
-          .where(
-            and(
-              eq(workspaceMembers.workspaceId, workspaceId),
-              inArray(workspaceMembers.id, memberIds),
-              eq(workspaceMembers.status, 'active'),
-            ),
-          ),
-      )
-      .onConflictDoNothing()
-      .returning({ memberId: roleMembers.memberId });
-    return added.map(({ memberId }) => memberId);
-  }
-
-  async removeMember(workspaceId: string, roleId: string, memberId: string): Promise<boolean> {
-    const removed = await this.txHost.tx
-      .delete(roleMembers)
-      .where(
-        and(
-          eq(roleMembers.workspaceId, workspaceId),
-          eq(roleMembers.roleId, roleId),
-          eq(roleMembers.memberId, memberId),
-        ),
-      )
-      .returning({ memberId: roleMembers.memberId });
-    return removed.length > 0;
+    return formerHolders.map(({ memberId }) => memberId);
   }
 
   private withMemberCount() {
     return this.txHost.tx
-      .select({ role: roles, memberCount: sql<number>`count(${workspaceMembers.id})::int` })
+      .select({ role: roles, memberCount: sql<number>`count(${activeRoleMembers.memberId})::int` })
       .from(roles)
-      .leftJoin(roleMembers, eq(roleMembers.roleId, roles.id))
-      .leftJoin(
-        workspaceMembers,
-        and(eq(workspaceMembers.id, roleMembers.memberId), eq(workspaceMembers.status, 'active')),
-      )
+      .leftJoin(activeRoleMembers, eq(activeRoleMembers.roleId, roles.id))
       .groupBy(roles.id)
       .$dynamic();
   }

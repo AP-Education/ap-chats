@@ -9,8 +9,8 @@ import {
 } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
-import type { ChannelAccessSnapshot } from '@/components/communities/channels/types/channel-access.types';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
+import type { ChannelAccessSnapshot } from '@/components/communities/channel-access/channel-access/types';
 import { EntriesFacade } from '@/components/social/entries/entries.facade';
 import type { ChannelEntry } from '@/components/social/entries/types/entry.types';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
@@ -58,7 +58,7 @@ function encodeHistoryCursor(cursor: HistoryCursor): string {
 export class CallsService {
   constructor(
     private readonly calls: CallsRepository,
-    private readonly channelAccess: ChannelAccessFacade,
+    private readonly channelAccess: ChannelAccessPolicy,
     private readonly entries: EntriesFacade,
     private readonly provider: CallProvider,
     private readonly realtime: RealtimePublisher,
@@ -85,7 +85,7 @@ export class CallsService {
   }
 
   async active(member: WorkspaceMember, channelId: string, accessToken: string) {
-    const channel = await this.channelAccess.requireReadAccess(member, channelId);
+    const channel = await this.channelAccess.requireMembership(member, channelId);
     await this.expireStale(member, channel, accessToken);
 
     const call = await this.calls.findActive(channelId);

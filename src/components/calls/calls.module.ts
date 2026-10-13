@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
-import { ChannelAccessModule } from '@/components/communities/channel-access';
+import { ChannelAccessPolicyModule } from '@/components/communities/channel-access/channel-access';
 import { ChannelAudienceModule } from '@/components/communities/channel-audience';
 import { EntriesModule } from '@/components/social/entries/entries.module';
 import { VoipPushModule } from '@/components/voip-push';
-import { WorkspacesModule } from '@/components/workspaces';
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
 
 import { CallsController } from './calls.controller';
 import { CallsGateway } from './calls.gateway';
@@ -17,11 +17,11 @@ import { CallsRepository, DrizzleCallsRepository } from './repository';
 @Module({
   imports: [
     AuthModule,
-    ChannelAccessModule,
+    ChannelAccessPolicyModule,
     ChannelAudienceModule,
     EntriesModule,
     VoipPushModule,
-    WorkspacesModule,
+    WorkspaceMembersModule,
   ],
   controllers: [CallsController, CallsHistoryController],
   providers: [

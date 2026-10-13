@@ -1,45 +1,19 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from '@/components/auth';
-import { WorkspacesModule } from '@/components/workspaces';
+import { ChannelAccessPolicyModule } from './channel-access';
+import { ChannelAccessNoticesModule } from './notices';
+import { ChannelPermissionsModule } from './permissions';
+import { ChannelAccessSyncModule } from './sync';
+import { ChannelVisibilityModule } from './visibility';
 
-import { ChannelAudienceModule } from '../channel-audience';
-import { ChannelsRepositoryModule } from '../channels';
-import { ChannelMembershipsRepositoryModule } from '../memberships/channel-memberships-repository.module';
-import { ChannelAccessFacade } from './channel-access.facade';
-import { ChannelAccessGateway } from './channel-access.gateway';
-import { CommunityAccessService } from './community-access.service';
-import { ChannelPermissionsController } from './permissions/channel-permissions.controller';
-import { ChannelPermissionsService } from './permissions/channel-permissions.service';
-import { ChannelPermissionsRepository } from './permissions/repository/channel-permissions.repository';
-import { DrizzleChannelPermissionsRepository } from './permissions/repository/drizzle-channel-permissions.repository';
-import { ChannelAccessRepository } from './repository/channel-access.repository';
-import { DrizzleChannelAccessRepository } from './repository/drizzle-channel-access.repository';
-import { ChannelAccessSync } from './sync/channel-access.sync';
-
+/** Brings channel access into the communities component; others import the part they use. */
 @Module({
   imports: [
-    AuthModule,
-    WorkspacesModule,
-    ChannelAudienceModule,
-    ChannelsRepositoryModule,
-    ChannelMembershipsRepositoryModule,
-  ],
-  controllers: [ChannelPermissionsController],
-  providers: [
-    CommunityAccessService,
-    ChannelAccessFacade,
-    ChannelAccessGateway,
-    ChannelAccessSync,
-    ChannelPermissionsService,
-    { provide: ChannelAccessRepository, useClass: DrizzleChannelAccessRepository },
-    { provide: ChannelPermissionsRepository, useClass: DrizzleChannelPermissionsRepository },
-  ],
-  exports: [
-    CommunityAccessService,
-    ChannelAccessFacade,
-    ChannelAccessSync,
-    ChannelPermissionsRepository,
+    ChannelAccessPolicyModule,
+    ChannelVisibilityModule,
+    ChannelPermissionsModule,
+    ChannelAccessSyncModule,
+    ChannelAccessNoticesModule,
   ],
 })
 export class ChannelAccessModule {}

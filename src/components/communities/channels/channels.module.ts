@@ -1,23 +1,13 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from '@/components/auth';
-import { WorkspacesModule } from '@/components/workspaces';
+import { DrizzleModule } from '@/database/drizzle';
 
-import { ChannelAccessModule } from '../channel-access';
-import { ChannelCategoriesModule } from '../channel-categories/channel-categories.module';
-import { ChannelsController } from './channels.controller';
-import { ChannelsService } from './channels.service';
-import { ChannelsRepositoryModule } from './channels-repository.module';
+import { ChannelsRepository, DrizzleChannelsRepository } from './repository';
 
+/** The channel itself: its name, category and kind, and how a person sees it. */
 @Module({
-  imports: [
-    AuthModule,
-    WorkspacesModule,
-    ChannelAccessModule,
-    ChannelCategoriesModule,
-    ChannelsRepositoryModule,
-  ],
-  controllers: [ChannelsController],
-  providers: [ChannelsService],
+  imports: [DrizzleModule],
+  providers: [{ provide: ChannelsRepository, useClass: DrizzleChannelsRepository }],
+  exports: [ChannelsRepository],
 })
 export class ChannelsModule {}

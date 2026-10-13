@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
 
@@ -15,7 +15,7 @@ import type { ChannelReadState, MarkReadOutcome, WorkspaceChannelUnread } from '
 @Injectable()
 export class ReadStateFacade {
   constructor(
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly repository: ReadStateRepository,
     private readonly events: EventPublisher,
   ) {}
@@ -32,7 +32,7 @@ export class ReadStateFacade {
 
   @Transactional()
   async getState(member: WorkspaceMember, channelId: string): Promise<ChannelReadState | null> {
-    const channel = await this.access.requireReadAccess(member, channelId);
+    const channel = await this.access.requireViewAccess(member, channelId);
     return this.state(channelId, member.id, channel.lastEntrySeq);
   }
 
@@ -75,7 +75,7 @@ export class ReadStateFacade {
     seqText: string,
   ): Promise<MarkReadOutcome> {
     const seq = BigInt(seqText);
-    const channel = await this.access.requireReadAccess(member, channelId);
+    const channel = await this.access.requireMembership(member, channelId);
     if (seq > channel.lastEntrySeq)
       throw new BadRequestException('Sequence exceeds channel history');
     if (seq > 0n && !(await this.repository.entryExists(channelId, seq)))

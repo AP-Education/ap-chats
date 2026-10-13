@@ -3,8 +3,10 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, eq, ilike, inArray, ne, sql } from 'drizzle-orm';
 
 import {
+  activeRoleMembers,
   channelMemberships,
   messageMentions,
+  messageRoleMentions,
   userProfiles,
   workspaceMembers,
 } from '@/database/drizzle/schema';
@@ -86,6 +88,49 @@ export class DrizzleMentionsRepository extends MentionsRepository {
           memberId,
           via: 'direct' as const,
         })),
+      );
+  }
+
+  async addRoles(message: MentionedMessage, roleIds: string[]): Promise<void> {
+    if (!roleIds.length) return;
+    const reached = this.txHost.tx
+      .select({ memberId: activeRoleMembers.memberId, roleId: activeRoleMembers.roleId })
+      .from(activeRoleMembers)
+      .innerJoin(
+        channelMemberships,
+        and(
+          eq(channelMemberships.memberId, activeRoleMembers.memberId),
+          eq(channelMemberships.channelId, message.channelId),
+        ),
+      )
+      .where(
+        and(
+          eq(activeRoleMembers.workspaceId, message.workspaceId),
+          inArray(activeRoleMembers.roleId, roleIds),
+          ne(activeRoleMembers.memberId, message.authorMemberId),
+        ),
+      )
+      .as('reached');
+    const messageId = sql`${message.messageId}::uuid`.as('message_id');
+
+    await this.txHost.tx
+      .insert(messageMentions)
+      .select((qb) =>
+        qb
+          .selectDistinct({
+            workspaceId: sql`${message.workspaceId}::uuid`.as('workspace_id'),
+            channelId: sql`${message.channelId}::uuid`.as('channel_id'),
+            messageId,
+            memberId: reached.memberId,
+            via: sql`'role'`.as('via'),
+          })
+          .from(reached),
+      )
+      .onConflictDoNothing();
+    await this.txHost.tx
+      .insert(messageRoleMentions)
+      .select((qb) =>
+        qb.select({ messageId, memberId: reached.memberId, roleId: reached.roleId }).from(reached),
       );
   }
 

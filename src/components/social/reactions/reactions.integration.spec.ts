@@ -32,7 +32,7 @@ test('reactions on PostgreSQL', async (t) => {
 
   const txHost = transactionHost(db);
   const history = new DrizzleHistoryRepository(txHost as never);
-  const access = { requireParticipant: async () => {}, requireViewAccess: async () => {} };
+  const access = { requireReactAccess: async () => {}, requireViewAccess: async () => {} };
 
   /** A channel with one message and the given number of people in its workspace. */
   async function conversation(people = 2) {

@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 
 import type { CallStatus } from '@/components/calls/types';
+import type { WorkspaceAccessLevel } from '@/components/workspaces/access/types';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import * as schema from '@/database/drizzle/schema';
 
@@ -42,10 +43,14 @@ export function seedConversations(db: TestDatabase) {
       return id;
     },
 
-    async join(workspaceId: string, person: Person): Promise<WorkspaceMember> {
+    async join(
+      workspaceId: string,
+      person: Person,
+      accessLevel: WorkspaceAccessLevel = 'member',
+    ): Promise<WorkspaceMember> {
       const [member] = await db
         .insert(schema.workspaceMembers)
-        .values({ workspaceId, userProfileId: person.id })
+        .values({ workspaceId, userProfileId: person.id, accessLevel })
         .returning();
       return {
         ...member!,

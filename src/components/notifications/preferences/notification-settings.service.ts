@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { NotificationSettingsRepository } from './repository/notification-settings.repository';
@@ -15,13 +15,13 @@ import type {
 @Injectable()
 export class NotificationSettingsService {
   constructor(
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly repository: NotificationSettingsRepository,
   ) {}
 
   @Transactional()
   async get(member: WorkspaceMember, channelId: string): Promise<ChannelNotificationSettings> {
-    await this.access.requireReadAccess(member, channelId);
+    await this.access.requireViewAccess(member, channelId);
     const settings = await this.repository.forMember(channelId, member.id);
     if (!settings) throw new NotFoundException('Channel membership not found');
     return this.toView(settings);
@@ -33,7 +33,7 @@ export class NotificationSettingsService {
     channelId: string,
     command: ChangeNotificationSettings,
   ): Promise<ChannelNotificationSettings> {
-    await this.access.requireReadAccess(member, channelId);
+    await this.access.requireMembership(member, channelId);
     const current = await this.repository.forMember(channelId, member.id);
     if (!current) throw new NotFoundException('Channel membership not found');
     const update = this.resolveUpdate(current, command);

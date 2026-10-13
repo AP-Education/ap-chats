@@ -1,6 +1,7 @@
 /** Who a message addresses as written; recipients are expanded from this when it is stored. */
 export interface MentionTargets {
   memberIds: string[];
+  roleIds: string[];
   everyone: boolean;
 }
 

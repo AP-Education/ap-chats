@@ -1,9 +1,9 @@
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, Matches } from 'class-validator';
+
+import { TrimmedName } from '@/globals/validation/trimmed-name.decorator';
 
 export class CreateRoleDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(80)
+  @TrimmedName()
   name!: string;
 
   @IsOptional()

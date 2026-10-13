@@ -1,4 +1,9 @@
-export * from './dto/principal.dto';
-export * from './member-access-projections';
-export * from './types';
-export * from './workspace-access';
+export { MemberAccessProjections } from './member-access-projections';
+export {
+  hasAccessLevel,
+  isAdministrator,
+  isOwner,
+  outranks,
+  requireAccessLevel,
+} from './workspace-access';
+export { WorkspaceAccessModule } from './workspace-access.module';

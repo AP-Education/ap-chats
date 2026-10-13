@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import { DirectMessagesService } from '@/components/direct-messages/direct-messages.service';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventOutbox } from '@/globals/publisher/event-outbox';
@@ -26,7 +26,7 @@ import { ForwardingRepository } from './repository/forwarding.repository';
 @Injectable()
 export class ForwardingFacade {
   constructor(
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly directMessages: DirectMessagesService,
     private readonly messages: MessagesFacade,
     private readonly repository: ForwardingRepository,

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { ReadStateFacade } from '../read-state/read-state.facade';
@@ -16,7 +16,7 @@ const CONTEXT_BEFORE_TARGET = 12;
 @Injectable()
 export class HistoryFacade {
   constructor(
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly history: HistoryRepository,
     private readonly readState: ReadStateFacade,
   ) {}

@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
-import { ChannelAccessModule } from '@/components/communities/channel-access';
+import { ChannelAccessPolicyModule } from '@/components/communities/channel-access/channel-access';
 import { ChannelAudienceModule } from '@/components/communities/channel-audience';
 import { DirectMessagesModule } from '@/components/direct-messages/direct-messages.module';
-import { WorkspacesModule } from '@/components/workspaces';
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
 
 import { MessagesModule } from '../messages';
 import { ForwardingController } from './forwarding.controller';
@@ -16,10 +16,10 @@ import { ForwardingRepository } from './repository/forwarding.repository';
 @Module({
   imports: [
     AuthModule,
-    ChannelAccessModule,
+    ChannelAccessPolicyModule,
     ChannelAudienceModule,
     DirectMessagesModule,
-    WorkspacesModule,
+    WorkspaceMembersModule,
     MessagesModule,
   ],
   controllers: [ForwardingController],

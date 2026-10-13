@@ -1,4 +1,4 @@
-import type { ChannelKind } from '@/components/communities/channels';
+import type { ChannelKind } from '@/components/communities/channels/types';
 
 import type { NotificationEventKind } from '../types';
 

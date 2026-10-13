@@ -1,18 +1,10 @@
-import {
-  IsBoolean,
-  IsOptional,
-  IsString,
-  Matches,
-  MaxLength,
-  MinLength,
-  ValidateIf,
-} from 'class-validator';
+import { IsBoolean, IsOptional, Matches, ValidateIf } from 'class-validator';
+
+import { TrimmedName } from '@/globals/validation/trimmed-name.decorator';
 
 export class UpdateRoleDto {
   @IsOptional()
-  @IsString()
-  @MinLength(1)
-  @MaxLength(80)
+  @TrimmedName()
   name?: string;
 
   @ValidateIf((_object, value: unknown) => value !== undefined && value !== null)

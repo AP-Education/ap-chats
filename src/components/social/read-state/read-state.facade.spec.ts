@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { ChannelAccessFacade } from '@/components/communities/channel-access';
+import type { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import type { EventPublisher } from '@/globals/publisher/event-publisher';
 
 import { ReadStateFacade } from './read-state.facade';
@@ -27,7 +27,7 @@ test('history cursor reads one indexed membership row without counting unread en
       throw new Error('Unexpected cursor update');
     },
   } as ReadStateRepository;
-  const facade = new ReadStateFacade({} as ChannelAccessFacade, repository, {} as EventPublisher);
+  const facade = new ReadStateFacade({} as ChannelAccessPolicy, repository, {} as EventPublisher);
 
   assert.deepEqual(await facade.cursor('channel', 'member'), { lastReadEntrySeq: '42' });
   assert.equal(cursorReads, 1);

@@ -78,8 +78,7 @@ export const channelAccessSources = pgView('channel_access_sources', {
   union all
   select g.workspace_id, g.channel_id, rm.member_id, g.capability, g.principal, g.role_id
   from channel_grants g
-  join role_members rm on rm.role_id = g.role_id
-  join workspace_members m on m.id = rm.member_id and m.status = 'active'
+  join active_role_members rm on rm.role_id = g.role_id
   where g.principal = 'role'
   union all
   select g.workspace_id, g.channel_id, g.member_id, g.capability, g.principal, g.role_id

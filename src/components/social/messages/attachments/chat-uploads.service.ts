@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access/channel-access.facade';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import { NoSuchUploadError, StorageProvider } from '@/components/uploads/storage/storage.provider';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
@@ -26,7 +26,7 @@ import { normalizeFilename, partSize, UploadPolicy, validateParts } from './uplo
 @Injectable()
 export class ChatUploadsService {
   constructor(
-    private readonly access: ChannelAccessFacade,
+    private readonly access: ChannelAccessPolicy,
     private readonly repository: ChatUploadsRepository,
     private readonly storage: StorageProvider,
     private readonly preview: AttachmentPreviewService,
@@ -212,7 +212,7 @@ export class ChatUploadsService {
     id: string,
     variant: string,
   ) {
-    await this.access.requireReadAccess(member, channelId);
+    await this.access.requireViewAccess(member, channelId);
     const message = await this.repository.message(member.workspaceId, channelId, messageId);
     const file = message?.attachments.find((attachment) => attachment.id === id);
     if (!file) throw new NotFoundException('Attachment not found');

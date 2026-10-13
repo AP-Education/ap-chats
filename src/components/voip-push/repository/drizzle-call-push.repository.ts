@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, eq, ne, or } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
-import { activeDmPair } from '@/components/communities/channel-access';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import {
   calls,
   channelMemberships,
-  channels,
+  liveConversations,
   userProfiles,
   workspaceMembers,
 } from '@/database/drizzle/schema';
@@ -28,7 +27,7 @@ export class DrizzleCallPushRepository extends CallPushRepository {
     const [call] = await this.txHost.tx
       .select({ startedAt: calls.startedAt })
       .from(calls)
-      .innerJoin(channels, eq(channels.id, calls.channelId))
+      .innerJoin(liveConversations, eq(liveConversations.channelId, calls.channelId))
       .innerJoin(
         channelMemberships,
         and(
@@ -56,7 +55,6 @@ export class DrizzleCallPushRepository extends CallPushRepository {
           eq(calls.channelId, channelId),
           eq(calls.workspaceId, workspaceId),
           eq(calls.status, 'ringing'),
-          or(ne(channels.kind, 'dm'), activeDmPair(channels.id)),
         ),
       )
       .limit(1);

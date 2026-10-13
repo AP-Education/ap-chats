@@ -1,4 +1,4 @@
-import type { Principal, PrincipalKind } from '@/components/workspaces/access';
+import type { Principal, PrincipalKind } from '@/components/workspaces/access/types';
 
 export const channelCapabilities = ['view', 'post', 'manage'] as const;
 export type ChannelCapability = (typeof channelCapabilities)[number];
