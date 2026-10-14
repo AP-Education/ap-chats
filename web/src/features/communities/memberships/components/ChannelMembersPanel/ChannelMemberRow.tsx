@@ -48,6 +48,7 @@ export function ChannelMemberRow({ entry, color }: ChannelMemberRowProps) {
     <li className={styles.member}>
       <MemberProfileTrigger
         member={{
+          workspaceId: entry.member.workspaceId,
           memberId: entry.member.id,
           displayName: entry.member.profile.displayName,
           avatarPath: entry.member.profile.avatarPath,

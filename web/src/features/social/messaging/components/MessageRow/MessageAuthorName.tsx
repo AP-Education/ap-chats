@@ -2,6 +2,7 @@ import { avatarColors } from '@ap-education/ui';
 import { theme } from 'antd';
 import { createStyles } from 'antd-style';
 
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
 
 import { useMessageActionScope } from './MessageActionScope';
@@ -35,12 +36,13 @@ const useStyles = createStyles(({ token, css }) => ({
 export function MessageAuthorName() {
   const { styles } = useStyles();
   const { item, author, context } = useMessageActionScope();
+  const { workspaceId } = useConversationScope();
   const { token } = theme.useToken();
 
   if (item.message.authorMemberId === context.memberId) return null;
 
   return (
-    <MemberProfileTrigger member={item.author}>
+    <MemberProfileTrigger member={{ ...item.author, workspaceId }}>
       <button
         type="button"
         className={styles.author}

@@ -3,7 +3,6 @@ import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { useReducer } from 'react';
 
-import { useActiveWorkspace } from '@/features/workspaces/hooks/useActiveWorkspace';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { isWorkspaceAdministrator, isWorkspaceOwner } from '@/features/workspaces/workspace-access';
 import { ApiError } from '@/shared/api/http';
@@ -36,10 +35,9 @@ interface MemberCardProps {
 export function MemberCard({ member, onConversationOpen }: MemberCardProps) {
   const { styles } = useStyles();
   const isMobile = useIsMobile();
-  const { workspace } = useActiveWorkspace();
-  const workspaceId = workspace?.id ?? '';
-  const profile = useMemberProfile(workspace?.id, member.memberId);
-  const { currentMember } = useWorkspaceMemberLabels(workspace?.id);
+  const { workspaceId } = member;
+  const profile = useMemberProfile(workspaceId, member.memberId);
+  const { currentMember } = useWorkspaceMemberLabels(workspaceId);
   const { toggleRole } = useMemberRoleAssignments(workspaceId, member.memberId);
   const [view, dispatch] = useReducer(memberCardView, 'profile');
 
@@ -49,7 +47,7 @@ export function MemberCard({ member, onConversationOpen }: MemberCardProps) {
   const avatarPath = profile.data ? profile.data.avatarPath : member.avatarPath;
   const isSelf = profile.data?.isSelf ?? false;
   const unavailable =
-    !workspace || (profile.error instanceof ApiError && [403, 404].includes(profile.error.status));
+    profile.error instanceof ApiError && [403, 404].includes(profile.error.status);
   const scope: MemberCardScope = {
     workspaceId,
     memberId: member.memberId,

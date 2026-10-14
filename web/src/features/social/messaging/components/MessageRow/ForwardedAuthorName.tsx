@@ -1,5 +1,6 @@
 import { createStyles } from 'antd-style';
 
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
 
 import type { MessageAuthor } from '../../types';
@@ -24,11 +25,12 @@ const useStyles = createStyles(({ css }) => ({
 /** The original author of a forwarded message; one no longer known stays plain text. */
 export function ForwardedAuthorName({ member }: { member: MessageAuthor | null }) {
   const { styles } = useStyles();
+  const { workspaceId } = useConversationScope();
 
   if (!member) return 'Ім’я недоступне';
 
   return (
-    <MemberProfileTrigger member={member}>
+    <MemberProfileTrigger member={{ ...member, workspaceId }}>
       <button type="button" className={styles.name}>
         {member.displayName ?? 'Ім’я недоступне'}
       </button>
