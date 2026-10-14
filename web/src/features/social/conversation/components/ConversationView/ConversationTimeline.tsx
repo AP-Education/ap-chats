@@ -1,5 +1,6 @@
 import { MessageTimeline } from '@/features/social/messaging/components/MessageTimeline/MessageTimeline';
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
+import { UnsentMessagesContext } from '@/features/social/messaging/unsent-messages-context';
 
 import type { useConversationActions } from './useConversationActions';
 import { conversationActions } from './useConversationActions';
@@ -20,23 +21,24 @@ export function ConversationTimeline({
   const { actionContext, onAction, onEdit } = interaction;
 
   return (
-    <MessageTimeline
-      key={historyTargetId ?? 'unread'}
-      pages={pages}
-      displayItems={operations.displayItems}
-      actionContext={actionContext}
-      actions={conversationActions}
-      onAction={onAction}
-      onJump={onJump}
-      onEdit={onEdit}
-      onRetry={operations.retry}
-      hasOlder={history.hasPreviousPage}
-      hasNewer={history.hasNextPage}
-      loadingOlder={history.isFetchingPreviousPage}
-      loadingNewer={history.isFetchingNextPage}
-      loadOlder={() => history.fetchPreviousPage()}
-      loadNewer={() => history.fetchNextPage()}
-      targetMessageId={targetMessageId}
-    />
+    <UnsentMessagesContext.Provider value={operations}>
+      <MessageTimeline
+        key={historyTargetId ?? 'unread'}
+        pages={pages}
+        displayItems={operations.displayItems}
+        actionContext={actionContext}
+        actions={conversationActions}
+        onAction={onAction}
+        onJump={onJump}
+        onEdit={onEdit}
+        hasOlder={history.hasPreviousPage}
+        hasNewer={history.hasNextPage}
+        loadingOlder={history.isFetchingPreviousPage}
+        loadingNewer={history.isFetchingNextPage}
+        loadOlder={() => history.fetchPreviousPage()}
+        loadNewer={() => history.fetchNextPage()}
+        targetMessageId={targetMessageId}
+      />
+    </UnsentMessagesContext.Provider>
   );
 }

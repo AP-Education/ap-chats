@@ -13,6 +13,7 @@ import { MessageActions } from './MessageActions';
 import { MessageActionProvider } from './MessageActionScope';
 import { MessageBody } from './MessageBody';
 import { MessageHeader } from './MessageHeader';
+import { UnsentNotice } from './UnsentNotice';
 
 const CHECK_MARK = `url("data:image/svg+xml,${encodeURIComponent(
   "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>",
@@ -75,26 +76,6 @@ const useStyles = createStyles(({ token, css }) => ({
       }
     }
   `,
-  retry: css`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--bubble-meta);
-    font-size: ${token.fontSizeSM}px;
-  `,
-  retryButton: css`
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--bubble-link);
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  `,
   // Sits in the run's gutter at the screen edge, wherever the bubble itself is.
   checkbox: css`
     position: absolute;
@@ -139,7 +120,6 @@ interface MessageRowProps {
   onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
   delivery?: DeliveryStatus;
   pendingAttachments?: AttachmentDraft[];
-  onRetry: (rowId: string) => void;
 }
 
 export const MessageRow = memo(function MessageRow({
@@ -151,7 +131,6 @@ export const MessageRow = memo(function MessageRow({
   onEdit,
   delivery,
   pendingAttachments,
-  onRetry,
 }: MessageRowProps) {
   const { styles, cx } = useStyles();
   const authorName = item.author.displayName ?? 'Ім’я недоступне';
@@ -243,14 +222,7 @@ export const MessageRow = memo(function MessageRow({
             onEdit={onEdit}
             onCloseEdit={() => setEditingId(null)}
           />
-          {delivery === 'failed' && (
-            <div className={styles.retry}>
-              Не надіслано
-              <button type="button" className={styles.retryButton} onClick={() => onRetry(item.id)}>
-                Повторити
-              </button>
-            </div>
-          )}
+          {delivery === 'failed' && <UnsentNotice rowId={item.id} />}
         </Bubble>
       </MessageActions>
     </MessageActionProvider>

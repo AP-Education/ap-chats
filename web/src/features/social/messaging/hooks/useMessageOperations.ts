@@ -243,5 +243,5 @@ export function useMessageOperations(
     return [...history, ...[...queued, ...uploading].sort(byCreatedAt)];
   }, [items, outbox.unsent, uploadingSends, author, messages]);
 
-  return { displayItems, send, retry, edit, remove };
+  return { displayItems, send, retry, discard: outbox.discard, edit, remove };
 }
