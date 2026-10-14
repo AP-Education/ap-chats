@@ -54,3 +54,21 @@ export const activeRoleMembers = pgView('active_role_members', {
   join roles r on r.id = rm.role_id
   join workspace_members m on m.id = rm.member_id and m.status = 'active'
 `);
+
+// How a person shows by their roles, read wherever they appear: the first hoisted role, which
+// groups them in member lists, and the first coloured one, which colours their name.
+export const memberRolePresentation = pgView('member_role_presentation', {
+  memberId: uuid('member_id').notNull(),
+  hoistedRoleId: uuid('hoisted_role_id'),
+  roleColor: text('role_color'),
+}).as(sql`
+  select m.id as member_id,
+    (select held.role_id from active_role_members held
+      where held.member_id = m.id and held.is_hoisted
+      order by held.position, held.name limit 1) as hoisted_role_id,
+    (select held.color from active_role_members held
+      where held.member_id = m.id and held.color is not null
+      order by held.position, held.name limit 1) as role_color
+  from workspace_members m
+  where m.status = 'active'
+`);

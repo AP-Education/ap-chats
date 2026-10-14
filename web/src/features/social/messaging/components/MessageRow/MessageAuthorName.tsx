@@ -1,5 +1,3 @@
-import { avatarColors } from '@ap-education/ui';
-import { theme } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { useConversationScope } from '@/features/social/conversation-scope/store';
@@ -32,12 +30,11 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-/** Who wrote an incoming message, in the colour of their avatar. */
+/** Who wrote an incoming message, in the colour of their top role. */
 export function MessageAuthorName() {
   const { styles } = useStyles();
   const { item, author, context } = useMessageActionScope();
   const { workspaceId } = useConversationScope();
-  const { token } = theme.useToken();
 
   if (item.message.authorMemberId === context.memberId) return null;
 
@@ -46,7 +43,7 @@ export function MessageAuthorName() {
       <button
         type="button"
         className={styles.author}
-        style={{ color: avatarColors(author, token).name }}
+        style={item.author.roleColor ? { color: item.author.roleColor } : undefined}
       >
         {author}
       </button>

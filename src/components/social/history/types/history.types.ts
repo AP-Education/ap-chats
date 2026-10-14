@@ -1,7 +1,9 @@
 import type { MessageModel } from '../../messages/types/message.types';
 import type { MessageReaction } from '../../reactions/types/reaction.types';
 
-type Profile = { displayName: string | null; avatarPath: string | null };
+type Person = { displayName: string | null; avatarPath: string | null };
+/** A person as the workspace shows them: name, picture, and the colour of their top coloured role. */
+type Profile = Person & { roleColor: string | null };
 
 /** Just what a reply preview shows of the message it answers. */
 export interface ReplyPreview {
@@ -11,7 +13,7 @@ export interface ReplyPreview {
   deletedAt: Date | null;
 }
 
-export interface Mention extends Profile {
+export interface Mention extends Person {
   memberId: string;
 }
 

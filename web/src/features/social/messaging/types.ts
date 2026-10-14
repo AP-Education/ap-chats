@@ -77,6 +77,8 @@ export interface MessageAuthor {
   memberId: string;
   displayName: string | null;
   avatarPath: string | null;
+  /** Their top coloured role's colour, which their name takes, as on Discord. */
+  roleColor: string | null;
 }
 
 export interface ReadState {

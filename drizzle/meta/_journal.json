@@ -183,6 +183,13 @@
       "when": 1791971963379,
       "tag": "0025_call_answered_at",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791973501131,
+      "tag": "0026_member_role_presentation",
+      "breakpoints": true
     }
   ]
 }
