@@ -9,6 +9,7 @@ import { loadCallKitModule } from './callkit-module';
 import { endCallSession } from './end-call';
 import { restoreIncomingSession } from './hydrate-call-session';
 import { connectRoom, waitForAudioSessionActive } from './livekit-room';
+import { followPlacedCall } from './placed-call';
 import { requireAccessToken } from './require-access-token';
 import { findTrackedSessionIdByServerCallId, trackSession } from './session-registry';
 import { trackRemoteParticipant } from './track-remote-participant';
@@ -88,8 +89,20 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
       if (signal.aborted) return;
       await CallKit.reportOutgoingCallConnected(sessionId);
       if (signal.aborted) return;
-      useNativeCallStore.getState().updateCall({ status: 'connected', connectedAt: Date.now() });
+      const { answeredAt, startedAt } = payload.grant;
+      useNativeCallStore.getState().updateCall({
+        status: 'connected',
+        answeredAt: answeredAt ? Date.parse(answeredAt) : undefined,
+      });
       session.stopCallCues = trackCallCues(room, session.group);
+      // Joining a call already answered leaves nothing to follow.
+      if (!answeredAt) {
+        const placed = { ...session, callId: session.serverCallId, startedAt };
+        session.stopFollowing = followPlacedCall(placed, room, {
+          answered: (at) => useNativeCallStore.getState().updateCall({ answeredAt: at }),
+          over: () => void CallKit.reportCallEnded(sessionId, 'remoteEnded').catch(() => undefined),
+        });
+      }
     } catch (error) {
       if (signal.aborted) return;
       if (__DEV__) console.warn('[calls] outgoing connect failed', error);

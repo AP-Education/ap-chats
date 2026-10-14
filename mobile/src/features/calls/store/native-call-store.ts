@@ -11,8 +11,8 @@ export interface NativeCallState {
   caller: CallParticipant;
   status: NativeCallStatus;
   isMuted: boolean;
-  /** Set once `status` reaches 'connected' — NativeInCallScreen's duration timer. */
-  connectedAt?: number;
+  /** When someone answered, at the server's time: the duration counts from it, not from the ring. */
+  answeredAt?: number;
   /** The *other* participant's own state, from trackRemoteParticipant — not
    * this device's. Mirrors web/'s ParticipantAvatarTile (speaking glow ring,
    * remote mute badge next to their name), absent until the room reports it. */

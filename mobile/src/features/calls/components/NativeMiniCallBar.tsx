@@ -18,7 +18,7 @@ export function NativeMiniCallBar() {
   const visible = useIsMiniCallBarVisible();
   const call = useNativeCallStore((state) => state.call);
   const restore = useNativeCallStore((state) => state.restore);
-  const duration = useCallDuration(call?.connectedAt);
+  const duration = useCallDuration(call?.answeredAt);
 
   if (!visible || !call) return null;
 

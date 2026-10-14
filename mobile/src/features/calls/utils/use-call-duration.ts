@@ -6,16 +6,16 @@ function format(seconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-/** mm:ss elapsed since `connectedAt` — mirrors web's useCallDuration. */
-export function useCallDuration(connectedAt: number | undefined): string {
+/** mm:ss the call has lasted since someone answered it — mirrors web's useCallDuration. */
+export function useCallDuration(answeredAt: number | undefined): string {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!connectedAt) return;
+    if (!answeredAt) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [connectedAt]);
+  }, [answeredAt]);
 
-  if (!connectedAt) return '';
-  return format(Math.max(0, Math.floor((now - connectedAt) / 1000)));
+  if (!answeredAt) return '';
+  return format(Math.max(0, Math.floor((now - answeredAt) / 1000)));
 }

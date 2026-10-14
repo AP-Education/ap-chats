@@ -60,7 +60,7 @@ export async function answerCall(
     if (signal.aborted) return;
     useNativeCallStore.getState().updateCall({
       status: 'connected',
-      connectedAt: Date.now(),
+      answeredAt: grant.answeredAt ? Date.parse(grant.answeredAt) : Date.now(),
     });
     session.stopCallCues = trackCallCues(room, session.group);
   } catch (error) {

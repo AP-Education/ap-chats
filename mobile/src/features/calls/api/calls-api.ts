@@ -3,6 +3,12 @@ import type { CallJoinGrant } from '../types';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
+export interface LiveCall {
+  id: string;
+  status: string;
+  answeredAt: string | null;
+}
+
 export class CallsApiError extends Error {
   constructor(
     readonly status: number,
@@ -61,12 +67,12 @@ export async function activeCall(
   accessToken: string,
   workspaceId: string,
   channelId: string,
-): Promise<{ id: string; status: string } | null> {
+): Promise<LiveCall | null> {
   if (!apiUrl) throw new CallsApiError(0, 'EXPO_PUBLIC_API_URL is not set');
   const response = await fetchWithTimeout(`${apiUrl}${basePath(workspaceId, channelId)}/active`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!response.ok)
     throw new CallsApiError(response.status, `GET active call failed: ${response.status}`);
-  return response.json() as Promise<{ id: string; status: string } | null>;
+  return response.json() as Promise<LiveCall | null>;
 }
