@@ -1,7 +1,8 @@
 import type { AppTab } from '@ap-education/shell-sdk';
 import { ChatTextIcon, PhoneIcon, UsersThreeIcon } from '@phosphor-icons/react';
 
-export type ChatsSection = 'channels' | 'direct' | 'calls';
+export const chatsSections = ['channels', 'direct', 'calls'] as const;
+export type ChatsSection = (typeof chatsSections)[number];
 
 function isWithin(pathname: string, path: string) {
   return pathname === path || pathname.startsWith(`${path}/`);
