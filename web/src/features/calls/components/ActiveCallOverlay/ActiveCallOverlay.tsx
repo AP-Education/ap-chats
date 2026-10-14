@@ -3,14 +3,15 @@ import { createStyles } from 'antd-style';
 
 import { withViewTransition } from '@/shared/hooks/withViewTransition';
 
+import { useActiveCall } from '../../hooks/useActiveCall';
 import { useLeaveActiveCall } from '../../hooks/useLeaveActiveCall';
-import { useOutgoingRingback } from '../../hooks/useOutgoingRingback';
 import { announceCallEnd } from '../../sound/callEndCue';
 import type { ActiveCallSession } from '../../store/call-store';
 import { useCallStore } from '../../store/call-store';
 import { CallPresenceCues } from './CallPresenceCues';
 import { CallScreen } from './CallScreen';
 import { MiniCallBar } from './MiniCallBar';
+import { OutgoingRingback } from './OutgoingRingback';
 import { useCallDuration } from './useCallDuration';
 
 const useStyles = createStyles(({ css }) => ({
@@ -44,11 +45,13 @@ export function ActiveCallOverlay({ session }: ActiveCallOverlayProps) {
   const minimize = useCallStore((state) => state.minimize);
   const restore = useCallStore((state) => state.restore);
   const leaveCall = useLeaveActiveCall();
-  // Anchored to the call's own start, not this device's connection moment:
-  // the timer stays correct across a rejoin or a page reload instead of
-  // resetting to 0:00 every time.
-  const duration = useCallDuration(Date.parse(session.startedAt));
-  useOutgoingRingback(session.workspaceId, session.channelId);
+  // The server's answer time, not this device's: the timer holds across a rejoin or a reload. The
+  // caller learns it once the answer comes in.
+  const live = useActiveCall(session.workspaceId, session.channelId);
+  const liveAnsweredAt = live.data?.id === session.callId ? live.data.answeredAt : null;
+  const answeredAt = session.answeredAt ?? liveAnsweredAt;
+  const duration = useCallDuration(answeredAt);
+  const statusLine = answeredAt ? duration : 'Виклик';
 
   return (
     <div
@@ -71,16 +74,17 @@ export function ActiveCallOverlay({ session }: ActiveCallOverlayProps) {
       >
         <RoomAudioRenderer />
         <CallPresenceCues group={session.calleeAvatarPath === undefined} />
+        <OutgoingRingback session={session} />
         {minimized ? (
           <MiniCallBar
             title={session.title}
-            duration={duration}
+            duration={statusLine}
             onExpand={() => withViewTransition(restore)}
           />
         ) : (
           <CallScreen
             title={session.title}
-            duration={duration}
+            duration={statusLine}
             workspaceId={session.workspaceId}
             onMinimize={() => withViewTransition(minimize)}
             calleeAvatarPath={session.calleeAvatarPath}

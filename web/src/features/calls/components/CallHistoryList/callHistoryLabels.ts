@@ -20,8 +20,8 @@ export function formatCallDate(value: string, now = new Date()): string {
   return dateFormat.format(date);
 }
 
-function formatCallLength(startedAt: string, endedAt: string): string {
-  const seconds = Math.max(0, Math.round((Date.parse(endedAt) - Date.parse(startedAt)) / 1000));
+function formatCallLength(answeredAt: string, endedAt: string): string {
+  const seconds = Math.max(0, Math.round((Date.parse(endedAt) - Date.parse(answeredAt)) / 1000));
   if (seconds < 60) return `${seconds} с`;
 
   const minutes = Math.floor(seconds / 60);
@@ -38,6 +38,6 @@ export function callEntryStatus({ latest, count, outgoing }: CallHistoryEntry): 
   if (latest.status === 'missed') return outgoing ? 'Без відповіді' : 'Пропущений';
 
   const direction = outgoing ? 'Вихідний' : 'Вхідний';
-  if (count > 1 || !latest.endedAt) return direction;
-  return `${direction} (${formatCallLength(latest.startedAt, latest.endedAt)})`;
+  if (count > 1 || !latest.answeredAt || !latest.endedAt) return direction;
+  return `${direction} (${formatCallLength(latest.answeredAt, latest.endedAt)})`;
 }

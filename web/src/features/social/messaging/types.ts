@@ -56,6 +56,7 @@ export interface CallHistoryItem {
     status: CallEntryStatus;
     startedByMemberId: string;
     startedAt: string;
+    answeredAt: string | null;
     endedAt: string | null;
   };
   startedBy: MessageAuthor;

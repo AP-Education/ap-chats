@@ -10,6 +10,8 @@ export interface CallView {
   status: CallStatus;
   startedByMemberId: string;
   startedAt: string;
+  /** When someone answered; a call lasts from here. */
+  answeredAt: string | null;
   endedAt: string | null;
 }
 
@@ -18,6 +20,8 @@ export interface CallJoinGrant {
   roomName: string;
   /** When the call itself began, not when this device joined it. */
   startedAt: string;
+  /** Unset while the call still rings: the caller's own join answers nothing. */
+  answeredAt: string | null;
   url: string;
   token: string;
   expiresAt: string;

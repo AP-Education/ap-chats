@@ -45,6 +45,7 @@ function call(seq: string, createdAt: string): DisplayItem {
       status: 'ended',
       startedByMemberId: 'olena',
       startedAt: createdAt,
+      answeredAt: createdAt,
       endedAt: createdAt,
     },
     startedBy: { memberId: 'olena', displayName: 'Olena', avatarPath: null },

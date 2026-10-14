@@ -106,7 +106,7 @@ export function ActiveCallBanner({
   const activeCall = useActiveCall(workspaceId, channelId);
   const call = useKnownCallAction(workspaceId, channelId, title, calleeAvatarPath, activeCall.data);
   const decline = useDeclineIncomingCall();
-  const duration = useCallDuration(activeCall.data ? Date.parse(activeCall.data.startedAt) : null);
+  const duration = useCallDuration(activeCall.data?.answeredAt ?? null);
   // A DM has exactly one other person to dismiss, so hiding this banner IS
   // declining — the same "one no one's left to talk to" line the ringtone
   // and the leave button both draw. A channel call keeps its personal,
