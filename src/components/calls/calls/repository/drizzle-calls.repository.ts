@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, eq, inArray, lt, ne } from 'drizzle-orm';
+import { and, eq, inArray, lt, notInArray } from 'drizzle-orm';
 
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import { throwConflictOnUnique } from '@/database/drizzle/pg-errors';
@@ -114,7 +114,7 @@ export class DrizzleCallsRepository extends CallsRepository {
     return row;
   }
 
-  async ringRecipients(channelId: string, excludeMemberId: string | null): Promise<string[]> {
+  async ringRecipients(channelId: string, excludedMemberIds: string[]): Promise<string[]> {
     const rows = await this.txHost.tx
       .select({ oidcUserId: userProfiles.oidcUserId })
       .from(channelMemberships)
@@ -124,7 +124,9 @@ export class DrizzleCallsRepository extends CallsRepository {
         and(
           eq(channelMemberships.channelId, channelId),
           eq(workspaceMembers.status, 'active'),
-          excludeMemberId === null ? undefined : ne(channelMemberships.memberId, excludeMemberId),
+          excludedMemberIds.length
+            ? notInArray(channelMemberships.memberId, excludedMemberIds)
+            : undefined,
         ),
       );
     return rows.map((row) => row.oidcUserId);

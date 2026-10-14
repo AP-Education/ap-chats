@@ -46,7 +46,7 @@ export class CallSignals {
     options: { includeActor?: boolean } = {},
   ): Promise<void> {
     const includeActor = options.includeActor ?? true;
-    const recipients = await this.calls.ringRecipients(channel.id, includeActor ? null : actor.id);
+    const recipients = await this.calls.ringRecipients(channel.id, includeActor ? [] : [actor.id]);
 
     const payload = callSignalPayload(actor, channel, call);
     this.events.publish(CALL_SIGNAL_EVENT, new CallSignalEvent(kind, payload, recipients));

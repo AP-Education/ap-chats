@@ -22,7 +22,7 @@ test('a member who left the workspace is never rung', async (t) => {
   const { channelId } = await seed.conversation(await seed.join(office, ann), bobAtOffice);
 
   assert.deepEqual(
-    new Set(await calls.ringRecipients(channelId, null)),
+    new Set(await calls.ringRecipients(channelId, [])),
     new Set([ann.oidcUserId, bob.oidcUserId]),
   );
 
@@ -31,5 +31,5 @@ test('a member who left the workspace is never rung', async (t) => {
     .set({ status: 'removed' })
     .where(eq(schema.workspaceMembers.id, bobAtOffice.id));
 
-  assert.deepEqual(await calls.ringRecipients(channelId, null), [ann.oidcUserId]);
+  assert.deepEqual(await calls.ringRecipients(channelId, []), [ann.oidcUserId]);
 });

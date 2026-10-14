@@ -35,10 +35,10 @@ export abstract class CallsRepository {
 
   /**
    * oidcUserId of every channel member still active in the workspace, for ring delivery.
-   * `excludeMemberId` leaves out the member who triggered the notification
-   * (a deliberate action, whose own UI already updates locally); pass `null`
-   * to notify everyone, for an automatic event like a ring timing out, which
-   * whoever happened to trigger the check must hear about too.
+   * `excludedMemberIds` leaves out, say, the member who triggered the notification
+   * (a deliberate action, whose own UI already updates locally); pass none to notify
+   * everyone, for an automatic event like a ring timing out, which whoever happened
+   * to trigger the check must hear about too.
    */
-  abstract ringRecipients(channelId: string, excludeMemberId: string | null): Promise<string[]>;
+  abstract ringRecipients(channelId: string, excludedMemberIds: string[]): Promise<string[]>;
 }

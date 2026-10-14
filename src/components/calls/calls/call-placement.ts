@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 
 import type { ChannelAccessSnapshot } from '@/components/communities/channel-access/channel-access/types';
+import { NotificationSettingsService } from '@/components/notifications/preferences';
 import { EntriesFacade } from '@/components/social/entries';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventPublisher } from '@/globals/publisher';
@@ -24,6 +25,7 @@ export class CallPlacement {
     private readonly entries: EntriesFacade,
     private readonly events: EventPublisher,
     private readonly provider: CallProvider,
+    private readonly notificationSettings: NotificationSettingsService,
   ) {}
 
   async place(
@@ -51,8 +53,9 @@ export class CallPlacement {
         caller.id,
       ),
     );
-    // The caller must not get their own incoming-call card and ringtone.
-    const rung = await this.calls.ringRecipients(channel.id, caller.id);
+    // Neither the caller nor whoever muted the conversation hears it ring; the call card still shows.
+    const muted = await this.notificationSettings.mutedMembers(channel.id);
+    const rung = await this.calls.ringRecipients(channel.id, [caller.id, ...muted]);
     const announceRing = await this.events.record(
       CALL_SIGNAL_EVENT,
       new CallSignalEvent('call:incoming', callSignalPayload(caller, channel, call), rung),
@@ -60,7 +63,7 @@ export class CallPlacement {
     );
 
     // Last, so a refusal here rolls back the call and its ring before anyone hears it.
-    const participantIds = await this.calls.ringRecipients(channel.id, null);
+    const participantIds = await this.calls.ringRecipients(channel.id, []);
     await this.provider.create(call, { participantIds, group: channel.kind !== 'dm' }, accessToken);
 
     return {

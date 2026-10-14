@@ -6,6 +6,9 @@ import { ConflictException } from '@nestjs/common';
 import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import { ChannelAccessRepository } from '@/components/communities/channel-access/channel-access/repository/channel-access.repository';
 import type { ChannelAccessSnapshot } from '@/components/communities/channel-access/channel-access/types';
+import { NotificationSettingsService } from '@/components/notifications/preferences';
+import { NotificationSettingsRepository } from '@/components/notifications/preferences/repository/notification-settings.repository';
+import type { StoredNotificationSettings } from '@/components/notifications/preferences/types';
 import { EntriesFacade } from '@/components/social/entries';
 import { EntriesRepository } from '@/components/social/entries/repository/entries.repository';
 import type { ChannelEntry } from '@/components/social/entries/types/entry.types';
@@ -210,11 +213,27 @@ class FakeCallsRepository extends CallsRepository {
     return undefined;
   }
 
-  async ringRecipients(channelId: string, excludeMemberId: string | null) {
+  async ringRecipients(channelId: string, excludedMemberIds: string[]) {
     const members = this.channelMembers.get(channelId) ?? [];
     return members
-      .filter((candidate) => candidate.id !== excludeMemberId)
+      .filter((candidate) => !excludedMemberIds.includes(candidate.id))
       .map((candidate) => candidate.profile.oidcUserId);
+  }
+}
+
+class FakeNotificationSettingsRepository extends NotificationSettingsRepository {
+  readonly settings: StoredNotificationSettings[] = [];
+
+  async forChannel() {
+    return this.settings;
+  }
+
+  async forMember() {
+    return null;
+  }
+
+  async update() {
+    return null;
   }
 }
 
@@ -273,6 +292,7 @@ function ringingCall(
 }
 
 let repository: FakeCallsRepository;
+let notificationSettings: FakeNotificationSettingsRepository;
 let provider: FakeCallProvider;
 let signals: RecordingEventPublisher;
 let calls: CallsService;
@@ -302,7 +322,14 @@ beforeEach(() => {
   );
   const entries = new EntriesFacade(new FakeEntriesRepository());
   const lifecycle = new CallLifecycle(repository, new CallSignals(repository, signals), provider);
-  const placement = new CallPlacement(repository, entries, signals, provider);
+  notificationSettings = new FakeNotificationSettingsRepository();
+  const placement = new CallPlacement(
+    repository,
+    entries,
+    signals,
+    provider,
+    new NotificationSettingsService(channelAccess, notificationSettings),
+  );
   calls = new CallsService(channelAccess, lifecycle, placement, provider);
 });
 
@@ -436,4 +463,17 @@ test('start: rings everyone in the channel except the caller', async () => {
     new Set(signals.recipientsOf('call:incoming')),
     new Set([joiner.profile.oidcUserId, bystander.profile.oidcUserId]),
   );
+});
+
+test('start: does not ring a member who muted the conversation', async () => {
+  notificationSettings.settings.push({
+    memberId: bystander.id,
+    level: 'default',
+    mutedUntil: null,
+    notificationsMuted: true,
+  });
+
+  await calls.start(starter, group.id, 'test-token');
+
+  assert.deepEqual(signals.recipientsOf('call:incoming'), [joiner.profile.oidcUserId]);
 });
