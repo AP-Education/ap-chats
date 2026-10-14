@@ -59,6 +59,10 @@ class RecordingEventPublisher extends EventPublisher {
     return () => this.publish(name, event);
   }
 
+  payloadOf(kind: CallSignalKind) {
+    return this.signals.find((signal) => signal.kind === kind)?.payload;
+  }
+
   /** userIds that heard `kind`, in delivery order. */
   recipientsOf(kind: CallSignalKind): string[] {
     return this.signals
@@ -224,6 +228,14 @@ class FakeCallsRepository extends CallsRepository {
     return undefined;
   }
 
+  async expire(callId: string) {
+    if (this.record?.id === callId && this.record.status === 'ringing') {
+      this.record = { ...this.record, status: 'missed', endedAt: new Date() };
+      return this.record;
+    }
+    return undefined;
+  }
+
   async ringRecipients(channelId: string, excludedMemberIds: string[]) {
     const members = this.channelMembers.get(channelId) ?? [];
     return members
@@ -307,6 +319,7 @@ let repository: FakeCallsRepository;
 let notificationSettings: FakeNotificationSettingsRepository;
 let provider: FakeCallProvider;
 let signals: RecordingEventPublisher;
+let lifecycle: CallLifecycle;
 let calls: CallsService;
 
 memoryTransactionHost();
@@ -338,7 +351,7 @@ beforeEach(() => {
     repository,
     new NotificationSettingsService(channelAccess, notificationSettings),
   );
-  const lifecycle = new CallLifecycle(
+  lifecycle = new CallLifecycle(
     repository,
     new CallSignals(repository, signals),
     provider,
@@ -540,3 +553,49 @@ test('start: does not ring a member who muted the conversation', async () => {
 
   assert.deepEqual(signals.recipientsOf('call:incoming'), [joiner.profile.oidcUserId]);
 });
+
+test('join: the accepted signal says the call is answered and since when', async () => {
+  repository.seed(ringingCall(dm, caller));
+
+  await calls.join(callee, dm.id, 'call-1', 'test-token');
+
+  const accepted = signals.payloadOf('call:accepted');
+  assert.equal(accepted?.status, 'active');
+  assert.equal(accepted?.answeredAt, repository.record?.answeredAt?.toISOString());
+});
+
+test('a ring nobody answers expires at its deadline and reaches everyone it rang', async () => {
+  const ring = await placedRing(dm, caller);
+
+  await lifecycle.expire(ring);
+
+  assert.equal(repository.record?.status, 'missed');
+  assert.deepEqual(
+    new Set(signals.recipientsOf('call:missed')),
+    new Set([caller.profile.oidcUserId, callee.profile.oidcUserId]),
+    'the caller, still waiting on their own ring, must hear it went unanswered',
+  );
+  assert.equal(signals.payloadOf('call:missed')?.startedByMemberId, caller.id);
+  assert.deepEqual(
+    signals.ringEnds.map((ending) => ending.reason),
+    ['missed'],
+  );
+});
+
+test('a ring answered before its deadline never expires', async () => {
+  const ring = await placedRing(dm, caller);
+  await calls.join(callee, dm.id, ring.callId, 'test-token');
+
+  await lifecycle.expire(ring);
+
+  assert.equal(repository.record?.status, 'active');
+  assert.deepEqual(signals.recipientsOf('call:missed'), []);
+});
+
+/** The ring as it went out, which is all a deadline job gets to go on. */
+async function placedRing(channel: ChannelAccessSnapshot, by: WorkspaceMember) {
+  await calls.start(by, channel.id, 'test-token');
+  const ring = signals.payloadOf('call:incoming');
+  assert.ok(ring);
+  return ring;
+}

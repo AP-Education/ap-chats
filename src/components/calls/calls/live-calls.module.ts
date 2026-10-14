@@ -21,6 +21,7 @@ import { CallsRepository } from './repository/calls.repository';
 import { DrizzleCallsRepository } from './repository/drizzle-calls.repository';
 import { RingAudience } from './ring-audience';
 import { RingEndings } from './ring-endings';
+import { RingExpiry } from './ring-expiry';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { RingEndings } from './ring-endings';
     CallEventsRelay,
     RingAudience,
     RingEndings,
+    RingExpiry,
     AiNativeCallProvider,
     LiveKitCallProvider,
     {

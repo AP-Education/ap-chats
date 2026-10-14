@@ -33,6 +33,9 @@ export abstract class CallsRepository {
    */
   abstract sweepStale(channelId: string, olderThan: Date): Promise<CallRecord | undefined>;
 
+  /** 'ringing' -> 'missed' once its ring ran out; a no-op if it was answered or ended meanwhile. */
+  abstract expire(callId: string): Promise<CallRecord | undefined>;
+
   /**
    * oidcUserId of every channel member still active in the workspace, for ring delivery.
    * `excludedMemberIds` leaves out, say, the member who triggered the notification
