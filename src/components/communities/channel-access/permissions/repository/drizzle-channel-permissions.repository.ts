@@ -4,17 +4,10 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 
 import type { Principal } from '@/components/workspaces/access/types';
 import { throwNotFoundOnMissingReference } from '@/database/drizzle/pg-errors';
-import {
-  channelAccessSources,
-  channelGrants,
-  roles,
-  userProfiles,
-  workspaceMembers,
-} from '@/database/drizzle/schema';
+import { channelGrants, roles, userProfiles, workspaceMembers } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 import {
-  type AccessSource,
   channelCapabilities,
   type ChannelCapability,
   type ChannelPermissions,
@@ -89,35 +82,6 @@ export class DrizzleChannelPermissionsRepository extends ChannelPermissionsRepos
     } catch (error) {
       throwNotFoundOnMissingReference(error, 'Role or member not found');
     }
-  }
-
-  sourcesOf(channelId: string, memberId: string): Promise<AccessSource[]> {
-    return this.txHost.tx
-      .select({
-        capability: channelAccessSources.capability,
-        principal: channelAccessSources.principal,
-        roleId: channelAccessSources.roleId,
-      })
-      .from(channelAccessSources)
-      .where(
-        and(
-          eq(channelAccessSources.channelId, channelId),
-          eq(channelAccessSources.memberId, memberId),
-        ),
-      );
-  }
-
-  async revokePersonal(workspaceId: string, channelId: string, memberId: string): Promise<void> {
-    await this.txHost.tx
-      .delete(channelGrants)
-      .where(
-        and(
-          eq(channelGrants.workspaceId, workspaceId),
-          eq(channelGrants.channelId, channelId),
-          eq(channelGrants.principal, 'member'),
-          eq(channelGrants.memberId, memberId),
-        ),
-      );
   }
 
   private toGrantRow(
