@@ -12,6 +12,7 @@ import type {
   WebViewTerminatedEvent,
 } from 'react-native-webview/lib/WebViewTypes';
 
+import { clearPageInsets, measurePageBottomGap } from '../../../../modules/page-frame';
 import { useAppearanceStore, useShellPalette } from '../../appearance';
 import { useAuthStore } from '../../auth/index';
 import { connectBridgedCall, useIsMiniCallBarVisible } from '../../calls';
@@ -62,8 +63,8 @@ export function WebViewHost() {
   const [tabBar, setTabBar] = useState<TabBarModel | null>(null);
   const insets = useSafeAreaInsets();
   // WKWebView reports the safe areas to the page (viewport-fit=cover), so the page draws its own
-  // surfaces under the status bar and home indicator. Android's WebView does not, so native
-  // keeps the page clear of the system bars there.
+  // surfaces under the status bar and home indicator. Android's WebView reports them only in newer
+  // versions, so native keeps the page clear of the system bars there and the WebView out of it.
   const edgeToEdge = Platform.OS === 'ios';
   const [containerHeight, setContainerHeight] = useState(0);
   const sendInputState = useCallback((state: ComposerInputState) => {
@@ -94,6 +95,13 @@ export function WebViewHost() {
     [sendInset],
   );
   const measurePage = useCallback(() => {
+    // On Android a page teleported into a tab's host measures here from that host's origin, a
+    // status bar off; its native view knows where it really ends.
+    const nativeGap = measurePageBottomGap();
+    if (nativeGap) {
+      void nativeGap.then((gap) => setPageGap(Math.round(gap)));
+      return;
+    }
     containerRef.current?.measureInWindow((_x, containerTop, _width, outerHeight) => {
       pageRef.current?.measureInWindow((_pageX, pageTop, _pageWidth, pageHeight) => {
         const containerBottom = containerTop + outerHeight;
@@ -291,6 +299,7 @@ export function WebViewHost() {
                 scrollEnabled={false}
                 bounces={false}
                 onLoadStart={() => {
+                  clearPageInsets();
                   input.close();
                   // Hidden rather than dropped: the page lives inside a tab's host until it reloads.
                   setTabBar((current) => current && { ...current, visible: false });

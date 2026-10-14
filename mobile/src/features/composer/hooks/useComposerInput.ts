@@ -7,7 +7,6 @@ import {
 } from 'react-native-keyboard-controller';
 import { runOnJS, useAnimatedReaction, useSharedValue, withTiming } from 'react-native-reanimated';
 
-import { onVisibleKeyboardHeight, visibleKeyboardHeight } from '../../../../modules/keyboard-frame';
 import type { PickerTab } from '../types';
 import {
   applyInputRequest,
@@ -43,10 +42,6 @@ export function useComposerInput(
   const awaitingKeyboard = useRef(false);
   const { width, height: windowHeight } = useWindowDimensions();
   const keyboardHeight = useSharedValue(0);
-  const imeHeight = useSharedValue(0);
-  // Some Android keyboards draw a row above their keys that the IME insets leave out (Samsung's
-  // toolbar and suggestions); only the visible frame shows it, so it is added on top.
-  const keyboardRow = useSharedValue(0);
   const panelHeight = useSharedValue(0);
   const heldHeight = useSharedValue(0);
   const measuredHeight = useSharedValue(0);
@@ -135,27 +130,9 @@ export function useComposerInput(
     [cancelKeyboardWait, hold, keyboardHeight, mode, movePanel, openPanel, panelHeight, publish],
   );
 
-  const syncKeyboardRow = useCallback(
-    (visible: number) => {
-      const ime = imeHeight.get();
-      if (ime <= 0) return;
-
-      const row = Math.max(0, Math.round(visible - ime));
-      if (row === keyboardRow.get()) return;
-
-      keyboardRow.set(row);
-      keyboardHeight.set(ime + row);
-      if (mode.get() !== 'search') measuredHeight.set(ime + row);
-      motion.set(INSTANT);
-      keyboardTarget.set(ime + row);
-    },
-    [imeHeight, keyboardHeight, keyboardRow, keyboardTarget, measuredHeight, mode, motion],
-  );
-
   const keyboardEnded = useCallback(
     (height: number) => {
       if (height > 0) {
-        syncKeyboardRow(visibleKeyboardHeight());
         cancelKeyboardWait();
         if (current.current.mode === 'closed') publish({ ...current.current, mode: 'keyboard' });
         if (current.current.mode === 'keyboard') hold(0);
@@ -166,13 +143,8 @@ export function useComposerInput(
         publish({ ...current.current, mode: 'closed' });
       }
     },
-    [cancelKeyboardWait, hold, publish, syncKeyboardRow],
+    [cancelKeyboardWait, hold, publish],
   );
-
-  const withRow = (height: number) => {
-    'worklet';
-    return height > 0 ? height + keyboardRow.get() : 0;
-  };
 
   const measure = (height: number) => {
     'worklet';
@@ -183,30 +155,27 @@ export function useComposerInput(
     {
       onStart: (event) => {
         'worklet';
-        const from = imeHeight.get();
+        const from = keyboardHeight.get();
         const to = Math.max(0, event.height);
-        measure(withRow(to));
+        measure(event.height);
         curves.begin(from, to);
         motion.set(curves.motion(from, to, event.duration));
-        keyboardTarget.set(withRow(to));
+        keyboardTarget.set(to);
       },
       onMove: (event) => {
         'worklet';
-        imeHeight.set(Math.max(0, event.height));
-        keyboardHeight.set(withRow(imeHeight.get()));
+        keyboardHeight.set(Math.max(0, event.height));
         curves.track(event.height);
       },
       onInteractive: (event) => {
         'worklet';
-        imeHeight.set(Math.max(0, event.height));
-        keyboardHeight.set(withRow(imeHeight.get()));
+        keyboardHeight.set(Math.max(0, event.height));
       },
       onEnd: (event) => {
         'worklet';
-        imeHeight.set(Math.max(0, event.height));
-        const height = withRow(imeHeight.get());
+        const height = Math.max(0, event.height);
         keyboardHeight.set(height);
-        measure(height);
+        measure(event.height);
         curves.end();
         // A keyboard dragged away ends somewhere its start never announced.
         if (keyboardTarget.get() !== height) {
@@ -250,15 +219,9 @@ export function useComposerInput(
   }, [cancelKeyboardWait, publish]);
 
   useEffect(() => {
-    // The page is laid out edge to edge, so nothing resizes for the keyboard either way; adjustResize
-    // only lets the window's visible frame count the keyboard (see keyboard-frame).
     if (Platform.OS === 'android') {
-      KeyboardController.setInputMode(AndroidSoftInputModes.SOFT_INPUT_ADJUST_RESIZE);
+      KeyboardController.setInputMode(AndroidSoftInputModes.SOFT_INPUT_ADJUST_NOTHING);
     }
-    // A row that shows up once the keyboard has risen moves no IME insets; settled heights only.
-    const stopVisibleFrame = onVisibleKeyboardHeight((visible) => {
-      if (keyboardTarget.get() === keyboardHeight.get()) syncKeyboardRow(visible);
-    });
     const back = BackHandler.addEventListener('hardwareBackPress', () => {
       if (current.current.mode === 'search') {
         selectTab(current.current.tab);
@@ -274,11 +237,10 @@ export function useComposerInput(
     return () => {
       back.remove();
       appState.remove();
-      stopVisibleFrame();
       cancelKeyboardWait();
       if (Platform.OS === 'android') KeyboardController.setDefaultMode();
     };
-  }, [cancelKeyboardWait, close, keyboardHeight, keyboardTarget, selectTab, syncKeyboardRow]);
+  }, [cancelKeyboardWait, close, selectTab]);
 
   useEffect(() => {
     measuredHeight.set(0);
