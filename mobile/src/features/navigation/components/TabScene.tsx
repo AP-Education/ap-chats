@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useBottomTabBarHeight } from 'react-native-bottom-tabs';
 import { PortalHost } from 'react-native-teleport';
 
@@ -7,15 +7,17 @@ interface TabSceneProps {
   id: string;
   active: boolean;
   barHidden: boolean;
-  /** How much of the page's bottom the bar covers, so its lists keep clear of it. */
+  /** Set where the app draws its own bar over the scene, rather than the system's. */
+  ownBarSpace?: number;
+  /** How much of the screen's bottom the bar covers, so the page's lists keep clear of it. */
   onInset: (bottom: number) => void;
 }
 
 /** A tab's place for the page: the one WebView is teleported into whichever tab is active. */
-export function TabScene({ id, active, barHidden, onInset }: TabSceneProps) {
+export function TabScene({ id, active, barHidden, ownBarSpace, onInset }: TabSceneProps) {
   const barHeight = useBottomTabBarHeight();
-  // iOS floats its glass bar over the page; Android lays the page out above its bar.
-  const covered = Platform.OS === 'ios' && !barHidden ? barHeight : 0;
+  // Both bars float over the page rather than push it up.
+  const covered = barHidden ? 0 : (ownBarSpace ?? barHeight);
 
   useEffect(() => {
     if (active) onInset(covered);
