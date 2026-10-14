@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
 import { ChannelAccessPolicyModule } from '@/components/communities/channel-access/channel-access';
+import { NotificationPreferencesModule } from '@/components/notifications/preferences';
 import { EntriesModule } from '@/components/social/entries';
 import { SocialRealtimeModule } from '@/components/social/realtime';
 import { WorkspaceMembersModule } from '@/components/workspaces/members';
@@ -18,12 +19,15 @@ import { CallProvider } from './provider/call.provider';
 import { LiveKitCallProvider } from './provider/livekit-call.provider';
 import { CallsRepository } from './repository/calls.repository';
 import { DrizzleCallsRepository } from './repository/drizzle-calls.repository';
+import { RingAudience } from './ring-audience';
+import { RingEndings } from './ring-endings';
 
 @Module({
   imports: [
     AuthModule,
     WorkspaceMembersModule,
     ChannelAccessPolicyModule,
+    NotificationPreferencesModule,
     EntriesModule,
     SocialRealtimeModule,
     RealtimeTransportModule,
@@ -35,6 +39,8 @@ import { DrizzleCallsRepository } from './repository/drizzle-calls.repository';
     CallLifecycle,
     CallSignals,
     CallEventsRelay,
+    RingAudience,
+    RingEndings,
     AiNativeCallProvider,
     LiveKitCallProvider,
     {

@@ -27,8 +27,11 @@ export function CallSession() {
 
       subscriptions = [
         CallKit.addCallSessionAddedListener((event) => restoreIncomingSession(event.session)),
+        // A push can arrive after the call was already answered, declined or hung up elsewhere.
         CallKit.addIncomingCallReportedListener(() => {
-          void hydrateCallSession(CallKit).catch(() => undefined);
+          void hydrateCallSession(CallKit)
+            .then(() => synchronizeCallSession(CallKit))
+            .catch(() => undefined);
         }),
         CallKit.addCallAnsweredListener((event) => void answerCall(event, CallKit)),
         CallKit.addCallEndedListener((event) => void endCallSession(event)),

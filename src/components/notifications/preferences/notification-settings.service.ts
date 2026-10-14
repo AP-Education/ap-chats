@@ -49,6 +49,11 @@ export class NotificationSettingsService {
     return this.repository.forChannel(channelId);
   }
 
+  async mutedMembers(channelId: string): Promise<string[]> {
+    const settings = await this.repository.forChannel(channelId);
+    return settings.filter((member) => isMuted(member)).map((member) => member.memberId);
+  }
+
   private toView(settings: StoredNotificationSettings): ChannelNotificationSettings {
     return {
       level: settings.level,

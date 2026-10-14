@@ -92,7 +92,7 @@ export function useConversationActions({
       void navigator.clipboard.writeText(text).then(
         () => {
           targetItems.forEach((item) => flashMessage(item.message.id));
-          toast.success('Текст скопійовано');
+          clearSelection();
         },
         () => toast.error('Не вдалося скопіювати текст'),
       );

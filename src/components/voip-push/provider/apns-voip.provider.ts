@@ -48,6 +48,10 @@ export class ApnsVoipPushProvider implements CallPushProvider, OnModuleDestroy {
     }
   }
 
+  // A VoIP push must report a new call, so iOS can't be told by one that a ring ended. The push
+  // that rang launched the app, and the app ends the ring itself from its realtime socket.
+  async sendRingEnded(): Promise<void> {}
+
   private async authToken(): Promise<string> {
     if (this.cachedToken && Date.now() - this.cachedToken.issuedAt < TOKEN_TTL_MS) {
       return this.cachedToken.jwt;

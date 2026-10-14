@@ -5,12 +5,11 @@ import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { CallSignals } from './call-signals';
 import type { CallSignalKind } from './events/call-signal.event';
+import type { RingEndReason } from './events/ring-ended.event';
 import { CallProvider } from './provider/call.provider';
 import { CallsRepository } from './repository/calls.repository';
+import { RING_TTL_SECONDS, RingEndings } from './ring-endings';
 import type { CallRecord, CallStatus } from './types';
-
-// How long a call may ring before it reads as missed, same order of magnitude as a phone ring.
-export const RING_TTL_SECONDS = 45;
 
 const LIVE_STATUSES = new Set<CallStatus>(['ringing', 'active']);
 
@@ -22,6 +21,7 @@ export class CallLifecycle {
     private readonly calls: CallsRepository,
     private readonly signals: CallSignals,
     private readonly provider: CallProvider,
+    private readonly ringEndings: RingEndings,
   ) {}
 
   live(channelId: string): Promise<CallRecord | undefined> {
@@ -43,7 +43,10 @@ export class CallLifecycle {
   ): Promise<CallRecord | undefined> {
     const ringDeadline = new Date(Date.now() - RING_TTL_SECONDS * 1000);
     const missed = await this.calls.sweepStale(channel.id, ringDeadline);
-    if (missed) await this.close(actor, channel, missed, 'call:missed', accessToken);
+    if (missed) {
+      await this.endRing(missed, 'missed');
+      await this.close(actor, channel, missed, 'call:missed', accessToken);
+    }
 
     return missed;
   }
@@ -54,20 +57,34 @@ export class CallLifecycle {
     if (!answersRing) return;
 
     const activated = await this.calls.activate(call.id);
-    if (activated) await this.signals.notify(actor, channel, activated, 'call:accepted');
+    if (!activated) return;
+
+    await this.signals.notify(actor, channel, activated, 'call:accepted');
+    await this.endRing(activated, 'answered');
   }
 
-  // Only a DM decline ends the call; in a channel others may still answer, so it stays local.
+  // Only a DM decline ends the call; in a channel others may still answer, so it only stops the
+  // ring on the decliner's other devices.
   async decline(
     actor: WorkspaceMember,
     channel: ChannelAccessSnapshot,
     call: CallRecord,
     accessToken: string,
   ) {
-    if (channel.kind !== 'dm') return;
+    if (channel.kind !== 'dm') {
+      const isRinging = call.status === 'ringing';
+      if (!isRinging) return;
+
+      this.signals.notifyOwnDevices(actor, channel, call, 'call:declined');
+      await this.endRing(call, 'declined', [actor.profile.oidcUserId]);
+      return;
+    }
 
     const declined = await this.calls.decline(call.id);
-    if (declined) await this.close(actor, channel, declined, 'call:declined', accessToken);
+    if (!declined) return;
+
+    await this.endRing(declined, 'declined');
+    await this.close(actor, channel, declined, 'call:declined', accessToken);
   }
 
   // A DM ends when either side leaves; a channel call only once its room is confirmed empty.
@@ -85,7 +102,17 @@ export class CallLifecycle {
     }
 
     const ended = await this.calls.end(call.id);
-    if (ended) await this.close(actor, channel, ended, 'call:ended', accessToken);
+    if (!ended) return;
+
+    // A call still ringing when it ends was called off before anyone answered.
+    const wasRinging = call.status === 'ringing';
+    if (wasRinging) await this.endRing(ended, 'cancelled');
+    await this.close(actor, channel, ended, 'call:ended', accessToken);
+  }
+
+  private async endRing(call: CallRecord, reason: RingEndReason, onlyUserIds?: string[]) {
+    const announce = await this.ringEndings.record(call, reason, onlyUserIds);
+    announce();
   }
 
   // Our state is already settled, so the media room closes last.

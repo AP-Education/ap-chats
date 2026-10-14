@@ -154,7 +154,6 @@ interface MessageTimelineProps {
   onAction: (action: ConversationAction, target: ActionTarget) => void;
   onJump: (messageId: string) => void;
   onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
-  onRetry: (rowId: string) => void;
   hasOlder: boolean;
   hasNewer: boolean;
   loadingOlder: boolean;
@@ -172,7 +171,6 @@ export function MessageTimeline({
   onAction,
   onJump,
   onEdit,
-  onRetry,
   hasOlder,
   hasNewer,
   loadingOlder,
@@ -287,7 +285,6 @@ export function MessageTimeline({
                         onEdit={onEdit}
                         delivery={display.delivery}
                         pendingAttachments={display.pendingAttachments}
-                        onRetry={onRetry}
                       />
                     ))}
                   </HistoryRun>

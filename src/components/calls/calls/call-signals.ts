@@ -46,9 +46,20 @@ export class CallSignals {
     options: { includeActor?: boolean } = {},
   ): Promise<void> {
     const includeActor = options.includeActor ?? true;
-    const recipients = await this.calls.ringRecipients(channel.id, includeActor ? null : actor.id);
+    const recipients = await this.calls.ringRecipients(channel.id, includeActor ? [] : [actor.id]);
 
     const payload = callSignalPayload(actor, channel, call);
+    this.events.publish(CALL_SIGNAL_EVENT, new CallSignalEvent(kind, payload, recipients));
+  }
+
+  notifyOwnDevices(
+    actor: WorkspaceMember,
+    channel: ChannelAccessSnapshot,
+    call: CallRecord,
+    kind: CallSignalKind,
+  ): void {
+    const payload = callSignalPayload(actor, channel, call);
+    const recipients = [actor.profile.oidcUserId];
     this.events.publish(CALL_SIGNAL_EVENT, new CallSignalEvent(kind, payload, recipients));
   }
 }

@@ -53,11 +53,12 @@ export function useIncomingCallPresentation(signal: CallSignal): IncomingCallPre
     isDm ? signal.startedByAvatarPath : undefined,
   );
 
+  // A channel ring declined here keeps ringing for everyone else, and stops on this person's
+  // other devices; the card goes at once, since nobody waits on the answer.
   function handleDismiss() {
-    // A channel ring has nobody on the other end to notify of a decline —
-    // ActiveCallBanner draws the same line — so this only clears the local card.
     if (!isDm) {
       clearIncoming(signal.callId);
+      decline.mutate(signal);
       return;
     }
     decline.mutate(signal, {

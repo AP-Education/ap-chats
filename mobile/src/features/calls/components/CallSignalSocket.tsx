@@ -13,12 +13,12 @@ import { synchronizeCallSession } from '../utils/synchronize-call-session';
 const apiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
 /**
- * Closes the gap VoIP push can't: the backend only ever pushes `call:incoming`
- * (see call-push.worker.ts — there's no supported push shape to remotely
- * cancel an already-shown ring), so a decline/hangup/timeout on the other end
- * never reaches a device that's already ringing or connected. Mirrors web/'s
- * useCallSignalListener over the same realtime socket, just to dismiss the
- * native CallKit/Telecom session instead of updating a React store.
+ * Closes the gap VoIP push can't: on iOS a VoIP push must report a new call,
+ * so a decline/hangup/timeout on the other end reaches a ringing or connected
+ * device only here (Android also gets a `ringEnded` push, see
+ * ring-ended-task.ts). Mirrors web/'s useCallSignalListener over the same
+ * realtime socket, just to dismiss the native CallKit/Telecom session instead
+ * of updating a React store.
  */
 export function CallSignalSocket() {
   const status = useAuthStore((state) => state.status);

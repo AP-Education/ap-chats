@@ -11,6 +11,9 @@ const AUTH_ERROR_CODES: readonly string[] = [
   'AUTH_TOKEN_INVALID',
 ];
 
+// Shorter than the server's heartbeat timeout, so a socket it may have dropped is never trusted.
+const RESUME_RECONNECT_MS = 15_000;
+
 function toConnectionError(error: Error & { data?: { code?: unknown } }): ConnectionError {
   const code = error.data?.code;
   return typeof code === 'string' && AUTH_ERROR_CODES.includes(code)
@@ -76,15 +79,35 @@ export function ActiveConnection({
       setState((current) => ({ ...current, status: 'reconnecting' }));
     };
 
+    // A page put away (a locked phone, a sleeping laptop) may come back to a socket the server
+    // has already dropped while the client still reads it as connected, and the events missed
+    // meanwhile never arrive. Coming back after a while, it reconnects, so everyone resyncs.
+    let hiddenAt: number | null = null;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now();
+        return;
+      }
+
+      const awayLong = hiddenAt !== null && Date.now() - hiddenAt >= RESUME_RECONNECT_MS;
+      hiddenAt = null;
+      if (!awayLong || !socket.connected) return;
+
+      setState((current) => ({ ...current, status: 'reconnecting' }));
+      socket.disconnect().connect();
+    };
+
     socket.on('connect', handleConnect);
     socket.on('connect_error', handleConnectError);
     socket.on('disconnect', handleDisconnect);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     socket.connect();
 
     return () => {
       socket.off('connect', handleConnect);
       socket.off('connect_error', handleConnectError);
       socket.off('disconnect', handleDisconnect);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       socket.disconnect();
     };
   }, []);

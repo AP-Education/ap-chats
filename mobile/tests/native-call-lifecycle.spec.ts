@@ -10,6 +10,7 @@ import ts from 'typescript';
 import { useNativeCallStore } from '../src/features/calls/store/native-call-store';
 import type { NativeCallConnectPayload } from '../src/features/calls/types';
 import type { answerCall } from '../src/features/calls/utils/answer-call';
+import * as outcome from '../src/features/calls/utils/call-outcome';
 import type { connectBridgedCall } from '../src/features/calls/utils/connect-bridged-call';
 import type { endCallSession } from '../src/features/calls/utils/end-call';
 import * as hydration from '../src/features/calls/utils/hydrate-call-session';
@@ -408,6 +409,7 @@ test('foreground sync keeps a local answer but dismisses a ring answered on anot
     '../store/native-call-store': { useNativeCallStore },
     '../api/calls-api': { activeCall: async () => ({ id: 'server-call', status: 'active' }) },
     './require-access-token': { requireAccessToken: async () => 'token' },
+    './call-outcome': outcome,
     './session-registry': registry,
   });
   const CallKit = {
