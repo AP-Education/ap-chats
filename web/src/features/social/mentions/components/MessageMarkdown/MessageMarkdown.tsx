@@ -5,6 +5,7 @@ import remarkDirective from 'remark-directive';
 import { reachesViewer, type ViewerReach } from '../../mention-reach';
 import { tokenFromAttributes } from '../../mention-tokens';
 import type { MentionLabel } from '../../types';
+import { bareLinks } from './bare-links';
 import { mentionDirective } from './mention-directive';
 import { MentionReference } from './MentionReference';
 
@@ -26,7 +27,7 @@ export function MessageMarkdown({
 
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkDirective, mentionDirective, remarkBreaks]}
+      remarkPlugins={[remarkDirective, mentionDirective, remarkBreaks, bareLinks]}
       allowedElements={[
         'p',
         'strong',
