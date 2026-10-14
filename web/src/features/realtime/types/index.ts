@@ -44,7 +44,8 @@ export type ServerToClientEvents = {
 };
 
 interface ClientToServerEvents {
-  'social:watch': (payload: { workspaceId: string; channelId: string }) => void;
+  /** Acknowledged once the socket has joined the channel's room. */
+  'social:watch': (payload: { workspaceId: string; channelId: string }, joined: () => void) => void;
   'social:unwatch': (payload: { workspaceId: string; channelId: string }) => void;
   'attention:update': (payload: { attending: boolean }) => void;
 }
