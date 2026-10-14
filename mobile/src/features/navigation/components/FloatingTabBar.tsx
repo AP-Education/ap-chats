@@ -1,4 +1,3 @@
-import { selectionAsync } from 'expo-haptics';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -35,10 +34,7 @@ export const FloatingTabBar = ({ model, onSelect }: FloatingTabBarProps) => {
           key={tab.id}
           tab={tab}
           active={tab.id === model.activeId}
-          onPress={() => {
-            void selectionAsync().catch(() => undefined);
-            onSelect(tab.id);
-          }}
+          onPress={() => onSelect(tab.id)}
         />
       ))}
     </View>

@@ -4,7 +4,7 @@ import type { ChannelAccessSnapshot } from '@/components/communities/channel-acc
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { CallSignals } from './call-signals';
-import type { CallSignalKind } from './events/call-signal.event';
+import type { CallSignalKind, CallSignalPayload } from './events/call-signal.event';
 import type { RingEndReason } from './events/ring-ended.event';
 import { CallProvider } from './provider/call.provider';
 import { CallsRepository } from './repository/calls.repository';
@@ -108,6 +108,15 @@ export class CallLifecycle {
     const wasRinging = call.status === 'ringing';
     if (wasRinging) await this.endRing(ended, 'cancelled');
     await this.close(actor, channel, ended, 'call:ended', accessToken);
+  }
+
+  // No one's bearer here to close the media room with; it closes on its own once the caller leaves.
+  async expire(ring: CallSignalPayload) {
+    const missed = await this.calls.expire(ring.callId);
+    if (!missed) return;
+
+    await this.endRing(missed, 'missed');
+    await this.signals.notifyMissed(ring, missed);
   }
 
   private async endRing(call: CallRecord, reason: RingEndReason, onlyUserIds?: string[]) {

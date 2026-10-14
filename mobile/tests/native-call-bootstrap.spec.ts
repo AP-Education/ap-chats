@@ -118,9 +118,10 @@ async function flush() {
   for (let step = 0; step < 8; step++) await Promise.resolve();
 }
 
-test('call signals dismiss other-device rings without ending the call being answered locally', async () => {
+test('call signals dismiss other-device rings, never the call being answered or placed here', async () => {
   const listeners = new Map<string, (payload: unknown) => void>();
   const ended: string[] = [];
+  const answers: (number | undefined)[] = [];
   const call = { sessionId: 'native-session', status: 'ringing' };
   const { CallSignalSocket } = load<{ CallSignalSocket: () => null }>(
     '../src/features/calls/components/CallSignalSocket.tsx',
@@ -145,11 +146,24 @@ test('call signals dismiss other-device rings without ending the call being answ
       '../utils/session-registry': {
         findTrackedSessionIdByServerCallId: (id: string) =>
           id === 'server-call' ? call.sessionId : undefined,
+        findPlacedCall: (id: string) =>
+          id === 'placed-call' ? { answer: (at?: number) => answers.push(at) } : undefined,
       },
       '../utils/synchronize-call-session': {},
     },
   );
   CallSignalSocket();
+  listeners.get('call:accepted')?.({
+    callId: 'placed-call',
+    answeredAt: '2026-10-14T10:00:05.000Z',
+  });
+  listeners.get('call:accepted')?.({ callId: 'placed-call' });
+  assert.deepEqual(
+    answers,
+    [Date.parse('2026-10-14T10:00:05.000Z'), undefined],
+    'an answer to a call this device placed connects it, at the time the server gives',
+  );
+
   listeners.get('call:accepted')?.({ callId: 'server-call' });
   await flush();
   assert.deepEqual(ended, ['native-session']);

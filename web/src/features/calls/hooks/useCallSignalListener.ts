@@ -6,6 +6,8 @@ import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { getCallEntry } from '@/features/social/messaging/api/messages-api';
 import { mergeHistoryItem } from '@/features/social/messaging/history-cache';
 
+import type { CallView } from '../api/calls-api';
+import { liveCallAfter } from '../liveCall';
 import { type CallSignal, callSignalSchema } from '../schemas';
 import { announceCallEnd } from '../sound/callEndCue';
 import { useCallStore } from '../store/call-store';
@@ -32,10 +34,12 @@ export function useCallSignalListener(): void {
   const active = useCallStore((state) => state.active);
   const clearActive = useCallStore((state) => state.clearActive);
 
-  function invalidate(signal: CallSignal) {
-    queryClient.invalidateQueries({
-      queryKey: activeCallQueryKey(signal.workspaceId, signal.channelId),
-    });
+  function syncCall(signal: CallSignal) {
+    const liveCallKey = activeCallQueryKey(signal.workspaceId, signal.channelId);
+    queryClient.setQueryData(liveCallKey, (live: CallView | null | undefined) =>
+      liveCallAfter(signal, live),
+    );
+    queryClient.invalidateQueries({ queryKey: liveCallKey });
     // Only DM calls ever show in the calls tab, but a channel call's signal
     // costs nothing extra to ignore versus filtering channelKind here too.
     queryClient.invalidateQueries({ queryKey: callHistoryKey(identity) });
@@ -58,7 +62,7 @@ export function useCallSignalListener(): void {
     // A channel call rings every member the same way a DM does now — only the
     // card's wording differs (IncomingCallCard), not whether it shows at all.
     setIncoming(signal);
-    invalidate(signal);
+    syncCall(signal);
   });
 
   useSocketEvent<CallServerToClientEvents>('call:accepted', (payload) => {
@@ -68,7 +72,7 @@ export function useCallSignalListener(): void {
     // this same user's. Any device still showing this as "ringing" (this one
     // included, if it hasn't itself joined) needs to drop that now.
     clearIncoming(signal.callId);
-    invalidate(signal);
+    syncCall(signal);
     refreshEntry(signal);
   });
 
@@ -81,7 +85,7 @@ export function useCallSignalListener(): void {
       clearActive();
       toast.info('Дзвінок відхилено.');
     }
-    invalidate(signal);
+    syncCall(signal);
     refreshEntry(signal);
   });
 
@@ -95,7 +99,7 @@ export function useCallSignalListener(): void {
       announceCallEnd(active, 'ended');
       clearActive();
     }
-    invalidate(signal);
+    syncCall(signal);
     refreshEntry(signal);
   });
 
@@ -108,7 +112,7 @@ export function useCallSignalListener(): void {
       clearActive();
       toast.info('Не відповіли.');
     }
-    invalidate(signal);
+    syncCall(signal);
     refreshEntry(signal);
   });
 }

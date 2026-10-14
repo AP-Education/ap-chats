@@ -24,6 +24,7 @@ import { ConversationProvider } from '@/features/social/conversation-scope/store
 import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
+import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 /** On mobile the page keeps its header, so the menu with the channel list stays one tap away. */
 function NoChannelSelected() {
@@ -38,12 +39,14 @@ function NoChannelSelected() {
         </PageHeader>
       )}
       <PageBody>
-        <ContentState>
-          <ContentStateIcon>
-            <ChatsIcon />
-          </ContentStateIcon>
-          <ContentStateTitle>Оберіть канал зі списку</ContentStateTitle>
-        </ContentState>
+        <RefreshOnPull>
+          <ContentState>
+            <ContentStateIcon>
+              <ChatsIcon />
+            </ContentStateIcon>
+            <ContentStateTitle>Оберіть канал зі списку</ContentStateTitle>
+          </ContentState>
+        </RefreshOnPull>
       </PageBody>
     </Page>
   );

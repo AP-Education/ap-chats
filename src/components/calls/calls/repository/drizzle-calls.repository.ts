@@ -114,6 +114,15 @@ export class DrizzleCallsRepository extends CallsRepository {
     return row;
   }
 
+  async expire(callId: string): Promise<CallRecord | undefined> {
+    const [row] = await this.txHost.tx
+      .update(calls)
+      .set({ status: 'missed', endedAt: new Date() })
+      .where(and(eq(calls.id, callId), eq(calls.status, 'ringing')))
+      .returning();
+    return row;
+  }
+
   async ringRecipients(channelId: string, excludedMemberIds: string[]): Promise<string[]> {
     const rows = await this.txHost.tx
       .select({ oidcUserId: userProfiles.oidcUserId })

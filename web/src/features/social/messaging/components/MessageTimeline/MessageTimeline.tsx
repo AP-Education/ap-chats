@@ -5,6 +5,7 @@ import { createStyles } from 'antd-style';
 import { Fragment, useMemo, useRef } from 'react';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
+import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 import { keyboardGlidePart } from '../../keyboard-glide-part';
 import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
@@ -25,7 +26,7 @@ const useStyles = createStyles(({ token, css }) => ({
     min-height: 0;
   `,
   scroll: css`
-    flex: 1;
+    height: 100%;
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
@@ -217,94 +218,96 @@ export function MessageTimeline({
 
   return (
     <div className={cx(styles.viewport, keyboardGlidePart)}>
-      <div
-        ref={scrollRef}
-        className={styles.scroll}
-        onScroll={onScroll}
-        onPointerDown={(event) => {
-          if (event.pointerType === 'touch')
-            gesture.current = { x: event.clientX, y: event.clientY, dismissed: false };
-        }}
-        onPointerUp={() => {
-          gesture.current = null;
-        }}
-        onPointerCancel={() => {
-          gesture.current = null;
-        }}
-        onTouchMove={(event) => {
-          const touch = event.touches[0];
-          const start = gesture.current;
-          if (!touch || !start || start.dismissed) return;
-          const vertical = Math.abs(touch.clientY - start.y);
-          if (vertical > 10 && vertical > Math.abs(touch.clientX - start.x)) {
-            start.dismissed = true;
-            requestComposerBlur();
-          }
-        }}
-        role="log"
-        aria-label="Повідомлення каналу"
-        aria-live="off"
-      >
-        <div className={styles.feed} data-selecting={selecting || undefined}>
-          {hasOlder && (
-            <Button
-              className={styles.load}
-              shape="round"
-              icon={<ArrowUpIcon />}
-              loading={loadingOlder}
-              onClick={() => void older()}
-            >
-              Раніші повідомлення
-            </Button>
-          )}
-          {!displayItems.length && (
-            <div className={styles.empty}>
-              <div className={styles.emptyCard}>
-                <ChatsCircleIcon size={36} weight="duotone" aria-hidden />
-                Тут почнеться розмова
+      <RefreshOnPull>
+        <div
+          ref={scrollRef}
+          className={styles.scroll}
+          onScroll={onScroll}
+          onPointerDown={(event) => {
+            if (event.pointerType === 'touch')
+              gesture.current = { x: event.clientX, y: event.clientY, dismissed: false };
+          }}
+          onPointerUp={() => {
+            gesture.current = null;
+          }}
+          onPointerCancel={() => {
+            gesture.current = null;
+          }}
+          onTouchMove={(event) => {
+            const touch = event.touches[0];
+            const start = gesture.current;
+            if (!touch || !start || start.dismissed) return;
+            const vertical = Math.abs(touch.clientY - start.y);
+            if (vertical > 10 && vertical > Math.abs(touch.clientX - start.x)) {
+              start.dismissed = true;
+              requestComposerBlur();
+            }
+          }}
+          role="log"
+          aria-label="Повідомлення каналу"
+          aria-live="off"
+        >
+          <div className={styles.feed} data-selecting={selecting || undefined}>
+            {hasOlder && (
+              <Button
+                className={styles.load}
+                shape="round"
+                icon={<ArrowUpIcon />}
+                loading={loadingOlder}
+                onClick={() => void older()}
+              >
+                Раніші повідомлення
+              </Button>
+            )}
+            {!displayItems.length && (
+              <div className={styles.empty}>
+                <div className={styles.emptyCard}>
+                  <ChatsCircleIcon size={36} weight="duotone" aria-hidden />
+                  Тут почнеться розмова
+                </div>
               </div>
-            </div>
-          )}
-          {days.map((day) => (
-            <section key={day.key} className={styles.day} aria-label={formatDayLabel(day.date)}>
-              <div className={styles.dateBar}>
-                <span className={styles.pill}>{formatDayLabel(day.date)}</span>
-              </div>
-              {day.runs.map((run) => (
-                <Fragment key={run.key}>
-                  {run.unreadBefore && <div className={styles.unread}>Нові повідомлення</div>}
-                  <HistoryRun avatar={runAvatar(run, actionContext.memberId)}>
-                    {run.entries.map(({ key, display }) => (
-                      <HistoryItemRow
-                        key={key}
-                        item={display.item}
-                        actionContext={actionContext}
-                        actions={actions}
-                        onAction={onAction}
-                        onJump={onJump}
-                        onEdit={onEdit}
-                        delivery={display.delivery}
-                        pendingAttachments={display.pendingAttachments}
-                      />
-                    ))}
-                  </HistoryRun>
-                </Fragment>
-              ))}
-            </section>
-          ))}
-          {hasNewer && (
-            <Button
-              className={styles.load}
-              shape="round"
-              icon={<ArrowDownIcon />}
-              loading={loadingNewer}
-              onClick={() => void loadNewer()}
-            >
-              Новіші повідомлення
-            </Button>
-          )}
+            )}
+            {days.map((day) => (
+              <section key={day.key} className={styles.day} aria-label={formatDayLabel(day.date)}>
+                <div className={styles.dateBar}>
+                  <span className={styles.pill}>{formatDayLabel(day.date)}</span>
+                </div>
+                {day.runs.map((run) => (
+                  <Fragment key={run.key}>
+                    {run.unreadBefore && <div className={styles.unread}>Нові повідомлення</div>}
+                    <HistoryRun avatar={runAvatar(run, actionContext.memberId)}>
+                      {run.entries.map(({ key, display }) => (
+                        <HistoryItemRow
+                          key={key}
+                          item={display.item}
+                          actionContext={actionContext}
+                          actions={actions}
+                          onAction={onAction}
+                          onJump={onJump}
+                          onEdit={onEdit}
+                          delivery={display.delivery}
+                          pendingAttachments={display.pendingAttachments}
+                        />
+                      ))}
+                    </HistoryRun>
+                  </Fragment>
+                ))}
+              </section>
+            ))}
+            {hasNewer && (
+              <Button
+                className={styles.load}
+                shape="round"
+                icon={<ArrowDownIcon />}
+                loading={loadingNewer}
+                onClick={() => void loadNewer()}
+              >
+                Новіші повідомлення
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
+      </RefreshOnPull>
       {awayFromBottom && (
         <button
           type="button"

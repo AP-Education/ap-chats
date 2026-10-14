@@ -11,6 +11,9 @@ export const callSignalSchema = z.object({
   startedByMemberId: z.string(),
   startedByDisplayName: z.string().nullable(),
   startedByAvatarPath: z.string().nullable(),
+  status: z.enum(['ringing', 'active', 'ended', 'declined', 'missed']),
+  startedAt: z.string(),
+  answeredAt: z.string().nullable(),
 });
 
 export type CallSignal = z.infer<typeof callSignalSchema>;

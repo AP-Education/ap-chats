@@ -16,9 +16,11 @@ const useStyles = createStyles(({ token, css }) => ({
     gap: 10px;
     min-height: 48px;
     padding: 8px 16px;
-    border: 1px solid ${token.colorBorderSecondary};
     border-radius: 12px;
-    background: ${token.colorFillQuaternary};
+    // It floats over the history like the composer it stands in for, so it takes the same glass.
+    background: var(--glass, rgba(255, 255, 255, 0.86));
+    backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
+    box-shadow: 0 1px 2px rgba(23, 46, 42, 0.12);
     color: ${token.colorTextSecondary};
     font-size: ${token.fontSize}px;
     pointer-events: auto;

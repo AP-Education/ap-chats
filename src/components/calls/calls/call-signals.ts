@@ -27,6 +27,17 @@ export function callSignalPayload(
     startedByMemberId: actor.id,
     startedByDisplayName: actor.profile.displayName,
     startedByAvatarPath: actor.profile.avatarPath,
+    ...callState(call),
+  };
+}
+
+function callState(
+  call: CallRecord,
+): Pick<CallSignalPayload, 'status' | 'startedAt' | 'answeredAt'> {
+  return {
+    status: call.status,
+    startedAt: call.startedAt.toISOString(),
+    answeredAt: call.answeredAt?.toISOString() ?? null,
   };
 }
 
@@ -50,6 +61,14 @@ export class CallSignals {
 
     const payload = callSignalPayload(actor, channel, call);
     this.events.publish(CALL_SIGNAL_EVENT, new CallSignalEvent(kind, payload, recipients));
+  }
+
+  /** A ring that ran out has no actor: who called comes from the ring itself. */
+  async notifyMissed(ring: CallSignalPayload, call: CallRecord): Promise<void> {
+    const recipients = await this.calls.ringRecipients(call.channelId, []);
+
+    const payload = { ...ring, ...callState(call) };
+    this.events.publish(CALL_SIGNAL_EVENT, new CallSignalEvent('call:missed', payload, recipients));
   }
 
   notifyOwnDevices(

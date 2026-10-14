@@ -22,7 +22,7 @@ export async function endCallSession(
   try {
     session.stopTrackingRemote?.();
     session.stopCallCues?.();
-    session.stopFollowing?.();
+    session.placed?.stop();
     if (session.room) {
       await session.room.disconnect();
       // A turned-down call sounds like a busy line, as on any phone.

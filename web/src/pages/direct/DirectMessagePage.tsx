@@ -28,6 +28,7 @@ import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspa
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 import { Avatar } from '@/shared/ui/Avatar';
+import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 const useStyles = createStyles(({ css }) => ({
   name: css`
@@ -51,12 +52,14 @@ function NoConversationSelected() {
         </PageHeader>
       )}
       <PageBody>
-        <ContentState>
-          <ContentStateIcon>
-            <ChatTextIcon />
-          </ContentStateIcon>
-          <ContentStateTitle>Оберіть розмову або напишіть колезі</ContentStateTitle>
-        </ContentState>
+        <RefreshOnPull>
+          <ContentState>
+            <ContentStateIcon>
+              <ChatTextIcon />
+            </ContentStateIcon>
+            <ContentStateTitle>Оберіть розмову або напишіть колезі</ContentStateTitle>
+          </ContentState>
+        </RefreshOnPull>
       </PageBody>
     </Page>
   );

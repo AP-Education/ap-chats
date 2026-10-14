@@ -14,6 +14,8 @@ export async function synchronizeCallSession(
   if (!current) return;
   const session = getTrackedSession(current.sessionId);
   if (!session) return;
+  // A call this device placed may have been answered while the socket was away, not only ended.
+  if (session.placed) return session.placed.resync();
   let outcome: CallEndedReason | null;
   try {
     const live = await activeCall(

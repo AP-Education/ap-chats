@@ -9,7 +9,7 @@ import { loadCallKitModule } from './callkit-module';
 import { endCallSession } from './end-call';
 import { restoreIncomingSession } from './hydrate-call-session';
 import { connectRoom, waitForAudioSessionActive } from './livekit-room';
-import { followPlacedCall } from './placed-call';
+import { placeCall } from './placed-call';
 import { requireAccessToken } from './require-access-token';
 import { findTrackedSessionIdByServerCallId, trackSession } from './session-registry';
 import { trackRemoteParticipant } from './track-remote-participant';
@@ -70,8 +70,30 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
       .setCall({ sessionId, caller, status: 'connecting', isMuted: false });
 
     const signal = session.abortController.signal;
+    // The OS shows the call connected, and stops its dialtone, at the answer, not once media is up.
+    const reportAnswered = (answeredAt: number) => {
+      useNativeCallStore.getState().updateCall({ answeredAt });
+      return CallKit.reportOutgoingCallConnected(sessionId).catch(() => undefined);
+    };
     try {
       await waitForOutgoingCallStarted(sessionId, CallKit, signal);
+      const { answeredAt, startedAt } = payload.grant;
+      if (answeredAt) await reportAnswered(Date.parse(answeredAt));
+      else
+        session.placed = placeCall(
+          { metadata: session.metadata, callId: session.serverCallId, startedAt },
+          {
+            answered: (at) => {
+              session.placed = undefined;
+              void reportAnswered(at);
+            },
+            over: () => {
+              session.placed = undefined;
+              void CallKit.reportCallEnded(sessionId, 'remoteEnded').catch(() => undefined);
+            },
+          },
+        );
+
       const room = await connectRoom(payload.grant.url, payload.grant.token, signal);
       if (signal.aborted) {
         await room.disconnect();
@@ -87,22 +109,9 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
         !useNativeCallStore.getState().call?.isMuted,
       );
       if (signal.aborted) return;
-      await CallKit.reportOutgoingCallConnected(sessionId);
-      if (signal.aborted) return;
-      const { answeredAt, startedAt } = payload.grant;
-      useNativeCallStore.getState().updateCall({
-        status: 'connected',
-        answeredAt: answeredAt ? Date.parse(answeredAt) : undefined,
-      });
+      useNativeCallStore.getState().updateCall({ status: 'connected' });
       session.stopCallCues = trackCallCues(room, session.group);
-      // Joining a call already answered leaves nothing to follow.
-      if (!answeredAt) {
-        const placed = { ...session, callId: session.serverCallId, startedAt };
-        session.stopFollowing = followPlacedCall(placed, room, {
-          answered: (at) => useNativeCallStore.getState().updateCall({ answeredAt: at }),
-          over: () => void CallKit.reportCallEnded(sessionId, 'remoteEnded').catch(() => undefined),
-        });
-      }
+      session.placed?.watch(room);
     } catch (error) {
       if (signal.aborted) return;
       if (__DEV__) console.warn('[calls] outgoing connect failed', error);

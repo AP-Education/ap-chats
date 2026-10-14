@@ -7,7 +7,7 @@ import { useAuthStore } from '../../auth';
 import { useNativeCallStore } from '../store/native-call-store';
 import { loadCallKitModule } from '../utils/callkit-module';
 import { requireAccessToken } from '../utils/require-access-token';
-import { findTrackedSessionIdByServerCallId } from '../utils/session-registry';
+import { findPlacedCall, findTrackedSessionIdByServerCallId } from '../utils/session-registry';
 import { synchronizeCallSession } from '../utils/synchronize-call-session';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
@@ -78,7 +78,14 @@ export function CallSignalSocket() {
           .refreshNow()
           .then(() => socket.connect());
     });
-    socket.on('call:accepted', (payload: unknown) => dismiss(payload, 'answeredElsewhere'));
+    // On the device that placed the call, an answer connects it rather than dismissing anything.
+    socket.on('call:accepted', (payload: unknown) => {
+      const { callId, answeredAt } = (payload ?? {}) as { callId?: unknown; answeredAt?: unknown };
+      const placed = typeof callId === 'string' ? findPlacedCall(callId) : undefined;
+      if (placed)
+        placed.answer(typeof answeredAt === 'string' ? Date.parse(answeredAt) : undefined);
+      else dismiss(payload, 'answeredElsewhere');
+    });
     socket.on('call:declined', (payload: unknown) => dismiss(payload, 'declinedElsewhere'));
     socket.on('call:ended', (payload: unknown) => dismiss(payload, 'remoteEnded'));
     socket.on('call:missed', (payload: unknown) => dismiss(payload, 'unanswered'));

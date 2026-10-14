@@ -22,6 +22,9 @@ const payload: CallSignalPayload = {
   startedByMemberId: 'member',
   startedByDisplayName: 'Alice',
   startedByAvatarPath: null,
+  status: 'ringing',
+  startedAt: '2026-10-14T10:00:00.000Z',
+  answeredAt: null,
 };
 function fixture() {
   const device = {

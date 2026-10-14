@@ -3,11 +3,11 @@ plugins {
   id 'expo-module-gradle-plugin'
 }
 
-group = 'expo.modules.keyboardframe'
+group = 'expo.modules.pageframe'
 version = '1.0.0'
 
 android {
-  namespace "expo.modules.keyboardframe"
+  namespace "expo.modules.pageframe"
   defaultConfig {
     versionCode 1
     versionName "1.0.0"
