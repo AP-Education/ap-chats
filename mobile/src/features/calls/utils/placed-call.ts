@@ -1,15 +1,15 @@
 import type { Room } from 'livekit-client';
 
 import { activeCall } from '../api/calls-api';
-import { startRingback } from './call-tones';
 import { outgoingRing, ringDeadline } from './outgoing-ring';
 import { requireAccessToken } from './require-access-token';
 import { watchRoomPresence } from './room-presence';
 import type { TrackedSessionMetadata } from './session-registry';
 
-const CHECK_MS = 3000;
+// By then the server has let an unanswered ring go; one look settles a call it never told us about.
+const SETTLE_AFTER_DEADLINE_MS = 2000;
 
-interface PlacedCall {
+interface CallToFollow {
   metadata: TrackedSessionMetadata;
   callId: string;
   startedAt: string;
@@ -22,66 +22,73 @@ interface PlacedCallOutcomes {
   over: () => void;
 }
 
+/** A call this device placed, from its ring until someone answers it or it ends. */
+export interface PlacedCall {
+  /** The server says someone answered; without its time, the server is asked for it. */
+  answer: (answeredAt: number | undefined) => void;
+  /** Asks the server where the call stands, as once the socket is back. */
+  resync: () => void;
+  /** Someone in the room may be the answer arriving before the server's word does. */
+  watch: (room: Room) => void;
+  stop: () => void;
+}
+
 /**
- * Follows a call this device placed until someone answers it or it ends, asking the server every
- * few seconds; each ask also lets the server notice a ring nobody answered. Meanwhile it rings
- * back: never for merely being alone in the room, never once someone joins it, and never past the
- * ring's deadline.
+ * Follows a placed call by what the server says of it: its signals while the socket is up, an ask
+ * when they may have been missed. The ringback itself is CallKit/Telecom's dialtone, which stops
+ * the moment `answered` reports the call connected; each outcome comes exactly once.
  */
-export function followPlacedCall(
-  call: PlacedCall,
-  room: Room,
-  outcomes: PlacedCallOutcomes,
-): () => void {
-  let stopTone: (() => void) | undefined;
-  let mayRing = true;
-  let finished = false;
+export function placeCall(call: CallToFollow, outcomes: PlacedCallOutcomes): PlacedCall {
+  let settled = false;
+  let stopWatching: (() => void) | undefined;
 
-  function silence() {
-    mayRing = false;
-    stopTone?.();
-    stopTone = undefined;
-  }
-
-  function finish() {
-    finished = true;
-    clearInterval(checks);
+  function settle(outcome: () => void) {
+    if (settled) return;
+    settled = true;
     clearTimeout(deadline);
-    silence();
+    stopWatching?.();
+    outcome();
   }
 
-  async function check() {
+  // A failed ask leaves the call ringing, unless something already showed it was answered.
+  async function ask(answeredMeanwhile?: number) {
     const { workspaceId, channelId } = call.metadata;
     const live = await requireAccessToken()
       .then((token) => activeCall(token, workspaceId, channelId))
       .catch(() => undefined);
-    if (finished || live === undefined) return;
+    if (settled) return;
 
-    const state = outgoingRing(call.callId, live);
-    if (state === 'ringing') {
-      if (mayRing) stopTone ??= startRingback();
+    if (live === undefined) {
+      if (answeredMeanwhile !== undefined) settle(() => outcomes.answered(answeredMeanwhile));
       return;
     }
-    finish();
-    if (state === 'answered' && live?.answeredAt) outcomes.answered(Date.parse(live.answeredAt));
-    if (state === 'over') outcomes.over();
+    const state = outgoingRing(call.callId, live);
+    if (state === 'over') settle(outcomes.over);
+    if (state === 'answered') {
+      const answeredAt = live?.answeredAt ? Date.parse(live.answeredAt) : Date.now();
+      settle(() => outcomes.answered(answeredAt));
+    }
   }
 
-  const checks = setInterval(() => void check(), CHECK_MS);
-  // Past it the ring is missed, whether or not a check gets through to hear the server say so.
-  const deadline = setTimeout(silence, ringDeadline(call.startedAt) - Date.now());
-  // Whoever joins has answered: the ringback stops at once, and the server tells when.
-  const stopWatching = watchRoomPresence(room, {
-    joined: () => {
-      silence();
-      void check();
-    },
-    left: () => undefined,
-  });
-  void check();
+  const deadline = setTimeout(
+    () => void ask(),
+    ringDeadline(call.startedAt) + SETTLE_AFTER_DEADLINE_MS - Date.now(),
+  );
 
-  return () => {
-    finish();
-    stopWatching();
+  return {
+    answer(answeredAt) {
+      if (answeredAt === undefined) void ask(Date.now());
+      else settle(() => outcomes.answered(answeredAt));
+    },
+    resync: () => void ask(),
+    watch(room) {
+      if (settled) return;
+      // The caller's own other device joining answers nothing, so the server decides.
+      stopWatching = watchRoomPresence(room, {
+        joined: () => void ask(Date.now()),
+        left: () => undefined,
+      });
+    },
+    stop: () => settle(() => undefined),
   };
 }

@@ -5,8 +5,8 @@ import { watchRoomPresence } from './room-presence';
 
 /** The sounds that follow who is in the room once this device has connected:
  * everyone joining gets the join chime, and in a group call everyone leaving
- * the leave chime. Mirrors web/'s CallPresenceCues; the ringback follows the
- * call's state instead (placed-call.ts). */
+ * the leave chime. Mirrors web/'s CallPresenceCues; the ringback is CallKit's
+ * own dialtone, which follows the call's state instead (placed-call.ts). */
 export function trackCallCues(room: Room, group: boolean): () => void {
   return watchRoomPresence(room, {
     joined: playJoinChime,

@@ -1,19 +1,9 @@
 import { createAudioPlayer } from 'expo-audio';
 
 import busySound from '../../../../assets/sounds/busy.wav';
-import ringbackSound from '../../../../assets/sounds/ringback.wav';
 
-// Static WAV renders of web/'s sound/ringback.ts and sound/busyTone.ts, see
-// scripts/generate-call-tones.mjs.
-
-/** Rings until the returned stop is called: the WAV holds one whole on/off cycle. */
-export function startRingback(): () => void {
-  // Stopping must not deactivate the call's audio session.
-  const player = createAudioPlayer(ringbackSound, { keepAudioSessionActive: true });
-  player.loop = true;
-  player.play();
-  return () => player.remove();
-}
+// A static WAV render of web/'s sound/busyTone.ts, see scripts/generate-call-tones.mjs. The
+// ringback is CallKit/Telecom's own dialtone (app.json), which follows the call's state natively.
 
 export function playBusyTone(): void {
   const player = createAudioPlayer(busySound, { keepAudioSessionActive: true });
