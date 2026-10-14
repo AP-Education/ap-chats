@@ -63,7 +63,6 @@ export function NativeTabs({ model, onSelect, onInset }: NativeTabsProps) {
         // A picture keeps its own colours instead of the bar's tint.
         getIconRenderingMode={({ route }) => (route.picture ? 'original' : 'automatic')}
         tabBarHidden={drawsOwnBar || barHidden}
-        hapticFeedbackEnabled
         tabBarActiveTintColor={palette.primary}
         getSceneStyle={() => ({ backgroundColor: palette.surface })}
       />
