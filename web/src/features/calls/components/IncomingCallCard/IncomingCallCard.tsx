@@ -3,6 +3,7 @@ import { createStyles, keyframes } from 'antd-style';
 import { CallIcon, EndCallIcon } from '../../callIcons';
 import { useIncomingCallPresentation } from '../../hooks/useIncomingCallPresentation';
 import { useIncomingCallRingtone } from '../../hooks/useIncomingCallRingtone';
+import { useRingResolution } from '../../hooks/useRingResolution';
 import type { CallSignal } from '../../schemas';
 import { CallBackdrop } from '../CallBackdrop/CallBackdrop';
 import { RingingAvatar } from '../RingingAvatar/RingingAvatar';
@@ -108,6 +109,7 @@ interface IncomingCallCardProps {
 export function IncomingCallCard({ signal }: IncomingCallCardProps) {
   const { styles } = useStyles();
   useIncomingCallRingtone();
+  useRingResolution(signal);
   const { cardAriaLabel, headline, subtitle, avatarPath, avatarAlt, dismiss, accept } =
     useIncomingCallPresentation(signal);
   const busy = dismiss.pending || accept.pending;
