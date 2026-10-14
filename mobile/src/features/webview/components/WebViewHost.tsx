@@ -2,7 +2,7 @@ import { selectionAsync } from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Platform, StyleSheet, View } from 'react-native';
+import { AppState, Linking, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Portal } from 'react-native-teleport';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
@@ -294,6 +294,11 @@ export function WebViewHost() {
                 applicationNameForUserAgent={APP_SHELL_USER_AGENT}
                 onNavigationStateChange={(event) => rememberLocation(event.url, webUrl)}
                 onMessage={handleMessage}
+                // A message's links open in the system browser, not over the app.
+                onOpenWindow={(event) => {
+                  const url = event.nativeEvent.targetUrl;
+                  if (/^(https?|mailto):/i.test(url)) void Linking.openURL(url);
+                }}
                 onLoadEnd={() => {
                   setLoadCount((count) => count + 1);
                   // WKWebView doesn't reliably become first responder on its own —
