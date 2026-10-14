@@ -3,18 +3,18 @@ import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 
 import type { ChannelAccessSnapshot } from '@/components/communities/channel-access/channel-access/types';
-import { NotificationSettingsService } from '@/components/notifications/preferences';
 import { EntriesFacade } from '@/components/social/entries';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventPublisher } from '@/globals/publisher';
 import type { Announce } from '@/globals/publisher/types';
 
-import { RING_TTL_SECONDS } from './call-lifecycle';
 import { callSignalPayload } from './call-signals';
 import { CALL_ENTRY_CREATED_EVENT, CallEntryCreatedEvent } from './events/call-entry-created.event';
 import { CALL_SIGNAL_EVENT, CallSignalEvent } from './events/call-signal.event';
 import { CallProvider } from './provider/call.provider';
 import { CallsRepository } from './repository/calls.repository';
+import { RingAudience } from './ring-audience';
+import { RING_TTL_SECONDS } from './ring-endings';
 import type { CallRecord } from './types';
 
 /** The call, its timeline entry, its ring and its media room commit or roll back together. */
@@ -25,7 +25,7 @@ export class CallPlacement {
     private readonly entries: EntriesFacade,
     private readonly events: EventPublisher,
     private readonly provider: CallProvider,
-    private readonly notificationSettings: NotificationSettingsService,
+    private readonly audience: RingAudience,
   ) {}
 
   async place(
@@ -53,9 +53,8 @@ export class CallPlacement {
         caller.id,
       ),
     );
-    // Neither the caller nor whoever muted the conversation hears it ring; the call card still shows.
-    const muted = await this.notificationSettings.mutedMembers(channel.id);
-    const rung = await this.calls.ringRecipients(channel.id, [caller.id, ...muted]);
+    // Whoever doesn't hear it ring still sees the call card.
+    const rung = await this.audience.of(channel.id, caller.id);
     const announceRing = await this.events.record(
       CALL_SIGNAL_EVENT,
       new CallSignalEvent('call:incoming', callSignalPayload(caller, channel, call), rung),

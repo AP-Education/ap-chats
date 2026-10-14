@@ -25,8 +25,11 @@ import {
   type CallSignalEvent,
   type CallSignalKind,
 } from './events/call-signal.event';
+import { RING_ENDED_EVENT, type RingEndedEvent } from './events/ring-ended.event';
 import { CallProvider } from './provider/call.provider';
 import { CallsRepository } from './repository/calls.repository';
+import { RingAudience } from './ring-audience';
+import { RingEndings } from './ring-endings';
 import type { CallRecord, CallStatus } from './types';
 
 /**
@@ -45,9 +48,11 @@ const ACTIVE_STATUSES: ReadonlySet<CallStatus> = new Set(['ringing', 'active']);
 
 class RecordingEventPublisher extends EventPublisher {
   private readonly signals: CallSignalEvent[] = [];
+  readonly ringEnds: RingEndedEvent[] = [];
 
   publish<T extends object>(name: string, event: T): void {
     if (name === CALL_SIGNAL_EVENT) this.signals.push(event as unknown as CallSignalEvent);
+    if (name === RING_ENDED_EVENT) this.ringEnds.push(event as unknown as RingEndedEvent);
   }
 
   async record<T extends object>(name: string, event: T) {
@@ -321,15 +326,18 @@ beforeEach(() => {
     ),
   );
   const entries = new EntriesFacade(new FakeEntriesRepository());
-  const lifecycle = new CallLifecycle(repository, new CallSignals(repository, signals), provider);
   notificationSettings = new FakeNotificationSettingsRepository();
-  const placement = new CallPlacement(
+  const audience = new RingAudience(
     repository,
-    entries,
-    signals,
-    provider,
     new NotificationSettingsService(channelAccess, notificationSettings),
   );
+  const lifecycle = new CallLifecycle(
+    repository,
+    new CallSignals(repository, signals),
+    provider,
+    new RingEndings(audience, signals),
+  );
+  const placement = new CallPlacement(repository, entries, signals, provider, audience);
   calls = new CallsService(channelAccess, lifecycle, placement, provider);
 });
 
@@ -367,14 +375,52 @@ test('decline: in a DM, ends the call and reaches both sides', async () => {
   );
 });
 
-test('decline: in a channel, is a personal no-op that never ends the call', async () => {
+test("decline: in a channel, stops only the decliner's own ring and never ends the call", async () => {
   repository.seed(ringingCall(group, starter));
 
   await calls.decline(bystander, group.id, 'call-1', 'test-token');
 
   assert.equal(repository.record?.status, 'ringing', 'declining a group call must not resolve it');
   assert.deepEqual(provider.ended, []);
-  assert.deepEqual(signals.recipientsOf('call:declined'), [], 'nobody should hear about it at all');
+  assert.deepEqual(signals.recipientsOf('call:declined'), [bystander.profile.oidcUserId]);
+  assert.deepEqual(signals.ringEnds[0]?.recipientUserIds, [bystander.profile.oidcUserId]);
+});
+
+test("join: answering ends the ring on every device it rang, the answerer's others included", async () => {
+  repository.seed(ringingCall(group, starter));
+
+  await calls.join(joiner, group.id, 'call-1', 'test-token');
+
+  assert.deepEqual(
+    signals.ringEnds.map(({ reason, recipientUserIds }) => ({ reason, recipientUserIds })),
+    [
+      {
+        reason: 'answered',
+        recipientUserIds: [joiner.profile.oidcUserId, bystander.profile.oidcUserId],
+      },
+    ],
+  );
+});
+
+test('leave: a caller hanging up a ringing call cancels the ring; ending an answered one does not', async () => {
+  repository.seed(ringingCall(dm, caller));
+  await calls.leave(caller, dm.id, 'call-1', 'test-token');
+  assert.deepEqual(
+    signals.ringEnds.map(({ reason }) => reason),
+    ['cancelled'],
+  );
+
+  repository.seed({ ...ringingCall(dm, caller), status: 'active' });
+  await calls.leave(caller, dm.id, 'call-1', 'test-token');
+  assert.equal(signals.ringEnds.length, 1);
+});
+
+test('decline: in a channel already answered, tells nobody', async () => {
+  repository.seed({ ...ringingCall(group, starter), status: 'active' });
+
+  await calls.decline(bystander, group.id, 'call-1', 'test-token');
+
+  assert.deepEqual(signals.recipientsOf('call:declined'), []);
 });
 
 test('leave: in a DM, ends the call immediately even if the media room still reports the other side', async () => {
