@@ -7,6 +7,7 @@ export function callView(call: CallRecord) {
     status: call.status,
     startedByMemberId: call.startedByMemberId,
     startedAt: call.startedAt,
+    answeredAt: call.answeredAt,
     endedAt: call.endedAt,
   };
 }

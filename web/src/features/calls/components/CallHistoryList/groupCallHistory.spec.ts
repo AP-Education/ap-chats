@@ -20,6 +20,7 @@ function call(
     status: overrides.status ?? 'ended',
     startedByMemberId: overrides.outgoing === false ? peer : me,
     startedAt,
+    answeredAt: overrides.endedAt ? startedAt : null,
     endedAt: overrides.endedAt ?? null,
     participant: { memberId: peer, displayName: 'Peer', avatarPath: null, active: true },
   };
@@ -75,4 +76,18 @@ test('a single finished call shows its length, a collapsed row only its directio
   assert.equal(callEntryStatus(single[0]), 'Вихідний (49 хв)');
   assert.equal(callEntryStatus(collapsed[0]), 'Вхідний');
   assert.equal(callEntryStatus(missed[0]), 'Пропущений');
+});
+
+test('a call lasts from its answer, and one hung up before an answer has no length', () => {
+  const ringFirst = {
+    ...call('1', '2026-10-08T10:00:00', { endedAt: '2026-10-08T10:12:00' }),
+    answeredAt: '2026-10-08T10:02:00',
+  };
+  const unanswered = {
+    ...call('2', '2026-10-08T11:00:00', { endedAt: '2026-10-08T11:00:30' }),
+    answeredAt: null,
+  };
+
+  assert.equal(callEntryStatus(groupCallHistory([ringFirst])[0]), 'Вихідний (10 хв)');
+  assert.equal(callEntryStatus(groupCallHistory([unanswered])[0]), 'Вихідний');
 });

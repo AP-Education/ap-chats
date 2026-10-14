@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
@@ -52,11 +52,6 @@ export class ChannelPermissionsService {
     return this.sync.closeChannel(workspaceId, channelId);
   }
 
-  async leave(member: WorkspaceMember, channelId: string): Promise<void> {
-    const announce = await this.declineInvitation(member, channelId);
-    announce();
-  }
-
   @Transactional()
   private async relist(
     member: WorkspaceMember,
@@ -66,22 +61,5 @@ export class ChannelPermissionsService {
     await this.visibility.requireManageable(member, channelId);
 
     return this.assign(member.workspaceId, channelId, permissions);
-  }
-
-  // Only a personal invitation can be turned down; a role or the whole workspace keeps you in.
-  @Transactional()
-  private async declineInvitation(member: WorkspaceMember, channelId: string): Promise<Announce> {
-    await this.visibility.requireVisible(member, channelId);
-
-    const sources = await this.permissions.sourcesOf(channelId, member.id);
-    if (!sources.length) throw new NotFoundException('Channel member not found');
-
-    const isPersonalOnly = sources.every((source) => source.principal === 'member');
-    if (!isPersonalOnly)
-      throw new ConflictException('Your access comes from a role or the whole workspace');
-
-    await this.permissions.revokePersonal(member.workspaceId, channelId, member.id);
-
-    return this.sync.refreshMembers(member.workspaceId, [member.id]);
   }
 }

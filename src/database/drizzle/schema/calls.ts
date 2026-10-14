@@ -32,6 +32,8 @@ export const calls = pgTable(
     status: text('status', { enum: callStatusEnum }).notNull().default('ringing'),
     startedByMemberId: uuid('started_by_member_id').notNull(),
     startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    // Set once someone answers: a call lasts from here, not from when it began to ring.
+    answeredAt: timestamp('answered_at', { withTimezone: true }),
     endedAt: timestamp('ended_at', { withTimezone: true }),
   },
   (table) => [

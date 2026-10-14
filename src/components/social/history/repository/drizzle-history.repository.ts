@@ -7,6 +7,7 @@ import {
   calls,
   channelEntries,
   chatMessages,
+  memberRolePresentation,
   messageMentions,
   messagePins,
   messageReactions,
@@ -103,6 +104,10 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     const replyAuthors = alias(userProfiles, 'reply_authors');
     const forwardAuthors = alias(userProfiles, 'forward_authors');
     const startedByProfiles = alias(userProfiles, 'started_by_profiles');
+    const authorRoles = alias(memberRolePresentation, 'author_roles');
+    const replyAuthorRoles = alias(memberRolePresentation, 'reply_author_roles');
+    const forwardAuthorRoles = alias(memberRolePresentation, 'forward_author_roles');
+    const startedByRoles = alias(memberRolePresentation, 'started_by_roles');
     const mentions = this.mentionsOfMessage();
     const reactions = this.reactionsOfMessage(viewerMemberId);
 
@@ -116,7 +121,11 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         seq: channelEntries.seq,
         createdAt: channelEntries.createdAt,
         message: chatMessages,
-        authorProfile: { displayName: authors.displayName, avatarPath: authors.avatarPath },
+        authorProfile: {
+          displayName: authors.displayName,
+          avatarPath: authors.avatarPath,
+          roleColor: authorRoles.roleColor,
+        },
         reply: {
           id: replyMessages.id,
           authorMemberId: replyMessages.authorMemberId,
@@ -126,10 +135,12 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         replyAuthorProfile: {
           displayName: replyAuthors.displayName,
           avatarPath: replyAuthors.avatarPath,
+          roleColor: replyAuthorRoles.roleColor,
         },
         forwardAuthorProfile: {
           displayName: forwardAuthors.displayName,
           avatarPath: forwardAuthors.avatarPath,
+          roleColor: forwardAuthorRoles.roleColor,
         },
         pin: messagePins,
         mentions: mentions.mentions,
@@ -140,20 +151,27 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         startedByProfile: {
           displayName: startedByProfiles.displayName,
           avatarPath: startedByProfiles.avatarPath,
+          roleColor: startedByRoles.roleColor,
         },
       })
       .from(channelEntries)
       .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
       .leftJoin(authorMembers, eq(authorMembers.id, chatMessages.authorMemberId))
       .leftJoin(authors, eq(authors.id, authorMembers.userProfileId))
+      .leftJoin(authorRoles, eq(authorRoles.memberId, chatMessages.authorMemberId))
       .leftJoin(replyMessages, eq(replyMessages.id, chatMessages.replyToMessageId))
       .leftJoin(replyAuthorMembers, eq(replyAuthorMembers.id, replyMessages.authorMemberId))
       .leftJoin(replyAuthors, eq(replyAuthors.id, replyAuthorMembers.userProfileId))
+      .leftJoin(replyAuthorRoles, eq(replyAuthorRoles.memberId, replyMessages.authorMemberId))
       .leftJoin(
         forwardAuthorMembers,
         eq(forwardAuthorMembers.id, chatMessages.forwardedFromMemberId),
       )
       .leftJoin(forwardAuthors, eq(forwardAuthors.id, forwardAuthorMembers.userProfileId))
+      .leftJoin(
+        forwardAuthorRoles,
+        eq(forwardAuthorRoles.memberId, chatMessages.forwardedFromMemberId),
+      )
       .leftJoin(
         messagePins,
         and(
@@ -166,6 +184,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
       .leftJoin(calls, eq(calls.id, channelEntries.callId))
       .leftJoin(startedByMembers, eq(startedByMembers.id, calls.startedByMemberId))
       .leftJoin(startedByProfiles, eq(startedByProfiles.id, startedByMembers.userProfileId))
+      .leftJoin(startedByRoles, eq(startedByRoles.memberId, calls.startedByMemberId))
       .where(
         and(
           eq(channelEntries.channelId, channelId),

@@ -12,6 +12,7 @@ const useStyles = createStyles(({ token, css }) => ({
     flex-wrap: wrap;
     justify-content: center;
     gap: 6px;
+    flex-shrink: 0;
     max-height: 128px;
     margin: 0;
     padding: 0;

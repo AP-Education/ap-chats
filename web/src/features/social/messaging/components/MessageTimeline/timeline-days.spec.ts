@@ -26,7 +26,7 @@ function message(seq: string, author: string, createdAt: string): DisplayItem {
       editedAt: null,
       deletedAt: null,
     },
-    author: { memberId: author, displayName: author, avatarPath: null },
+    author: { memberId: author, displayName: author, avatarPath: null, roleColor: null },
     reply: null,
     forwardedFrom: null,
     pin: null,
@@ -45,9 +45,10 @@ function call(seq: string, createdAt: string): DisplayItem {
       status: 'ended',
       startedByMemberId: 'olena',
       startedAt: createdAt,
+      answeredAt: createdAt,
       endedAt: createdAt,
     },
-    startedBy: { memberId: 'olena', displayName: 'Olena', avatarPath: null },
+    startedBy: { memberId: 'olena', displayName: 'Olena', avatarPath: null, roleColor: null },
   };
   return { item, delivery: undefined };
 }

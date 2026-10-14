@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import TabView, { type AppleIcon } from 'react-native-bottom-tabs';
+import TabView from 'react-native-bottom-tabs';
 import { useKeyboardState } from 'react-native-keyboard-controller';
 
 import { useShellPalette } from '../../appearance';
 import type { NativeTab, TabBarModel } from '../types';
-import { androidTabIcon } from '../utils/android-tab-icons';
+import { FloatingTabBar, useFloatingTabBarSpace } from './FloatingTabBar';
 import { TabScene } from './TabScene';
 
 interface TabRoute {
@@ -23,13 +23,15 @@ interface NativeTabsProps {
 }
 
 /**
- * The system tab bar for the page's tabs: UIKit's, with Liquid Glass on iOS 26, and Material's
- * bottom navigation on Android. Each tab holds a host the page is teleported into.
+ * The tab bar for the page's tabs: UIKit's, with Liquid Glass on iOS 26, and a capsule of the same
+ * shape drawn here on Android. Each tab holds a host the page is teleported into.
  */
 export function NativeTabs({ model, onSelect, onInset }: NativeTabsProps) {
   const palette = useShellPalette();
   const keyboardShown = useKeyboardState((state) => state.isVisible);
   const barHidden = !model.visible || keyboardShown;
+  const floatingBarSpace = useFloatingTabBarSpace();
+  const drawsOwnBar = Platform.OS === 'android';
   const routes = useMemo(() => model.items.map(toRoute), [model.items]);
   const index = Math.max(
     0,
@@ -45,6 +47,7 @@ export function NativeTabs({ model, onSelect, onInset }: NativeTabsProps) {
             id={route.key}
             active={route.key === model.activeId}
             barHidden={barHidden}
+            ownBarSpace={drawsOwnBar ? floatingBarSpace : undefined}
             onInset={onInset}
           />
         )}
@@ -54,17 +57,17 @@ export function NativeTabs({ model, onSelect, onInset }: NativeTabsProps) {
         }}
         // Every tab's host exists from the start, so the page can move into any of them.
         getLazy={() => false}
-        getIcon={({ route, focused }) =>
-          route.picture ? { uri: route.picture } : tabIcon(route.symbol, focused)
+        getIcon={({ route }) =>
+          route.picture ? { uri: route.picture } : { sfSymbol: route.symbol.ios }
         }
         // A picture keeps its own colours instead of the bar's tint.
         getIconRenderingMode={({ route }) => (route.picture ? 'original' : 'automatic')}
-        tabBarHidden={barHidden}
+        tabBarHidden={drawsOwnBar || barHidden}
         hapticFeedbackEnabled
         tabBarActiveTintColor={palette.primary}
-        activeIndicatorColor={palette.primaryBg}
         getSceneStyle={() => ({ backgroundColor: palette.surface })}
       />
+      {drawsOwnBar && !barHidden && <FloatingTabBar model={model} onSelect={onSelect} />}
     </View>
   );
 }
@@ -77,10 +80,4 @@ function toRoute(tab: NativeTab): TabRoute {
     symbol: tab.symbol,
     picture: tab.picture,
   };
-}
-
-// iOS fills the selected tab's SF Symbol itself.
-function tabIcon(symbol: NativeTab['symbol'], focused: boolean) {
-  if (Platform.OS === 'ios') return { sfSymbol: symbol.ios } satisfies AppleIcon;
-  return androidTabIcon(symbol.android, focused);
 }

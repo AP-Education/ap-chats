@@ -225,9 +225,14 @@ export function WebViewHost() {
     webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'navigation/select', id }));
   }
 
-  const handleTabBarInset = useCallback((bottom: number) => {
-    webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'navigation/inset', bottom }));
-  }, []);
+  // The bar reports what it covers of the screen; the page may end short of the screen's bottom.
+  const handleTabBarInset = useCallback(
+    (covered: number) => {
+      const bottom = Math.max(0, covered - pageGap);
+      webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'navigation/inset', bottom }));
+    },
+    [pageGap],
+  );
 
   function handlePickEmoji(text: string) {
     const { sessionId, requestId, mode } = input.state;

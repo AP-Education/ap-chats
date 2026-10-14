@@ -9,8 +9,10 @@ import { AddRolePopover } from './AddRolePopover';
 import { MemberRoleChips } from './MemberRoleChips';
 
 const useStyles = createStyles(({ token, css }) => ({
+  // Never squeezed by a short sheet: its scrolling chips would give way first, down to nothing.
   section: css`
     display: flex;
+    flex-shrink: 0;
     flex-direction: column;
     align-items: center;
     gap: 8px;

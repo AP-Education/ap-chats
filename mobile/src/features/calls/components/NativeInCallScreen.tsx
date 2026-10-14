@@ -85,10 +85,10 @@ function speakingLevel(call: NativeCallState): number {
 }
 
 function CallStatusLine({ call }: { call: NativeCallState }) {
-  const duration = useCallDuration(call.connectedAt);
+  const duration = useCallDuration(call.answeredAt);
 
   if (call.status === 'connecting') return <Text style={styles.duration}>З'єднання</Text>;
-  return <Text style={styles.duration}>{duration}</Text>;
+  return <Text style={styles.duration}>{call.answeredAt ? duration : 'Виклик'}</Text>;
 }
 
 const styles = StyleSheet.create({

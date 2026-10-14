@@ -1,11 +1,11 @@
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkDirective from 'remark-directive';
+import remarkGfm from 'remark-gfm';
 
 import { reachesViewer, type ViewerReach } from '../../mention-reach';
 import { tokenFromAttributes } from '../../mention-tokens';
 import type { MentionLabel } from '../../types';
-import { bareLinks } from './bare-links';
 import { mentionDirective } from './mention-directive';
 import { MentionReference } from './MentionReference';
 
@@ -27,7 +27,13 @@ export function MessageMarkdown({
 
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkDirective, mentionDirective, remarkBreaks, bareLinks]}
+      // GFM for bare links and ~~strikethrough~~; a single tilde stays plain, as people type it.
+      remarkPlugins={[
+        remarkDirective,
+        mentionDirective,
+        remarkBreaks,
+        [remarkGfm, { singleTilde: false }],
+      ]}
       allowedElements={[
         'p',
         'strong',
@@ -41,8 +47,10 @@ export function MessageMarkdown({
         'li',
         'br',
         'span',
+        'del',
       ]}
-      unwrapDisallowed={inline}
+      // Whatever has no look of its own here, a table or a heading, still shows its text.
+      unwrapDisallowed
       components={{
         p: ({ children }) => (inline ? <span>{children} </span> : <p>{children}</p>),
         a: ({ children, ...props }) =>

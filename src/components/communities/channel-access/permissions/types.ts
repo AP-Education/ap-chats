@@ -1,4 +1,4 @@
-import type { Principal, PrincipalKind } from '@/components/workspaces/access/types';
+import type { Principal } from '@/components/workspaces/access/types';
 
 export const channelCapabilities = ['view', 'post', 'manage'] as const;
 export type ChannelCapability = (typeof channelCapabilities)[number];
@@ -12,10 +12,3 @@ export type PrincipalView =
   | { kind: 'member'; memberId: string; displayName: string | null; avatarPath: string | null };
 
 export type ChannelPermissionsView = Record<ChannelCapability, PrincipalView[]>;
-
-/** One grant through which a person reaches a channel. */
-export interface AccessSource {
-  capability: ChannelCapability;
-  principal: PrincipalKind;
-  roleId: string | null;
-}

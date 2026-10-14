@@ -56,6 +56,7 @@ export interface CallHistoryItem {
     status: CallEntryStatus;
     startedByMemberId: string;
     startedAt: string;
+    answeredAt: string | null;
     endedAt: string | null;
   };
   startedBy: MessageAuthor;
@@ -76,6 +77,8 @@ export interface MessageAuthor {
   memberId: string;
   displayName: string | null;
   avatarPath: string | null;
+  /** Their top coloured role's colour, which their name takes, as on Discord. */
+  roleColor: string | null;
 }
 
 export interface ReadState {

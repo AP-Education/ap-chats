@@ -9,18 +9,16 @@ import {
   PageTitle,
   useIsMobile,
 } from '@ap-education/ui';
-import { CaretDownIcon, GearSixIcon, SignOutIcon, UsersThreeIcon } from '@phosphor-icons/react';
-import { Alert, Button, Dropdown, type MenuProps, message } from 'antd';
+import { CaretDownIcon, GearSixIcon, UsersThreeIcon } from '@phosphor-icons/react';
+import { Alert, Button, Dropdown, type MenuProps } from 'antd';
 import { createStyles } from 'antd-style';
 import { type ReactNode, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { callActionLabel } from '@/features/calls/callActionLabel';
 import { CallIcon } from '@/features/calls/callIcons';
 import { useCallAction } from '@/features/calls/hooks/useCallAction';
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
-import { ApiError } from '@/shared/api/http';
 
 import { useChannelMembership } from '../../../memberships/hooks/useChannelMembership';
 import { ChannelNotificationsPopover } from '../../../notifications/components/Popover';
@@ -87,10 +85,9 @@ interface ChannelTitleProps {
   channel: Channel;
   canManage: boolean;
   onSettings: () => void;
-  onLeave: () => void;
 }
 
-function ChannelTitle({ channel, canManage, onSettings, onLeave }: ChannelTitleProps) {
+function ChannelTitle({ channel, canManage, onSettings }: ChannelTitleProps) {
   const { styles } = useStyles();
   const menuItems: MenuProps['items'] = [];
   if (canManage)
@@ -98,13 +95,6 @@ function ChannelTitle({ channel, canManage, onSettings, onLeave }: ChannelTitleP
       key: 'settings',
       label: 'Налаштування каналу',
       icon: <GearSixIcon size={18} />,
-    });
-  if (channel.isMember)
-    menuItems.push({
-      key: 'leave',
-      label: 'Вийти з каналу',
-      icon: <SignOutIcon size={18} />,
-      danger: true,
     });
 
   const channelIcon = channel.isOpen ? (
@@ -128,7 +118,6 @@ function ChannelTitle({ channel, canManage, onSettings, onLeave }: ChannelTitleP
         items: menuItems,
         onClick: ({ key }) => {
           if (key === 'settings') onSettings();
-          if (key === 'leave') onLeave();
         },
       }}
       trigger={['click']}
@@ -177,9 +166,8 @@ function LargeChannelCallNotice({
 
 export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailProps) {
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
   const { currentMember } = useWorkspaceMemberLabels(workspaceId);
-  const { query: membersQuery, leave } = useChannelMembership(workspaceId, channel.id);
+  const { query: membersQuery } = useChannelMembership(workspaceId, channel.id);
   const dialogs = useChannelDialogs();
   const [sizeNoticeVisible, setSizeNoticeVisible] = useState(false);
   const canManage = channel.canManage;
@@ -205,29 +193,12 @@ export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailPr
     call.onClick();
   }
 
-  function handleLeave() {
-    leave.mutate(undefined, {
-      onSuccess: () => navigate('/channels'),
-      onError: (error) =>
-        message.error(
-          error instanceof ApiError && error.status === 409
-            ? 'Ви в каналі через роль або всю компанію, тому вийти не можна. Його можна заглушити.'
-            : 'Не вдалося вийти з каналу.',
-        ),
-    });
-  }
-
   return (
     <>
       <PageHeader>
         {leading}
         <PageTitle>
-          <ChannelTitle
-            channel={channel}
-            canManage={canManage}
-            onSettings={openSettings}
-            onLeave={handleLeave}
-          />
+          <ChannelTitle channel={channel} canManage={canManage} onSettings={openSettings} />
         </PageTitle>
         <PageActions>
           {channel.isMember && (

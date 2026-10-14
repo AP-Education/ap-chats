@@ -24,6 +24,7 @@ export interface TrackedSession {
    * endCallSession, alongside the room disconnect itself. */
   stopTrackingRemote?: () => void;
   stopCallCues?: () => void;
+  stopFollowing?: () => void;
 }
 
 // Keyed by the OS-assigned CallSession id — the one thing every

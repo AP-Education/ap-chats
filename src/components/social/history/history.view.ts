@@ -2,7 +2,7 @@ import { messageView } from '../messages/message-view';
 import type { ChannelReadState } from '../read-state/types';
 import type { CallHistoryRow, HistoryRow, MessageHistoryRow } from './types/history.types';
 
-type Profile = { displayName: string | null; avatarPath: string | null };
+type Profile = { displayName: string | null; avatarPath: string | null; roleColor: string | null };
 
 interface HistoryPageInput {
   rows: HistoryRow[];
@@ -53,6 +53,7 @@ function callItemView({ seq, createdAt, call, startedByProfile }: CallHistoryRow
       status: call.status,
       startedByMemberId: call.startedByMemberId,
       startedAt: call.startedAt,
+      answeredAt: call.answeredAt,
       endedAt: call.endedAt,
     },
     startedBy: personView(call.startedByMemberId, startedByProfile),
@@ -88,6 +89,6 @@ function messageItemView(row: MessageHistoryRow, viewerMemberId: string) {
   };
 }
 
-function personView(memberId: string, { displayName, avatarPath }: Profile) {
-  return { memberId, displayName, avatarPath };
+function personView(memberId: string, { displayName, avatarPath, roleColor }: Profile) {
+  return { memberId, displayName, avatarPath, roleColor };
 }

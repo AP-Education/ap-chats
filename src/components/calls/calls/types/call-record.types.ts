@@ -8,5 +8,6 @@ export interface CallRecord {
   status: CallStatus;
   startedByMemberId: string;
   startedAt: Date;
+  answeredAt: Date | null;
   endedAt: Date | null;
 }

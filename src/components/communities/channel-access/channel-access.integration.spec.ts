@@ -164,19 +164,6 @@ test('channel access on PostgreSQL', async (t) => {
     assert.deepEqual(await sees(owner), []);
   });
 
-  await t.test('a personal invitation can be left, a role cannot', async () => {
-    const { owner, designer, recruiter, open, sees } = await office();
-    const design = await roles.create(owner, { name: 'Design' });
-    await roleMembers.add(owner, design.id, [designer.id]);
-    const project = await open('project', { post: [role(design.id), person(recruiter)] });
-
-    await permissions.leave(recruiter, project.id);
-    await assert.rejects(permissions.leave(designer, project.id), { status: 409 });
-
-    assert.deepEqual(await sees(recruiter), []);
-    assert.deepEqual(await sees(designer), ['project']);
-  });
-
   await t.test('deleting a role removes the access it gave', async () => {
     const { owner, designer, open, sees } = await office();
     const design = await roles.create(owner, { name: 'Design' });

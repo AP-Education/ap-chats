@@ -1,3 +1,4 @@
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
 
 import { tokenText } from '../../mention-tokens';
@@ -14,6 +15,7 @@ interface MemberReferenceProps {
 /** A person named in a message: opens their profile, or plain where it cannot. */
 export function MemberReference({ memberId, person, inline, mine }: MemberReferenceProps) {
   const { styles, cx } = useMentionChipStyles();
+  const { workspaceId } = useConversationScope();
   const text = tokenText({ kind: 'member', id: memberId }, person?.displayName ?? undefined);
   const mentionClass = cx(styles.mention, mine && styles.mentionMe);
 
@@ -26,7 +28,12 @@ export function MemberReference({ memberId, person, inline, mine }: MemberRefere
 
   return (
     <MemberProfileTrigger
-      member={{ memberId, displayName: person.displayName, avatarPath: person.avatarPath ?? null }}
+      member={{
+        workspaceId,
+        memberId,
+        displayName: person.displayName,
+        avatarPath: person.avatarPath ?? null,
+      }}
     >
       <button
         type="button"

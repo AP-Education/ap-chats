@@ -12,6 +12,8 @@ export interface CallJoinGrant {
   callId: string;
   roomName: string;
   startedAt: string;
+  /** Unset while the call still rings: the caller's own join answers nothing. */
+  answeredAt: string | null;
   url: string;
   token: string;
   expiresAt: string;

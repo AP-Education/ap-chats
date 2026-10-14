@@ -4,13 +4,15 @@ import type { PropsWithChildren, ReactNode } from 'react';
 import { MemberIdentity } from '../MemberIdentity';
 
 const useStyles = createStyles(({ token, css }) => ({
-  // Fills a fixed-height sheet; in a popover it keeps its natural height.
+  // Fills a fixed-height sheet, scrolling as a whole where the screen is too short for it; in a
+  // popover it keeps its natural height.
   card: css`
     box-sizing: border-box;
     display: flex;
     flex: 1;
     flex-direction: column;
     min-height: 0;
+    overflow-y: auto;
     padding: 22px;
     color: ${token.colorText};
     text-align: center;
