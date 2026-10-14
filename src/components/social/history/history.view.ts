@@ -53,6 +53,7 @@ function callItemView({ seq, createdAt, call, startedByProfile }: CallHistoryRow
       status: call.status,
       startedByMemberId: call.startedByMemberId,
       startedAt: call.startedAt,
+      answeredAt: call.answeredAt,
       endedAt: call.endedAt,
     },
     startedBy: personView(call.startedByMemberId, startedByProfile),

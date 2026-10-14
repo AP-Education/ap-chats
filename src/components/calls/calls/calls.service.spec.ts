@@ -161,7 +161,13 @@ class FakeCallsRepository extends CallsRepository {
     if (this.record && ACTIVE_STATUSES.has(this.record.status)) {
       throw new ConflictException('Channel already has an ongoing call');
     }
-    this.record = { ...input, status: 'ringing', startedAt: new Date(), endedAt: null };
+    this.record = {
+      ...input,
+      status: 'ringing',
+      startedAt: new Date(),
+      answeredAt: null,
+      endedAt: null,
+    };
     return this.record;
   }
 
@@ -183,7 +189,7 @@ class FakeCallsRepository extends CallsRepository {
 
   async activate(callId: string) {
     if (this.record?.id === callId && this.record.status === 'ringing') {
-      this.record = { ...this.record, status: 'active' };
+      this.record = { ...this.record, status: 'active', answeredAt: new Date() };
       return this.record;
     }
     return undefined;
@@ -292,6 +298,7 @@ function ringingCall(
     status: 'ringing',
     startedByMemberId: startedBy.id,
     startedAt,
+    answeredAt: null,
     endedAt: null,
   };
 }
@@ -348,6 +355,16 @@ test('join: the starter joining their own ringing call answers nobody', async ()
 
   assert.equal(repository.record?.status, 'ringing');
   assert.deepEqual(signals.recipientsOf('call:accepted'), []);
+});
+
+test('join: a call is timed from its answer, not from its own start', async () => {
+  repository.seed(ringingCall(dm, caller));
+
+  const ownJoin = await calls.join(caller, dm.id, 'call-1', 'test-token');
+  assert.equal(ownJoin.answeredAt, null, 'the caller joining their own ring answers nothing');
+
+  const answer = await calls.join(callee, dm.id, 'call-1', 'test-token');
+  assert.ok(answer.answeredAt instanceof Date);
 });
 
 test('join: someone else joining activates the call and reaches both sides', async () => {

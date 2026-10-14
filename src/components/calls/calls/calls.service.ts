@@ -54,6 +54,7 @@ export class CallsService {
     if (!isAvailable) throw new ForbiddenException('Call is no longer available');
 
     await this.lifecycle.answer(member, channel, call);
+    const { answeredAt } = await this.lifecycle.find(channel, call.id);
     const grant = await this.provider.mintJoinToken(
       call,
       {
@@ -65,7 +66,13 @@ export class CallsService {
     );
 
     // The call's own start, not this join, so a reconnect renders the same elapsed time.
-    return { callId: call.id, roomName: call.roomName, startedAt: call.startedAt, ...grant };
+    return {
+      callId: call.id,
+      roomName: call.roomName,
+      startedAt: call.startedAt,
+      answeredAt,
+      ...grant,
+    };
   }
 
   async decline(member: WorkspaceMember, channelId: string, callId: string, accessToken: string) {

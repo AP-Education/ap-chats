@@ -67,7 +67,7 @@ export class DrizzleCallsRepository extends CallsRepository {
   async activate(callId: string): Promise<CallRecord | undefined> {
     const [row] = await this.txHost.tx
       .update(calls)
-      .set({ status: 'active' })
+      .set({ status: 'active', answeredAt: new Date() })
       .where(and(eq(calls.id, callId), eq(calls.status, 'ringing')))
       .returning();
     return row;
