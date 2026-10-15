@@ -396,6 +396,9 @@ importers:
       thumbhash:
         specifier: 0.1.1
         version: 0.1.1
+      usehooks-ts:
+        specifier: ^3.1.1
+        version: 3.1.1(react@19.2.8)
       zod:
         specifier: 4.6.5
         version: 4.6.5

@@ -8,7 +8,7 @@ import {
   StickerIcon,
   XIcon,
 } from '@phosphor-icons/react';
-import { Button, Popover } from 'antd';
+import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import {
   type PointerEvent,
@@ -43,13 +43,11 @@ import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
 import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
 import { useAttachmentDrop } from './AttachmentDropZone';
 import { ComposerAction } from './ComposerAction';
+import { DesktopPickerPopover } from './DesktopPickerPopover';
 import { PickerPanel, type PickerTab } from './picker';
 import { useBrowserKeyboardHeight } from './useBrowserKeyboardHeight';
 import { useComposerDraft } from './useComposerDraft';
 import { useNativeComposerInput } from './useNativeComposerInput';
-
-const DESKTOP_PANEL_WIDTH = 360;
-const DESKTOP_PANEL_HEIGHT = 440;
 
 const LAST_PICKER_TAB_KEY = 'ap-chats:last-picker-tab';
 const PICKER_TABS: PickerTab[] = ['gif', 'sticker', 'emoji'];
@@ -99,10 +97,6 @@ const useStyles = createStyles(({ token, css }) => ({
       gap: 8px;
       padding: 4px 8px calc(8px + var(--app-inset-bottom, env(safe-area-inset-bottom, 0px)));
     }
-  `,
-  desktopPanel: css`
-    width: ${DESKTOP_PANEL_WIDTH}px;
-    height: ${DESKTOP_PANEL_HEIGHT}px;
   `,
   mobileSheet: css`
     flex-shrink: 0;
@@ -446,8 +440,8 @@ export function MessageComposer({
     editableRef.current?.suspendInput();
   }
 
-  const toolbarButtons = (
-    <div className={styles.toolbarRight}>
+  const pickerButtons = (
+    <>
       <IconButton
         size={toolbarActionSize}
         className={cx(styles.toolbarButton, activeTab === 'emoji' && styles.toolbarButtonActive)}
@@ -475,7 +469,7 @@ export function MessageComposer({
       >
         <StickerIcon size={22} weight={activeTab === 'sticker' ? 'duotone' : 'regular'} />
       </IconButton>
-    </div>
+    </>
   );
 
   // Compact (phone/tablet): one entry point that reopens whatever tab was used last,
@@ -607,24 +601,16 @@ export function MessageComposer({
             isCompact ? (
               compactToolbarButton
             ) : (
-              <Popover
-                trigger={[]}
-                open={activeTab !== null}
-                onOpenChange={(open) => !open && closePicker()}
-                placement="topRight"
-                content={
-                  <div className={styles.desktopPanel}>
-                    <PickerPanel
-                      activeTab={activeTab ?? 'emoji'}
-                      onTabChange={selectTab}
-                      onPickEmoji={insertEmoji}
-                      onPickGif={pickGif}
-                    />
-                  </div>
-                }
+              <DesktopPickerPopover
+                activeTab={activeTab}
+                onTabChange={selectTab}
+                onPickEmoji={insertEmoji}
+                onPickGif={pickGif}
+                onClose={closePicker}
+                className={styles.toolbarRight}
               >
-                {toolbarButtons}
-              </Popover>
+                {pickerButtons}
+              </DesktopPickerPopover>
             )
           }
         >
