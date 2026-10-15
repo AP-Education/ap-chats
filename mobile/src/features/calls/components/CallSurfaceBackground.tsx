@@ -1,4 +1,5 @@
-import { StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { type LayoutRectangle, StyleSheet, View } from 'react-native';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { CALL_PALETTE } from '../callTheme';
@@ -43,30 +44,44 @@ const GLOWS = [
   },
 ] as const;
 
+/**
+ * The ink is the view's own colour, and the glows are drawn at the size the view actually takes:
+ * react-native-svg keeps a percentage size from its first layout, so a surface that grows after
+ * it (a bar taking its safe area) would keep the glows squeezed into its first height.
+ */
 export function CallSurfaceBackground() {
+  const [size, setSize] = useState<LayoutRectangle>();
+
   return (
-    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-      <Defs>
-        {GLOWS.map((glow) => (
-          <RadialGradient
-            key={glow.id}
-            id={glow.id}
-            cx={glow.cx}
-            cy={glow.cy}
-            rx={glow.rx}
-            ry={glow.ry}
-            fx={glow.cx}
-            fy={glow.cy}
-          >
-            <Stop offset="0" stopColor={glow.color} stopOpacity={glow.opacity} />
-            <Stop offset="1" stopColor={glow.color} stopOpacity={0} />
-          </RadialGradient>
-        ))}
-      </Defs>
-      <Rect x={0} y={0} width="100%" height="100%" fill={CALL_PALETTE.ink} />
-      {GLOWS.map((glow) => (
-        <Rect key={glow.id} x={0} y={0} width="100%" height="100%" fill={`url(#${glow.id})`} />
-      ))}
-    </Svg>
+    <View style={styles.surface} onLayout={(event) => setSize(event.nativeEvent.layout)}>
+      {size && (
+        <Svg width={size.width} height={size.height}>
+          <Defs>
+            {GLOWS.map((glow) => (
+              <RadialGradient
+                key={glow.id}
+                id={glow.id}
+                cx={glow.cx}
+                cy={glow.cy}
+                rx={glow.rx}
+                ry={glow.ry}
+                fx={glow.cx}
+                fy={glow.cy}
+              >
+                <Stop offset="0" stopColor={glow.color} stopOpacity={glow.opacity} />
+                <Stop offset="1" stopColor={glow.color} stopOpacity={0} />
+              </RadialGradient>
+            ))}
+          </Defs>
+          {GLOWS.map((glow) => (
+            <Rect key={glow.id} x={0} y={0} width="100%" height="100%" fill={`url(#${glow.id})`} />
+          ))}
+        </Svg>
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  surface: { ...StyleSheet.absoluteFill, backgroundColor: CALL_PALETTE.ink },
+});
