@@ -1,3 +1,4 @@
+import './features/calls/background/call-session';
 import './features/calls/background/ring-ended-task';
 
 import { registerRootComponent } from 'expo';

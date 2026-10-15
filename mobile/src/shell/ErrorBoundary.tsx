@@ -10,7 +10,7 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-/** Scoped to one subtree, not the whole app: a crash in e.g. CallSession
+/** Scoped to one subtree, not the whole app: a crash in e.g. CallSignalSocket
  * shouldn't take WebViewHost down with it. Logs loudly (shows up in the Metro/
  * debug console) instead of failing silently, and degrades to `fallback`
  * (null by default) rather than leaving the rest of the screen blank too. */
