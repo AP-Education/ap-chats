@@ -2,7 +2,6 @@ import { createStyles } from 'antd-style';
 
 import { BubbleRetry } from '@/features/social/messaging/components/Bubble/BubbleRetry';
 
-import type { StarMeFailure } from '../../hooks/useStarMeAnswers';
 import type { AnswerFailure } from '../../types';
 
 const useStyles = createStyles(({ css }) => ({
@@ -21,18 +20,19 @@ const FAILURE_TEXT: Record<AnswerFailure, string> = {
 };
 
 interface StarMeFailureNoteProps {
-  failure: StarMeFailure;
+  failure: AnswerFailure;
+  onRetry: () => void;
 }
 
 /** Why StarMe did not answer the person's question, told to them alone. */
-export function StarMeFailureNote({ failure }: StarMeFailureNoteProps) {
+export function StarMeFailureNote({ failure, onRetry }: StarMeFailureNoteProps) {
   const { styles } = useStyles();
-  const canRetry = failure.failure !== 'forbidden';
+  const canRetry = failure !== 'forbidden';
 
   return (
     <div className={styles.note}>
-      {FAILURE_TEXT[failure.failure]}
-      <BubbleRetry status="Бачите лише ви" onRetry={canRetry ? failure.retry : undefined} />
+      {FAILURE_TEXT[failure]}
+      <BubbleRetry status="Бачите лише ви" onRetry={canRetry ? onRetry : undefined} />
     </div>
   );
 }

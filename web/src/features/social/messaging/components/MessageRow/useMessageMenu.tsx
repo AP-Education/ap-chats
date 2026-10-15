@@ -1,8 +1,7 @@
-import { AiCosmos, AiText } from '@ap-education/ui';
 import type { MenuProps } from 'antd';
 import { createStyles } from 'antd-style';
 
-import type { ActionTarget, ConversationAction } from '@/features/social/conversation/actions';
+import { AssistedActionLabel } from '@/features/social/conversation/components/AssistedActionLabel/AssistedActionLabel';
 
 import { groupMessageActions } from './messageActionGroups';
 import { useMessageActionScope } from './MessageActionScope';
@@ -36,7 +35,11 @@ export function useMessageMenu(): MenuProps {
     for (const action of group) {
       items.push(
         action.accent === 'ai'
-          ? { key: action.id, label: assisted(action, target, styles.sky), style: ASSISTED_ITEM }
+          ? {
+              key: action.id,
+              label: <AssistedActionLabel action={action} target={target} className={styles.sky} />,
+              style: ASSISTED_ITEM,
+            }
           : {
               key: action.id,
               label: action.label(target),
@@ -54,13 +57,4 @@ export function useMessageMenu(): MenuProps {
       if (action) scope.onAction(action, target);
     },
   };
-}
-
-function assisted(action: ConversationAction, target: ActionTarget, className: string) {
-  return (
-    <AiCosmos className={className}>
-      {action.icon}
-      <AiText>{action.label(target)}</AiText>
-    </AiCosmos>
-  );
 }

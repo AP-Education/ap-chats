@@ -1,4 +1,4 @@
-import type { MessageAddonProps } from '@/features/social/conversation/contributions';
+import type { MessageAddonProps } from '@/features/social/conversation/extensions';
 import { useConversationScope } from '@/features/social/conversation/store';
 import { BubbleExcerpt } from '@/features/social/messaging/components/Bubble/BubbleExcerpt';
 import { ReplyExcerpt } from '@/features/social/messaging/components/ReplyExcerpt/ReplyExcerpt';
@@ -12,7 +12,7 @@ export function StarMeQuestionContext({ item, onJump }: MessageAddonProps) {
   const { workspaceId } = useConversationScope();
   const starMe = useStarMe(workspaceId);
   const asksStarMe = Boolean(
-    starMe && item.mentions?.some(({ memberId }) => memberId === starMe.id),
+    starMe && item.mentions?.some(({ memberId }) => memberId === starMe.memberId),
   );
   const { data: picked = [] } = usePickedMessages(item.message.id, asksStarMe);
 

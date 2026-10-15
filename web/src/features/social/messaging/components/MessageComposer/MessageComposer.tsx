@@ -34,12 +34,11 @@ import type {
   PendingAttachmentCommit,
   SendMessageCommand,
 } from '../../types';
-import { AskExcerpt } from '../AskExcerpt/AskExcerpt';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
-import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
 import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
 import { useAttachmentDrop } from './AttachmentDropZone';
 import { ComposerAction } from './ComposerAction';
+import { composerIntent, IntentExcerpt } from './composerIntents';
 import { type GifResult, PickerPanel, type PickerTab } from './picker';
 import { useBrowserKeyboardHeight } from './useBrowserKeyboardHeight';
 import { useComposerDraft } from './useComposerDraft';
@@ -284,10 +283,9 @@ export function MessageComposer({
   // Sending never waits on attachment upload completion (matches Discord/
   // Telegram/Slack/WhatsApp) — only a failed draft doesn't count, since it's
   // left out of the send and stays in the composer for the user to handle.
-  // Asking about picked messages needs no words of its own.
   const canSend =
     hasContent ||
-    intent?.kind === 'ask' ||
+    Boolean(intent && composerIntent(intent.kind).speaksForItself) ||
     uploads.drafts.some((draft) => draft.status !== 'error');
 
   useLayoutEffect(() => {
@@ -314,10 +312,8 @@ export function MessageComposer({
     if (!canSend) return;
     const nonce = randomId();
     const input = {
-      markdown: intent?.kind === 'ask' ? addressedTo(intent.member.memberId, markdown) : markdown,
+      ...(intent ? composerIntent(intent.kind).compose(intent, markdown) : { markdown }),
       clientNonce: nonce,
-      ...(intent?.kind === 'reply' ? { replyToMessageId: intent.messageId } : {}),
-      ...(intent?.kind === 'reply' && intent.quoteText ? { quoteText: intent.quoteText } : {}),
     };
     const drafts = uploads.commit(nonce);
     if (drafts.length) {
@@ -544,30 +540,16 @@ export function MessageComposer({
                     </Button>
                   </div>
                 )}
-                {intent?.kind === 'ask' && (
+                {intent && (
                   <div className={styles.reply}>
-                    <AskExcerpt member={intent.member} count={intent.messageIds.length} />
-                    <IconButton
-                      size={28}
-                      aria-label="Скасувати запит"
-                      onClick={() => setIntent(null)}
-                    >
-                      <XIcon size={16} />
-                    </IconButton>
-                  </div>
-                )}
-                {intent?.kind === 'reply' && (
-                  <div className={styles.reply}>
-                    <ReplyExcerpt
-                      title={
-                        intent.quoteText ? 'Цитата' : `Відповідь для ${replyAuthor ?? 'учасника'}`
-                      }
-                      markdown={replyPreview ?? 'Повідомлення'}
-                      quoteText={intent.quoteText}
+                    <IntentExcerpt
+                      intent={intent}
+                      replyAuthor={replyAuthor}
+                      replyPreview={replyPreview}
                     />
                     <IconButton
                       size={28}
-                      aria-label="Скасувати відповідь"
+                      aria-label={composerIntent(intent.kind).cancelLabel}
                       onClick={() => setIntent(null)}
                     >
                       <XIcon size={16} />
@@ -633,11 +615,4 @@ export function MessageComposer({
       )}
     </div>
   );
-}
-
-/** The message mentions whom it asks, unless the person already did. */
-function addressedTo(memberId: string, markdown: string): string {
-  const mention = `:member[${memberId}]`;
-  if (markdown.includes(mention)) return markdown;
-  return markdown ? `${mention} ${markdown}` : mention;
 }

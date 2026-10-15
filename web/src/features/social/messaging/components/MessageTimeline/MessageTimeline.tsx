@@ -9,6 +9,7 @@ import type {
   ActionTarget,
   ConversationAction,
 } from '@/features/social/conversation/actions';
+import { useConversationExtensions } from '@/features/social/conversation/extensions';
 import { useConversation } from '@/features/social/conversation/store';
 
 import type { DisplayItem, HistoryPage, MessageHistoryItem } from '../../types';
@@ -188,7 +189,7 @@ export function MessageTimeline({
   const isMobile = useIsMobile();
   const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
   const selecting = useConversation((state) => state.selectedIds.length > 0);
-  const setTimelineEnd = useConversation((state) => state.setTimelineEnd);
+  const extensions = useConversationExtensions();
   const gesture = useRef<{ x: number; y: number; dismissed: boolean } | null>(null);
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   const firstUnreadSeq = pages.find((page) => page.firstUnreadSeq !== null)?.firstUnreadSeq ?? null;
@@ -300,7 +301,8 @@ export function MessageTimeline({
             </section>
           ))}
           {/* Only the live end: what happens next has no place after an older stretch. */}
-          {!hasNewer && <div ref={setTimelineEnd} />}
+          {!hasNewer &&
+            extensions.map(({ id, TimelineEnd }) => TimelineEnd && <TimelineEnd key={id} />)}
           {hasNewer && (
             <Button
               className={styles.load}

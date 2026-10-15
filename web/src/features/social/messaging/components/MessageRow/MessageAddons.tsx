@@ -1,14 +1,13 @@
-import { useConversation } from '@/features/social/conversation/store';
+import { useConversationExtensions } from '@/features/social/conversation/extensions';
 
 import { useMessageActionScope } from './MessageActionScope';
 
-/** What the features mounted in the conversation show of their own in this message. */
+/** What the features extending the conversation show of their own in this message. */
 export function MessageAddons({ onJump }: { onJump: (messageId: string) => void }) {
   const { item } = useMessageActionScope();
-  const contributions = useConversation((state) => state.contributions);
+  const extensions = useConversationExtensions();
 
-  return contributions.map(
-    ({ MessageAddon }, index) =>
-      MessageAddon && <MessageAddon key={index} item={item} onJump={onJump} />,
+  return extensions.map(
+    ({ id, MessageAddon }) => MessageAddon && <MessageAddon key={id} item={item} onJump={onJump} />,
   );
 }

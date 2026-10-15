@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import type { MemberSummary } from '@/features/workspaces/types';
+
 import type { MessageHistoryItem } from '../messaging/types';
 
 export type ActionTarget =
@@ -22,6 +24,8 @@ export interface ActionCommands {
   copy: (items: MessageHistoryItem[], selectedText?: string) => void;
   forward: (items: MessageHistoryItem[]) => void;
   pin: (item: MessageHistoryItem, active: boolean) => void;
+  /** Asks a member, such as an assistant, about the messages: the composer addresses them. */
+  ask: (member: MemberSummary, items: MessageHistoryItem[]) => void;
 }
 
 /** How an action stands out: a destructive one warns, an assistant's leads on its own sky. */

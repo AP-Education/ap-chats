@@ -92,7 +92,7 @@ interface Landing {
 }
 
 function expectLanding(): Landing {
-  let land!: (message: Message) => void;
+  let land: (message: Message) => void = () => {};
   const landed = new Promise<Message>((resolve) => {
     land = resolve;
   });

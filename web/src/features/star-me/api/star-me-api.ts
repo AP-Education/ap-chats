@@ -1,19 +1,28 @@
 import { apiRequest, jsonInit } from '@/shared/api/http';
 
-import type { AnswerRequest, PickedMessage } from '../types';
+import type { AnswerRequest, PickedMessage, QuestionStatus } from '../types';
 
-/** Asks StarMe to answer a posted question; resolves once it has, which can take a while. */
+/** Asks StarMe to answer a posted question; how it goes arrives as StarMe's status. */
 export function answerQuestion(
   token: string,
   workspaceId: string,
   channelId: string,
   request: AnswerRequest,
-): Promise<{ answerId: string }> {
+): Promise<void> {
   return apiRequest(
     `/api/workspaces/${workspaceId}/channels/${channelId}/star-me/answers`,
     token,
     jsonInit('POST', request),
   );
+}
+
+/** The questions StarMe is answering in the channel, or could not answer. */
+export function questionStatuses(
+  token: string,
+  workspaceId: string,
+  channelId: string,
+): Promise<{ questions: QuestionStatus[] }> {
+  return apiRequest(`/api/workspaces/${workspaceId}/channels/${channelId}/star-me/status`, token);
 }
 
 /** The messages a question was asked about; none when it was asked about the latest ones. */

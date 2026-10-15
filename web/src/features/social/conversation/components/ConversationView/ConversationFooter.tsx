@@ -10,8 +10,8 @@ import type {
 } from '@/features/social/messaging/types';
 import { isMessageItem } from '@/features/social/messaging/types';
 
-import type { ComposedMessage } from '../../contributions';
-import { useConversation } from '../../store';
+import { useConversationExtensions } from '../../extensions';
+import { useConversation, useConversationScope } from '../../store';
 
 interface ConversationFooterProps {
   canPost: boolean;
@@ -35,8 +35,9 @@ function WritableConversationFooter({
   items,
   send,
 }: Pick<ConversationFooterProps, 'items' | 'send'>) {
+  const { channelId } = useConversationScope();
   const intent = useConversation((state) => state.intent);
-  const contributions = useConversation((state) => state.contributions);
+  const extensions = useConversationExtensions();
   const replyTarget =
     intent?.kind === 'reply'
       ? items.filter(isMessageItem).find((item) => item.message.id === intent.messageId)
@@ -46,13 +47,14 @@ function WritableConversationFooter({
     input: Omit<SendMessageCommand, 'attachments'>,
     pending?: PendingAttachmentCommit,
   ) {
-    const landed = send(input, pending);
-    const composed: ComposedMessage = {
+    const sent = {
+      channelId,
       input,
+      landed: send(input, pending),
       ...(intent?.kind === 'ask' ? { picked: intent.messageIds } : {}),
       ...(replyTarget ? { replyToAuthorId: replyTarget.author.memberId } : {}),
     };
-    contributions.forEach((contribution) => contribution.sent?.(composed, landed));
+    extensions.forEach((extension) => extension.sent?.(sent));
   }
 
   return (

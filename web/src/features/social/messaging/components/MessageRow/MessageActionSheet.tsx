@@ -1,7 +1,7 @@
-import { AiCosmos, AiText } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 
 import type { ActionTarget, ConversationAction } from '@/features/social/conversation/actions';
+import { AssistedActionLabel } from '@/features/social/conversation/components/AssistedActionLabel/AssistedActionLabel';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -78,10 +78,7 @@ export function MessageActionSheet({
               }}
             >
               {action.accent === 'ai' ? (
-                <AiCosmos className={styles.sky}>
-                  {action.icon}
-                  <AiText>{action.label(target)}</AiText>
-                </AiCosmos>
+                <AssistedActionLabel action={action} target={target} className={styles.sky} />
               ) : (
                 <>
                   {action.icon}

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { skipToken, useQuery } from '@tanstack/react-query';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation/store';
@@ -16,9 +16,11 @@ export function usePickedMessages(questionId: string, enabled: boolean) {
 
   return useQuery({
     queryKey: starMeQueryKeys.picked(identity, workspaceId, channelId, questionId),
-    queryFn: () => pickedMessages(token as string, workspaceId, channelId, questionId),
+    queryFn:
+      enabled && token
+        ? () => pickedMessages(token, workspaceId, channelId, questionId)
+        : skipToken,
     select: (picked) => picked.messages,
-    enabled: enabled && Boolean(token),
     staleTime: Infinity,
   });
 }

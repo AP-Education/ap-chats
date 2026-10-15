@@ -11,6 +11,7 @@ import { pinActions } from '@/features/social/pins/actions';
 import { usePinActions } from '@/features/social/pins/hooks/usePins';
 
 import type { ActionCommands, ActionTarget, ConversationAction } from '../../actions';
+import { useConversationExtensions } from '../../extensions';
 import { useConversation, useConversationScope } from '../../store';
 
 const builtInActions = [...messagingActions, ...forwardingActions, ...pinActions];
@@ -48,14 +49,10 @@ export function useConversationActions({
     () => ({ memberId, canManage, canPin, canPost }),
     [memberId, canManage, canPin, canPost],
   );
-  const contributions = useConversation((state) => state.contributions);
-  // Features mounted in the conversation offer their own actions after the built-in ones.
+  const extensions = useConversationExtensions();
   const actions = useMemo(
-    () => [
-      ...builtInActions,
-      ...contributions.flatMap((contribution) => contribution.actions ?? []),
-    ],
-    [contributions],
+    () => [...builtInActions, ...extensions.flatMap((extension) => extension.actions ?? [])],
+    [extensions],
   );
 
   const commands: ActionCommands = {
@@ -103,6 +100,10 @@ export function useConversationActions({
       void pins
         .update(item.message.id, active)
         .catch(() => toast.error('Не вдалося змінити закріплення.'));
+    },
+    ask: (member, targetItems) => {
+      setIntent({ kind: 'ask', member, messageIds: targetItems.map((item) => item.message.id) });
+      clearSelection();
     },
   };
   const commandsRef = useRef(commands);

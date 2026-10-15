@@ -22,15 +22,25 @@ export interface PickedMessage {
   markdown: string;
 }
 
-export interface StarMeStatusEvent {
-  type: typeof STAR_ME_STATUS_EVENT;
+/** A question for StarMe to answer, in the channel it was posted in. */
+export interface AskRequest extends AnswerRequest {
+  channelId: string;
+}
+
+interface QuestionRef {
   workspaceId: string;
   channelId: string;
   questionId: string;
   askedByMemberId: string;
-  state: 'thinking' | 'answered' | 'failed';
-  failure: AnswerFailure | null;
 }
+
+/** Where StarMe is with a question; a failed one always says why. */
+export type QuestionStatus = QuestionRef &
+  ({ state: 'thinking' | 'answered'; failure: null } | { state: 'failed'; failure: AnswerFailure });
+
+export type FailedQuestion = Extract<QuestionStatus, { state: 'failed' }>;
+
+export type StarMeStatusEvent = QuestionStatus & { type: typeof STAR_ME_STATUS_EVENT };
 
 // StarMe's status rides the channel broadcast every channel feature shares.
 export type StarMeServerToClientEvents = {

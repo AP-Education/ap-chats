@@ -1,7 +1,8 @@
-import { AiCosmos, AiText, IconButton, useIsMobile } from '@ap-education/ui';
+import { IconButton, useIsMobile } from '@ap-education/ui';
 import { XIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 
+import { AssistedActionLabel } from '../AssistedActionLabel/AssistedActionLabel';
 import type { useConversationActions } from './useConversationActions';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -106,10 +107,7 @@ export function ConversationSelectionBar({ interaction }: ConversationSelectionB
                 className={styles.assisted}
                 onClick={() => onAction(action, target)}
               >
-                <AiCosmos className={styles.sky}>
-                  {action.icon}
-                  <AiText>{action.label(target)}</AiText>
-                </AiCosmos>
+                <AssistedActionLabel action={action} target={target} className={styles.sky} />
               </button>
             ) : (
               <IconButton
