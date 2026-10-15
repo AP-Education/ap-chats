@@ -3,8 +3,6 @@ import { createHash } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
-  HttpException,
-  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -14,6 +12,7 @@ import { ChannelMembershipsService } from '@/components/communities/memberships'
 import { MessagesFacade } from '@/components/social/messages';
 import { WorkspaceMembersRepository } from '@/components/workspaces/members/repository';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
+import { Logger } from '@/globals/logger';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
 
 import { Assistant, AssistantFailure, type AssistantTurn } from './assistant';
@@ -22,6 +21,7 @@ import type { AnswerQuestionDto } from './dto/answer-question.dto';
 import { STAR_ME_STATUS_EVENT, StarMeStatusEvent } from './events/star-me-status.event';
 import { StarMeRepository } from './repository';
 import { STAR_ME } from './star-me.identity';
+import { StarMeActivity } from './star-me-activity';
 import type {
   AnswerFailure,
   ConversationMessage,
@@ -35,13 +35,6 @@ const RECENT_MESSAGES = 20;
 // A model can ramble far past a chat message, which holds 32 KB.
 const MAX_ANSWER_CHARACTERS = 12_000;
 
-const FAILURE_STATUS: Record<AnswerFailure, HttpStatus> = {
-  limited: HttpStatus.TOO_MANY_REQUESTS,
-  forbidden: HttpStatus.FORBIDDEN,
-  unavailable: HttpStatus.SERVICE_UNAVAILABLE,
-  failed: HttpStatus.BAD_GATEWAY,
-};
-
 @Injectable()
 export class StarMeService {
   constructor(
@@ -51,20 +44,24 @@ export class StarMeService {
     private readonly messages: MessagesFacade,
     private readonly repository: StarMeRepository,
     private readonly assistant: Assistant,
+    private readonly activity: StarMeActivity,
     private readonly events: EventPublisher,
+    private readonly logger: Logger,
   ) {}
 
   /**
-   * Answers the person's posted question as a reply in the same channel. The assistant runs
-   * with the asker's own token, which is why the asker requests the answer. Asking again
-   * returns the answer already given instead of another one.
+   * Starts answering the person's posted question as a reply in the same channel and returns at
+   * once; how it goes reaches the channel as StarMe's status. The assistant runs with the asker's
+   * own token, which is why the asker requests the answer. A question answered or being answered
+   * is not run again.
    */
   async answer(
     asker: WorkspaceMember,
     channelId: string,
     dto: AnswerQuestionDto,
     accessToken: string,
-  ): Promise<{ answerId: string }> {
+  ): Promise<void> {
+    await this.access.requirePostAccess(asker, channelId);
     const starMe = await this.requireStarMe(asker.workspaceId);
     const question = await this.requireQuestion(asker, channelId, dto.questionId, starMe);
     if (dto.contextMessageIds?.length) {
@@ -73,26 +70,19 @@ export class StarMeService {
 
     const clientNonce = answerNonce(question.id);
     const answered = await this.repository.answerId(channelId, starMe.id, clientNonce);
-    if (answered) return { answerId: answered };
-
-    const conversation = await this.conversation(question);
-    const turns = await this.turns(conversation, starMe);
+    if (answered || this.activity.isThinking(question.id)) return;
 
     this.announce(question, asker, 'thinking');
-    try {
-      const reply = await this.assistant.reply(turns, accessToken);
-      const answerId = await this.reply(asker, starMe, question, reply, clientNonce);
+    void this.respond(asker, starMe, question, clientNonce, accessToken);
+  }
 
-      this.announce(question, asker, 'answered');
-      return { answerId };
-    } catch (error) {
-      const failure = error instanceof AssistantFailure ? error.reason : 'failed';
-      this.announce(question, asker, 'failed', failure);
-      if (error instanceof AssistantFailure) {
-        throw new HttpException({ error: failure }, FAILURE_STATUS[failure]);
-      }
-      throw error;
-    }
+  /** What StarMe is doing in the channel, for anyone who can read it. */
+  async status(
+    reader: WorkspaceMember,
+    channelId: string,
+  ): Promise<{ questions: StarMeStatusEvent[] }> {
+    await this.access.requireViewAccess(reader, channelId);
+    return { questions: this.activity.inChannel(channelId) };
   }
 
   /** The messages a question was asked about, for anyone who can read its channel. */
@@ -157,6 +147,31 @@ export class StarMeService {
     return turns.filter((turn) => turn.text);
   }
 
+  private async respond(
+    asker: WorkspaceMember,
+    starMe: WorkspaceMember,
+    question: Question,
+    clientNonce: string,
+    accessToken: string,
+  ): Promise<void> {
+    try {
+      const conversation = await this.conversation(question);
+      const turns = await this.turns(conversation, starMe);
+      const reply = await this.assistant.reply(turns, accessToken);
+      await this.reply(asker, starMe, question, reply, clientNonce);
+
+      this.announce(question, asker, 'answered');
+    } catch (error) {
+      if (error instanceof AssistantFailure) {
+        this.announce(question, asker, 'failed', error.reason);
+        return;
+      }
+
+      this.logger.error({ err: error, questionId: question.id }, '[star-me] answer failed');
+      this.announce(question, asker, 'failed', 'failed');
+    }
+  }
+
   private async reply(
     asker: WorkspaceMember,
     starMe: WorkspaceMember,
@@ -190,23 +205,23 @@ export class StarMeService {
     state: StarMeState,
     failure: AnswerFailure | null = null,
   ): void {
-    this.events.publish(
-      STAR_ME_STATUS_EVENT,
-      new StarMeStatusEvent(
-        question.workspaceId,
-        question.channelId,
-        question.id,
-        asker.id,
-        state,
-        failure,
-      ),
+    const status = new StarMeStatusEvent(
+      question.workspaceId,
+      question.channelId,
+      question.id,
+      asker.id,
+      state,
+      failure,
     );
+
+    this.activity.record(status);
+    this.events.publish(STAR_ME_STATUS_EVENT, status);
   }
 }
 
 /** One answer per question: its nonce is derived from the question, so a retry finds it. */
 export function answerNonce(questionId: string): string {
   const hex = createHash('sha256').update(`star-me:${questionId}`).digest('hex');
-  const variant = ((parseInt(hex[16]!, 16) & 0x3) | 0x8).toString(16);
+  const variant = ((parseInt(hex.slice(16, 17), 16) & 0x3) | 0x8).toString(16);
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }

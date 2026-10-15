@@ -13,6 +13,7 @@ import { DrizzleStarMeRepository, StarMeRepository } from './repository';
 import { StarMeController } from './star-me.controller';
 import { StarMeGateway } from './star-me.gateway';
 import { StarMeService } from './star-me.service';
+import { StarMeActivity } from './star-me-activity';
 import { StarMeEnrolment } from './star-me-enrolment';
 
 @Module({
@@ -28,6 +29,7 @@ import { StarMeEnrolment } from './star-me-enrolment';
   controllers: [StarMeController],
   providers: [
     StarMeService,
+    StarMeActivity,
     StarMeEnrolment,
     StarMeGateway,
     { provide: Assistant, useClass: AiNativeAssistant },

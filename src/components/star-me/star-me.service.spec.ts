@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
 
-import { BadRequestException, HttpException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 
 import type { MemberSummary, WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { Assistant, AssistantFailure, type AssistantTurn } from './assistant';
-import type { StarMeStatusEvent } from './events/star-me-status.event';
+import { StarMeStatusEvent } from './events/star-me-status.event';
 import { StarMeRepository } from './repository';
 import { STAR_ME } from './star-me.identity';
 import { answerNonce, StarMeService } from './star-me.service';
+import { StarMeActivity } from './star-me-activity';
 import type { ConversationMessage, Question } from './types';
 
 const ids = {
@@ -60,9 +61,11 @@ class FakeRepository extends StarMeRepository {
 class FakeAssistant extends Assistant {
   turns: AssistantTurn[] = [];
   failure: AssistantFailure | undefined;
+  hold: Promise<void> = Promise.resolve();
 
   async reply(turns: AssistantTurn[]) {
     this.turns = turns;
+    await this.hold;
     if (this.failure) throw this.failure;
     return 'Підсумок: Влад дивиться PR до пʼятниці.';
   }
@@ -78,6 +81,7 @@ interface Sent {
 let repository: FakeRepository;
 let assistant: FakeAssistant;
 let statuses: StarMeStatusEvent[];
+let finished: Promise<void>;
 let joined: string[];
 let answers: Sent[];
 let starMeService: StarMeService;
@@ -88,12 +92,14 @@ beforeEach(() => {
   statuses = [];
   joined = [];
   answers = [];
+  let resolve = () => {};
+  finished = new Promise((settle) => (resolve = settle));
   starMeService = new StarMeService(
     {
       findForUser: async (_: string, subject: string) =>
         subject === STAR_ME.subject ? starMe : undefined,
     } as never,
-    { requireViewAccess: async () => ({}) } as never,
+    { requirePostAccess: async () => ({}), requireViewAccess: async () => ({}) } as never,
     {
       add: async (_asker: WorkspaceMember, channelId: string, memberId: string) =>
         joined.push(`${channelId}:${memberId}`),
@@ -106,11 +112,15 @@ beforeEach(() => {
     } as never,
     repository,
     assistant,
+    new StarMeActivity(),
     {
       publish: (_key: string, event: unknown) => {
-        statuses.push(event as StarMeStatusEvent);
+        if (!(event instanceof StarMeStatusEvent)) return;
+        statuses.push(event);
+        if (event.state !== 'thinking') resolve();
       },
     },
+    { error: () => {} } as never,
   );
 });
 
@@ -130,9 +140,9 @@ test('a mention is answered in its channel from the latest messages', async () =
     ]),
   ];
 
-  const result = await ask();
+  await ask();
+  await finished;
 
-  assert.deepEqual(result, { answerId: 'answer-1' });
   assert.deepEqual(
     assistant.turns.map(({ role, author, text }) => ({ role, author, text })),
     [
@@ -157,6 +167,7 @@ test('StarMe reads its own earlier answers as its own turns', async () => {
   ];
 
   await ask();
+  await finished;
 
   assert.deepEqual(
     assistant.turns.map(({ role }) => role),
@@ -172,6 +183,7 @@ test('picked messages are read instead of the latest ones', async () => {
   ];
 
   await ask([ids.picked]);
+  await finished;
 
   assert.deepEqual(repository.pickedIds, [ids.picked]);
   assert.deepEqual(repository.read, [`selected:${ids.question}`]);
@@ -188,6 +200,7 @@ test('a reply to StarMe follows up without mentioning it', async () => {
   ];
 
   await ask();
+  await finished;
 
   assert.equal(answers.length, 1);
 });
@@ -200,25 +213,48 @@ test('a message that does not ask StarMe gets no answer', async () => {
   assert.deepEqual(statuses, []);
 });
 
-test('asking again after an answer returns it without running again', async () => {
+test('asking again after an answer does not run again', async () => {
   repository.question$ = question({ mentionsStarMe: true });
   repository.answered = 'answer-0';
 
-  const result = await ask();
+  await ask();
 
-  assert.deepEqual(result, { answerId: 'answer-0' });
   assert.deepEqual(assistant.turns, []);
+  assert.deepEqual(statuses, []);
 });
 
-test('a refused run tells the channel and the asker why', async () => {
+test('a question being answered is not run twice, and shows as thinking until answered', async () => {
+  repository.question$ = question({ mentionsStarMe: true });
+  repository.recentMessages = [message(ids.question, 1n, person(ids.vlad, 'Влад'), 'підсумуй')];
+  let release = () => {};
+  assistant.hold = new Promise((settle) => (release = settle));
+
+  await ask();
+  await ask();
+  const { questions: whileThinking } = await starMeService.status(vlad, ids.channel);
+  release();
+  await finished;
+  const { questions: afterAnswer } = await starMeService.status(vlad, ids.channel);
+
+  assert.deepEqual(
+    statuses.map(({ state }) => state),
+    ['thinking', 'answered'],
+  );
+  assert.deepEqual(
+    whileThinking.map(({ questionId, state }) => ({ questionId, state })),
+    [{ questionId: ids.question, state: 'thinking' }],
+  );
+  assert.deepEqual(afterAnswer, []);
+});
+
+test('a refused run tells the channel and the asker why, also to whoever looks later', async () => {
   repository.question$ = question({ mentionsStarMe: true });
   repository.recentMessages = [message(ids.question, 1n, person(ids.vlad, 'Влад'), 'підсумуй')];
   assistant.failure = new AssistantFailure('limited');
 
-  await assert.rejects(
-    ask(),
-    (error: unknown) => error instanceof HttpException && error.getStatus() === 429,
-  );
+  await ask();
+  await finished;
+
   assert.deepEqual(
     statuses.map(({ state, failure, askedByMemberId }) => ({ state, failure, askedByMemberId })),
     [
@@ -227,6 +263,12 @@ test('a refused run tells the channel and the asker why', async () => {
     ],
   );
   assert.deepEqual(answers, []);
+
+  const { questions } = await starMeService.status(vlad, ids.channel);
+  assert.deepEqual(
+    questions.map(({ state, failure }) => ({ state, failure })),
+    [{ state: 'failed', failure: 'limited' }],
+  );
 });
 
 function question(how: Partial<Pick<Question, 'mentionsStarMe' | 'repliesToStarMe'>>): Question {

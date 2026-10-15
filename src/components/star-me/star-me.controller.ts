@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from '@nestjs/common';
 
 import { AccessToken, UseAuthGuards } from '@/components/auth';
 import { CurrentWorkspaceMember } from '@/components/workspaces/members/decorators';
@@ -14,6 +23,7 @@ export class StarMeController {
   constructor(private readonly starMe: StarMeService) {}
 
   @Post('answers')
+  @HttpCode(HttpStatus.NO_CONTENT)
   answer(
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
@@ -21,6 +31,14 @@ export class StarMeController {
     @AccessToken() accessToken: string,
   ) {
     return this.starMe.answer(member, channelId, dto, accessToken);
+  }
+
+  @Get('status')
+  status(
+    @CurrentWorkspaceMember() member: WorkspaceMember,
+    @Param('channelId', ParseUUIDPipe) channelId: string,
+  ) {
+    return this.starMe.status(member, channelId);
   }
 
   @Get('questions/:questionId/picked')
