@@ -1,5 +1,8 @@
 import { createStyles } from 'antd-style';
 
+import { mediaKey } from '@/features/social/media-viewer/media-list';
+import { useMediaViewer } from '@/features/social/media-viewer/stores/media-viewer-context';
+
 import type { Attachment } from '../../attachments/types';
 import type { Album, Tile } from '../../media/album-layout';
 import { ImageStatus } from './ImageStatus';
@@ -35,21 +38,15 @@ interface AlbumTileProps {
   available: boolean;
   album: Album;
   tile: Tile;
-  onOpen: () => void;
 }
 
 const percent = (part: number, whole: number) => `${(part / whole) * 100}%`;
 
 /** One photo of an album, placed by the album's layout in shares of its box. */
-export function AlbumTile({
-  attachment,
-  messageId,
-  available,
-  album,
-  tile,
-  onOpen,
-}: AlbumTileProps) {
+export function AlbumTile({ attachment, messageId, available, album, tile }: AlbumTileProps) {
   const { styles } = useStyles();
+  const viewer = useMediaViewer();
+  const key = mediaKey(messageId, attachment.id);
   const { observeElement, src, broken, markBroken, retry } = useAttachmentImage(
     messageId,
     attachment.id,
@@ -71,7 +68,8 @@ export function AlbumTile({
       disabled={!available}
       aria-label={`${broken ? 'Повторити перегляд' : 'Переглянути'} ${attachment.name}`}
       title={label}
-      onClick={broken ? retry : onOpen}
+      onClick={broken ? retry : () => viewer.open(key)}
+      data-media-key={key}
     >
       {src ? (
         <img

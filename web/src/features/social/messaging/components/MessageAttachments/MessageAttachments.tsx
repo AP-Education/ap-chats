@@ -1,8 +1,7 @@
-import { type ReactNode, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import type { Attachment } from '../../attachments/types';
 import { AttachmentAlbum } from './AttachmentAlbum';
-import { AttachmentViewer } from './AttachmentViewer';
 import { FileAttachment } from './FileAttachment';
 import { ImageAttachment } from './ImageAttachment';
 
@@ -18,10 +17,8 @@ export function MessageAttachments({
   /** The time, when the photos close the bubble. */
   overlay?: ReactNode;
 }) {
-  const [selected, setSelected] = useState<number | null>(null);
   const images = attachments.filter((file) => file.preview === 'image');
   const files = attachments.filter((file) => file.preview !== 'image');
-  const current = selected === null ? undefined : images[selected];
   if (!attachments.length) return null;
   return (
     <>
@@ -31,7 +28,6 @@ export function MessageAttachments({
           messageId={messageId}
           available={available}
           overlay={overlay}
-          onOpen={() => setSelected(0)}
         />
       )}
       {images.length > 1 && (
@@ -40,7 +36,6 @@ export function MessageAttachments({
           messageId={messageId}
           available={available}
           overlay={overlay}
-          onOpen={setSelected}
         />
       )}
       {files.map((file) => (
@@ -51,18 +46,6 @@ export function MessageAttachments({
           available={available}
         />
       ))}
-      {current && (
-        <AttachmentViewer
-          key={current.id}
-          attachment={current}
-          messageId={messageId}
-          position={selected!}
-          total={images.length}
-          onPrevious={() => setSelected((index) => Math.max(0, index! - 1))}
-          onNext={() => setSelected((index) => Math.min(images.length - 1, index! + 1))}
-          onClose={() => setSelected(null)}
-        />
-      )}
     </>
   );
 }

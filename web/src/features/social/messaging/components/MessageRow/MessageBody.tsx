@@ -58,7 +58,11 @@ export function MessageBody({ layout, contentRef, minHeight, onCloseEdit }: Mess
           meta={textMeta}
         />
       )}
-      <MessageBlocks blocks={blocks} overlay={blocksClose && mediaMeta} />
+      <MessageBlocks
+        blocks={blocks}
+        messageId={item.message.id}
+        overlay={blocksClose && mediaMeta}
+      />
       {layout.meta === 'block' && <MessageMeta placement="block" />}
       {layout.reactions && (
         <MessageReactions

@@ -10,12 +10,6 @@ const useStyles = createStyles(({ token, css }) => ({
     margin-top: 6px;
     overflow: hidden;
     border-radius: ${token.borderRadiusLG}px;
-    video {
-      display: block;
-      width: 100%;
-      max-height: 360px;
-      background: #000;
-    }
     audio {
       display: block;
       width: 100%;
@@ -37,11 +31,6 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-const VIDEO_PLACEHOLDER = {
-  root: { width: '100%' },
-  content: { width: '100%', height: 'auto', aspectRatio: '16 / 9' },
-};
-
 const AUDIO_PLACEHOLDER = {
   root: { width: '100%' },
   content: { width: '100%', height: 40 },
@@ -52,17 +41,16 @@ interface AttachmentPlayerProps {
   messageId: string;
 }
 
-/** Plays a video or audio attachment inline, fetching its address once asked to play. */
+/** Plays an audio attachment inline, fetching its address once asked to play. */
 export function AttachmentPlayer({ attachment, messageId }: AttachmentPlayerProps) {
   const { styles } = useStyles();
   const [mediaFailed, setMediaFailed] = useState(false);
   const access = useAttachmentUrl(messageId, attachment.id, 'preview', true);
-  const video = attachment.preview === 'video';
 
   if (access.isPending) {
     return (
       <div className={styles.player} aria-label="Завантажуємо відтворення" role="status">
-        <Skeleton.Node active styles={video ? VIDEO_PLACEHOLDER : AUDIO_PLACEHOLDER} />
+        <Skeleton.Node active styles={AUDIO_PLACEHOLDER} />
       </div>
     );
   }
@@ -81,21 +69,6 @@ export function AttachmentPlayer({ attachment, messageId }: AttachmentPlayerProp
         >
           Повторити
         </button>
-      </div>
-    );
-  }
-
-  if (video) {
-    return (
-      <div className={styles.player}>
-        <video
-          src={access.data.url}
-          controls
-          playsInline
-          preload="none"
-          aria-label={attachment.name}
-          onError={() => setMediaFailed(true)}
-        />
       </div>
     );
   }

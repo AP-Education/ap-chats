@@ -21,17 +21,10 @@ interface AttachmentAlbumProps {
   available: boolean;
   /** The time, when the album closes the bubble. */
   overlay?: ReactNode;
-  onOpen: (index: number) => void;
 }
 
 /** Several photos as one album, each at close to its own proportions, as Telegram groups them. */
-export function AttachmentAlbum({
-  images,
-  messageId,
-  available,
-  overlay,
-  onOpen,
-}: AttachmentAlbumProps) {
+export function AttachmentAlbum({ images, messageId, available, overlay }: AttachmentAlbumProps) {
   const { styles } = useStyles();
   const album = albumLayout(images.map(attachmentSize));
 
@@ -49,7 +42,6 @@ export function AttachmentAlbum({
           available={available}
           album={album}
           tile={album.tiles[index]!}
-          onOpen={() => onOpen(index)}
         />
       ))}
       {overlay}

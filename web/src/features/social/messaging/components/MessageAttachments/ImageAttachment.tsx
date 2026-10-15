@@ -1,6 +1,9 @@
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
+import { mediaKey } from '@/features/social/media-viewer/media-list';
+import { useMediaViewer } from '@/features/social/media-viewer/stores/media-viewer-context';
+
 import type { Attachment } from '../../attachments/types';
 import { MediaFrame } from '../MediaFrame/MediaFrame';
 import { attachmentSize } from './attachment-size';
@@ -45,7 +48,6 @@ interface ImageAttachmentProps {
   available: boolean;
   /** The time, when the photo closes the bubble. */
   overlay?: ReactNode;
-  onOpen: () => void;
 }
 
 /** A message's only photo, framed as wide as its bubble. */
@@ -54,9 +56,10 @@ export function ImageAttachment({
   messageId,
   available,
   overlay,
-  onOpen,
 }: ImageAttachmentProps) {
   const { styles } = useStyles();
+  const viewer = useMediaViewer();
+  const key = mediaKey(messageId, attachment.id);
   const { observeElement, src, broken, markBroken, retry } = useAttachmentImage(
     messageId,
     attachment.id,
@@ -74,6 +77,7 @@ export function ImageAttachment({
       referrerPolicy="no-referrer"
       onImageError={markBroken}
       data-attachment-media
+      data-media-key={key}
     >
       {!src && <ImageStatus broken={broken} />}
       <button
@@ -82,7 +86,7 @@ export function ImageAttachment({
         disabled={!available}
         aria-label={`${broken ? 'Повторити перегляд' : 'Переглянути'} ${attachment.name}`}
         title={label}
-        onClick={broken ? retry : onOpen}
+        onClick={broken ? retry : () => viewer.open(key)}
       />
       {attachment.description && <span className={styles.alt}>ALT</span>}
       {overlay}

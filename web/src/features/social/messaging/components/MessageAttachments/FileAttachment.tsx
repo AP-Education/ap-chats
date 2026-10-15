@@ -9,6 +9,9 @@ import {
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
+import { mediaKey } from '@/features/social/media-viewer/media-list';
+import { useMediaViewer } from '@/features/social/media-viewer/stores/media-viewer-context';
+
 import { fileExtension, formatFileSize } from '../../attachments/file-presentation';
 import type { Attachment } from '../../attachments/types';
 import { AttachmentPlayer } from './AttachmentPlayer';
@@ -88,12 +91,17 @@ export function FileAttachment({
   available: boolean;
 }) {
   const { styles } = useStyles();
+  const viewer = useMediaViewer();
   const [playing, setPlaying] = useState(false);
   const download = useAttachmentDownload(messageId, attachment);
-  const playable = attachment.preview === 'video' || attachment.preview === 'audio';
+  const video = attachment.preview === 'video';
+  const playable = video || attachment.preview === 'audio';
+  // A video plays in the viewer, among the conversation's other media; audio plays in place.
+  const play = video
+    ? () => viewer.open(mediaKey(messageId, attachment.id))
+    : () => setPlaying(true);
   let icon = <FileIcon size={22} weight="fill" aria-hidden />;
-  if (attachment.preview === 'video')
-    icon = <VideoCameraIcon size={22} weight="fill" aria-hidden />;
+  if (video) icon = <VideoCameraIcon size={22} weight="fill" aria-hidden />;
   if (attachment.preview === 'audio') icon = <MusicNotesIcon size={22} weight="fill" aria-hidden />;
 
   return (
@@ -121,7 +129,7 @@ export function FileAttachment({
               className={styles.action}
               aria-label={`Відтворити ${attachment.name}`}
               disabled={!available}
-              onClick={() => setPlaying(true)}
+              onClick={play}
             >
               <PlayIcon size={20} />
             </IconButton>
