@@ -1,6 +1,6 @@
 import { Room } from 'livekit-client';
 
-import type { loadCallKitModule } from './callkit-module';
+import type { CallKitApi } from './callkit-module';
 
 export async function connectRoom(url: string, token: string, signal: AbortSignal): Promise<Room> {
   if (signal.aborted) throw new Error('Call ended before connecting');
@@ -23,10 +23,7 @@ export async function connectRoom(url: string, token: string, signal: AbortSigna
  * enabling the mic before this resolves can silently fail to capture anything.
  * Takes the already-loaded module rather than importing it statically — see
  * callkit-module.ts for why. */
-export function waitForAudioSessionActive(
-  CallKit: NonNullable<Awaited<ReturnType<typeof loadCallKitModule>>>,
-  signal: AbortSignal,
-): Promise<void> {
+export function waitForAudioSessionActive(CallKit: CallKitApi, signal: AbortSignal): Promise<void> {
   if (signal.aborted) return Promise.reject(new Error('Call ended before audio activation'));
   if (CallKit.getAudioSession().isActive) return Promise.resolve();
   return new Promise((resolve, reject) => {

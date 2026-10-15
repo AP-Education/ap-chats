@@ -17,20 +17,24 @@ function deferred() {
 function fixture() {
   let accessToken: string | undefined = 'old-session';
   let registered = true;
-  const requests: { method: string; accessToken: string }[] = [];
+  const requests: { method: string; session?: string }[] = [];
   const payloads: unknown[] = [];
   let voipToken: string | undefined;
-  const persistence = { getInstallationId: async () => 'installation' };
+  const persistence = {
+    getInstallationId: async () => 'installation',
+    getDeviceReleaseKey: async () => 'release-key',
+  };
   const push = { getExpoPushToken: async (): Promise<string | undefined> => 'push-token' };
   const api = {
-    registerDevice: async (accessToken: string, payload?: unknown) => {
+    // The session at the moment of the request: what authorizedFetch would send.
+    registerDevice: async (payload?: unknown) => {
       payloads.push(payload);
-      requests.push({ method: 'POST', accessToken });
+      requests.push({ method: 'POST', session: accessToken });
       registered = true;
     },
-    unregisterDevice: async (accessToken: string, payload?: unknown) => {
-      payloads.push(payload);
-      requests.push({ method: 'DELETE', accessToken });
+    releaseDevice: async (_installationId: string, releaseKey: string) => {
+      assert.equal(releaseKey, 'release-key');
+      requests.push({ method: 'RELEASE' });
       registered = false;
     },
     DevicesApiError: class extends Error {},
@@ -39,9 +43,7 @@ function fixture() {
     '../../auth': {
       useAuthStore: {
         getState: () =>
-          accessToken
-            ? { status: 'signed-in', tokens: { accessToken }, refreshNow: async () => {} }
-            : { status: 'signed-out' },
+          accessToken ? { status: 'signed-in', tokens: { accessToken } } : { status: 'signed-out' },
       },
     },
     './devices-api': api,
@@ -72,12 +74,15 @@ function fixture() {
     return exports as T;
   }
   dependencies['../utils/device-registration-queue'] = load('utils/device-registration-queue.ts');
-  const { registerCurrentDeviceForPush: register } = load<{
+  const registering = load<{
     registerCurrentDeviceForPush: () => Promise<void>;
+    forgetCurrentDeviceRegistration: () => void;
   }>('api/register-current-device.ts');
-  const { unregisterCurrentDevice: unregister } = load<{
-    unregisterCurrentDevice: (accessToken: string) => Promise<void>;
-  }>('api/unregister-current-device.ts');
+  dependencies['./register-current-device'] = registering;
+  const register = registering.registerCurrentDeviceForPush;
+  const { releaseCurrentDevice: release } = load<{
+    releaseCurrentDevice: () => Promise<void>;
+  }>('api/release-current-device.ts');
 
   return {
     api,
@@ -89,7 +94,7 @@ function fixture() {
     push,
     requests,
     register,
-    unregister,
+    release,
     registered: () => registered,
     setRegistered: (value: boolean) => {
       registered = value;
@@ -100,29 +105,26 @@ function fixture() {
   };
 }
 
-test('a delayed logout DELETE finishes before a new sign-in registers the same device', async () => {
+test('a delayed release finishes before a new sign-in registers the same device', async () => {
   const f = fixture();
   const deleting = deferred();
   const started = deferred();
-  f.api.unregisterDevice = async (accessToken) => {
-    f.requests.push({ method: 'DELETE', accessToken });
+  f.api.releaseDevice = async () => {
+    f.requests.push({ method: 'RELEASE' });
     started.resolve();
     await deleting.promise;
     f.setRegistered(false);
   };
-  const logoutCleanup = f.unregister('old-session');
+  const logoutCleanup = f.release();
   f.setAccessToken(undefined);
   await started.promise;
   f.setAccessToken('new-session');
   const registration = f.register();
   await Promise.resolve();
-  assert.deepEqual(f.requests, [{ method: 'DELETE', accessToken: 'old-session' }]);
+  assert.deepEqual(f.requests, [{ method: 'RELEASE' }]);
   deleting.resolve();
   await Promise.all([logoutCleanup, registration]);
-  assert.deepEqual(f.requests, [
-    { method: 'DELETE', accessToken: 'old-session' },
-    { method: 'POST', accessToken: 'new-session' },
-  ]);
+  assert.deepEqual(f.requests, [{ method: 'RELEASE' }, { method: 'POST', session: 'new-session' }]);
   assert.equal(f.registered(), true);
 });
 
@@ -133,48 +135,42 @@ test('cleanup is reserved before an asynchronous installation lookup completes',
     await lookup.promise;
     return 'installation';
   };
-  const cleanup = f.unregister('old-session');
+  const cleanup = f.release();
   f.setAccessToken(undefined);
   f.setAccessToken('new-session');
   const registration = f.register();
   lookup.resolve();
   await Promise.all([cleanup, registration]);
-  assert.deepEqual(f.requests, [
-    { method: 'DELETE', accessToken: 'old-session' },
-    { method: 'POST', accessToken: 'new-session' },
-  ]);
+  assert.deepEqual(f.requests, [{ method: 'RELEASE' }, { method: 'POST', session: 'new-session' }]);
 });
 
-test('logout cleanup follows an already pending POST so it cannot restore push after logout', async () => {
+test('a release follows an already pending POST so it cannot restore push after logout', async () => {
   const f = fixture();
   const posting = deferred();
   const started = deferred();
-  f.api.registerDevice = async (accessToken) => {
-    f.requests.push({ method: 'POST', accessToken });
+  f.api.registerDevice = async () => {
+    f.requests.push({ method: 'POST', session: 'old-session' });
     started.resolve();
     await posting.promise;
     f.setRegistered(true);
   };
   const registration = f.register();
   await started.promise;
-  const cleanup = f.unregister('old-session');
+  const cleanup = f.release();
   f.setAccessToken(undefined);
   posting.resolve();
   await Promise.all([registration, cleanup]);
-  assert.deepEqual(f.requests, [
-    { method: 'POST', accessToken: 'old-session' },
-    { method: 'DELETE', accessToken: 'old-session' },
-  ]);
+  assert.deepEqual(f.requests, [{ method: 'POST', session: 'old-session' }, { method: 'RELEASE' }]);
   assert.equal(f.registered(), false);
 });
 
 test('a queued registration is skipped if logout cleared the session before it runs', async () => {
   const f = fixture();
-  const cleanup = f.unregister('old-session');
+  const cleanup = f.release();
   const registration = f.register();
   f.setAccessToken(undefined);
   await Promise.all([cleanup, registration]);
-  assert.deepEqual(f.requests, [{ method: 'DELETE', accessToken: 'old-session' }]);
+  assert.deepEqual(f.requests, [{ method: 'RELEASE' }]);
 });
 
 test('logout during push-token lookup prevents a stale registration POST', async () => {
@@ -188,11 +184,11 @@ test('logout during push-token lookup prevents a stale registration POST', async
   };
   const registration = f.register();
   await started.promise;
-  const cleanup = f.unregister('old-session');
+  const cleanup = f.release();
   f.setAccessToken(undefined);
   lookup.resolve();
   await Promise.all([registration, cleanup]);
-  assert.deepEqual(f.requests, [{ method: 'DELETE', accessToken: 'old-session' }]);
+  assert.deepEqual(f.requests, [{ method: 'RELEASE' }]);
 });
 
 test('a failed cleanup does not prevent a subsequent device registration', async () => {
@@ -200,12 +196,12 @@ test('a failed cleanup does not prevent a subsequent device registration', async
   f.persistence.getInstallationId = async () => {
     throw new Error('SecureStore unavailable');
   };
-  const cleanup = f.unregister('old-session');
+  const cleanup = f.release();
   await assert.rejects(cleanup, /SecureStore unavailable/);
   f.persistence.getInstallationId = async () => 'installation';
   f.setAccessToken('new-session');
   await f.register();
-  assert.deepEqual(f.requests, [{ method: 'POST', accessToken: 'new-session' }]);
+  assert.deepEqual(f.requests, [{ method: 'POST', session: 'new-session' }]);
 });
 
 test('VoIP registers independently when ordinary notification permission is denied', async () => {
@@ -230,4 +226,44 @@ test('transient Expo token failure still registers VoIP and remains retryable', 
   f.push.getExpoPushToken = async () => 'recovered-token';
   await f.register();
   assert.equal((f.payloads[1] as { pushToken: string }).pushToken, 'recovered-token');
+});
+
+test('requests arriving together make one registration, an unchanged one makes none', async () => {
+  const f = fixture();
+
+  await Promise.all([f.register(), f.register(), f.register(), f.register()]);
+  await f.register();
+  assert.deepEqual(f.requests, [{ method: 'POST', session: 'old-session' }]);
+
+  f.push.getExpoPushToken = async () => 'rotated-token';
+  await f.register();
+  assert.equal(f.requests.length, 2, 'a rotated push token is news');
+});
+
+test('a released phone registers afresh for whoever signs in next', async () => {
+  const f = fixture();
+  await f.register();
+  await f.release();
+
+  f.setAccessToken('new-session');
+  await f.register();
+
+  assert.deepEqual(f.requests, [
+    { method: 'POST', session: 'old-session' },
+    { method: 'RELEASE' },
+    { method: 'POST', session: 'new-session' },
+  ]);
+});
+
+test('a failed registration is not remembered, so the next request sends it again', async () => {
+  const f = fixture();
+  const register = f.api.registerDevice;
+  f.api.registerDevice = async () => {
+    throw new Error('Network request failed');
+  };
+  await assert.rejects(f.register(), /Network request failed/);
+
+  f.api.registerDevice = register;
+  await f.register();
+  assert.deepEqual(f.requests, [{ method: 'POST', session: 'old-session' }]);
 });

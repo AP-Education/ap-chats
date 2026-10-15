@@ -3,6 +3,7 @@ import { test } from 'node:test';
 
 import {
   type AuthSessionProvider,
+  NotSignedInError,
   SessionExpiredError,
   type TokenSet,
   type TokenStore,
@@ -121,7 +122,11 @@ test('a refresh response arriving after logout cannot restore tokens or signed-i
   await f.store.getState().restore();
   const response = deferred<TokenSet>();
   f.session.refresh = () => response.promise;
-  const refresh = f.store.getState().refreshNow();
+  const refresh = f.store
+    .getState()
+    .renewAccessToken()
+    .catch(() => undefined);
+  await flush();
   await f.store.getState().signOut();
   response.resolve({ ...tokens, accessToken: 'late' });
   await refresh;
@@ -139,7 +144,10 @@ test('a refresh save already running completes before the final logout clear', a
     await saved.promise;
     await save(value);
   };
-  const refresh = f.store.getState().refreshNow();
+  const refresh = f.store
+    .getState()
+    .renewAccessToken()
+    .catch(() => undefined);
   await flush();
   const logout = f.store.getState().signOut();
   saved.resolve();
@@ -154,7 +162,11 @@ test('old refresh failures cannot clear a new signed-in session', async () => {
   await f.store.getState().restore();
   const response = deferred<TokenSet>();
   f.session.refresh = () => response.promise;
-  const refresh = f.store.getState().refreshNow();
+  const refresh = f.store
+    .getState()
+    .renewAccessToken()
+    .catch(() => undefined);
+  await flush();
   await f.store.getState().signOut();
   await f.store.getState().signIn();
   response.reject(new SessionExpiredError('Revoked old token'));
@@ -180,7 +192,7 @@ test('pending restore and sign-in results cannot resurrect a logged-out session'
   }
 });
 
-test('parallel bridge refresh requests share one refresh operation', async () => {
+test('parallel renewals share one refresh, since a reused refresh token revokes the grant', async () => {
   const f = fixture();
   await f.store.getState().restore();
   const response = deferred<TokenSet>();
@@ -189,56 +201,77 @@ test('parallel bridge refresh requests share one refresh operation', async () =>
     requests++;
     return response.promise;
   };
-  const first = f.store.getState().refreshNow();
-  const second = f.store.getState().refreshNow();
+  const first = f.store.getState().renewAccessToken();
+  const second = f.store.getState().renewAccessToken();
+  await flush();
   assert.equal(requests, 1);
   response.resolve(tokens);
   await Promise.all([first, second]);
   assert.deepEqual(f.operations, ['save']);
 });
 
-test('a refresh that fails on the network keeps the session and tries again', async (context) => {
-  context.mock.timers.enable({ apis: ['setTimeout'] });
+test('a renewal that fails on the network keeps the session for the next use', async () => {
   const f = fixture();
   await f.store.getState().restore();
-  let attempts = 0;
   f.session.refresh = async () => {
-    if (++attempts === 1) throw new TypeError('Network request failed');
-    return { ...tokens, accessToken: 'renewed' };
+    throw new TypeError('Network request failed');
   };
-  await f.store.getState().refreshNow();
+  await assert.rejects(f.store.getState().renewAccessToken(), TypeError);
   assert.equal(f.store.getState().status, 'signed-in');
   assert.equal(f.persisted(), tokens);
-  context.mock.timers.tick(5_000);
-  await flush();
-  assert.equal(attempts, 2);
-  const state = f.store.getState();
-  assert.equal(state.status === 'signed-in' && state.tokens.accessToken, 'renewed');
+
+  f.session.refresh = async () => ({ ...tokens, accessToken: 'renewed' });
+  assert.equal(await f.store.getState().renewAccessToken(), 'renewed');
 });
 
-test('a refused refresh grant signs out and clears the stored session', async () => {
+test('a refused renewal signs out and clears the stored session', async () => {
   const f = fixture();
   await f.store.getState().restore();
   f.session.refresh = async () => {
     throw new SessionExpiredError('invalid_grant');
   };
-  await f.store.getState().refreshNow();
+  await assert.rejects(f.store.getState().renewAccessToken(), NotSignedInError);
   assert.equal(f.store.getState().status, 'signed-out');
   assert.equal(f.persisted(), null);
 });
 
-test('logout cancels scheduled token refresh', async (context) => {
-  context.mock.timers.enable({ apis: ['setTimeout'] });
+test('a token about to expire is renewed before it is handed out, a fresh one is not', async () => {
   const f = fixture();
-  f.persistence.load = async () => ({ ...tokens, refreshToken: 'refresh' });
-  f.session.signOut = async () => {};
+  let requests = 0;
   f.session.refresh = async () => {
-    assert.fail('Timer must be cancelled');
+    requests++;
+    return { ...tokens, accessToken: 'renewed' };
   };
+  f.persistence.load = async () => ({ ...tokens, expiresAt: Date.now() + 10_000 });
   await f.store.getState().restore();
-  await f.store.getState().signOut();
-  context.mock.timers.tick(3_600_000);
-  assert.equal(f.store.getState().status, 'signed-out');
+
+  assert.equal(await f.store.getState().freshAccessToken(), 'renewed');
+  assert.equal(await f.store.getState().freshAccessToken(), 'renewed');
+  assert.equal(requests, 1);
+});
+
+test('a rejection of a token already replaced takes the current one, without renewing again', async () => {
+  const f = fixture();
+  await f.store.getState().restore();
+  assert.equal(await f.store.getState().renewAccessToken(tokens.accessToken), 'renewed');
+
+  f.session.refresh = async () => assert.fail('The rejected token was replaced already');
+  assert.equal(await f.store.getState().renewAccessToken(tokens.accessToken), 'renewed');
+});
+
+test('a token asked for while the session restores waits for it, and none comes without one', async () => {
+  const f = fixture();
+  const stored = deferred<TokenSet | null>();
+  f.persistence.load = () => stored.promise;
+  void f.store.getState().restore();
+  const token = f.store.getState().freshAccessToken();
+  stored.resolve(tokens);
+  assert.equal(await token, tokens.accessToken);
+
+  const signedOut = fixture();
+  signedOut.persistence.load = async () => null;
+  await signedOut.store.getState().restore();
+  await assert.rejects(signedOut.store.getState().freshAccessToken(), NotSignedInError);
 });
 
 test('a persistence clear failure is retryable and never reported as successful logout', async () => {
@@ -262,4 +295,29 @@ test('unconfigured clients do not attempt logout or clear persistence', async ()
   await f.store.getState().signOut();
   assert.equal(f.store.getState().status, 'unconfigured');
   assert.deepEqual(f.operations, []);
+});
+
+test('a token renewed after a rejection and turned down again is not renewed a second time', async () => {
+  const f = fixture();
+  let requests = 0;
+  f.session.refresh = async () => ({ ...tokens, accessToken: `renewed-${++requests}` });
+  await f.store.getState().restore();
+
+  assert.equal(await f.store.getState().renewAccessToken(tokens.accessToken), 'renewed-1');
+  assert.equal(await f.store.getState().renewAccessToken('renewed-1'), null);
+  assert.equal(requests, 1);
+});
+
+test('a token past its expiry is renewed, wherever it came from', async () => {
+  const f = fixture();
+  let requests = 0;
+  f.session.refresh = async () => ({
+    ...tokens,
+    accessToken: `renewed-${++requests}`,
+    expiresAt: Date.now() - 1,
+  });
+  await f.store.getState().restore();
+
+  assert.equal(await f.store.getState().renewAccessToken(tokens.accessToken), 'renewed-1');
+  assert.equal(await f.store.getState().renewAccessToken('renewed-1'), 'renewed-2');
 });

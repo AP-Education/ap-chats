@@ -1,6 +1,7 @@
 import { answerCall } from '../utils/answer-call';
 import { syncAudioRoute } from '../utils/audio-route';
 import { loadCallKitModule } from '../utils/callkit-module';
+import { dropRingWithoutSession } from '../utils/drop-ring-without-session';
 import { endCallSession } from '../utils/end-call';
 import { hydrateCallSession, restoreIncomingSession } from '../utils/hydrate-call-session';
 import { setCallMuted } from '../utils/mute-call';
@@ -21,7 +22,9 @@ async function listenToCallSessions(): Promise<void> {
   CallKit.addCallSessionAddedListener((event) => restoreIncomingSession(event.session));
   // A push can arrive after the call was already answered, declined or hung up elsewhere.
   CallKit.addIncomingCallReportedListener(() => {
-    void hydrateCallSession(CallKit)
+    void dropRingWithoutSession(CallKit)
+      .catch(() => undefined)
+      .then(() => hydrateCallSession(CallKit))
       .then(() => synchronizeCallSession(CallKit))
       .catch(() => undefined);
   });
@@ -38,6 +41,7 @@ async function listenToCallSessions(): Promise<void> {
     syncAudioRoute(event.currentRoute, event.availableRoutes),
   );
 
+  await dropRingWithoutSession(CallKit).catch(() => undefined);
   await hydrateCallSession(CallKit);
   await synchronizeCallSession(CallKit);
 }

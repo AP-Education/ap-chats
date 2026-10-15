@@ -1,29 +1,39 @@
 import Constants from 'expo-constants';
+import type { DevicePushToken } from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { useAuthStore } from '../../auth';
 import { loadCallKitModule } from '../../calls/utils/callkit-module';
 import type { RegisterDevicePayload } from '../types';
 import { queueDeviceRegistration } from '../utils/device-registration-queue';
-import { DevicesApiError, registerDevice } from './devices-api';
-import { getInstallationId } from './installation-id';
+import { registerDevice } from './devices-api';
+import { getDeviceReleaseKey, getInstallationId } from './installation-id';
 import { getExpoPushToken } from './push-token';
 
-export async function registerCurrentDeviceForPush(): Promise<void> {
-  return queueDeviceRegistration(async () => {
+// A registration still waiting in the queue reads the newest state once it runs.
+let waiting: Promise<void> | null = null;
+// What the server last accepted for this phone; the same registration is not sent twice.
+let registered: string | null = null;
+
+/** Any number of requests at once make one registration, and an unchanged one makes none. */
+export function registerCurrentDeviceForPush(devicePushToken?: DevicePushToken): Promise<void> {
+  if (waiting) return waiting;
+
+  waiting = queueDeviceRegistration(async () => {
+    waiting = null;
     if (useAuthStore.getState().status !== 'signed-in') return;
 
-    const [installationId, tokenResult] = await Promise.all([
+    const [installationId, releaseKey, tokenResult] = await Promise.all([
       getInstallationId(),
-      getExpoPushToken().then(
+      getDeviceReleaseKey(),
+      getExpoPushToken(devicePushToken).then(
         (token) => ({ token, error: undefined as unknown }),
         (error: unknown) => ({ token: undefined, error }),
       ),
     ]);
 
     const CallKit = await loadCallKitModule();
-    const state = useAuthStore.getState();
-    if (state.status !== 'signed-in') return;
+    if (useAuthStore.getState().status !== 'signed-in') return;
     const payload: RegisterDevicePayload = {
       installationId,
       platform: Platform.OS === 'ios' ? 'ios' : 'android',
@@ -32,20 +42,20 @@ export async function registerCurrentDeviceForPush(): Promise<void> {
         Constants.expoConfig?.extra?.apnsEnvironment === 'production' ? 'production' : 'sandbox',
       // Missing on a fresh install; PushRegistration registers again when the VoIP token arrives.
       voipToken: CallKit?.getVoIPPushToken()?.token,
+      releaseKey,
     };
 
-    try {
-      await registerDevice(state.tokens.accessToken, payload);
-    } catch (error) {
-      // A stale token (e.g. the scheduled refresh missed a backgrounded app) — refresh
-      // once, directly, and retry. No bridge round trip needed, this is already native.
-      if (!(error instanceof DevicesApiError) || error.status !== 401) throw error;
-      await useAuthStore.getState().refreshNow();
-      const refreshed = useAuthStore.getState();
-      if (refreshed.status === 'signed-in') {
-        await registerDevice(refreshed.tokens.accessToken, payload);
-      }
+    const registration = JSON.stringify(payload);
+    if (registration !== registered) {
+      await registerDevice(payload);
+      registered = registration;
     }
     if (tokenResult.error) throw tokenResult.error;
   });
+  return waiting;
+}
+
+/** The phone left the account, so whoever signs in next registers it afresh. */
+export function forgetCurrentDeviceRegistration(): void {
+  registered = null;
 }

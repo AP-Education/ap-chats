@@ -11,22 +11,16 @@ const source = ts.transpileModule(
   { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } },
 ).outputText;
 
-function session() {
-  let state: { status: string; tokens?: { accessToken: string } } = {
-    status: 'signed-in',
-    tokens: { accessToken: 'first-token' },
-  };
-  const unregistered: string[] = [];
-  let dismissals = 0;
-  const refs: { current: unknown }[] = [];
+function signedInScreen() {
+  const state = { status: 'signed-in' };
+  const registrations: unknown[] = [];
+  const tokenListeners: ((token: { data: string }) => void)[] = [];
   const previousDeps: unknown[][] = [];
 
   const render = () => {
-    let refIndex = 0;
     let effectIndex = 0;
     const dependencies: Record<string, unknown> = {
       react: {
-        useRef: (initial: unknown) => (refs[refIndex++] ??= { current: initial }),
         useEffect: (effect: () => void, deps: unknown[]) => {
           const index = effectIndex++;
           const changed = previousDeps[index]?.some((value, i) => value !== deps[i]) ?? true;
@@ -34,19 +28,18 @@ function session() {
           if (changed) effect();
         },
       },
-      'expo-notifications': { addPushTokenListener: () => ({ remove() {} }) },
+      'expo-notifications': {
+        addPushTokenListener: (listener: (token: { data: string }) => void) => {
+          tokenListeners.push(listener);
+          return { remove() {} };
+        },
+      },
       'react-native': { AppState: { addEventListener: () => ({ remove() {} }) } },
       '../../auth': { useAuthStore: (select: (value: typeof state) => unknown) => select(state) },
       '../../calls/utils/callkit-module': { loadCallKitModule: async () => null },
-      '../api/register-current-device': { registerCurrentDeviceForPush: async () => {} },
-      '../api/presented-notifications': {
-        dismissPresentedNotifications: async () => {
-          dismissals += 1;
-        },
-      },
-      '../api/unregister-current-device': {
-        unregisterCurrentDevice: async (token: string) => {
-          unregistered.push(token);
+      '../api/register-current-device': {
+        registerCurrentDeviceForPush: async (devicePushToken?: unknown) => {
+          registrations.push(devicePushToken);
         },
       },
     };
@@ -65,32 +58,82 @@ function session() {
   render();
 
   return {
-    unregistered,
+    registrations,
+    reportPushToken: (data: string) => tokenListeners.forEach((listener) => listener({ data })),
+  };
+}
+
+test('the push token every token request reports registers once, not again and again', () => {
+  const s = signedInScreen();
+  const opening = s.registrations.length;
+
+  s.reportPushToken('device-token');
+  s.reportPushToken('device-token');
+  s.reportPushToken('device-token');
+  assert.deepEqual(s.registrations.slice(opening), [{ data: 'device-token' }]);
+
+  s.reportPushToken('rotated-token');
+  assert.deepEqual(s.registrations.slice(opening + 1), [{ data: 'rotated-token' }]);
+});
+
+const sessionEndSource = ts.transpileModule(
+  readFileSync(resolve(__dirname, '../src/features/push/background/session-end.ts'), 'utf8'),
+  { compilerOptions: { module: ts.ModuleKind.CommonJS } },
+).outputText;
+
+/** The session as the auth store reports it, with no screen mounted at all. */
+function sessionWithoutScreens() {
+  let state = { status: 'signed-in' };
+  let releases = 0;
+  let dismissals = 0;
+  const listeners: ((next: typeof state, previous: typeof state) => void)[] = [];
+  runInNewContext(sessionEndSource, {
+    exports: {},
+    require: (name: string) =>
+      ({
+        '../../auth': {
+          useAuthStore: {
+            subscribe: (listener: (next: typeof state, previous: typeof state) => void) =>
+              listeners.push(listener),
+          },
+        },
+        '../api/presented-notifications': {
+          dismissPresentedNotifications: async () => {
+            dismissals += 1;
+          },
+        },
+        '../api/release-current-device': {
+          releaseCurrentDevice: async () => {
+            releases += 1;
+          },
+        },
+      })[name],
+  });
+
+  return {
+    releases: () => releases,
     dismissals: () => dismissals,
-    refreshToken: (accessToken: string) => {
-      state = { status: 'signed-in', tokens: { accessToken } };
-      render();
-    },
-    end: (status: string) => {
+    become: (status: string) => {
+      const previous = state;
       state = { status };
-      render();
+      listeners.forEach((listener) => listener(state, previous));
     },
   };
 }
 
-test('a forced sign-out after a failed refresh unregisters the device with the ending token', () => {
-  const s = session();
-  s.refreshToken('refreshed-token');
-  assert.deepEqual(s.unregistered, []);
+test('a refused renewal releases the device and clears its previews, with no screen up', () => {
+  const s = sessionWithoutScreens();
+  s.become('signed-in');
+  assert.equal(s.releases(), 0, 'a renewal is not an ending');
 
-  s.end('signed-out');
-  assert.deepEqual(s.unregistered, ['refreshed-token']);
+  s.become('signed-out');
+  assert.equal(s.releases(), 1);
   assert.equal(s.dismissals(), 1, 'previews of the ended account leave the screen');
 });
 
-test('a normal logout unregisters once, however many states it passes through', () => {
-  const s = session();
-  s.end('signing-out');
-  s.end('signed-out');
-  assert.deepEqual(s.unregistered, ['first-token']);
+test('a logout releases once, however many states it passes through', () => {
+  const s = sessionWithoutScreens();
+  s.become('signing-out');
+  s.become('signed-out');
+  assert.equal(s.releases(), 1);
 });

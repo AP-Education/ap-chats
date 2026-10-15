@@ -7,6 +7,9 @@ Each `features/<name>/` follows the same shape (see `push/`, `calls/`):
 - `store/` — Zustand stores, when the feature owns cross-component state
 - `types/` — the feature's public shape
 - `utils/` — plain helpers with no React/Expo lifecycle of their own
+- `background/` — listeners and tasks that must work with no screen at all (a ring or a
+  push can start the JS runtime alone); they start as the bundle loads, imported from
+  `src/index.ts`
 
 Add only the folders a feature actually needs; don't scaffold empty ones.
 
@@ -19,7 +22,7 @@ called at the top of `App.tsx`. Mount it directly in the provider tree instead:
 ```tsx
 <AppProviders>
   <PushRegistration />
-  <CallSession />
+  <CallRuntime />
   ...
 </AppProviders>
 ```

@@ -89,6 +89,7 @@ function startCallSession(
     '../utils/answer-call': {},
     '../utils/audio-route': {},
     '../utils/callkit-module': { loadCallKitModule: () => callkit },
+    '../utils/drop-ring-without-session': { dropRingWithoutSession: async () => {} },
     '../utils/end-call': {},
     '../utils/mute-call': {},
     '../utils/hydrate-call-session': {},
@@ -242,4 +243,38 @@ test('cold bootstrap registers CallKit-owned audio before replay and handles sys
   listeners.get('removed')?.({ id: 'cold-call' });
   listeners.get('ended')?.({ id: 'cold-call' });
   assert.deepEqual(steps.slice(3), ['local-cleanup', 'local-cleanup', 'notify-server']);
+});
+
+test('a phone signed out of the app drops a ring it could never answer, and leaves the calls', async () => {
+  const cases = [
+    ['signed-out', ['end ring failed', 'release']],
+    ['signed-in', []],
+    // A session that could not be read (a locked keychain) is not a sign-out.
+    ['error', []],
+  ] as const;
+
+  for (const [status, expected] of cases) {
+    const steps: string[] = [];
+    const { dropRingWithoutSession } = load<{
+      dropRingWithoutSession: (CallKit: unknown) => Promise<void>;
+    }>('../src/features/calls/utils/drop-ring-without-session.ts', {
+      '../../auth': {
+        authRestored: Promise.resolve(),
+        useAuthStore: { getState: () => ({ status }) },
+      },
+      '../../push/api/release-current-device': {
+        releaseCurrentDevice: async () => {
+          steps.push('release');
+        },
+      },
+    });
+
+    await dropRingWithoutSession({
+      getActiveCallSession: async () => ({ id: 'ring', status: 'ringing' }),
+      reportCallEnded: async (id: string, reason: string) => {
+        steps.push(`end ${id} ${reason}`);
+      },
+    });
+    assert.deepEqual(steps, expected, status);
+  }
 });

@@ -1,5 +1,6 @@
 import './features/calls/background/call-session';
 import './features/calls/background/ring-ended-task';
+import './features/push/background/session-end';
 
 import { registerRootComponent } from 'expo';
 import { AppRegistry } from 'react-native';
