@@ -1,4 +1,5 @@
-import ReactMarkdown from 'react-markdown';
+import { createContext, type ReactNode, useContext } from 'react';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkDirective from 'remark-directive';
 import remarkGfm from 'remark-gfm';
@@ -17,6 +18,56 @@ interface MessageMarkdownProps {
   viewer?: ViewerReach;
 }
 
+interface MarkdownScope {
+  inline: boolean;
+  people: Map<string, MentionLabel>;
+  viewer?: ViewerReach;
+}
+
+const MarkdownScopeContext = createContext<MarkdownScope>({ inline: false, people: new Map() });
+
+// Element views live outside the render: a fresh function per render is a new component type,
+// which remounts the text and drops any selection the reader is making in it.
+const components: Components = {
+  p: function Paragraph({ children }) {
+    const { inline } = useContext(MarkdownScopeContext);
+    return inline ? <span>{children} </span> : <p>{children}</p>;
+  },
+  a: function Link({ children, href, title }) {
+    const { inline } = useContext(MarkdownScopeContext);
+    if (inline) return <span>{children}</span>;
+    return (
+      <a
+        href={href}
+        title={title}
+        target="_blank"
+        rel="noopener noreferrer"
+        onPointerDown={(event) => event.stopPropagation()}
+        onContextMenu={(event) => event.stopPropagation()}
+      >
+        {children}
+      </a>
+    );
+  },
+  br: function Break() {
+    const { inline } = useContext(MarkdownScopeContext);
+    return inline ? <> </> : <br />;
+  },
+  span: function Reference({ node, children }): ReactNode {
+    const { inline, people, viewer } = useContext(MarkdownScopeContext);
+    const token = tokenFromAttributes(node?.properties);
+    if (!token) return <span>{children}</span>;
+    return (
+      <MentionReference
+        token={token}
+        people={people}
+        inline={inline}
+        mine={reachesViewer(token, viewer)}
+      />
+    );
+  },
+};
+
 export function MessageMarkdown({
   markdown,
   mentions = [],
@@ -26,63 +77,36 @@ export function MessageMarkdown({
   const people = new Map(mentions.map((mention) => [mention.memberId, mention]));
 
   return (
-    <ReactMarkdown
-      // GFM for bare links and ~~strikethrough~~; a single tilde stays plain, as people type it.
-      remarkPlugins={[
-        remarkDirective,
-        mentionDirective,
-        remarkBreaks,
-        [remarkGfm, { singleTilde: false }],
-      ]}
-      allowedElements={[
-        'p',
-        'strong',
-        'em',
-        'code',
-        'pre',
-        'a',
-        'blockquote',
-        'ul',
-        'ol',
-        'li',
-        'br',
-        'span',
-        'del',
-      ]}
-      // Whatever has no look of its own here, a table or a heading, still shows its text.
-      unwrapDisallowed
-      components={{
-        p: ({ children }) => (inline ? <span>{children} </span> : <p>{children}</p>),
-        a: ({ children, ...props }) =>
-          inline ? (
-            <span>{children}</span>
-          ) : (
-            <a
-              {...props}
-              target="_blank"
-              rel="noopener noreferrer"
-              onPointerDown={(event) => event.stopPropagation()}
-              onContextMenu={(event) => event.stopPropagation()}
-            >
-              {children}
-            </a>
-          ),
-        br: () => (inline ? <> </> : <br />),
-        span: ({ node, children }) => {
-          const token = tokenFromAttributes(node?.properties);
-          if (!token) return <span>{children}</span>;
-          return (
-            <MentionReference
-              token={token}
-              people={people}
-              inline={inline}
-              mine={reachesViewer(token, viewer)}
-            />
-          );
-        },
-      }}
-    >
-      {markdown}
-    </ReactMarkdown>
+    <MarkdownScopeContext.Provider value={{ inline, people, viewer }}>
+      <ReactMarkdown
+        // GFM for bare links and ~~strikethrough~~; a single tilde stays plain, as people type it.
+        remarkPlugins={[
+          remarkDirective,
+          mentionDirective,
+          remarkBreaks,
+          [remarkGfm, { singleTilde: false }],
+        ]}
+        allowedElements={[
+          'p',
+          'strong',
+          'em',
+          'code',
+          'pre',
+          'a',
+          'blockquote',
+          'ul',
+          'ol',
+          'li',
+          'br',
+          'span',
+          'del',
+        ]}
+        // Whatever has no look of its own here, a table or a heading, still shows its text.
+        unwrapDisallowed
+        components={components}
+      >
+        {markdown}
+      </ReactMarkdown>
+    </MarkdownScopeContext.Provider>
   );
 }
