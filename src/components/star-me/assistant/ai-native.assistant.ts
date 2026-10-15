@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { z } from 'zod';
 
 import { AppConfigService } from '@/globals/config';
 import { Logger } from '@/globals/logger';
@@ -9,9 +10,7 @@ import { Assistant, AssistantFailure, type AssistantTurn } from './assistant';
 // Tool calls, such as creating a task, can take a model several rounds.
 const RUN_TIMEOUT_MS = 120_000;
 
-interface RunResponse {
-  text: string;
-}
+const runResponse = z.object({ text: z.string() });
 
 /** ai-native's company assistant, run through its Agent API as the asking person. */
 @Injectable()
@@ -50,9 +49,9 @@ export class AiNativeAssistant extends Assistant {
       throw new AssistantFailure(failureOf(response.status));
     }
 
-    const { text } = (await response.json()) as RunResponse;
-    if (!text?.trim()) throw new AssistantFailure('failed');
-    return text;
+    const run = runResponse.safeParse(await response.json());
+    if (!run.success || !run.data.text.trim()) throw new AssistantFailure('failed');
+    return run.data.text;
   }
 }
 

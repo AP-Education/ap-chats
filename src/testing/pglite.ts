@@ -19,7 +19,7 @@ export async function migrate(pg: PGlite, options?: { before: string; seed: stri
   if (options) assert.ok(seedAt >= 0, `missing migration ${options.before}`);
 
   for (const [index, migration] of migrations.entries()) {
-    if (index === seedAt) await pg.query(options!.seed);
+    if (options && index === seedAt) await pg.query(options.seed);
     await pg.exec(readFileSync(`drizzle/${migration}`, 'utf8'));
   }
 }

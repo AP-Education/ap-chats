@@ -1,14 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+// The parts of an mdast node chat reads; every mdast node fits it as it is.
 type MarkdownNode = {
   type: string;
-  value?: string;
-  url?: string;
-  alt?: string | null;
-  name?: string;
-  attributes?: Record<string, string | null>;
-  children?: MarkdownNode[];
-  position?: { start: { offset?: number }; end: { offset?: number } };
+  value?: string | undefined;
+  url?: string | undefined;
+  alt?: string | null | undefined;
+  name?: string | undefined;
+  attributes?: Record<string, string | null | undefined> | null | undefined;
+  children?: MarkdownNode[] | undefined;
+  position?:
+    { start: { offset?: number | undefined }; end: { offset?: number | undefined } } | undefined;
 };
 
 const KEPT_TYPES = new Set([
@@ -131,7 +133,7 @@ function escapeDirectiveColons(this: { data(): { toMarkdownExtensions?: object[]
 
 async function chatTree(source: string) {
   const processor = await markdownProcessor();
-  const tree = processor.parse(source) as MarkdownNode;
+  const tree: MarkdownNode = processor.parse(source);
   tree.children = reshapeAll(tree, source);
   return { processor, tree };
 }
