@@ -10,6 +10,7 @@ import {
   NativeMiniCallBar,
   ProximityMonitor,
 } from './features/calls';
+import { CallReadinessGate } from './features/calls/components/CallReadinessGate';
 import { NotificationResponses } from './features/push/components/NotificationResponses';
 import { PushPrimingGate } from './features/push/components/PushPrimingGate';
 import { PushRegistration } from './features/push/components/PushRegistration';
@@ -46,7 +47,9 @@ export default function App() {
         </ErrorBoundary>
         <AuthGate>
           <PushPrimingGate>
-            <WebViewHost />
+            <CallReadinessGate>
+              <WebViewHost />
+            </CallReadinessGate>
           </PushPrimingGate>
         </AuthGate>
       </View>
