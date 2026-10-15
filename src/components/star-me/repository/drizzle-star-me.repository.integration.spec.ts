@@ -2,23 +2,19 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 
-import { PGlite } from '@electric-sql/pglite';
 import { and, eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/pglite';
 
 import { DrizzleMentionsRepository } from '@/components/social/mentions/repository/drizzle-mentions.repository';
 import * as schema from '@/database/drizzle/schema';
-import { migrate, type TestDatabase, transactionHost } from '@/testing/pglite';
+import { migratedDatabase, type TestDatabase, transactionHost } from '@/testing/pglite';
 
 import { STAR_ME } from '../star-me.identity';
 import { DrizzleStarMeRepository } from './drizzle-star-me.repository';
 
 // Embedded PostgreSQL with the real migrations: no application database is contacted.
 test('StarMe on PostgreSQL', async (t) => {
-  const pg = await PGlite.create();
-  const db = drizzle(pg, { schema });
+  const { pg, db } = await migratedDatabase();
   t.after(() => pg.close());
-  await migrate(pg);
 
   const txHost = transactionHost(db);
   const repository = new DrizzleStarMeRepository(txHost as never);
@@ -57,7 +53,7 @@ test('StarMe on PostgreSQL', async (t) => {
   });
 
   await t.test('a question knows whether it mentions StarMe or replies to it', async () => {
-    const general = await seed.channel(office, vlad, 'public');
+    const general = await seed.channel(office, vlad);
     const mentioning = await seed.post(general, vlad, `:member[${starMe}] підсумуй`, [starMe]);
     const plain = await seed.post(general, vlad, 'просто повідомлення');
 
@@ -78,7 +74,7 @@ test('StarMe on PostgreSQL', async (t) => {
   await t.test(
     'reads the latest live messages up to the question, with mentions named',
     async () => {
-      const general = await seed.channel(office, vlad, 'public');
+      const general = await seed.channel(office, vlad);
       await seed.post(general, ilya, 'перше');
       const second = await seed.post(general, ilya, `:member[${vlad}] друге`, [vlad]);
       const removed = await seed.post(general, ilya, 'видалене');
@@ -111,7 +107,7 @@ test('StarMe on PostgreSQL', async (t) => {
   await t.test(
     'a bot is summoned in any group channel, a person only where they belong',
     async () => {
-      const team = await seed.channel(office, vlad, 'private');
+      const team = await seed.channel(office, vlad);
       const direct = await seed.direct(office, vlad, ilya);
 
       assert.equal(await mentions.allActiveInChannel(office, team, [starMe]), true);
@@ -127,8 +123,8 @@ test('StarMe on PostgreSQL', async (t) => {
   await t.test(
     'remembers the earlier messages of its channel a question was asked about',
     async () => {
-      const general = await seed.channel(office, vlad, 'public');
-      const elsewhere = await seed.channel(office, vlad, 'public');
+      const general = await seed.channel(office, vlad);
+      const elsewhere = await seed.channel(office, vlad);
       const first = await seed.post(general, ilya, 'бюджет');
       const removed = await seed.post(general, ilya, 'чернетка');
       const foreign = await seed.post(elsewhere, ilya, 'інше');
@@ -151,7 +147,7 @@ test('StarMe on PostgreSQL', async (t) => {
   );
 
   await t.test('finds the answer StarMe sent with a nonce', async () => {
-    const general = await seed.channel(office, vlad, 'public');
+    const general = await seed.channel(office, vlad);
     const answer = await seed.post(general, starMe, 'відповідь');
 
     assert.equal(await repository.answerId(general, starMe, answer.nonce), answer.id);
@@ -201,10 +197,15 @@ function seeder(db: TestDatabase) {
       return row!.id;
     },
 
-    async channel(workspaceId: string, creator: string, kind: 'public' | 'private') {
+    async channel(workspaceId: string, creator: string) {
       const [channel] = await db
         .insert(schema.channels)
-        .values({ workspaceId, kind, name: `channel-${randomUUID()}`, createdByMemberId: creator })
+        .values({
+          workspaceId,
+          kind: 'channel',
+          name: `channel-${randomUUID()}`,
+          createdByMemberId: creator,
+        })
         .returning();
       await db
         .insert(schema.channelMemberships)

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { messagePlainText } from '@/components/social/messages/content';
+import { messagePlainText } from '@/components/social/content';
 
 import { NotificationContent } from '../delivery/notification-content';
 import type { NotificationPayload } from '../delivery/types';

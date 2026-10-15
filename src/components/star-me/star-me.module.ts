@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
-import { ChannelAccessModule } from '@/components/communities/channel-access';
-import { ChannelAudienceModule } from '@/components/communities/channel-audience';
-import { ChannelMembershipsModule } from '@/components/communities/memberships';
-import { MessagesModule } from '@/components/social/messages';
-import { WorkspacesModule } from '@/components/workspaces';
+import { ChannelAccessPolicyModule } from '@/components/communities/channel-access/channel-access';
+import { PostingModule } from '@/components/social/posting';
+import { SocialRealtimeModule } from '@/components/social/realtime';
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
 import { DrizzleModule } from '@/database/drizzle';
 
 import { AiNativeAssistant, Assistant } from './assistant';
@@ -19,12 +18,11 @@ import { StarMeEnrolment } from './star-me-enrolment';
 @Module({
   imports: [
     AuthModule,
-    ChannelAccessModule,
-    ChannelAudienceModule,
-    ChannelMembershipsModule,
+    ChannelAccessPolicyModule,
     DrizzleModule,
-    MessagesModule,
-    WorkspacesModule,
+    PostingModule,
+    SocialRealtimeModule,
+    WorkspaceMembersModule,
   ],
   controllers: [StarMeController],
   providers: [

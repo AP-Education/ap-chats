@@ -1,27 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import {
-  and,
-  desc,
-  eq,
-  ilike,
-  inArray,
-  isNotNull,
-  ne,
-  notInArray,
-  or,
-  type SQL,
-} from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, isNotNull, ne, or, type SQL, sql } from 'drizzle-orm';
 
 import {
+  activeRoleMembers,
   channelMemberships,
   channels,
   messageMentions,
+  messageRoleMentions,
   userProfiles,
   workspaceMembers,
 } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
+import type { MentionedMessage } from '../types';
 import { MentionsRepository } from './mentions.repository';
 
 @Injectable()
@@ -60,8 +52,9 @@ export class DrizzleMentionsRepository extends MentionsRepository {
     return rows.length === ids.length;
   }
 
-  // The channel's members, and the workspace's bots in any channel but a direct message: a
-  // mention summons a bot, which joins when it answers.
+  // The channel's members, and the workspace's bots in any channel but a direct message.
+  // Tech debt: a bot answers on the asker's right to post rather than its own channel grants,
+  // so it is mentionable where the lists leave it out; drop this once bots hold grants.
   private mentionable(workspaceId: string, channelId: string, condition: SQL | undefined) {
     return this.txHost.tx
       .select({
@@ -94,25 +87,90 @@ export class DrizzleMentionsRepository extends MentionsRepository {
       .$dynamic();
   }
 
-  async replace(
-    workspaceId: string,
-    channelId: string,
-    messageId: string,
-    ids: string[],
-  ): Promise<void> {
+  async replaceDirect(message: MentionedMessage, memberIds: string[]): Promise<void> {
     await this.txHost.tx
       .delete(messageMentions)
+      .where(eq(messageMentions.messageId, message.messageId));
+
+    if (memberIds.length)
+      await this.txHost.tx.insert(messageMentions).values(
+        memberIds.map((memberId) => ({
+          workspaceId: message.workspaceId,
+          channelId: message.channelId,
+          messageId: message.messageId,
+          memberId,
+          via: 'direct' as const,
+        })),
+      );
+  }
+
+  async addRoles(message: MentionedMessage, roleIds: string[]): Promise<void> {
+    if (!roleIds.length) return;
+    const reached = this.txHost.tx
+      .select({ memberId: activeRoleMembers.memberId, roleId: activeRoleMembers.roleId })
+      .from(activeRoleMembers)
+      .innerJoin(
+        channelMemberships,
+        and(
+          eq(channelMemberships.memberId, activeRoleMembers.memberId),
+          eq(channelMemberships.channelId, message.channelId),
+        ),
+      )
       .where(
         and(
-          eq(messageMentions.messageId, messageId),
-          ids.length ? notInArray(messageMentions.memberId, ids) : undefined,
+          eq(activeRoleMembers.workspaceId, message.workspaceId),
+          inArray(activeRoleMembers.roleId, roleIds),
+          ne(activeRoleMembers.memberId, message.authorMemberId),
         ),
+      )
+      .as('reached');
+    const messageId = sql`${message.messageId}::uuid`.as('message_id');
+
+    await this.txHost.tx
+      .insert(messageMentions)
+      .select((qb) =>
+        qb
+          .selectDistinct({
+            workspaceId: sql`${message.workspaceId}::uuid`.as('workspace_id'),
+            channelId: sql`${message.channelId}::uuid`.as('channel_id'),
+            messageId,
+            memberId: reached.memberId,
+            via: sql`'role'`.as('via'),
+          })
+          .from(reached),
+      )
+      .onConflictDoNothing();
+    await this.txHost.tx
+      .insert(messageRoleMentions)
+      .select((qb) =>
+        qb.select({ messageId, memberId: reached.memberId, roleId: reached.roleId }).from(reached),
       );
-    if (ids.length)
-      await this.txHost.tx
-        .insert(messageMentions)
-        .values(ids.map((memberId) => ({ workspaceId, channelId, messageId, memberId })))
-        .onConflictDoNothing();
+  }
+
+  async addEveryone(message: MentionedMessage): Promise<void> {
+    await this.txHost.tx
+      .insert(messageMentions)
+      .select((qb) =>
+        qb
+          .select({
+            workspaceId: sql`${message.workspaceId}::uuid`.as('workspace_id'),
+            channelId: sql`${message.channelId}::uuid`.as('channel_id'),
+            messageId: sql`${message.messageId}::uuid`.as('message_id'),
+            memberId: channelMemberships.memberId,
+            via: sql`'everyone'`.as('via'),
+          })
+          .from(channelMemberships)
+          .innerJoin(workspaceMembers, eq(workspaceMembers.id, channelMemberships.memberId))
+          .where(
+            and(
+              eq(channelMemberships.workspaceId, message.workspaceId),
+              eq(channelMemberships.channelId, message.channelId),
+              eq(workspaceMembers.status, 'active'),
+              ne(channelMemberships.memberId, message.authorMemberId),
+            ),
+          ),
+      )
+      .onConflictDoNothing();
   }
 
   async removeForMessages(ids: string[]): Promise<void> {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { CallSignalPayload } from '@/components/calls/events/call-signal.event';
+import type { CallSignalPayload } from '@/components/calls/calls/events/call-signal.event';
 
 import { buildIncomingCallEvent } from './incoming-call-event';
 
@@ -14,6 +14,9 @@ const PAYLOAD: CallSignalPayload = {
   startedByMemberId: 'member-1',
   startedByDisplayName: 'Alice',
   startedByAvatarPath: '/avatars/alice.png',
+  status: 'ringing',
+  startedAt: '2026-10-14T10:00:00.000Z',
+  answeredAt: null,
 };
 
 test('maps CallSignalPayload onto expo-callkit-telecom incomingCall wire shape', () => {

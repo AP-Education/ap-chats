@@ -4,7 +4,7 @@ import { lazy, Suspense } from 'react';
 
 import { useCallSignalListener } from '../hooks/useCallSignalListener';
 import { useCallStore } from '../store/call-store';
-import { IncomingCallCard } from './IncomingCallCard/IncomingCallCard';
+import { IncomingCall } from './IncomingCallCard/IncomingCall';
 
 // LiveKit pulls in a heavy media/UI bundle; most sessions never join a call,
 // so it's only fetched once one actually starts.
@@ -31,7 +31,7 @@ export function CallSurface() {
   // A call reads as its own dark space in either theme, the way native call screens do.
   return (
     <AppearanceScope appearance="dark" accent={accent}>
-      {incoming && !active && <IncomingCallCard signal={incoming} />}
+      {incoming && !active && <IncomingCall signal={incoming} />}
       {active && (
         <Suspense fallback={null}>
           <ActiveCallOverlay session={active} />

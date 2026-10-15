@@ -4,16 +4,21 @@ import { resolve } from 'node:path';
 import { test, type TestContext } from 'node:test';
 import { runInNewContext } from 'node:vm';
 
+import type { CallEndedReason } from 'expo-callkit-telecom';
 import ts from 'typescript';
 
+import { useAnswerFailureStore } from '../src/features/calls/store/answer-failure-store';
 import { useNativeCallStore } from '../src/features/calls/store/native-call-store';
 import type { NativeCallConnectPayload } from '../src/features/calls/types';
 import type { answerCall } from '../src/features/calls/utils/answer-call';
+import * as outcome from '../src/features/calls/utils/call-outcome';
 import type { connectBridgedCall } from '../src/features/calls/utils/connect-bridged-call';
 import type { endCallSession } from '../src/features/calls/utils/end-call';
 import * as hydration from '../src/features/calls/utils/hydrate-call-session';
 import type * as media from '../src/features/calls/utils/livekit-room';
 import type { setCallMuted } from '../src/features/calls/utils/mute-call';
+import * as outgoing from '../src/features/calls/utils/outgoing-ring';
+import type { placeCall } from '../src/features/calls/utils/placed-call';
 import * as registry from '../src/features/calls/utils/session-registry';
 import type { synchronizeCallSession } from '../src/features/calls/utils/synchronize-call-session';
 
@@ -30,6 +35,8 @@ function load<T>(name: string, dependencies: Record<string, unknown>): T {
     Date,
     setTimeout,
     clearTimeout,
+    setInterval,
+    clearInterval,
     require: (name: string) => {
       assert.ok(name in dependencies, `Unexpected import: ${name}`);
       return dependencies[name];
@@ -55,6 +62,7 @@ async function flush() {
 function fixture(t: TestContext) {
   const id = 'native-session';
   const steps: string[] = [];
+  const cues: string[] = [];
   const auth = deferred<string>();
   const connection = deferred<void>();
   let connectImmediately = true;
@@ -62,6 +70,7 @@ function fixture(t: TestContext) {
   let audioActive = false;
   let audioListener: (() => void) | undefined;
   let removedAudioListeners = 0;
+  let placedOutcomes: { answered: (at: number) => void; over: () => void } | undefined;
   let active: Record<string, unknown> | null = {
     id,
     status: 'connecting',
@@ -81,10 +90,12 @@ function fixture(t: TestContext) {
     workspaceId: 'workspace',
     channelId: 'channel',
     title: 'Caller',
+    group: false,
     grant: {
       callId: 'server-call',
       roomName: 'room',
       startedAt: '',
+      answeredAt: null,
       url: 'wss://livekit.test',
       token: 'media-token',
       expiresAt: '',
@@ -162,23 +173,53 @@ function fixture(t: TestContext) {
   });
   const dependencies = {
     '../store/native-call-store': { useNativeCallStore },
+    '../store/answer-failure-store': { useAnswerFailureStore },
+    // Each request waits for the session's token first, as authorizedFetch does.
     '../api/calls-api': {
-      joinCall: async () => {
+      joinCall: async (
+        _workspace: string,
+        _channel: string,
+        _call: string,
+        signal?: AbortSignal,
+      ) => {
+        await auth.promise;
+        if (signal?.aborted) throw new Error('Request aborted');
         steps.push('join');
         return payload.grant;
       },
       leaveCall: async () => {
+        await auth.promise;
         steps.push('leave');
       },
       declineCall: async () => {
+        await auth.promise;
         steps.push('decline');
       },
     },
-    './require-access-token': { requireAccessToken: () => auth.promise },
+    '../../auth': { NotSignedInError: class extends Error {} },
     './session-registry': registry,
     './hydrate-call-session': hydration,
     './livekit-room': mediaFunctions,
-    './call-chimes': { playJoinChime() {}, playLeaveChime() {} },
+    './call-chimes': { playLeaveChime: () => cues.push('leave-chime') },
+    './call-tones': { playBusyTone: () => cues.push('busy-tone') },
+    './call-cues': {
+      trackCallCues: () => {
+        cues.push('track-cues');
+        return () => cues.push('stop-cues');
+      },
+    },
+    './placed-call': {
+      placeCall: (_call: unknown, outcomes: NonNullable<typeof placedOutcomes>) => {
+        placedOutcomes = outcomes;
+        cues.push('place-call');
+        return {
+          answer() {},
+          resync() {},
+          watch: () => cues.push('watch-room'),
+          stop: () => cues.push('stop-placed'),
+        };
+      },
+    },
     './audio-route': { syncCurrentAudioRoute() {} },
     './track-remote-participant': { trackRemoteParticipant: () => () => {} },
     './callkit-module': { loadCallKitModule: async () => CallKit },
@@ -199,9 +240,11 @@ function fixture(t: TestContext) {
   t.after(() => {
     registry.untrackSession(id);
     useNativeCallStore.getState().clearCall();
+    useAnswerFailureStore.getState().clear();
   });
   return {
     steps,
+    cues,
     auth,
     CallKit,
     media: mediaFunctions,
@@ -209,8 +252,10 @@ function fixture(t: TestContext) {
     answer: () =>
       answering.answerCall({ id, requestId: 'answer-request' } as never, CallKit as never),
     mute: (isMuted: boolean) => muting.setCallMuted({ id, isMuted } as never, CallKit as never),
-    end: (notifyServer = true) => ending.endCallSession({ id }, { notifyServer }),
+    end: (notifyServer = true, reason?: CallEndedReason) =>
+      ending.endCallSession({ id }, { notifyServer, reason }),
     bridge: () => bridging.connectBridgedCall(payload),
+    hearAnswer: (at: number) => placedOutcomes?.answered(at),
     setActive: (value: typeof active) => {
       active = value;
     },
@@ -225,6 +270,8 @@ function fixture(t: TestContext) {
 }
 
 const leaves = (steps: string[]) => steps.filter((step) => step === 'leave').length;
+
+const ANSWERED_AT = '2026-10-14T10:00:05.000Z';
 
 // iOS activates call audio only after CXAnswerCallAction.fulfill(); enabling the mic first deadlocks.
 test('cold answer waits for auth, fulfills CallKit before audio, and connects once on replay', async (t) => {
@@ -297,6 +344,7 @@ test('a failed media connection fails the native answer and leaves the server ca
   assert.equal(leaves(f.steps), 1);
   assert.ok(f.steps.includes('fail-answer') && f.steps.includes('end-native'));
   assert.equal(useNativeCallStore.getState().call, null);
+  assert.equal(useAnswerFailureStore.getState().failure, 'unreachable', 'the call window says why');
 });
 
 test('a remote native ending releases media without echoing decline or leave', async (t) => {
@@ -308,6 +356,75 @@ test('a remote native ending releases media without echoing decline or leave', a
 
   assert.deepEqual(f.steps.slice(-1), ['disconnect']);
   assert.ok(!f.steps.includes('leave') && !f.steps.includes('decline'));
+});
+
+test('a turned-down call ends on the busy tone, any other ending on the leave chime', async (t) => {
+  const declined = fixture(t);
+  declined.auth.resolve('token');
+  await declined.answer();
+  await declined.end(false, 'declinedElsewhere');
+
+  const hungUp = fixture(t);
+  hungUp.auth.resolve('token');
+  await hungUp.answer();
+  await hungUp.end(false, 'remoteEnded');
+
+  assert.deepEqual(declined.cues, ['track-cues', 'stop-cues', 'busy-tone']);
+  assert.deepEqual(hungUp.cues, ['track-cues', 'stop-cues', 'leave-chime']);
+});
+
+test('an outgoing call follows its ring from the start, and its room cues once media is up', async (t) => {
+  const f = fixture(t);
+  f.setActive(null);
+  f.auth.resolve('token');
+
+  await f.bridge();
+  await f.end();
+
+  assert.deepEqual(f.cues, [
+    'place-call',
+    'track-cues',
+    'watch-room',
+    'stop-cues',
+    'stop-placed',
+    'leave-chime',
+  ]);
+});
+
+// CallKit/Telecom play the dialtone until the call is reported connected, so that is the answer.
+test('an outgoing call reports connected only once answered, timed by the server', async (t) => {
+  const f = fixture(t);
+  f.setActive(null);
+  f.auth.resolve('token');
+
+  await f.bridge();
+  assert.ok(!f.steps.includes('outgoing-connected'), 'still ringing out');
+  assert.equal(useNativeCallStore.getState().call?.status, 'connected');
+  assert.equal(useNativeCallStore.getState().call?.answeredAt, undefined);
+
+  f.hearAnswer(Date.parse(ANSWERED_AT));
+  await flush();
+
+  assert.equal(f.steps.at(-1), 'outgoing-connected');
+  assert.equal(useNativeCallStore.getState().call?.answeredAt, Date.parse(ANSWERED_AT));
+  assert.equal(
+    registry.findPlacedCall('server-call'),
+    undefined,
+    'an answered call is followed like any other, so its remote end is still noticed',
+  );
+});
+
+test('joining a call already answered connects before its media, so it never rings back', async (t) => {
+  const f = fixture(t);
+  f.setActive(null);
+  f.payload.grant.answeredAt = ANSWERED_AT;
+  f.auth.resolve('token');
+
+  await f.bridge();
+
+  assert.deepEqual(f.steps, ['start-outgoing', 'outgoing-connected', 'connect', 'mic-on']);
+  assert.ok(!f.cues.includes('place-call'), 'an answered call has no ring left to follow');
+  assert.equal(useNativeCallStore.getState().call?.answeredAt, Date.parse(ANSWERED_AT));
 });
 
 test('a WebView join answers a ringing CallKit session instead of starting an outgoing one', async (t) => {
@@ -336,7 +453,7 @@ test('outgoing connection survives an early native start event and duplicate bri
   await Promise.all([f.bridge(), f.bridge()]);
   await f.bridge();
 
-  assert.deepEqual(f.steps, ['start-outgoing', 'connect', 'mic-on', 'outgoing-connected']);
+  assert.deepEqual(f.steps, ['start-outgoing', 'connect', 'mic-on']);
 });
 
 test('waiting for call audio ends cleanly on hang-up and cannot miss an early activation', async (t) => {
@@ -369,7 +486,7 @@ test('foreground sync keeps a local answer but dismisses a ring answered on anot
   }>('synchronize-call-session', {
     '../store/native-call-store': { useNativeCallStore },
     '../api/calls-api': { activeCall: async () => ({ id: 'server-call', status: 'active' }) },
-    './require-access-token': { requireAccessToken: async () => 'token' },
+    './call-outcome': outcome,
     './session-registry': registry,
   });
   const CallKit = {
@@ -384,4 +501,98 @@ test('foreground sync keeps a local answer but dismisses a ring answered on anot
   useNativeCallStore.getState().updateCall({ status: 'ringing' });
   await synchronize(CallKit as never);
   assert.deepEqual(ended, ['native-session']);
+});
+
+type Live = { id: string; status: string; answeredAt: string | null } | null;
+
+function placedCallFixture(live: Live) {
+  const heard: string[] = [];
+  const state = { live, someoneJoins: () => {} };
+  const { placeCall: place } = load<{ placeCall: typeof placeCall }>('placed-call', {
+    '../api/calls-api': { activeCall: async () => state.live },
+    './outgoing-ring': outgoing,
+    './room-presence': {
+      watchRoomPresence: (_room: unknown, { joined }: { joined: () => void }) => {
+        state.someoneJoins = joined;
+        return () => {};
+      },
+    },
+  });
+  const placed = place(
+    {
+      metadata: { workspaceId: 'workspace', channelId: 'channel' },
+      callId: 'server-call',
+      startedAt: new Date(Date.now()).toISOString(),
+    },
+    {
+      answered: (at) => heard.push(`answered at ${at}`),
+      over: () => heard.push('over'),
+    },
+  );
+  placed.watch({} as never);
+  return { heard, state, placed };
+}
+
+const answered = `answered at ${Date.parse(ANSWERED_AT)}`;
+
+test('an answer heard over the socket connects the call at once, at its time, and only once', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const f = placedCallFixture({ id: 'server-call', status: 'ringing', answeredAt: null });
+
+  f.placed.answer(Date.parse(ANSWERED_AT));
+  f.state.live = { id: 'server-call', status: 'active', answeredAt: ANSWERED_AT };
+  f.state.someoneJoins();
+  f.placed.resync();
+  await flush();
+
+  assert.deepEqual(f.heard, [answered]);
+});
+
+test('an answer heard without its time takes the time from the server', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const f = placedCallFixture({ id: 'server-call', status: 'active', answeredAt: ANSWERED_AT });
+
+  f.placed.answer(undefined);
+  await flush();
+
+  assert.deepEqual(f.heard, [answered]);
+});
+
+test('someone joining counts as the answer only once the server agrees', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const f = placedCallFixture({ id: 'server-call', status: 'ringing', answeredAt: null });
+
+  f.state.someoneJoins();
+  await flush();
+  assert.deepEqual(f.heard, [], "the caller's own other device answers nothing");
+
+  f.state.live = { id: 'server-call', status: 'active', answeredAt: ANSWERED_AT };
+  f.state.someoneJoins();
+  await flush();
+  assert.deepEqual(f.heard, [answered]);
+});
+
+test('an answer missed while the socket was away is picked up on resync', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const f = placedCallFixture({ id: 'server-call', status: 'active', answeredAt: ANSWERED_AT });
+
+  f.placed.resync();
+  await flush();
+
+  assert.deepEqual(f.heard, [answered]);
+});
+
+test('a ring the server let go past its deadline ends here, and a stopped call hears nothing', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const missed = placedCallFixture({ id: 'server-call', status: 'ringing', answeredAt: null });
+  const hungUp = placedCallFixture({ id: 'server-call', status: 'ringing', answeredAt: null });
+  hungUp.placed.stop();
+
+  missed.state.live = null;
+  hungUp.state.live = null;
+  t.mock.timers.tick(47_000);
+  await flush();
+
+  assert.deepEqual(missed.heard, ['over']);
+  assert.deepEqual(hungUp.heard, []);
 });

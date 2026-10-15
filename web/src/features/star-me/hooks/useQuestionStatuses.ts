@@ -3,7 +3,7 @@ import { skipToken, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { useConnection } from '@/features/realtime/stores/realtime-context';
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import { questionStatuses } from '../api/star-me-api';
 import { starMeQueryKeys } from '../queryKeys';

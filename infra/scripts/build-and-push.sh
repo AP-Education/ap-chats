@@ -9,7 +9,7 @@ REGISTRY="ghcr.io/ap-education"
 BUILD_PLATFORM="${DOCKER_BUILD_PLATFORM:-linux/amd64}"
 
 # The shell ships with Chats: this ap-app commit is the one each Chats release is built and tested with.
-AP_APP_REF="${AP_APP_REF:-5d2682160f7fc7558bb4e91bcb5c9b7ccc825ab2}"
+AP_APP_REF="${AP_APP_REF:-a97a917096898e07b6ff2e075f32ba8d5b9c155e}"
 VITE_MFE_AI_URL="${VITE_MFE_AI_URL:-https://ai.ap-platform.online/embedded}"
 
 WEB_BUILD_ENV="${WEB_BUILD_ENV:-$REPO_ROOT/web/.env.production}"
@@ -28,6 +28,10 @@ if [[ "$VITE_OIDC_ISSUER" != https://* ]]; then
   exit 1
 fi
 
+# The shell knows its applications only from this list; one missing here is absent from the rail.
+CHATS_URL="${VITE_APP_ORIGIN%/}/remotes/chats"
+VITE_APPS='[{"id":"chats","label":"Чати","icon":"ChatsIcon","basePath":"/c","rail":"contributed","url":"'"$CHATS_URL"'"},{"id":"ai","label":"AI","icon":"HouseIcon","basePath":"/","rail":"tile","url":"'"$VITE_MFE_AI_URL"'"}]'
+
 # Both the private ap-app repository and GitHub Packages accept the gh CLI token.
 GITHUB_TOKEN="${GITHUB_TOKEN:-$(gh auth token)}"
 export GITHUB_TOKEN
@@ -44,10 +48,15 @@ docker build \
   --build-arg VITE_OIDC_CLIENT_ID="$VITE_OIDC_CLIENT_ID" \
   --build-arg VITE_OIDC_AUDIENCE="$VITE_OIDC_AUDIENCE" \
   --build-arg VITE_IMAGES_URL="${VITE_IMAGES_URL:-}" \
-  --build-arg VITE_MFE_CHATS_URL="${VITE_APP_ORIGIN%/}/remotes/chats" \
-  --build-arg VITE_MFE_AI_URL="$VITE_MFE_AI_URL" \
+  --build-arg VITE_APPS="$VITE_APPS" \
   --output "type=local,dest=$WORK_DIR/host" \
   "https://github.com/AP-Education/ap-app.git#${AP_APP_REF}"
+
+# A shell that can't find Chats serves "no applications" to everyone, so it never ships.
+if ! grep -q "$CHATS_URL/remoteEntry.js" "$WORK_DIR/host/srv/host/index.html"; then
+  echo "The shell from ap-app@${AP_APP_REF} does not load Chats from ${CHATS_URL}" >&2
+  exit 1
+fi
 
 # The live release's own assets, so pages opened before this deploy keep loading their chunks.
 if [[ -n "${PREVIOUS_TAG:-}" ]]; then

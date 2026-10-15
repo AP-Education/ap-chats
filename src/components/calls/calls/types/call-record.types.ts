@@ -1,0 +1,13 @@
+import type { CallStatus } from './call-status.types';
+
+export interface CallRecord {
+  id: string;
+  workspaceId: string;
+  channelId: string;
+  roomName: string;
+  status: CallStatus;
+  startedByMemberId: string;
+  startedAt: Date;
+  answeredAt: Date | null;
+  endedAt: Date | null;
+}

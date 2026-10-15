@@ -3,7 +3,7 @@ import http2 from 'node:http2';
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { importPKCS8, SignJWT } from 'jose';
 
-import type { CallSignalPayload } from '@/components/calls/events/call-signal.event';
+import type { CallSignalPayload } from '@/components/calls/calls/events/call-signal.event';
 import type { DeviceRecord } from '@/components/devices';
 import { AppConfigService } from '@/globals/config';
 
@@ -47,6 +47,10 @@ export class ApnsVoipPushProvider implements CallPushProvider, OnModuleDestroy {
       await this.post(other, device, bearer, body);
     }
   }
+
+  // A VoIP push must report a new call, so iOS can't be told by one that a ring ended. The push
+  // that rang launched the app, and the app ends the ring itself from its realtime socket.
+  async sendRingEnded(): Promise<void> {}
 
   private async authToken(): Promise<string> {
     if (this.cachedToken && Date.now() - this.cachedToken.issuedAt < TOKEN_TTL_MS) {

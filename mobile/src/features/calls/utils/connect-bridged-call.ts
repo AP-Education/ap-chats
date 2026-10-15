@@ -4,12 +4,12 @@ import { leaveCall } from '../api/calls-api';
 import { useNativeCallStore } from '../store/native-call-store';
 import type { NativeCallConnectPayload } from '../types';
 import { syncCurrentAudioRoute } from './audio-route';
-import { playJoinChime } from './call-chimes';
-import { loadCallKitModule } from './callkit-module';
+import { trackCallCues } from './call-cues';
+import { type CallKitApi, loadCallKitModule } from './callkit-module';
 import { endCallSession } from './end-call';
 import { restoreIncomingSession } from './hydrate-call-session';
 import { connectRoom, waitForAudioSessionActive } from './livekit-room';
-import { requireAccessToken } from './require-access-token';
+import { placeCall } from './placed-call';
 import { findTrackedSessionIdByServerCallId, trackSession } from './session-registry';
 import { trackRemoteParticipant } from './track-remote-participant';
 
@@ -46,12 +46,7 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
     } catch (error) {
       if (__DEV__) console.warn('[calls] outgoing start failed', error);
       try {
-        await leaveCall(
-          await requireAccessToken(),
-          payload.workspaceId,
-          payload.channelId,
-          payload.grant.callId,
-        );
+        await leaveCall(payload.workspaceId, payload.channelId, payload.grant.callId);
       } catch (cleanupError) {
         if (__DEV__) console.warn('[calls] outgoing cleanup failed', cleanupError);
       }
@@ -62,14 +57,37 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
       serverCallId: payload.grant.callId,
       metadata: { workspaceId: payload.workspaceId, channelId: payload.channelId },
       caller,
+      group: payload.group,
     });
     useNativeCallStore
       .getState()
       .setCall({ sessionId, caller, status: 'connecting', isMuted: false });
 
     const signal = session.abortController.signal;
+    // The OS shows the call connected, and stops its dialtone, at the answer, not once media is up.
+    const reportAnswered = (answeredAt: number) => {
+      useNativeCallStore.getState().updateCall({ answeredAt });
+      return CallKit.reportOutgoingCallConnected(sessionId).catch(() => undefined);
+    };
     try {
       await waitForOutgoingCallStarted(sessionId, CallKit, signal);
+      const { answeredAt, startedAt } = payload.grant;
+      if (answeredAt) await reportAnswered(Date.parse(answeredAt));
+      else
+        session.placed = placeCall(
+          { metadata: session.metadata, callId: session.serverCallId, startedAt },
+          {
+            answered: (at) => {
+              session.placed = undefined;
+              void reportAnswered(at);
+            },
+            over: () => {
+              session.placed = undefined;
+              void CallKit.reportCallEnded(sessionId, 'remoteEnded').catch(() => undefined);
+            },
+          },
+        );
+
       const room = await connectRoom(payload.grant.url, payload.grant.token, signal);
       if (signal.aborted) {
         await room.disconnect();
@@ -85,10 +103,9 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
         !useNativeCallStore.getState().call?.isMuted,
       );
       if (signal.aborted) return;
-      await CallKit.reportOutgoingCallConnected(sessionId);
-      if (signal.aborted) return;
-      useNativeCallStore.getState().updateCall({ status: 'connected', connectedAt: Date.now() });
-      playJoinChime();
+      useNativeCallStore.getState().updateCall({ status: 'connected' });
+      session.stopCallCues = trackCallCues(room, session.group);
+      session.placed?.watch(room);
     } catch (error) {
       if (signal.aborted) return;
       if (__DEV__) console.warn('[calls] outgoing connect failed', error);
@@ -103,7 +120,7 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
 
 async function waitForOutgoingCallStarted(
   sessionId: string,
-  CallKit: NonNullable<Awaited<ReturnType<typeof loadCallKitModule>>>,
+  CallKit: CallKitApi,
   signal: AbortSignal,
 ): Promise<void> {
   let finish!: () => void;

@@ -76,13 +76,13 @@ interface Sent {
   markdown: string;
   clientNonce: string;
   replyToMessageId?: string;
+  authorityId: string;
 }
 
 let repository: FakeRepository;
 let assistant: FakeAssistant;
 let statuses: StarMeStatusEvent[];
 let finished: Promise<void>;
-let joined: string[];
 let answers: Sent[];
 let starMeService: StarMeService;
 
@@ -90,7 +90,6 @@ beforeEach(() => {
   repository = new FakeRepository();
   assistant = new FakeAssistant();
   statuses = [];
-  joined = [];
   answers = [];
   let resolve = () => {};
   finished = new Promise((settle) => (resolve = settle));
@@ -99,14 +98,15 @@ beforeEach(() => {
       findForUser: async (_: string, subject: string) =>
         subject === STAR_ME.subject ? starMe : undefined,
     } as never,
-    { requirePostAccess: async () => ({}), requireViewAccess: async () => ({}) } as never,
+    { requirePostRight: async () => ({}), requireViewAccess: async () => ({}) } as never,
     {
-      add: async (_asker: WorkspaceMember, channelId: string, memberId: string) =>
-        joined.push(`${channelId}:${memberId}`),
-    } as never,
-    {
-      send: async (_author: WorkspaceMember, channelId: string, dto: Omit<Sent, 'channelId'>) => {
-        answers.push({ ...dto, channelId });
+      send: async (
+        _author: WorkspaceMember,
+        channelId: string,
+        dto: Omit<Sent, 'channelId' | 'authorityId'>,
+        authority: WorkspaceMember,
+      ) => {
+        answers.push({ ...dto, channelId, authorityId: authority.id });
         return { id: 'answer-1' };
       },
     } as never,
@@ -119,6 +119,7 @@ beforeEach(() => {
         statuses.push(event);
         if (event.state !== 'thinking') resolve();
       },
+      record: async () => () => {},
     },
     { error: () => {} } as never,
   );
@@ -150,7 +151,7 @@ test('a mention is answered in its channel from the latest messages', async () =
       { role: 'user', author: 'Влад', text: '@StarMe підсумуй' },
     ],
   );
-  assert.deepEqual(joined, [`${ids.channel}:${ids.starMe}`]);
+  assert.equal(answers[0]?.authorityId, ids.vlad, 'answers on the right of whoever asked');
   assert.equal(answers[0]?.replyToMessageId, ids.question);
   assert.equal(answers[0]?.clientNonce, answerNonce(ids.question));
   assert.deepEqual(
@@ -303,7 +304,7 @@ function member(id: string, subject: string, displayName: string, isBot = false)
     workspaceId: ids.workspace,
     userProfileId: `profile-${id}`,
     profile: { id: `profile-${id}`, oidcUserId: subject, displayName, avatarPath: null, isBot },
-    role: 'member',
+    accessLevel: 'member',
     status: 'active',
     leftAt: null,
     createdAt: new Date(),

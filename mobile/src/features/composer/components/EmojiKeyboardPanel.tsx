@@ -65,7 +65,12 @@ export function EmojiKeyboardPanel({
   }));
 
   return (
-    <Reanimated.View style={[styles.root, animatedStyle]}>
+    // Laid over the bottom of the page, which pads itself instead; until it shows, the page's own
+    // background stays visible beneath the keyboard.
+    <Reanimated.View
+      pointerEvents={visible ? 'auto' : 'none'}
+      style={[styles.root, visible && styles.shown, animatedStyle]}
+    >
       {visible && (
         <Reanimated.View style={contentStyle}>
           <PickerPanel
@@ -84,7 +89,13 @@ export function EmojiKeyboardPanel({
 const themedStyles = (palette: ShellPalette) =>
   StyleSheet.create({
     root: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: 0,
       overflow: 'hidden',
+    },
+    shown: {
       backgroundColor: palette.surface,
     },
   });

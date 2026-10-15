@@ -1,31 +1,17 @@
+import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
-import type { Namespace } from 'socket.io';
 
-import { ChannelAudienceFacade } from '@/components/communities/channel-audience';
-import { deliverChannelEvent } from '@/components/social/realtime';
-import { Logger } from '@/globals/logger';
+import { ChannelBroadcast } from '@/components/social/realtime';
 
 import { STAR_ME_STATUS_EVENT, StarMeStatusEvent } from './events/star-me-status.event';
 
-@WebSocketGateway({ namespace: '/chats' })
+/** Tells everyone watching the channel where StarMe is with a question. */
+@Injectable()
 export class StarMeGateway {
-  @WebSocketServer()
-  private namespace!: Namespace;
-
-  constructor(
-    private readonly audience: ChannelAudienceFacade,
-    private readonly logger: Logger,
-  ) {}
+  constructor(private readonly broadcast: ChannelBroadcast) {}
 
   @OnEvent(STAR_ME_STATUS_EVENT)
   onStatus(event: StarMeStatusEvent): Promise<void> {
-    return deliverChannelEvent(
-      this.namespace,
-      this.audience,
-      this.logger,
-      STAR_ME_STATUS_EVENT,
-      event,
-    );
+    return this.broadcast.changed(STAR_ME_STATUS_EVENT, event);
   }
 }

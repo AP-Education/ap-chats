@@ -1,6 +1,6 @@
 {
-  "id": "7f4f886f-8f82-43ab-ace4-42f540cd5856",
-  "prevId": "a84b0aee-87d3-4ca9-bd04-0fc0341a0b17",
+  "id": "1032b573-abb9-4fe3-a8eb-34285b940ae5",
+  "prevId": "af5dbed5-92d4-4573-8441-ff59ce0d1b80",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1364,6 +1364,13 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "via": {
+          "name": "via",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'direct'"
         }
       },
       "indexes": {},
@@ -1395,7 +1402,12 @@
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "message_mentions_via_check": {
+          "name": "message_mentions_via_check",
+          "value": "\"message_mentions\".\"via\" in ('direct', 'everyone')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.message_pins": {
@@ -1466,8 +1478,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.star_me_question_messages": {
-      "name": "star_me_question_messages",
+    "public.message_reactions": {
+      "name": "message_reactions",
       "schema": "",
       "columns": {
         "workspace_id": {
@@ -1482,44 +1494,57 @@
           "primaryKey": false,
           "notNull": true
         },
-        "question_id": {
-          "name": "question_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
         "message_id": {
           "name": "message_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "emoji": {
+          "name": "emoji",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "member_id": {
+          "name": "member_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "star_me_question_messages_question_fk": {
-          "name": "star_me_question_messages_question_fk",
-          "tableFrom": "star_me_question_messages",
-          "tableTo": "chat_messages",
-          "columnsFrom": ["workspace_id", "channel_id", "question_id"],
-          "columnsTo": ["workspace_id", "channel_id", "id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "star_me_question_messages_message_fk": {
-          "name": "star_me_question_messages_message_fk",
-          "tableFrom": "star_me_question_messages",
+        "message_reactions_message_channel_fk": {
+          "name": "message_reactions_message_channel_fk",
+          "tableFrom": "message_reactions",
           "tableTo": "chat_messages",
           "columnsFrom": ["workspace_id", "channel_id", "message_id"],
           "columnsTo": ["workspace_id", "channel_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "message_reactions_member_workspace_fk": {
+          "name": "message_reactions_member_workspace_fk",
+          "tableFrom": "message_reactions",
+          "tableTo": "workspace_members",
+          "columnsFrom": ["workspace_id", "member_id"],
+          "columnsTo": ["workspace_id", "id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
-        "star_me_question_messages_question_id_message_id_pk": {
-          "name": "star_me_question_messages_question_id_message_id_pk",
-          "columns": ["question_id", "message_id"]
+        "message_reactions_message_id_emoji_member_id_pk": {
+          "name": "message_reactions_message_id_emoji_member_id_pk",
+          "columns": ["message_id", "emoji", "member_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1555,13 +1580,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "is_bot": {
-          "name": "is_bot",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "synced_at": {
           "name": "synced_at",
@@ -1785,7 +1803,29 @@
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
+  "views": {
+    "public.message_reaction_summaries": {
+      "columns": {
+        "message_id": {
+          "name": "message_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "emoji": {
+          "name": "emoji",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "definition": "select \"message_id\", \"emoji\", count(*)::int as \"count\", (array_agg(\"member_id\" order by \"created_at\" desc))[1:3] as \"recent_member_ids\", min(\"created_at\") as \"first_reacted_at\" from \"message_reactions\" group by \"message_reactions\".\"message_id\", \"message_reactions\".\"emoji\"",
+      "name": "message_reaction_summaries",
+      "schema": "public",
+      "isExisting": false,
+      "materialized": false
+    }
+  },
   "_meta": {
     "columns": {},
     "schemas": {},

@@ -11,7 +11,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.apeducation.native",
+      "bundleIdentifier": "com.apeducation.app",
       "buildNumber": "11",
       "icon": "./assets/AppIcon.icon",
       "config": {
@@ -19,7 +19,7 @@
       }
     },
     "android": {
-      "package": "com.apeducation.native",
+      "package": "com.apeducation.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -56,14 +56,17 @@
       [
         "expo-callkit-telecom",
         {
-          "sounds": ["./assets/sounds/ringtone.wav"],
+          "sounds": ["./assets/sounds/ringtone.wav", "./assets/sounds/ringback.wav"],
           "defaultRingtoneIos": "ringtone.wav",
-          "defaultRingtoneAndroid": "ringtone.wav"
+          "defaultRingtoneAndroid": "ringtone.wav",
+          "defaultDialtone": "ringback.wav"
         }
       ],
+      "./plugins/with-call-screen",
       "@livekit/react-native-expo-plugin",
       "@config-plugins/react-native-webrtc",
-      "expo-audio"
+      "expo-audio",
+      "react-native-bottom-tabs"
     ],
     "extra": {
       "eas": {

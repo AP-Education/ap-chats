@@ -2,7 +2,7 @@ import { AiText } from '@ap-education/ui';
 import { createStyles, keyframes } from 'antd-style';
 import type { PropsWithChildren } from 'react';
 
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { Bubble } from '@/features/social/messaging/components/Bubble/Bubble';
 import { HistoryRun } from '@/features/social/messaging/components/HistoryRun/HistoryRun';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';

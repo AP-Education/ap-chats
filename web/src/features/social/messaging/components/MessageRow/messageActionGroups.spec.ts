@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { ActionAccent, ConversationAction } from '@/features/social/conversation/actions';
+import type { ActionAccent, ConversationAction } from '@/features/social/messaging/types';
 
 import { groupMessageActions } from './messageActionGroups.ts';
 

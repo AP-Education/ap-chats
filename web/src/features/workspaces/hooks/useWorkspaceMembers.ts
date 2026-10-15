@@ -3,6 +3,7 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
 import { listWorkspaceMembers } from '../api/workspace-members-api';
+import { workspaceQueryKeys } from '../queryKeys';
 import type { WorkspaceMember } from '../types';
 
 export function useWorkspaceMembers(
@@ -11,7 +12,7 @@ export function useWorkspaceMembers(
   const { token, identity } = useQueryAuth();
 
   return useQuery({
-    queryKey: ['workspace-members', identity, workspaceId],
+    queryKey: workspaceQueryKeys.members(identity, workspaceId),
     queryFn: () => listWorkspaceMembers(token as string, workspaceId as string),
     enabled: Boolean(token && workspaceId),
   });

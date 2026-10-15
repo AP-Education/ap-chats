@@ -4,8 +4,9 @@ import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { ForwardIcon } from '@/features/social/conversation/actionIcons';
 import { confirmDirectMessage, mergeDirectMessage } from '@/features/social/direct-messages/cache';
+import { ForwardIcon } from '@/features/social/messaging/actionIcons';
+import { flashMessage } from '@/features/social/messaging/flashMessage';
 import type { MessageHistoryItem } from '@/features/social/messaging/types';
 import { randomId } from '@/shared/lib/random-id';
 
@@ -58,19 +59,12 @@ export function ForwardModal({ workspaceId, sourceChannelId, items, onClose }: F
         items.map((item) => item.message.id),
         batchNonce,
       );
-      if (result.conversation)
-        mergeDirectMessage(queryClient, identity, workspaceId, result.conversation);
+      if (result.conversation) mergeDirectMessage(queryClient, identity, result.conversation);
       const targetChannelId = result.conversation?.id ?? target.id;
       if (target.kind !== 'channel' && result.messages.length) {
-        confirmDirectMessage(
-          queryClient,
-          identity,
-          workspaceId,
-          targetChannelId,
-          result.messages.at(-1)!,
-        );
+        confirmDirectMessage(queryClient, identity, targetChannelId, result.messages.at(-1)!);
       }
-      message.success('Повідомлення переслано');
+      items.forEach((item) => flashMessage(item.message.id));
       onClose();
     } catch {
       message.error('Не вдалося переслати повідомлення. Спробуйте ще раз.');

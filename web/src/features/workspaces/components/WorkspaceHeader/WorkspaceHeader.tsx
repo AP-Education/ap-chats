@@ -1,5 +1,5 @@
 import { CaretDownIcon, PencilLineIcon, PlusIcon } from '@phosphor-icons/react';
-import { Dropdown, Skeleton } from 'antd';
+import { Dropdown, type MenuProps, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
@@ -20,6 +20,7 @@ const useStyles = createStyles(({ token, css }) => ({
     background: transparent;
     cursor: pointer;
     color: ${token.colorText};
+    font: inherit;
     text-align: left;
     transition: background 0.15s ease;
 
@@ -72,9 +73,14 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
+interface WorkspaceHeaderProps {
+  /** Further workspace actions from the features that own them, after editing the workspace. */
+  actions?: NonNullable<MenuProps['items']>;
+}
+
 // The active workspace's name opens its actions. Switching and creating workspaces live in the
 // shell rail, so the header carries no avatar and no switcher affordance.
-export function WorkspaceHeader() {
+export function WorkspaceHeader({ actions = [] }: WorkspaceHeaderProps) {
   const { styles } = useStyles();
   const { workspace, workspaces, isLoading, isError, retry } = useActiveWorkspace();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -124,6 +130,7 @@ export function WorkspaceHeader() {
               label: 'Редагувати робочий простір',
               onClick: () => setEditing(true),
             },
+            ...actions,
           ],
         }}
       >

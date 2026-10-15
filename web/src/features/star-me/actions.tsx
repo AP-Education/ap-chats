@@ -1,6 +1,6 @@
 import { AiSpark } from '@ap-education/ui';
 
-import type { ConversationAction } from '../social/conversation/actions';
+import type { ConversationAction } from '../social/messaging/types';
 import type { MemberSummary } from '../workspaces/types';
 
 export function askStarMeAction(starMe: MemberSummary): ConversationAction {

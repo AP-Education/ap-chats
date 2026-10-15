@@ -1,41 +1,46 @@
 import { message as toast, Modal } from 'antd';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
+import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
+import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
 import { forwardingActions } from '@/features/social/forwarding/actions';
 import { messagingActions } from '@/features/social/messaging/actions';
 import { flashMessage } from '@/features/social/messaging/flashMessage';
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import type { HistoryItem, MessageHistoryItem } from '@/features/social/messaging/types';
+import type {
+  ActionCommands,
+  ActionTarget,
+  ConversationAction,
+} from '@/features/social/messaging/types';
 import { isMessageItem } from '@/features/social/messaging/types';
 import { pinActions } from '@/features/social/pins/actions';
 import { usePinActions } from '@/features/social/pins/hooks/usePins';
+import { reactionActions } from '@/features/social/reactions/actions';
 
-import type { ActionCommands, ActionTarget, ConversationAction } from '../../actions';
-import { useConversationExtensions } from '../../extensions';
-import { useConversation, useConversationScope } from '../../store';
-
-const builtInActions = [...messagingActions, ...forwardingActions, ...pinActions];
+const builtInActions = [
+  ...messagingActions,
+  ...forwardingActions,
+  ...pinActions,
+  ...reactionActions,
+];
 
 interface UseConversationActionsInput {
   items: HistoryItem[];
   memberId: string | undefined;
-  canManage: boolean;
-  canPin: boolean;
-  canPost: boolean;
   operations: ReturnType<typeof useMessageOperations>;
 }
 
 export function useConversationActions({
   items,
   memberId,
-  canManage,
-  canPin,
-  canPost,
   operations,
 }: UseConversationActionsInput) {
-  const { workspaceId, channelId } = useConversationScope();
+  const { workspaceId, channelId, permissions } = useConversationScope();
+  const { canPost, canReact, canManage, canPin } = permissions;
   const pins = usePinActions(workspaceId, channelId);
   const [forwardItems, setForwardItems] = useState<MessageHistoryItem[]>([]);
+  const [reactionsMessageId, setReactionsMessageId] = useState<string | null>(null);
   const selectedIds = useConversation((state) => state.selectedIds);
   const clearSelection = useConversation((state) => state.clearSelection);
   const toggleSelected = useConversation((state) => state.toggleSelected);
@@ -45,9 +50,13 @@ export function useConversationActions({
     () => items.filter(isMessageItem).filter((item) => selectedIds.includes(item.id)),
     [items, selectedIds],
   );
+  const reactionsItem = useMemo(
+    () => items.filter(isMessageItem).find((item) => item.id === reactionsMessageId),
+    [items, reactionsMessageId],
+  );
   const actionContext = useMemo(
-    () => ({ memberId, canManage, canPin, canPost }),
-    [memberId, canManage, canPin, canPost],
+    () => ({ memberId, canPost, canReact, canManage, canPin }),
+    [memberId, canPost, canReact, canManage, canPin],
   );
   const extensions = useConversationExtensions();
   const actions = useMemo(
@@ -89,7 +98,7 @@ export function useConversationActions({
       void navigator.clipboard.writeText(text).then(
         () => {
           targetItems.forEach((item) => flashMessage(item.message.id));
-          toast.success('Текст скопійовано');
+          clearSelection();
         },
         () => toast.error('Не вдалося скопіювати текст'),
       );
@@ -101,6 +110,7 @@ export function useConversationActions({
         .update(item.message.id, active)
         .catch(() => toast.error('Не вдалося змінити закріплення.'));
     },
+    showReactions: (item) => setReactionsMessageId(item.message.id),
     ask: (member, targetItems) => {
       setIntent({ kind: 'ask', member, messageIds: targetItems.map((item) => item.message.id) });
       clearSelection();
@@ -140,5 +150,7 @@ export function useConversationActions({
     onEdit,
     forwardItems,
     closeForward,
+    reactionsItem,
+    closeReactions: () => setReactionsMessageId(null),
   };
 }

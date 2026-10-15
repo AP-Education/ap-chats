@@ -16,7 +16,7 @@ import { channelCategories } from './channel-categories';
 import { workspaceMembers } from './workspace-members';
 import { workspaces } from './workspaces';
 
-const channelKinds = ['public', 'private', 'dm'] as const;
+const channelKinds = ['channel', 'dm'] as const;
 
 export const channels = pgTable(
   'channels',
@@ -39,12 +39,12 @@ export const channels = pgTable(
     unique('channels_workspace_id_key').on(table.workspaceId, table.id),
     uniqueIndex('channels_workspace_name_key')
       .on(table.workspaceId, sql`lower(${table.name})`)
-      .where(sql`${table.kind} in ('public', 'private')`),
+      .where(sql`${table.kind} = 'channel'`),
     index('channels_dm_activity_idx').on(table.workspaceId, table.kind, table.updatedAt, table.id),
-    check('channels_kind_check', sql`${table.kind} in ('public', 'private', 'dm')`),
+    check('channels_kind_check', sql`${table.kind} in ('channel', 'dm')`),
     check(
       'channels_name_kind_check',
-      sql`(${table.kind} = 'dm' and ${table.name} is null and ${table.categoryId} is null) or (${table.kind} in ('public', 'private') and ${table.name} is not null)`,
+      sql`(${table.kind} = 'dm' and ${table.name} is null and ${table.categoryId} is null) or (${table.kind} = 'channel' and ${table.name} is not null)`,
     ),
     foreignKey({
       columns: [table.workspaceId, table.categoryId],

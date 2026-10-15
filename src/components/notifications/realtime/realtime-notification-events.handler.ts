@@ -4,7 +4,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import {
   CALL_ENTRY_CREATED_EVENT,
   CallEntryCreatedEvent,
-} from '@/components/calls/events/call-entry-created.event';
+} from '@/components/calls/calls/events/call-entry-created.event';
 import {
   FORWARD_BATCH_CREATED_EVENT,
   ForwardBatchCreatedEvent,
@@ -21,29 +21,12 @@ import {
   MESSAGES_BATCH_DELETED_EVENT,
   MessagesBatchDeletedEvent,
 } from '@/components/social/messages/events/messages-batch-deleted.event';
-import {
-  READ_STATE_ADVANCED_EVENT,
-  ReadStateAdvancedEvent,
-} from '@/components/social/read-state/events/read-state-advanced.event';
-import { RealtimePublisher } from '@/globals/realtime';
 
 import { RealtimeNotificationDeliveryService } from './realtime-notification-delivery.service';
 
 @Injectable()
 export class RealtimeNotificationEventsHandler {
-  constructor(
-    private readonly delivery: RealtimeNotificationDeliveryService,
-    private readonly realtime: RealtimePublisher,
-  ) {}
-
-  @OnEvent(READ_STATE_ADVANCED_EVENT)
-  onReadStateAdvanced(event: ReadStateAdvancedEvent): void {
-    this.realtime.toUser(event.userId, 'social:read-state', {
-      workspaceId: event.workspaceId,
-      channelId: event.channelId,
-      ...event.state,
-    });
-  }
+  constructor(private readonly delivery: RealtimeNotificationDeliveryService) {}
 
   @OnEvent(MESSAGE_CREATED_EVENT)
   onMessageCreated(event: MessageCreatedEvent): Promise<void> {

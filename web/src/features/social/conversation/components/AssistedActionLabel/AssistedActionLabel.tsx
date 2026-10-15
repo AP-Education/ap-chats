@@ -1,6 +1,6 @@
 import { AiCosmos, AiText } from '@ap-education/ui';
 
-import type { ActionTarget, ConversationAction } from '../../actions';
+import type { ActionTarget, ConversationAction } from '@/features/social/messaging/types';
 
 interface AssistedActionLabelProps {
   action: ConversationAction;

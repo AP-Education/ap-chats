@@ -2,19 +2,21 @@ import { createStyles } from 'antd-style';
 import { type ReactNode, useMemo, useRef } from 'react';
 
 import { ActiveCallBanner } from '@/features/calls/components/ActiveCallBanner';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
+import { keyboardGlidePart } from '@/features/social/messaging/keyboard-glide-part';
 import { PinnedMessageBar } from '@/features/social/pins/components/PinnedMessageBar/PinnedMessageBar';
-import { ChatWallpaperSurface } from '@/features/social/wallpaper/components/ChatWallpaperSurface';
+import { ReactorsDialog } from '@/features/social/reactions/components/ReactorsDialog/ReactorsDialog';
+import { useReactionEvents } from '@/features/social/reactions/hooks/useReactionEvents';
 import type { WorkspaceMember } from '@/features/workspaces/types';
 
-import { useConversationScope } from '../../store';
 import { ConversationFooter } from './ConversationFooter';
 import { ConversationForwarding } from './ConversationForwarding';
 import { ConversationHistoryContent } from './ConversationHistoryContent';
 import { ConversationSelectionBar } from './ConversationSelectionBar';
+import { KeyboardGlideSurface } from './KeyboardGlideSurface';
 import { useConversationActions } from './useConversationActions';
 import { useConversationHistoryNavigation } from './useConversationHistoryNavigation';
-import { useKeyboardGlide } from './useKeyboardGlide';
 import { useOverlayInsets } from './useOverlayInsets';
 
 const useStyles = createStyles(({ css }) => ({
@@ -43,39 +45,30 @@ const useStyles = createStyles(({ css }) => ({
 }));
 
 interface ConversationViewProps {
-  canPost: boolean;
-  canManage: boolean;
-  canPin?: boolean;
   currentMember: WorkspaceMember | undefined;
   readOnlyFooter?: ReactNode;
 }
 
-export function ConversationView({
-  canPost,
-  canManage,
-  canPin = canManage,
-  currentMember,
-  readOnlyFooter,
-}: ConversationViewProps) {
-  const { styles } = useStyles();
+export function ConversationView({ currentMember, readOnlyFooter }: ConversationViewProps) {
+  const { styles, cx } = useStyles();
   const { workspaceId, channelId, title, avatarPath } = useConversationScope();
-  const navigation = useConversationHistoryNavigation(canPost);
+  const navigation = useConversationHistoryNavigation();
   const author = useMemo(
     () => ({
       memberId: currentMember?.id ?? '',
       displayName: currentMember?.profile.displayName ?? null,
       avatarPath: currentMember?.profile.avatarPath ?? null,
       isBot: false,
+      // Unsent rows are the viewer's own, which never show a name to colour.
+      roleColor: null,
     }),
     [currentMember?.id, currentMember?.profile.displayName, currentMember?.profile.avatarPath],
   );
   const operations = useMessageOperations(workspaceId, channelId, author, navigation.items);
+  useReactionEvents(currentMember?.id);
   const interaction = useConversationActions({
     items: navigation.items,
     memberId: currentMember?.id,
-    canManage,
-    canPin,
-    canPost,
     operations,
   });
   const historyReady =
@@ -84,17 +77,20 @@ export function ConversationView({
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   useOverlayInsets(surfaceRef, topRef, bottomRef);
-  useKeyboardGlide(surfaceRef);
 
   return (
-    <ChatWallpaperSurface ref={surfaceRef} className={styles.shell} data-conversation-drop-target>
+    <KeyboardGlideSurface
+      surfaceRef={surfaceRef}
+      className={styles.shell}
+      data-conversation-drop-target
+    >
       <ConversationHistoryContent
         navigation={navigation}
         interaction={interaction}
         operations={operations}
       />
       <div ref={topRef} className={styles.top}>
-        <PinnedMessageBar canUnpin={canPin && canPost} onJump={navigation.onJump} />
+        <PinnedMessageBar onJump={navigation.onJump} />
         <ActiveCallBanner
           workspaceId={workspaceId}
           channelId={channelId}
@@ -102,12 +98,11 @@ export function ConversationView({
           calleeAvatarPath={avatarPath}
         />
       </div>
-      <div ref={bottomRef} className={styles.bottom} data-keyboard-glide>
+      <div ref={bottomRef} className={cx(styles.bottom, keyboardGlidePart)}>
         {historyReady && <ConversationSelectionBar interaction={interaction} />}
         {/* Hidden rather than unmounted while selecting, so a draft and its uploads live on. */}
         <div hidden={interaction.selectedItems.length > 0}>
           <ConversationFooter
-            canPost={canPost}
             readOnlyFooter={readOnlyFooter}
             items={navigation.items}
             send={operations.send}
@@ -119,6 +114,9 @@ export function ConversationView({
         historyReady={historyReady}
         onClose={interaction.closeForward}
       />
-    </ChatWallpaperSurface>
+      {interaction.reactionsItem && (
+        <ReactorsDialog item={interaction.reactionsItem} onClose={interaction.closeReactions} />
+      )}
+    </KeyboardGlideSurface>
   );
 }

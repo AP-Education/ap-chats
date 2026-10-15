@@ -1,4 +1,4 @@
-import type { CallSignalPayload } from '@/components/calls/events/call-signal.event';
+import type { CallSignalPayload } from '@/components/calls/calls/events/call-signal.event';
 
 // The exact wire shape expo-callkit-telecom's native code parses out of a VoIP
 // push before JS even runs — see its README's "VoIP push payload" section.

@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
@@ -13,9 +13,24 @@ import { unreadDirectMessagesKey, workspaceUnreadKey } from '../queryKeys';
 
 export interface ChannelUnread {
   channelId: string;
-  kind: 'public' | 'private' | 'dm';
+  kind: 'channel' | 'dm';
   lastReadEntrySeq: string;
   unreadCount: number;
+}
+
+export function workspaceUnreadQuery(
+  identity: string | undefined,
+  token: string | undefined,
+  workspaceId: string,
+) {
+  return queryOptions({
+    queryKey: workspaceUnreadKey(identity, workspaceId),
+    queryFn: () =>
+      apiRequest<ChannelUnread[]>(`/api/workspaces/${workspaceId}/read-state`, token as string),
+    enabled: Boolean(token),
+    refetchOnWindowFocus: true,
+    meta: { persist: true },
+  });
 }
 
 export function useWorkspaceUnread(workspaceId: string) {
@@ -30,14 +45,7 @@ export function useWorkspaceUnread(workspaceId: string) {
     [identity, workspaceId],
   );
 
-  const query = useQuery({
-    queryKey,
-    queryFn: () =>
-      apiRequest<ChannelUnread[]>(`/api/workspaces/${workspaceId}/read-state`, token as string),
-    enabled: Boolean(token),
-    refetchOnWindowFocus: true,
-    meta: { persist: true },
-  });
+  const query = useQuery(workspaceUnreadQuery(identity, token, workspaceId));
 
   useEffect(() => {
     if (
@@ -50,7 +58,7 @@ export function useWorkspaceUnread(workspaceId: string) {
     if (connection.current.hasConnected) {
       void queryClient.invalidateQueries({ queryKey, exact: true });
       void queryClient.invalidateQueries({
-        queryKey: unreadDirectMessagesKey(identity, workspaceId),
+        queryKey: unreadDirectMessagesKey(identity),
         exact: true,
       });
     }

@@ -4,7 +4,8 @@ import { test } from 'node:test';
 import {
   CallSignalEvent,
   type CallSignalPayload,
-} from '@/components/calls/events/call-signal.event';
+} from '@/components/calls/calls/events/call-signal.event';
+import { RingEndedEvent } from '@/components/calls/calls/events/ring-ended.event';
 import { NativePushTargetsStrategy } from '@/components/devices';
 import { tokenFingerprint } from '@/components/devices/targets/credential-fingerprint';
 
@@ -21,6 +22,9 @@ const payload: CallSignalPayload = {
   startedByMemberId: 'member',
   startedByDisplayName: 'Alice',
   startedByAvatarPath: null,
+  status: 'ringing',
+  startedAt: '2026-10-14T10:00:00.000Z',
+  answeredAt: null,
 };
 function fixture() {
   const device = {
@@ -40,6 +44,9 @@ function fixture() {
     sendIncomingCall: async () => {
       if (failure) throw failure;
       sent.push(device.platform);
+    },
+    sendRingEnded: async (_device: unknown, callId: string, reason: string) => {
+      sent.push(`${callId}:${reason}`);
     },
   };
   const registry = new CallPushProviderRegistry(provider as never, provider as never);
@@ -121,4 +128,15 @@ test('invalid VoIP token clears only the attempted current token', async () => {
   f.fail();
   await f.worker.deliver(f.job);
   assert.deepEqual(f.invalidated, [['device', 'token', 'voip']]);
+});
+
+test('an ended ring reaches every device of the people it rang, ringing or not by now', async () => {
+  const f = fixture();
+  await f.worker.fanoutRingEnded(new RingEndedEvent('call', 'answered', ['reader']));
+  const [name, job] = f.queued[0] as [string, { callId: string; reason: string }];
+  assert.equal(name, 'push.ring-ended-delivery');
+
+  f.stop();
+  await f.worker.deliverRingEnded({ ...f.job, callId: job.callId, reason: 'answered' });
+  assert.deepEqual(f.sent, ['call:answered']);
 });

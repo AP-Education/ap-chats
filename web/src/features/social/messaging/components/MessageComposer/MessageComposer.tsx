@@ -22,18 +22,14 @@ import {
 } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { useConversation, useConversationScope } from '@/features/social/conversation/store';
+import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
+import { MessageEditorSlotProvider } from '@/features/social/mentions/MessageEditorSlot';
+import type { ComposerEditorApi, ComposerEditorSlotProps } from '@/features/social/mentions/types';
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
 import { randomId } from '@/shared/lib/random-id';
 
 import { useAttachments } from '../../attachments/useAttachments';
-import { MessageEditorSlotProvider } from '../../MessageEditorSlot';
-import type {
-  ComposerEditorApi,
-  ComposerEditorSlotProps,
-  PendingAttachmentCommit,
-  SendMessageCommand,
-} from '../../types';
+import type { PendingAttachmentCommit, SendMessageCommand } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
 import { useAttachmentDrop } from './AttachmentDropZone';
@@ -93,7 +89,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
     @media (max-width: ${token.screenMD}px) {
       gap: 8px;
-      padding: 4px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+      padding: 4px 8px calc(8px + var(--app-inset-bottom, env(safe-area-inset-bottom, 0px)));
     }
   `,
   desktopPanel: css`
@@ -230,7 +226,7 @@ interface MessageComposerProps {
   replyAuthor?: string;
   replyPreview?: string;
   onSend: (
-    input: Omit<SendMessageCommand, 'attachments'>,
+    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
     pending?: PendingAttachmentCommit,
   ) => void;
   /** The text-input to compose with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
@@ -308,13 +304,11 @@ export function MessageComposer({
   }, [blurComposerToken]);
 
   const handleSend = useCallback(() => {
-    const markdown = editableRef.current?.markdown().trim() ?? '';
+    const draft = editableRef.current?.draft();
     if (!canSend) return;
+    const composed = { markdown: draft?.markdown.trim() ?? '', labels: draft?.labels ?? {} };
+    const input = intent ? composerIntent(intent.kind).compose(intent, composed) : composed;
     const nonce = randomId();
-    const input = {
-      ...(intent ? composerIntent(intent.kind).compose(intent, markdown) : { markdown }),
-      clientNonce: nonce,
-    };
     const drafts = uploads.commit(nonce);
     if (drafts.length) {
       onSend(input, {
@@ -339,7 +333,7 @@ export function MessageComposer({
   }
 
   function pickGif(gif: Pick<GifResult, 'title' | 'url'>) {
-    onSend({ markdown: `![${gif.title || 'GIF'}](${gif.url})`, clientNonce: randomId() });
+    onSend({ markdown: `![${gif.title || 'GIF'}](${gif.url})` });
     setIntent(null);
     closePicker();
   }

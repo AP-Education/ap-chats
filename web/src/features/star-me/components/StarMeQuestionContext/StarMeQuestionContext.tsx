@@ -1,5 +1,5 @@
-import type { MessageAddonProps } from '@/features/social/conversation/extensions';
-import { useConversationScope } from '@/features/social/conversation/store';
+import type { MessageAddonProps } from '@/features/social/conversation-scope/extensions';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { BubbleExcerpt } from '@/features/social/messaging/components/Bubble/BubbleExcerpt';
 import { ReplyExcerpt } from '@/features/social/messaging/components/ReplyExcerpt/ReplyExcerpt';
 import { messageCount } from '@/features/social/messaging/messageCount';

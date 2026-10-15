@@ -1,10 +1,6 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
+import { requireAccessLevel } from '@/components/workspaces/access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import type { CreateChannelCategoryDto } from './dto/create-channel-category.dto';
@@ -20,11 +16,10 @@ export class ChannelCategoriesService {
     return this.categories.findAllForWorkspace(member.workspaceId);
   }
 
-  create(member: WorkspaceMember, dto: CreateChannelCategoryDto): Promise<ChannelCategory> {
-    this.requireOwner(member);
-    const name = dto.name.trim();
-    if (!name) throw new BadRequestException('Category name cannot be blank');
-    return this.categories.create(member.workspaceId, name, dto.position ?? 0);
+  async create(member: WorkspaceMember, dto: CreateChannelCategoryDto): Promise<ChannelCategory> {
+    requireAccessLevel(member, 'manager');
+
+    return this.categories.create(member.workspaceId, dto.name, dto.position ?? 0);
   }
 
   async update(
@@ -32,28 +27,20 @@ export class ChannelCategoriesService {
     categoryId: string,
     dto: UpdateChannelCategoryDto,
   ): Promise<ChannelCategory> {
-    this.requireOwner(member);
-    const name = dto.name?.trim();
-    if (name === '') throw new BadRequestException('Category name cannot be blank');
-    if (name === undefined && dto.position === undefined)
-      throw new BadRequestException('No changes provided');
-    const category = await this.categories.update(member.workspaceId, categoryId, {
-      ...(name === undefined ? {} : { name }),
-      ...(dto.position === undefined ? {} : { position: dto.position }),
-    });
+    requireAccessLevel(member, 'manager');
+    const changesNothing = dto.name === undefined && dto.position === undefined;
+    if (changesNothing) throw new BadRequestException('No changes provided');
+
+    const category = await this.categories.update(member.workspaceId, categoryId, dto);
     if (!category) throw new NotFoundException('Category not found');
+
     return category;
   }
 
   async delete(member: WorkspaceMember, categoryId: string): Promise<void> {
-    this.requireOwner(member);
-    if (!(await this.categories.delete(member.workspaceId, categoryId))) {
-      throw new NotFoundException('Category not found');
-    }
-  }
+    requireAccessLevel(member, 'manager');
 
-  private requireOwner(member: WorkspaceMember): void {
-    if (member.role !== 'owner')
-      throw new ForbiddenException('Only the workspace owner can manage categories');
+    const deleted = await this.categories.delete(member.workspaceId, categoryId);
+    if (!deleted) throw new NotFoundException('Category not found');
   }
 }

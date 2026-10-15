@@ -11,6 +11,9 @@ import { messagingQueryKeys } from '../queryKeys';
 import type { HistoryPage } from '../types';
 import type { PageCursor } from './useMessageHistory';
 
+// Long enough for a slow join; the history is refreshed either way once it passes.
+const WATCH_ACK_MS = 5000;
+
 // Every producer that adds a channel_entries position (messages, forwarding
 // batches, calls) announces itself with one of these; the merge logic below
 // is the same regardless of which produced it.
@@ -23,7 +26,6 @@ const CREATED_EVENT_TYPES = new Set([
 export function useChannelRealtime(
   workspaceId: string,
   channelId: string,
-  isMember: boolean,
   targetMessageId?: string,
 ) {
   const { token, identity } = useQueryAuth();
@@ -36,14 +38,22 @@ export function useChannelRealtime(
   );
 
   useEffect(() => {
-    if (!socket || status !== 'connected') return;
-    refreshHistoryWindow(queryClient, key);
-    if (!isMember) return;
-    socket.emit('social:watch', { workspaceId, channelId });
+    // Without a live feed the cache can't be trusted to have kept up, so it is fetched again.
+    if (!socket || status !== 'connected') {
+      refreshHistoryWindow(queryClient, key);
+      return;
+    }
+
+    // Joined before refreshing: an entry created in between reaches the cache one way or the other.
+    socket
+      .timeout(WATCH_ACK_MS)
+      .emit('social:watch', { workspaceId, channelId }, () =>
+        refreshHistoryWindow(queryClient, key),
+      );
     return () => {
       socket.emit('social:unwatch', { workspaceId, channelId });
     };
-  }, [socket, status, workspaceId, channelId, isMember, queryClient, key]);
+  }, [socket, status, workspaceId, channelId, queryClient, key]);
 
   useSocketEvent('social:changed', (event) => {
     if (event.workspaceId !== workspaceId || event.channelId !== channelId || !token) return;

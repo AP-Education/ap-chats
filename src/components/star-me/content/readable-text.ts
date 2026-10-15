@@ -1,4 +1,4 @@
-import { messagePlainText } from '@/components/social/messages/content';
+import { messagePlainText } from '@/components/social/content';
 
 /** A message's text with its mentions named, the way people read it. */
 export async function readableText(

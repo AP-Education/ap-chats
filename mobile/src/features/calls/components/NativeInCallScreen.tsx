@@ -17,6 +17,12 @@ import {
   MutedMicrophoneHint,
 } from './NativeCallControls';
 
+interface NativeInCallScreenProps {
+  /** Set in the call window: the call stays on screen there whatever the app's mini bar shows,
+   * and minimizing leaves the window for the chats. */
+  onLeaveWindow?: () => void;
+}
+
 /**
  * The connected in-call surface — rendered alongside <WebViewHost/>, not inside
  * it. NativeIncomingCallScreen owns the pre-answer "ringing" state, and
@@ -24,12 +30,14 @@ import {
  * connecting/connected, not-minimized case. Mirrors web/'s CallScreen,
  * icon-for-icon (phosphor-react-native, the same set web/'s @phosphor-icons/react uses).
  */
-export function NativeInCallScreen() {
+export function NativeInCallScreen({ onLeaveWindow }: NativeInCallScreenProps) {
   const call = useNativeCallStore((state) => state.call);
   const minimized = useNativeCallStore((state) => state.minimized);
   const minimize = useNativeCallStore((state) => state.minimize);
 
-  if (!call || call.status === 'ringing' || minimized) return null;
+  const inWindow = Boolean(onLeaveWindow);
+
+  if (!call || call.status === 'ringing' || (minimized && !inWindow)) return null;
 
   const title = call.caller.displayName ?? 'Дзвінок';
 
@@ -45,7 +53,7 @@ export function NativeInCallScreen() {
               accessibilityLabel="Згорнути дзвінок"
               size={40}
               iconSize={20}
-              onPress={minimize}
+              onPress={onLeaveWindow ?? minimize}
             />
           </View>
           <Text style={styles.title} numberOfLines={1}>
@@ -85,10 +93,10 @@ function speakingLevel(call: NativeCallState): number {
 }
 
 function CallStatusLine({ call }: { call: NativeCallState }) {
-  const duration = useCallDuration(call.connectedAt);
+  const duration = useCallDuration(call.answeredAt);
 
   if (call.status === 'connecting') return <Text style={styles.duration}>З'єднання</Text>;
-  return <Text style={styles.duration}>{duration}</Text>;
+  return <Text style={styles.duration}>{call.answeredAt ? duration : 'Виклик'}</Text>;
 }
 
 const styles = StyleSheet.create({

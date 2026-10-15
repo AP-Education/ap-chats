@@ -3,8 +3,8 @@ import { pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core';
 import { userProfiles } from './user-profiles';
 import { workspaces } from './workspaces';
 
-export const workspaceMemberRoleEnum = ['owner', 'member'] as const;
-export type WorkspaceMemberRole = (typeof workspaceMemberRoleEnum)[number];
+export const workspaceAccessLevels = ['owner', 'manager', 'member'] as const;
+export type WorkspaceAccessLevel = (typeof workspaceAccessLevels)[number];
 
 export const workspaceMembers = pgTable(
   'workspace_members',
@@ -16,7 +16,7 @@ export const workspaceMembers = pgTable(
     userProfileId: uuid('user_profile_id')
       .notNull()
       .references(() => userProfiles.id),
-    role: text('role', { enum: workspaceMemberRoleEnum }).notNull().default('member'),
+    accessLevel: text('access_level', { enum: workspaceAccessLevels }).notNull().default('member'),
     status: text('status', { enum: ['active', 'removed'] })
       .notNull()
       .default('active'),

@@ -1,7 +1,8 @@
-import type { CSSProperties, Ref } from 'react';
+import type { ReactNode } from 'react';
 
 import type { MemberSummary } from '@/features/workspaces/types';
 
+import type { MessageReaction } from '../reactions/types';
 import type { Attachment, AttachmentDraft } from './attachments/types';
 
 export interface Message {
@@ -28,16 +29,21 @@ export interface MessageHistoryItem {
   seq: string;
   createdAt: string;
   message: Message;
-  author: MemberSummary;
+  author: MessageAuthor;
   reply: {
     id: string;
     authorMemberId: string;
-    author: MemberSummary | null;
+    author: MessageAuthor | null;
     markdown: string | null;
   } | null;
-  forwardedFrom: MemberSummary | null;
+  forwardedFrom: MessageAuthor | null;
   pin: { pinnedAt: string; pinnedByMemberId: string } | null;
   mentions?: MemberSummary[];
+  /** Whether the message reached the viewer, by name, through a role or through @everyone. */
+  mentionsMe?: boolean;
+  /** The roles through which it reached the viewer. */
+  rolesMentioningMe?: string[];
+  reactions?: MessageReaction[];
 }
 
 export type CallEntryStatus = 'ringing' | 'active' | 'ended' | 'declined' | 'missed';
@@ -52,9 +58,10 @@ export interface CallHistoryItem {
     status: CallEntryStatus;
     startedByMemberId: string;
     startedAt: string;
+    answeredAt: string | null;
     endedAt: string | null;
   };
-  startedBy: MemberSummary;
+  startedBy: MessageAuthor;
 }
 
 // A row in the channel timeline: exactly one kind, never a grab-bag of
@@ -66,6 +73,11 @@ export type HistoryItem = MessageHistoryItem | CallHistoryItem;
 // same predicate rather than re-deriving `item.type === 'MESSAGE'` locally.
 export function isMessageItem(item: HistoryItem): item is MessageHistoryItem {
   return item.type === 'MESSAGE';
+}
+
+export interface MessageAuthor extends MemberSummary {
+  /** Their top coloured role's colour, which their name takes, as on Discord. */
+  roleColor: string | null;
 }
 
 export interface ReadState {
@@ -95,12 +107,14 @@ export interface SendMessageCommand {
   replyToMessageId?: string;
   quoteText?: string;
   attachments?: Attachment[];
+  /** The composer's names for its inline references, so the echo shows them before history does. */
+  labels?: Record<string, string>;
 }
 
 // 'uploading': attachments are still in flight — sending never waits on them
 // (matches Discord/Telegram/Slack/WhatsApp), so a message can sit here before
 // it's even been POSTed at all, not just awaiting server confirmation.
-export type DeliveryStatus = 'uploading' | 'sending' | 'failed' | 'confirmed';
+export type DeliveryStatus = 'uploading' | 'sending' | 'failed';
 
 export interface DisplayItem {
   item: HistoryItem;
@@ -119,47 +133,41 @@ export interface PendingAttachmentCommit {
   releaseCommitted: (nonce: string) => void;
 }
 
-// Messaging's extension point for its text input: markdown plus a label
-// dictionary for whatever inline reference tokens (today, @-mentions) the
-// plugged-in editor renders as chips. Messaging owns this contract; mentions
-// is one implementation of it, not the other way around.
-export interface ComposerDraft {
-  markdown: string;
-  labels: Record<string, string>;
+// What any feature can offer on messages: the conversation gathers them, message rows show them.
+export type ActionTarget =
+  | { kind: 'message'; items: [MessageHistoryItem] }
+  | { kind: 'text'; items: [MessageHistoryItem]; selectedText: string }
+  | { kind: 'batch'; items: MessageHistoryItem[] };
+
+export interface ActionContext {
+  memberId: string | undefined;
+  canManage: boolean;
+  canPin: boolean;
+  canPost: boolean;
+  canReact: boolean;
 }
 
-export interface ComposerEditorApi {
-  markdown: () => string;
-  clear: () => void;
-  focus: () => void;
-  blur: () => void;
-  insertText: (text: string) => void;
-  /** Captures the current caret so a later resumeInput/insertText can restore it even after focus has moved elsewhere. */
-  saveSelection: () => void;
-  /** Disables real DOM input (e.g. while a native keyboard-replacement panel is shown) without moving focus. */
-  suspendInput: () => void;
-  /** Re-enables real input without moving focus — used when a panel closes but the real keyboard will reclaim focus on its own. */
-  releaseInput: () => void;
-  /** Re-enables real input and restores focus, optionally placing the caret at a viewport point. */
-  resumeInput: (point?: { x: number; y: number }) => void;
-  /** Resumes input while placing the caret at the given viewport point. */
-  focusAtPoint: (clientX: number, clientY: number) => void;
+export interface ActionCommands {
+  reply: (item: MessageHistoryItem, quoteText?: string) => void;
+  edit: (item: MessageHistoryItem) => void;
+  remove: (items: MessageHistoryItem[]) => void;
+  select: (item: MessageHistoryItem) => void;
+  copy: (items: MessageHistoryItem[], selectedText?: string) => void;
+  forward: (items: MessageHistoryItem[]) => void;
+  pin: (item: MessageHistoryItem, active: boolean) => void;
+  showReactions: (item: MessageHistoryItem) => void;
+  /** Asks a member, such as an assistant, about the messages: the composer addresses them. */
+  ask: (member: MemberSummary, items: MessageHistoryItem[]) => void;
 }
 
-export interface ComposerEditorSlotProps {
-  editorRef?: Ref<ComposerEditorApi>;
-  initialDraft?: ComposerDraft;
-  /** Identifies the draft being edited, for an implementation that needs to remount when it changes (e.g. to re-run a mount-time restore). */
-  draftKey?: string;
-  className?: string;
-  editorStyle?: CSSProperties;
-  ariaLabel: string;
-  placeholder?: string;
-  autoFocus?: boolean;
-  onChange?: (draft: ComposerDraft) => void;
-  onSubmit?: () => void;
-  onEscape?: () => void;
-  onPasteFiles?: (files: File[]) => void;
-  /** The strip above the composer where suggestion lists dock; an inline editor has none. */
-  suggestionsHost?: HTMLElement | null;
+/** How an action stands out: a destructive one warns, an assistant's leads on its own sky. */
+export type ActionAccent = 'danger' | 'ai';
+
+export interface ConversationAction {
+  id: string;
+  icon: ReactNode;
+  accent?: ActionAccent;
+  label: (target: ActionTarget) => string;
+  available: (target: ActionTarget, context: ActionContext) => boolean;
+  execute: (target: ActionTarget, commands: ActionCommands) => void;
 }

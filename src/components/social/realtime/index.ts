@@ -1,1 +1,2 @@
-export * from './deliver-channel-event';
+export * from './channel-broadcast';
+export * from './social-realtime.module';

@@ -1,18 +1,22 @@
 import { PageAsideClose, PageHeader, PageTitle } from '@ap-education/ui';
 import { UsersThreeIcon } from '@phosphor-icons/react';
-import { message } from 'antd';
 import { createStyles } from 'antd-style';
 
+import { useRoles } from '@/features/roles/hooks/useRoles';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 
-import { canManageChannel } from '../../../channel-permissions';
 import type { Channel } from '../../../channels/types';
 import { useChannelMembership } from '../../hooks/useChannelMembership';
+import { groupMembersByRole } from '../../member-groups';
 import { ChannelMembersContent } from './ChannelMembersContent';
 
 const useStyles = createStyles(({ token, css }) => ({
+  // Only the list scrolls, so the heading and its close stay in view over a long channel.
   shell: css`
-    min-height: 100%;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
   `,
   headingIcon: css`
     color: ${token.colorPrimary};
@@ -38,9 +42,15 @@ interface ChannelMembersPanelProps {
 
 export function ChannelMembersPanel({ workspaceId, channel }: ChannelMembersPanelProps) {
   const { styles } = useStyles();
-  const { byId, currentMember, isLoading: labelsLoading } = useWorkspaceMemberLabels(workspaceId);
-  const { query, remove } = useChannelMembership(workspaceId, channel.id);
+  const { byId, isLoading: labelsLoading } = useWorkspaceMemberLabels(workspaceId);
+  const { query } = useChannelMembership(workspaceId, channel.id);
+  const { query: roles } = useRoles(workspaceId);
   const memberships = query.data ?? [];
+  const groups = groupMembersByRole(
+    memberships,
+    roles.data ?? [],
+    (memberId) => byId.get(memberId)?.label ?? '',
+  );
   const isLoading = query.isPending || labelsLoading;
   const isError = query.isError && !query.data;
 
@@ -57,15 +67,9 @@ export function ChannelMembersPanel({ workspaceId, channel }: ChannelMembersPane
       <ChannelMembersContent
         isLoading={isLoading}
         isError={isError}
-        memberships={memberships}
+        groups={groups}
         byId={byId}
-        canManage={canManageChannel(channel, currentMember)}
         onRetry={() => void query.refetch()}
-        onRemove={(memberId) =>
-          remove.mutate(memberId, {
-            onError: () => void message.error('Не вдалося прибрати учасника.'),
-          })
-        }
       />
     </div>
   );

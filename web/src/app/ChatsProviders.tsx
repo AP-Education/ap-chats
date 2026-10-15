@@ -1,17 +1,16 @@
-import { useAppBadge, useBeforeSignOut } from '@ap-education/shell-sdk';
+import { useAppBadge, useBeforeSignOut, useTabBadge } from '@ap-education/shell-sdk';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type PropsWithChildren, useContext } from 'react';
 
 import { UserProfileSync } from '../features/auth/components/UserProfileSync/UserProfileSync';
 import { ApiAuthSession } from '../features/auth/providers/ApiAuthSession';
-import { ChannelListRealtime } from '../features/communities/realtime/ChannelListRealtime';
-import { AttentionReporter } from '../features/notifications/components/AttentionReporter';
-import { NotificationDismissal } from '../features/notifications/components/NotificationDismissal';
-import { PushNavigation } from '../features/notifications/components/PushNavigation';
-import { PushSubscriptionSync } from '../features/notifications/components/PushSubscriptionSync';
+import { CommunitiesProvider } from '../features/communities/providers/CommunitiesProvider';
+import { NotificationsProvider } from '../features/notifications/providers/NotificationsProvider';
 import { RealtimeProvider } from '../features/realtime/providers/RealtimeProvider';
+import { PeopleProvider } from '../features/social/people/providers/PeopleProvider';
 import { WorkspaceUnreadContext } from '../features/social/read-state/workspace-unread-context';
 import { ActiveWorkspaceProvider } from '../features/workspaces/providers/ActiveWorkspaceProvider';
+import { personalTab, teamTab } from '../layouts/chats/sections';
 import { WorkspaceUnreadScope } from '../layouts/chats/WorkspaceUnreadScope';
 import { persistQueries } from './query-persistence';
 import { ShellRouter } from './ShellRouter';
@@ -24,9 +23,13 @@ const queryClient = new QueryClient({
 
 const forgetPersistedQueries = persistQueries(queryClient);
 
-function UnreadBadge() {
+function UnreadBadges() {
   const unread = useContext(WorkspaceUnreadContext);
-  useAppBadge((unread?.channelTotal ?? 0) + (unread?.directTotal ?? 0));
+  const channelTotal = unread?.channelTotal ?? 0;
+  const directTotal = unread?.directTotal ?? 0;
+  useAppBadge(channelTotal + directTotal);
+  useTabBadge(teamTab.id, channelTotal);
+  useTabBadge(personalTab.id, directTotal);
   return null;
 }
 
@@ -40,14 +43,14 @@ export function ChatsProviders({ children }: PropsWithChildren) {
         <ApiAuthSession />
         <UserProfileSync />
         <RealtimeProvider>
-          <ChannelListRealtime />
           <ActiveWorkspaceProvider>
             <WorkspaceUnreadScope>
-              <UnreadBadge />
-              <PushSubscriptionSync />
-              <AttentionReporter />
-              <NotificationDismissal />
-              <PushNavigation>{children}</PushNavigation>
+              <UnreadBadges />
+              <CommunitiesProvider>
+                <PeopleProvider>
+                  <NotificationsProvider>{children}</NotificationsProvider>
+                </PeopleProvider>
+              </CommunitiesProvider>
             </WorkspaceUnreadScope>
           </ActiveWorkspaceProvider>
         </RealtimeProvider>

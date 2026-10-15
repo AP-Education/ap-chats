@@ -1,6 +1,7 @@
 import { IconButton, useIsMobile } from '@ap-education/ui';
 import { XIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useEffect } from 'react';
 
 import { AssistedActionLabel } from '../AssistedActionLabel/AssistedActionLabel';
 import type { useConversationActions } from './useConversationActions';
@@ -12,7 +13,7 @@ const useStyles = createStyles(({ token, css }) => ({
     pointer-events: auto;
 
     @media (max-width: ${token.screenMD}px) {
-      padding: 4px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+      padding: 4px 8px calc(8px + var(--app-inset-bottom, env(safe-area-inset-bottom, 0px)));
     }
   `,
   bar: css`
@@ -80,7 +81,23 @@ export function ConversationSelectionBar({ interaction }: ConversationSelectionB
   const { styles } = useStyles();
   const isMobile = useIsMobile();
   const { actions, selectedItems, actionContext, onAction, clearSelection } = interaction;
-  if (!selectedItems.length) return null;
+  const selecting = selectedItems.length > 0;
+
+  useEffect(() => {
+    if (!selecting) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      // A dialog opened over the selection closes first.
+      if (event.target instanceof Element && event.target.closest('[role="dialog"]')) return;
+      clearSelection();
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selecting, clearSelection]);
+
+  if (!selecting) return null;
 
   const target = { kind: 'batch' as const, items: selectedItems };
   const size = isMobile ? 44 : 40;

@@ -12,6 +12,8 @@ export interface CallJoinGrant {
   callId: string;
   roomName: string;
   startedAt: string;
+  /** Unset while the call still rings: the caller's own join answers nothing. */
+  answeredAt: string | null;
   url: string;
   token: string;
   expiresAt: string;
@@ -26,6 +28,8 @@ export interface NativeCallConnectPayload {
   channelId: string;
   title: string;
   calleeAvatarPath?: string | null;
+  /** A channel call rather than a DM; the avatar can't tell them apart once it crosses the bridge. */
+  group: boolean;
   grant: CallJoinGrant;
 }
 

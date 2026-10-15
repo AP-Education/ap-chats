@@ -3,7 +3,7 @@ import { message } from 'antd';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { useConversationScope } from '@/features/social/conversation/store';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import { getUploadPolicy } from './attachments-api';
 import type { AttachmentDraft } from './types';

@@ -20,12 +20,13 @@ import { useParams } from 'react-router-dom';
 import { ChannelDetail } from '@/features/communities/channels/components/ChannelDetail';
 import { useChannel } from '@/features/communities/channels/hooks/useChannels';
 import { ChannelMembersPanel } from '@/features/communities/memberships/components/ChannelMembersPanel';
-import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
+import { ConversationProvider } from '@/features/social/conversation-scope/store';
 import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
 import { useStarMeExtension } from '@/features/star-me/hooks/useStarMeExtension';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
+import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 /** On mobile the page keeps its header, so the menu with the channel list stays one tap away. */
 function NoChannelSelected() {
@@ -40,12 +41,14 @@ function NoChannelSelected() {
         </PageHeader>
       )}
       <PageBody>
-        <ContentState>
-          <ContentStateIcon>
-            <ChatsIcon />
-          </ContentStateIcon>
-          <ContentStateTitle>Оберіть канал зі списку</ContentStateTitle>
-        </ContentState>
+        <RefreshOnPull>
+          <ContentState>
+            <ContentStateIcon>
+              <ChatsIcon />
+            </ContentStateIcon>
+            <ContentStateTitle>Оберіть канал зі списку</ContentStateTitle>
+          </ContentState>
+        </RefreshOnPull>
       </PageBody>
     </Page>
   );
@@ -106,6 +109,14 @@ export default function ChannelContent() {
           composer: {
             ariaLabel: `Написати в #${channel.name}`,
             placeholder: `Написати в #${channel.name}`,
+            groupMentions: true,
+          },
+          permissions: {
+            canPost: channel.canPost,
+            canReact: channel.isMember,
+            canManage: channel.canManage,
+            // Pinning changes the channel, so it needs the right to post as well as to manage.
+            canPin: channel.canManage && channel.canPost,
           },
         }}
       >

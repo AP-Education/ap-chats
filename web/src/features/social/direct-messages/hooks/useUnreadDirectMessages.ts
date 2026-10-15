@@ -17,15 +17,15 @@ import {
 import { mergeDirectMessage } from '../cache';
 
 // Only called from WorkspaceUnreadScope; no polling interval, same reasoning as useWorkspaceUnread.
+// Counts are patched from the active workspace's summary; a conversation elsewhere is refetched.
 export function useUnreadDirectMessages(workspaceId: string) {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
-  const queryKey = unreadDirectMessagesKey(identity, workspaceId);
+  const queryKey = unreadDirectMessagesKey(identity);
   const pendingRequests = useRef(new Map<string, string>());
 
   useSocketEvent('social:unread', (event) => {
-    if (event.workspaceId !== workspaceId || event.kind !== 'dm' || event.subject !== 'message')
-      return;
+    if (event.kind !== 'dm' || event.subject !== 'message') return;
     const snapshotWasFetching = queryClient.getQueryState(queryKey)?.fetchStatus === 'fetching';
     void queryClient.cancelQueries({ queryKey, exact: true });
     if (snapshotWasFetching || !queryClient.getQueryData(queryKey)) {
@@ -45,11 +45,11 @@ export function useUnreadDirectMessages(workspaceId: string) {
       void queryClient.invalidateQueries({ queryKey, exact: true });
     }
     if (!token) return;
-    void getDirectMessage(token, workspaceId, event.channelId).then(
+    void getDirectMessage(token, event.channelId).then(
       (updated) => {
         if (pendingRequests.current.get(event.channelId) !== event.eventId) return;
         pendingRequests.current.delete(event.channelId);
-        mergeDirectMessage(queryClient, identity, workspaceId, updated);
+        mergeDirectMessage(queryClient, identity, updated);
         queryClient.setQueryData<UnreadDirectMessage[]>(queryKey, (current) => {
           if (!current) return current;
           const latestCount = queryClient
@@ -75,7 +75,7 @@ export function useUnreadDirectMessages(workspaceId: string) {
 
   return useQuery({
     queryKey,
-    queryFn: () => listUnreadDirectMessages(token as string, workspaceId),
+    queryFn: () => listUnreadDirectMessages(token as string),
     enabled: Boolean(token),
     refetchOnWindowFocus: true,
     meta: { persist: true },

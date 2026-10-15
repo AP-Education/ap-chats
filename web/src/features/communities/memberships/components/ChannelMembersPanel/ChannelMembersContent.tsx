@@ -1,60 +1,40 @@
 import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-education/ui';
-import { UserMinusIcon, UsersIcon } from '@phosphor-icons/react';
-import { Button, Popconfirm, Skeleton } from 'antd';
+import { UsersIcon } from '@phosphor-icons/react';
+import { Button, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 
-import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
-import { MemberLabel } from '@/features/workspaces/components/MemberLabel';
 import type { WorkspaceMemberLabel } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 
-import type { ChannelMembership } from '../../types';
+import type { MemberGroup } from '../../member-groups';
+import { ChannelMemberRow } from './ChannelMemberRow';
 
 const useStyles = createStyles(({ token, css }) => ({
   body: css`
-    padding: 8px;
-  `,
-  member: css`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    min-height: 58px;
-    padding: 7px 10px;
-    border-radius: ${token.borderRadius}px;
-    &:hover {
-      background: ${token.colorFillTertiary};
-    }
-    &:hover [data-role='remove-member'],
-    &:focus-within [data-role='remove-member'] {
-      opacity: 1;
-    }
-  `,
-  memberLabel: css`
-    min-width: 0;
     flex: 1;
+    min-height: 0;
+    padding: 8px;
+    overflow-y: auto;
   `,
-  memberTrigger: css`
-    display: block;
-    width: 100%;
-    min-width: 0;
+  group: css`
+    margin: 0;
     padding: 0;
-    border: 0;
-    background: transparent;
-    color: ${token.colorText};
-    text-align: left;
-    cursor: pointer;
+    list-style: none;
+  `,
+  groupTitle: css`
+    margin: 12px 10px 4px;
+    color: ${token.colorTextTertiary};
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 
-    &:focus-visible {
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: 3px;
-      border-radius: ${token.borderRadius}px;
+    &:first-child {
+      margin-top: 4px;
     }
   `,
-  remove: css`
-    opacity: 0;
-    @media (hover: none) {
-      opacity: 1;
-    }
+  groupCount: css`
+    margin-left: 6px;
+    font-weight: 600;
   `,
   skeletonRow: css`
     display: flex;
@@ -68,21 +48,17 @@ const useStyles = createStyles(({ token, css }) => ({
 interface ChannelMembersContentProps {
   isLoading: boolean;
   isError: boolean;
-  memberships: ChannelMembership[];
+  groups: MemberGroup[];
   byId: Map<string, WorkspaceMemberLabel>;
-  canManage: boolean;
   onRetry: () => void;
-  onRemove: (memberId: string) => void;
 }
 
 export function ChannelMembersContent({
   isLoading,
   isError,
-  memberships,
+  groups,
   byId,
-  canManage,
   onRetry,
-  onRemove,
 }: ChannelMembersContentProps) {
   const { styles } = useStyles();
 
@@ -110,7 +86,7 @@ export function ChannelMembersContent({
     );
   }
 
-  if (memberships.length === 0) {
+  if (groups.length === 0) {
     return (
       <div className={styles.body}>
         <ContentState compact>
@@ -125,46 +101,27 @@ export function ChannelMembersContent({
 
   return (
     <div className={styles.body}>
-      {memberships.map((membership) => {
-        const entry = byId.get(membership.memberId);
-        if (!entry) return null;
-        return (
-          <div className={styles.member} key={membership.memberId}>
-            <span className={styles.memberLabel}>
-              <MemberPopover
-                member={{
-                  memberId: entry.member.id,
-                  displayName: entry.member.profile.displayName,
-                  avatarPath: entry.member.profile.avatarPath,
-                  isBot: entry.member.profile.isBot,
-                }}
-              >
-                <button type="button" className={styles.memberTrigger}>
-                  <MemberLabel entry={entry} size={40} />
-                </button>
-              </MemberPopover>
-            </span>
-            {canManage && !entry.isSelf && (
-              <Popconfirm
-                title="Прибрати учасника з каналу?"
-                okText="Прибрати"
-                okButtonProps={{ danger: true }}
-                cancelText="Скасувати"
-                onConfirm={() => onRemove(membership.memberId)}
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  className={styles.remove}
-                  data-role="remove-member"
-                  icon={<UserMinusIcon size={18} />}
-                  aria-label={`Прибрати ${entry.label}`}
+      {groups.map((group) => (
+        <section key={group.key} aria-label={group.title}>
+          <h4 className={styles.groupTitle}>
+            {group.title}
+            <span className={styles.groupCount}>{group.members.length}</span>
+          </h4>
+          <ul className={styles.group}>
+            {group.members.map((membership) => {
+              const entry = byId.get(membership.memberId);
+              if (!entry) return null;
+              return (
+                <ChannelMemberRow
+                  key={membership.memberId}
+                  entry={entry}
+                  color={membership.roleColor}
                 />
-              </Popconfirm>
-            )}
-          </div>
-        );
-      })}
+              );
+            })}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

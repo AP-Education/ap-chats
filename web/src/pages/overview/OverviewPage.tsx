@@ -10,6 +10,7 @@ import {
 import { ChatsCircleIcon } from '@phosphor-icons/react';
 
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
+import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 export default function OverviewPage() {
   return (
@@ -19,12 +20,14 @@ export default function OverviewPage() {
         <PageTitle>Головна</PageTitle>
       </PageHeader>
       <PageBody>
-        <ContentState>
-          <ContentStateIcon>
-            <ChatsCircleIcon />
-          </ContentStateIcon>
-          <ContentStateTitle>Розмов поки немає</ContentStateTitle>
-        </ContentState>
+        <RefreshOnPull>
+          <ContentState>
+            <ContentStateIcon>
+              <ChatsCircleIcon />
+            </ContentStateIcon>
+            <ContentStateTitle>Розмов поки немає</ContentStateTitle>
+          </ContentState>
+        </RefreshOnPull>
       </PageBody>
     </Page>
   );

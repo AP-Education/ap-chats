@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { and, asc, eq } from 'drizzle-orm';
 
+import { throwConflictOnUnique } from '@/database/drizzle/pg-errors';
 import { channelCategories, channels } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
-import { throwConflictOnUnique } from '../../repository/pg-unique-conflict';
 import type { ChannelCategory } from '../types';
 import { ChannelCategoriesRepository } from './channel-categories.repository';
 

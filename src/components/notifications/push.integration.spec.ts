@@ -1,29 +1,20 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 import { PGlite } from '@electric-sql/pglite';
-import { type TransactionalAdapter, TransactionHost } from '@nestjs-cls/transactional';
-import { TransactionalAdapterDrizzleOrm } from '@nestjs-cls/transactional-adapter-drizzle-orm';
 import { eq } from 'drizzle-orm';
-import { drizzle, type PgliteDatabase } from 'drizzle-orm/pglite';
+import { drizzle } from 'drizzle-orm/pglite';
 
 import { DrizzleWebPushRepository } from '@/components/devices/browser/repository/drizzle-web-push.repository';
 import { DrizzleDevicesRepository } from '@/components/devices/repository/drizzle-devices.repository';
-import { EntriesFacade } from '@/components/social/entries/entries.facade';
-import { DrizzleEntriesRepository } from '@/components/social/entries/repository/drizzle-entries.repository';
-import { ForwardingFacade } from '@/components/social/forwarding/forwarding.facade';
-import { DrizzleForwardingRepository } from '@/components/social/forwarding/repository/drizzle-forwarding.repository';
-import { MessagesFacade } from '@/components/social/messages';
-import { MessageMarkdownService } from '@/components/social/messages/content';
-import { DrizzleMessagesRepository } from '@/components/social/messages/repository/drizzle-messages.repository';
 import { DrizzleCallPushRepository } from '@/components/voip-push/repository/drizzle-call-push.repository';
 import * as schema from '@/database/drizzle/schema';
 import { IntegrationEvents } from '@/globals/publisher/integration-events';
 import { OutboxDispatcher } from '@/globals/publisher/outbox-dispatcher';
-import { PersistentEventOutbox } from '@/globals/publisher/persistent-event-outbox';
 import { DrizzleEventOutboxRepository } from '@/globals/publisher/repository/drizzle-event-outbox.repository';
+import { migrationFiles, transactionHost } from '@/testing/pglite';
 
 import { MessageNotificationContentService } from './alerts/message-notification-content.service';
 import { DrizzlePushAudienceRepository } from './alerts/repository/drizzle-push-audience.repository';
@@ -48,7 +39,6 @@ test('push persistence on PostgreSQL', async (t) => {
   const subscriptions = new DrizzleWebPushRepository(txHost as never);
   const audience = new DrizzlePushAudienceRepository(txHost as never);
   const outboxRepository = new DrizzleEventOutboxRepository(txHost as never);
-  const outbox = new PersistentEventOutbox(outboxRepository);
 
   // A workspace with an author and a reader in one channel; each test gets its own.
   async function seedConversation(level: 'default' | 'mentions' = 'default') {
@@ -74,7 +64,7 @@ test('push persistence on PostgreSQL', async (t) => {
     await db.insert(schema.channels).values({
       id: ids.channelId,
       workspaceId: ids.workspaceId,
-      kind: 'private',
+      kind: 'channel',
       name: 'Private',
       createdByMemberId: ids.authorId,
     });
@@ -147,12 +137,14 @@ test('push persistence on PostgreSQL', async (t) => {
         installationId: 'install',
         platform: 'ios',
         pushToken: 'A',
+        releaseKeyHash: null,
       });
       const [previous] = await devices.listForUser('owner-A');
       await devices.register('owner-B', {
         installationId: 'install',
         platform: 'ios',
         pushToken: 'B',
+        releaseKeyHash: null,
       });
 
       await devices.unregister('owner-A', 'install');
@@ -163,6 +155,22 @@ test('push persistence on PostgreSQL', async (t) => {
       assert.equal(current?.pushToken, 'B');
     },
   );
+
+  await t.test('a phone releases itself only with the key it registered with', async () => {
+    const installationId = randomUUID();
+    await devices.register('owner', {
+      installationId,
+      platform: 'android',
+      pushToken: 'token',
+      releaseKeyHash: 'kept-hash',
+    });
+
+    await devices.releaseByKey(installationId, 'guessed-hash');
+    assert.equal((await devices.listForUser('owner')).length, 1);
+
+    await devices.releaseByKey(installationId, 'kept-hash');
+    assert.equal((await devices.listForUser('owner')).length, 0);
+  });
 
   await t.test('the previous owner of a browser subscription cannot touch it', async () => {
     const registration = {
@@ -315,23 +323,10 @@ test('push persistence on PostgreSQL', async (t) => {
     },
   );
 
-  await t.test('an outbox event commits only with its transaction', async () => {
-    await assert.rejects(
-      txHost.withTransaction(async () => {
-        await outbox.record('test.event', { value: 'rolled back' });
-        throw new Error('rollback');
-      }),
-    );
-    await outbox.record('test.event', { value: 1 });
-
-    const stored = await db.select().from(schema.eventOutbox);
-    assert.deepEqual(
-      stored.map((row) => row.payload),
-      [{ value: 1 }],
-    );
-  });
-
   await t.test('the relay keeps an event until a subscriber queue accepts it', async () => {
+    const keep = (name: string, payload: object, expiresAt = new Date(Date.now() + 60_000)) =>
+      outboxRepository.append({ name, payload, priority: 10, expiresAt });
+    await keep('test.event', { value: 1 });
     const [row] = await db.select({ id: schema.eventOutbox.id }).from(schema.eventOutbox);
     const id = row!.id;
     const queued = new Map<string, object>();
@@ -358,78 +353,13 @@ test('push persistence on PostgreSQL', async (t) => {
     assert.deepEqual([...queued.values()], [{ value: 1 }], 'delivered exactly once');
     assert.equal(await stored(), undefined, 'an accepted event leaves the outbox');
 
-    await outbox.record('test.expired', {}, { expireInSeconds: -1 });
+    await keep('test.expired', {}, new Date(Date.now() - 1000));
     assert.deepEqual(await outboxRepository.claim(100), [], 'expired events are never relayed');
   });
-
-  await t.test(
-    'messages and forwards publish after commit, never on replay or rollback',
-    async () => {
-      const chat = await seedConversation();
-      const published: string[] = [];
-      let outboxDown = false;
-      const realtime = {
-        publish: (name: string) => {
-          assert.equal(txHost.isTransactionActive(), false, 'only after commit');
-          published.push(name);
-        },
-      };
-      const transactionalOutbox = {
-        record: async (name: string, payload: object) => {
-          if (outboxDown) throw new Error('outbox unavailable');
-          await outbox.record(name, payload);
-        },
-      };
-      const access = { requirePostAccess: async () => {}, requireForwardAccess: async () => {} };
-      const messages = new MessagesFacade(
-        access as never,
-        new EntriesFacade(new DrizzleEntriesRepository(txHost as never)),
-        {} as never,
-        { requireValid: async () => {}, replace: async () => {} } as never,
-        new DrizzleMessagesRepository(txHost as never),
-        new MessageMarkdownService(),
-        realtime,
-        transactionalOutbox,
-        { claim: async () => [] } as never,
-      );
-      const forwarding = new ForwardingFacade(
-        access as never,
-        {} as never,
-        messages,
-        new DrizzleForwardingRepository(txHost as never),
-        realtime,
-        transactionalOutbox,
-      );
-      const author = { workspaceId: chat.workspaceId, id: chat.authorId } as never;
-      const send = { markdown: 'publication', clientNonce: randomUUID() };
-      const forward = (message: { id: string }) => ({
-        sourceChannelId: chat.channelId,
-        messageIds: [message.id],
-        target: { kind: 'channel' as const, id: chat.channelId },
-        batchNonce: randomUUID(),
-      });
-
-      const message = await messages.send(author, chat.channelId, send);
-      await messages.send(author, chat.channelId, send);
-      const batch = forward(message);
-      await forwarding.forward(author, batch);
-      await forwarding.forward(author, batch);
-      assert.equal(published.length, 2, 'a replayed nonce publishes nothing');
-
-      outboxDown = true;
-      await assert.rejects(
-        messages.send(author, chat.channelId, { ...send, clientNonce: randomUUID() }),
-      );
-      await assert.rejects(forwarding.forward(author, forward(message)));
-      assert.equal(published.length, 2, 'a rolled back write publishes nothing');
-    },
-  );
 });
 
 async function migrate(pg: PGlite, options: { before: string; seed: string }) {
-  const migrations = readdirSync('drizzle')
-    .filter((name) => /^\d+.*\.sql$/u.test(name))
-    .sort();
+  const migrations = migrationFiles();
   const seedAt = migrations.indexOf(options.before);
   assert.ok(seedAt >= 0, `missing migration ${options.before}`);
 
@@ -437,22 +367,6 @@ async function migrate(pg: PGlite, options: { before: string; seed: string }) {
     if (index === seedAt) await pg.query(options.seed);
     await pg.exec(readFileSync(`drizzle/${migration}`, 'utf8'));
   }
-}
-
-type TestDatabase = PgliteDatabase<typeof schema>;
-
-function transactionHost(db: TestDatabase) {
-  const adapter = new TransactionalAdapterDrizzleOrm<TestDatabase>({
-    drizzleInstanceToken: Symbol('test-db'),
-  });
-
-  return new TransactionHost<TransactionalAdapter<TestDatabase, TestDatabase, object>>({
-    ...adapter.optionsFactory(db),
-    connectionName: undefined,
-    enableTransactionProxy: false,
-    defaultTxOptions: { isolationLevel: 'read committed' },
-    extraProviderTokens: [],
-  });
 }
 
 function attachment() {

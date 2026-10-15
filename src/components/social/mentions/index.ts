@@ -1,2 +1,2 @@
-export * from './mentions.facade';
-export * from './mentions.module';
+export { MentionsModule } from './mentions.module';
+export { MentionsService } from './mentions.service';

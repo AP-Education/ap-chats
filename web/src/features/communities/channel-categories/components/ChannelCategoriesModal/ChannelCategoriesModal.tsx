@@ -1,4 +1,4 @@
-import { Modal } from 'antd';
+import { AdaptiveModal } from '@/shared/ui/AdaptiveModal';
 
 import { ChannelCategoryList } from './ChannelCategoryList';
 import { NewChannelCategoryField } from './NewChannelCategoryField';
@@ -18,7 +18,7 @@ export function ChannelCategoriesModal({
   onClose,
 }: ChannelCategoriesModalProps) {
   return (
-    <Modal
+    <AdaptiveModal
       open={open}
       onCancel={onClose}
       footer={null}
@@ -28,6 +28,6 @@ export function ChannelCategoriesModal({
     >
       <ChannelCategoryList workspaceId={workspaceId} />
       <NewChannelCategoryField workspaceId={workspaceId} />
-    </Modal>
+    </AdaptiveModal>
   );
 }

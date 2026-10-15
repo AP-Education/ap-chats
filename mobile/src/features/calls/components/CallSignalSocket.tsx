@@ -6,19 +6,18 @@ import { io, type Socket } from 'socket.io-client';
 import { useAuthStore } from '../../auth';
 import { useNativeCallStore } from '../store/native-call-store';
 import { loadCallKitModule } from '../utils/callkit-module';
-import { requireAccessToken } from '../utils/require-access-token';
-import { findTrackedSessionIdByServerCallId } from '../utils/session-registry';
+import { findPlacedCall, findTrackedSessionIdByServerCallId } from '../utils/session-registry';
 import { synchronizeCallSession } from '../utils/synchronize-call-session';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
 /**
- * Closes the gap VoIP push can't: the backend only ever pushes `call:incoming`
- * (see call-push.worker.ts — there's no supported push shape to remotely
- * cancel an already-shown ring), so a decline/hangup/timeout on the other end
- * never reaches a device that's already ringing or connected. Mirrors web/'s
- * useCallSignalListener over the same realtime socket, just to dismiss the
- * native CallKit/Telecom session instead of updating a React store.
+ * Closes the gap VoIP push can't: on iOS a VoIP push must report a new call,
+ * so a decline/hangup/timeout on the other end reaches a ringing or connected
+ * device only here (Android also gets a `ringEnded` push, see
+ * ring-ended-task.ts). Mirrors web/'s useCallSignalListener over the same
+ * realtime socket, just to dismiss the native CallKit/Telecom session instead
+ * of updating a React store.
  */
 export function CallSignalSocket() {
   const status = useAuthStore((state) => state.status);
@@ -26,15 +25,22 @@ export function CallSignalSocket() {
   useEffect(() => {
     if (status !== 'signed-in' || !apiUrl) return;
 
+    let sentToken: string | undefined;
     const socket: Socket = io(`${apiUrl}/chats`, {
       // Re-read on every (re)connect attempt, like web/'s socket-client.ts —
       // not just once here, so a refreshed token is picked up without
       // tearing this socket down and recreating it.
       auth: (callback) => {
-        void requireAccessToken().then(
-          (token) => callback({ token }),
-          () => callback({ token: '' }),
-        );
+        void useAuthStore
+          .getState()
+          .freshAccessToken()
+          .then(
+            (token) => {
+              sentToken = token;
+              callback({ token });
+            },
+            () => callback({ token: '' }),
+          );
       },
     });
 
@@ -72,13 +78,21 @@ export function CallSignalSocket() {
       }
     });
     socket.on('connect_error', (error: Error & { data?: { code?: string } }) => {
-      if (error.data?.code === 'AUTH_TOKEN_EXPIRED')
-        void useAuthStore
-          .getState()
-          .refreshNow()
-          .then(() => socket.connect());
+      if (error.data?.code !== 'AUTH_TOKEN_EXPIRED') return;
+      void useAuthStore
+        .getState()
+        .renewAccessToken(sentToken)
+        .then((renewed) => renewed && socket.connect())
+        .catch(() => undefined);
     });
-    socket.on('call:accepted', (payload: unknown) => dismiss(payload, 'answeredElsewhere'));
+    // On the device that placed the call, an answer connects it rather than dismissing anything.
+    socket.on('call:accepted', (payload: unknown) => {
+      const { callId, answeredAt } = (payload ?? {}) as { callId?: unknown; answeredAt?: unknown };
+      const placed = typeof callId === 'string' ? findPlacedCall(callId) : undefined;
+      if (placed)
+        placed.answer(typeof answeredAt === 'string' ? Date.parse(answeredAt) : undefined);
+      else dismiss(payload, 'answeredElsewhere');
+    });
     socket.on('call:declined', (payload: unknown) => dismiss(payload, 'declinedElsewhere'));
     socket.on('call:ended', (payload: unknown) => dismiss(payload, 'remoteEnded'));
     socket.on('call:missed', (payload: unknown) => dismiss(payload, 'unanswered'));

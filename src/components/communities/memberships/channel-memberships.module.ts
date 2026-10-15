@@ -1,17 +1,20 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '@/components/auth';
-import { WorkspacesModule } from '@/components/workspaces';
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
+import { DrizzleModule } from '@/database/drizzle';
 
-import { ChannelAccessModule } from '../channel-access';
+import { ChannelPermissionsModule } from '../channel-access/permissions';
 import { ChannelMembershipsController } from './channel-memberships.controller';
 import { ChannelMembershipsService } from './channel-memberships.service';
-import { ChannelMembershipsRepositoryModule } from './channel-memberships-repository.module';
+import { ChannelMembershipsRepository, DrizzleChannelMembershipsRepository } from './repository';
 
 @Module({
-  imports: [AuthModule, WorkspacesModule, ChannelAccessModule, ChannelMembershipsRepositoryModule],
+  imports: [AuthModule, DrizzleModule, WorkspaceMembersModule, ChannelPermissionsModule],
   controllers: [ChannelMembershipsController],
-  providers: [ChannelMembershipsService],
-  exports: [ChannelMembershipsService],
+  providers: [
+    ChannelMembershipsService,
+    { provide: ChannelMembershipsRepository, useClass: DrizzleChannelMembershipsRepository },
+  ],
 })
 export class ChannelMembershipsModule {}

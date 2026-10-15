@@ -1,11 +1,12 @@
-import type { SentMessage } from '@/features/social/conversation/extensions';
+import type { SentMessage } from '@/features/social/conversation-scope/extensions';
 
-import { mentionsMember } from '../social/mentions/memberMention';
+import { writeToken } from '../social/mentions/mention-tokens';
 import type { AskRequest, FailedQuestion, QuestionStatus } from './types';
 
 /** A message asks StarMe when it mentions StarMe or replies to it; asking about picked messages mentions it too. */
 export function asksStarMe(message: SentMessage, starMeId: string): boolean {
-  return message.replyToAuthorId === starMeId || mentionsMember(message.input.markdown, starMeId);
+  const mention = writeToken({ kind: 'member', id: starMeId });
+  return message.replyToAuthorId === starMeId || message.input.markdown.includes(mention);
 }
 
 export function askRequest(message: SentMessage, questionId: string): AskRequest {

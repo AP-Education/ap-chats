@@ -1,9 +1,8 @@
-import { avatarColors } from '@ap-education/ui';
-import { theme } from 'antd';
 import { createStyles } from 'antd-style';
 
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { BotBadge } from '@/features/social/people/components/BotBadge/BotBadge';
-import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
+import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
 
 import { useMessageActionScope } from './MessageActionScope';
 
@@ -38,25 +37,25 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-/** Who wrote an incoming message, in the colour of their avatar. */
+/** Who wrote an incoming message, in the colour of their top role. */
 export function MessageAuthorName() {
   const { styles } = useStyles();
   const { item, author, context } = useMessageActionScope();
-  const { token } = theme.useToken();
+  const { workspaceId } = useConversationScope();
 
   if (item.message.authorMemberId === context.memberId) return null;
 
   return (
     <span className={styles.line}>
-      <MemberPopover member={item.author}>
+      <MemberProfileTrigger member={{ ...item.author, workspaceId }}>
         <button
           type="button"
           className={styles.author}
-          style={{ color: avatarColors(author, token).name }}
+          style={item.author.roleColor ? { color: item.author.roleColor } : undefined}
         >
           {author}
         </button>
-      </MemberPopover>
+      </MemberProfileTrigger>
       {item.author.isBot && <BotBadge />}
     </span>
   );

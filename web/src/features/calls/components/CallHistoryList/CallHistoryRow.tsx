@@ -198,19 +198,18 @@ export interface CallEntryLinkState {
 
 interface CallHistoryRowProps {
   entry: CallHistoryEntry;
-  workspaceId: string;
   active: boolean;
   onNavigate?: () => void;
 }
 
-export function CallHistoryRow({ entry, workspaceId, active, onNavigate }: CallHistoryRowProps) {
+export function CallHistoryRow({ entry, active, onNavigate }: CallHistoryRowProps) {
   const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
   const { latest, count, outgoing } = entry;
   const name = latest.participant.displayName ?? 'Колега';
   const { Icon, live, missed } = getCallStatusIcon(latest.status, outgoing);
   const call = useKnownCallAction(
-    workspaceId,
+    latest.workspaceId,
     latest.channelId,
     name,
     latest.participant.avatarPath,
@@ -222,7 +221,7 @@ export function CallHistoryRow({ entry, workspaceId, active, onNavigate }: CallH
   return (
     <div className={cx(styles.row, active && styles.active)}>
       <Link
-        to={`/direct/${latest.channelId}`}
+        to={`/calls/${latest.channelId}`}
         state={{ callEntry: entry.key } satisfies CallEntryLinkState}
         onClick={onNavigate}
         className={styles.link}

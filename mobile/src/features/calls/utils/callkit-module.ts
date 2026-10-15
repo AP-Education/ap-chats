@@ -1,7 +1,10 @@
 import { requireOptionalNativeModule } from 'expo';
 import type * as CallKitModule from 'expo-callkit-telecom';
 
-let modulePromise: Promise<typeof CallKitModule | null> | undefined;
+/** expo-callkit-telecom, once loaded on a runtime that has it. */
+export type CallKitApi = typeof CallKitModule;
+
+let modulePromise: Promise<CallKitApi | null> | undefined;
 
 /**
  * expo-callkit-telecom's native module throws synchronously while its own
@@ -12,7 +15,7 @@ let modulePromise: Promise<typeof CallKitModule | null> | undefined;
  * dynamic import defers that to a promise we can actually catch, so the rest
  * of the app degrades to "no calling" instead of going down with it.
  */
-export function loadCallKitModule(): Promise<typeof CallKitModule | null> {
+export function loadCallKitModule(): Promise<CallKitApi | null> {
   if (!modulePromise) {
     modulePromise = Promise.resolve()
       .then(() => {
@@ -29,6 +32,6 @@ export function loadCallKitModule(): Promise<typeof CallKitModule | null> {
 }
 
 /** Fire-and-forget a CallKit action; a runtime without CallKit simply skips it. */
-export function withCallKit(action: (CallKit: typeof CallKitModule) => unknown): void {
+export function withCallKit(action: (CallKit: CallKitApi) => unknown): void {
   void loadCallKitModule().then((CallKit) => CallKit && action(CallKit));
 }

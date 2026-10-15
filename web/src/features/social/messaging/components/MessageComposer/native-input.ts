@@ -51,24 +51,56 @@ export function readComposerMessage(
   return null;
 }
 
-/** The native keyboard about to rise over the page, or done rising. */
+/** The native keyboard starting to move over the page, or done moving. */
 export type KeyboardGlideMessage =
-  | { type: 'keyboard/glide'; shift: number; duration: number; easing: string }
+  | {
+      type: 'keyboard/glide';
+      direction: 'up' | 'down';
+      shift: number;
+      duration: number;
+      /** The keyboard's own curve, when the shell has watched it move that way. */
+      easing?: string;
+    }
   | { type: 'keyboard/glide-end' };
 
-const GLIDE_EASING = /^(linear\([\d., ]+\)|cubic-bezier\([\d., -]+\))$/;
+/** How much of the page's bottom the native input now covers, and how it gets there. */
+export interface KeyboardInsetMessage {
+  type: 'keyboard/inset';
+  inset: number;
+  duration: number;
+  easing?: string;
+}
 
-export function readKeyboardGlide(value: unknown): KeyboardGlideMessage | null {
+const GLIDE_EASING = /^(linear\([\d., %]+\)|cubic-bezier\([\d., -]+\))$/;
+
+export function readKeyboardGlide(
+  value: unknown,
+): KeyboardGlideMessage | KeyboardInsetMessage | null {
   if (!value || typeof value !== 'object') return null;
   const message = value as Record<string, unknown>;
   if (message.type === 'keyboard/glide-end') return { type: 'keyboard/glide-end' };
-  if (
-    message.type === 'keyboard/glide' &&
-    Number.isFinite(message.shift) &&
-    Number.isFinite(message.duration) &&
-    typeof message.easing === 'string' &&
-    GLIDE_EASING.test(message.easing)
-  )
-    return message as KeyboardGlideMessage;
-  return null;
+
+  const { inset, shift, duration, easing } = message;
+  const validEasing = typeof easing === 'string' && GLIDE_EASING.test(easing);
+  if (message.type === 'keyboard/inset') {
+    if (!Number.isFinite(inset) || !Number.isFinite(duration)) return null;
+    return {
+      type: 'keyboard/inset',
+      inset: inset as number,
+      duration: duration as number,
+      ...(validEasing ? { easing } : {}),
+    };
+  }
+
+  const isGlide = message.type === 'keyboard/glide';
+  if (!isGlide || !Number.isFinite(shift) || !Number.isFinite(duration)) return null;
+
+  return {
+    type: 'keyboard/glide',
+    // Shells that predate falling glides announce rises alone.
+    direction: message.direction === 'down' ? 'down' : 'up',
+    shift: shift as number,
+    duration: duration as number,
+    ...(validEasing ? { easing } : {}),
+  };
 }

@@ -1,6 +1,6 @@
 import { PushPinIcon } from '@phosphor-icons/react';
 
-import type { ConversationAction } from '../conversation/actions';
+import type { ConversationAction } from '../messaging/types';
 
 export const pinActions: ConversationAction[] = [
   {
@@ -8,10 +8,7 @@ export const pinActions: ConversationAction[] = [
     icon: <PushPinIcon size={18} />,
     label: (target) => (target.items[0]?.pin ? 'Відкріпити' : 'Закріпити'),
     available: (target, context) =>
-      target.kind === 'message' &&
-      context.canPin &&
-      context.canPost &&
-      target.items[0].message.markdown !== null,
+      target.kind === 'message' && context.canPin && target.items[0].message.markdown !== null,
     execute: (target, commands) => commands.pin(target.items[0]!, !target.items[0]!.pin),
   },
 ];

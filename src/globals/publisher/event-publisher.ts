@@ -1,16 +1,18 @@
-import { Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import type { Announce, RecordOptions } from './types';
+
+export const nothingToAnnounce: Announce = () => {};
 
 export abstract class EventPublisher {
-  abstract publish<T>(key: string, event: T): void;
-}
+  /** Tells this process's listeners about a change that has already committed. */
+  abstract publish<T extends object>(name: string, event: T): void;
 
-@Injectable()
-export class NestEventPublisher extends EventPublisher {
-  constructor(private readonly emitter: EventEmitter2) {
-    super();
-  }
-  publish<T>(key: string, event: T): void {
-    this.emitter.emit(key, event);
-  }
+  /**
+   * Inside the transaction; run the returned announcement after it commits. A durable event also
+   * goes to the outbox in that transaction, so other processes get it even if this one dies.
+   */
+  abstract record<T extends object>(
+    name: string,
+    event: T,
+    options?: RecordOptions,
+  ): Promise<Announce>;
 }

@@ -1,12 +1,7 @@
 import type { ReactNode } from 'react';
 
-import type {
-  ActionContext,
-  ActionTarget,
-  ConversationAction,
-} from '@/features/social/conversation/actions';
-
 import type { AttachmentDraft } from '../../attachments/types';
+import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
 import type { DeliveryStatus, HistoryItem, MessageHistoryItem } from '../../types';
 
 // Everything a strategy might need, regardless of which fields its own kind
@@ -19,8 +14,6 @@ export interface HistoryItemRenderContext {
   onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
   delivery: DeliveryStatus | undefined;
   pendingAttachments: AttachmentDraft[] | undefined;
-  /** Sends an unsent row again, by the id it carries until the server confirms it. */
-  onRetry: (rowId: string) => void;
 }
 
 // One strategy per HistoryItem kind. `item` stays the full union here — the

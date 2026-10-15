@@ -1,87 +1,39 @@
-import { createStyles } from 'antd-style';
 import ReactMarkdown from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkDirective from 'remark-directive';
+import remarkGfm from 'remark-gfm';
 
-import { MemberPopover } from '@/features/social/people/components/MemberPopover/MemberPopover';
-import type { MemberSummary } from '@/features/workspaces/types';
-
+import { reachesViewer, type ViewerReach } from '../../mention-reach';
+import { tokenFromAttributes } from '../../mention-tokens';
+import type { MentionLabel } from '../../types';
 import { mentionDirective } from './mention-directive';
-
-const useStyles = createStyles(({ token, css }) => ({
-  // Hugs the glyphs instead of filling the line: a button would otherwise stretch its
-  // tint to the full line box and read as a block in the middle of the sentence.
-  mention: css`
-    display: inline;
-    padding: 1px 4px;
-    border: 0;
-    border-radius: ${token.borderRadiusSM}px;
-    background: var(--mention-bg, ${token.colorPrimaryBg});
-    color: var(--mention-color, ${token.colorPrimaryTextActive});
-    font: inherit;
-    font-weight: 600;
-    line-height: 1.2;
-    vertical-align: baseline;
-    box-decoration-break: clone;
-  `,
-  mentionTrigger: css`
-    cursor: pointer;
-
-    &:hover,
-    &:focus-visible {
-      background: var(--mention-bg-hover, ${token.colorPrimaryBgHover});
-    }
-  `,
-  // A mention of you specifically reads differently from a mention of
-  // anyone else — Discord's amber "this is about you" tag. The same accent
-  // as the row highlight, deliberately not antd's stock warning tokens,
-  // which read as a random clash against this app's teal palette.
-  // Own bubbles override these with their usual mention ink: naming yourself in your
-  // own message is no news to you, and amber on the accent fill reads as mud.
-  mentionMe: css`
-    background: var(--mention-me-bg, rgba(250, 173, 20, 0.18));
-    color: var(--mention-me-color, #874d00);
-
-    html[data-theme='dark'] & {
-      background: var(--mention-me-bg, rgba(250, 173, 20, 0.22));
-      color: var(--mention-me-color, #ffd591);
-    }
-  `,
-  // A bot here is an assistant: its mention carries a faint indigo-to-violet wash, hover
-  // included. The spark's teal end is left out, since it would vanish into the teal accent.
-  mentionAssistant: css`
-    &&& {
-      background-image: linear-gradient(100deg, rgb(84 104 245 / 0.38), rgb(168 85 247 / 0.38));
-    }
-  `,
-  mentionMeTrigger: css`
-    &:hover,
-    &:focus-visible {
-      background: var(--mention-me-bg-hover, rgba(250, 173, 20, 0.28));
-    }
-  `,
-}));
+import { MentionReference } from './MentionReference';
 
 interface MessageMarkdownProps {
   markdown: string;
-  mentions?: MemberSummary[];
+  mentions?: MentionLabel[];
   inline?: boolean;
-  /** The current viewer's own member id — highlights a mention of them distinctly. */
-  viewerMemberId?: string;
+  /** How the message reached the viewer, so the references that did read as theirs. */
+  viewer?: ViewerReach;
 }
 
 export function MessageMarkdown({
   markdown,
   mentions = [],
   inline = false,
-  viewerMemberId,
+  viewer,
 }: MessageMarkdownProps) {
-  const { styles, cx } = useStyles();
   const people = new Map(mentions.map((mention) => [mention.memberId, mention]));
 
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkDirective, mentionDirective, remarkBreaks]}
+      // GFM for bare links and ~~strikethrough~~; a single tilde stays plain, as people type it.
+      remarkPlugins={[
+        remarkDirective,
+        mentionDirective,
+        remarkBreaks,
+        [remarkGfm, { singleTilde: false }],
+      ]}
       allowedElements={[
         'p',
         'strong',
@@ -95,8 +47,10 @@ export function MessageMarkdown({
         'li',
         'br',
         'span',
+        'del',
       ]}
-      unwrapDisallowed={inline}
+      // Whatever has no look of its own here, a table or a heading, still shows its text.
+      unwrapDisallowed
       components={{
         p: ({ children }) => (inline ? <span>{children} </span> : <p>{children}</p>),
         a: ({ children, ...props }) =>
@@ -115,28 +69,15 @@ export function MessageMarkdown({
           ),
         br: () => (inline ? <> </> : <br />),
         span: ({ node, children }) => {
-          const memberId = String(node?.properties?.['data-member-id'] ?? '');
-          if (!memberId) return <span>{children}</span>;
-          const person = people.get(memberId);
-          const name = person?.displayName ?? 'учасник';
-          const isMe = memberId === viewerMemberId;
-          const mentionClass = cx(
-            styles.mention,
-            isMe && styles.mentionMe,
-            person?.isBot && styles.mentionAssistant,
-          );
-          if (inline || !person) return <span className={mentionClass}>@{name}</span>;
+          const token = tokenFromAttributes(node?.properties);
+          if (!token) return <span>{children}</span>;
           return (
-            <MemberPopover member={person}>
-              <button
-                type="button"
-                className={cx(mentionClass, styles.mentionTrigger, isMe && styles.mentionMeTrigger)}
-                onPointerDown={(event) => event.stopPropagation()}
-                onContextMenu={(event) => event.stopPropagation()}
-              >
-                @{name}
-              </button>
-            </MemberPopover>
+            <MentionReference
+              token={token}
+              people={people}
+              inline={inline}
+              mine={reachesViewer(token, viewer)}
+            />
           );
         },
       }}

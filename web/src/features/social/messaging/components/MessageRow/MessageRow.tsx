@@ -1,23 +1,19 @@
 import { createStyles } from 'antd-style';
 import { memo, useLayoutEffect, useRef } from 'react';
 
-import type {
-  ActionContext,
-  ActionTarget,
-  ConversationAction,
-} from '@/features/social/conversation/actions';
-import { useConversation } from '@/features/social/conversation/store';
+import { useConversation } from '@/features/social/conversation-scope/store';
 
 import type { AttachmentDraft } from '../../attachments/types';
+import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';
 import { Bubble } from '../Bubble/Bubble';
-import { BubbleRetry } from '../Bubble/BubbleRetry';
 import { SELECTION_GUTTER } from '../HistoryRun/HistoryRun';
 import { bubbleLayout } from './bubbleLayout';
 import { MessageActions } from './MessageActions';
 import { MessageActionProvider } from './MessageActionScope';
 import { MessageBody } from './MessageBody';
 import { MessageHeader } from './MessageHeader';
+import { UnsentNotice } from './UnsentNotice';
 
 const CHECK_MARK = `url("data:image/svg+xml,${encodeURIComponent(
   "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>",
@@ -80,17 +76,6 @@ const useStyles = createStyles(({ token, css }) => ({
       }
     }
   `,
-  confirmed: css`
-    animation: confirmed 0.9s ease-out;
-    @keyframes confirmed {
-      30% {
-        background: color-mix(in srgb, ${token.colorPrimary} 12%, transparent);
-      }
-      100% {
-        background: transparent;
-      }
-    }
-  `,
   // Sits in the run's gutter at the screen edge, wherever the bubble itself is.
   checkbox: css`
     position: absolute;
@@ -135,7 +120,6 @@ interface MessageRowProps {
   onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
   delivery?: DeliveryStatus;
   pendingAttachments?: AttachmentDraft[];
-  onRetry: (rowId: string) => void;
 }
 
 export const MessageRow = memo(function MessageRow({
@@ -147,14 +131,11 @@ export const MessageRow = memo(function MessageRow({
   onEdit,
   delivery,
   pendingAttachments,
-  onRetry,
 }: MessageRowProps) {
   const { styles, cx } = useStyles();
   const authorName = item.author.displayName ?? 'Ім’я недоступне';
   const isOwnMessage = item.message.authorMemberId === actionContext.memberId;
-  const mentionsMe =
-    !isOwnMessage &&
-    (item.mentions?.some((mention) => mention.memberId === actionContext.memberId) ?? false);
+  const mentionsMe = !isOwnMessage && Boolean(item.mentionsMe);
   const isReplyToMe = !isOwnMessage && item.reply?.authorMemberId === actionContext.memberId;
   const highlighted = mentionsMe || isReplyToMe;
   const isSelected = useConversation((state) => state.selectedIds.includes(item.message.id));
@@ -198,7 +179,6 @@ export const MessageRow = memo(function MessageRow({
             styles.row,
             isSelected && styles.selected,
             (delivery === 'sending' || delivery === 'uploading') && styles.sending,
-            delivery === 'confirmed' && styles.confirmed,
           ),
           onClick: (event) => {
             if (!hasSelection || window.getSelection()?.toString()) return;
@@ -242,9 +222,7 @@ export const MessageRow = memo(function MessageRow({
             onEdit={onEdit}
             onCloseEdit={() => setEditingId(null)}
           />
-          {delivery === 'failed' && (
-            <BubbleRetry status="Не надіслано" onRetry={() => onRetry(item.id)} />
-          )}
+          {delivery === 'failed' && <UnsentNotice rowId={item.id} />}
         </Bubble>
       </MessageActions>
     </MessageActionProvider>

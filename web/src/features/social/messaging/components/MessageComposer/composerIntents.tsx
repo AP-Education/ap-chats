@@ -1,7 +1,9 @@
 import type { ComponentType } from 'react';
 
-import type { ComposerIntent } from '@/features/social/conversation/store';
-import { memberMention, mentionsMember } from '@/features/social/mentions/memberMention';
+import type { ComposerIntent } from '@/features/social/conversation-scope/store';
+import { writeToken } from '@/features/social/mentions/mention-tokens';
+import type { ComposerDraft } from '@/features/social/mentions/types';
+import type { MemberSummary } from '@/features/workspaces/types';
 
 import type { SendMessageCommand } from '../../types';
 import { AskExcerpt } from '../AskExcerpt/AskExcerpt';
@@ -11,7 +13,10 @@ type Intent = NonNullable<ComposerIntent>;
 type IntentKind = Intent['kind'];
 type IntentOf<K extends IntentKind> = Extract<Intent, { kind: K }>;
 
-type IntentMessage = Pick<SendMessageCommand, 'markdown' | 'replyToMessageId' | 'quoteText'>;
+type IntentMessage = Pick<
+  SendMessageCommand,
+  'markdown' | 'labels' | 'replyToMessageId' | 'quoteText'
+>;
 
 export interface IntentExcerptProps<T> {
   intent: T;
@@ -26,7 +31,7 @@ interface ComposerIntentBehaviour<T> {
   /** The intent says enough to send without words of the person's own. */
   speaksForItself: boolean;
   /** The message the composer sends for the person's words under this intent. */
-  compose: (intent: T, markdown: string) => IntentMessage;
+  compose: (intent: T, draft: ComposerDraft) => IntentMessage;
 }
 
 const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>> } = {
@@ -40,8 +45,9 @@ const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>>
     ),
     cancelLabel: 'Скасувати відповідь',
     speaksForItself: false,
-    compose: (intent, markdown) => ({
+    compose: (intent, { markdown, labels }) => ({
       markdown,
+      labels,
       replyToMessageId: intent.messageId,
       ...(intent.quoteText ? { quoteText: intent.quoteText } : {}),
     }),
@@ -50,7 +56,7 @@ const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>>
     Excerpt: ({ intent }) => <AskExcerpt member={intent.member} count={intent.messageIds.length} />,
     cancelLabel: 'Скасувати запит',
     speaksForItself: true,
-    compose: (intent, markdown) => ({ markdown: addressedTo(intent.member.memberId, markdown) }),
+    compose: (intent, draft) => addressedTo(intent.member, draft),
   },
 };
 
@@ -67,8 +73,10 @@ export function composerIntent<K extends IntentKind>(
 }
 
 /** The message mentions whom it asks, unless the person already did. */
-function addressedTo(memberId: string, markdown: string): string {
-  if (mentionsMember(markdown, memberId)) return markdown;
-  const mention = memberMention(memberId);
-  return markdown ? `${mention} ${markdown}` : mention;
+function addressedTo(member: MemberSummary, { markdown, labels }: ComposerDraft): IntentMessage {
+  const mention = writeToken({ kind: 'member', id: member.memberId });
+  const named = { ...labels, [member.memberId]: member.displayName ?? '' };
+  if (markdown.includes(mention)) return { markdown, labels: named };
+
+  return { markdown: markdown ? `${mention} ${markdown}` : mention, labels: named };
 }

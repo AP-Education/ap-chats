@@ -14,6 +14,6 @@ export function useDirectMessageMute(workspaceId: string, channelId: string) {
       if (!token) throw new Error('Not signed in');
       return updateDirectMessageMute(token, workspaceId, channelId, mode);
     },
-    onSuccess: (updated) => replaceDirectMessage(queryClient, identity, workspaceId, updated),
+    onSuccess: (updated) => replaceDirectMessage(queryClient, identity, updated),
   });
 }

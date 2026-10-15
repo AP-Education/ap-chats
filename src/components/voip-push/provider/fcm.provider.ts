@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { importPKCS8, SignJWT } from 'jose';
 
-import type { CallSignalPayload } from '@/components/calls/events/call-signal.event';
+import type { CallSignalPayload } from '@/components/calls/calls/events/call-signal.event';
+import type { RingEndReason } from '@/components/calls/calls/events/ring-ended.event';
 import type { DeviceRecord } from '@/components/devices';
 import { AppConfigService } from '@/globals/config';
 
@@ -38,9 +39,24 @@ export class FcmPushProvider implements CallPushProvider {
     // type "FCM") — distinct from device.pushToken, which is the general Expo
     // push token used for ordinary notifications.
     if (!this.isConfigured || !device.voipToken) return;
-    const accessToken = await this.authToken();
     const event = buildIncomingCallEvent(payload);
 
+    await this.send(device.voipToken, payload.callId, {
+      messageType: 'incomingCall',
+      incomingCall: JSON.stringify(event),
+    });
+  }
+
+  // The app's background notification task ends the ring; sharing the ring's collapse key, it
+  // also replaces a ring still waiting on an offline device, which then never rings at all.
+  async sendRingEnded(device: DeviceRecord, callId: string, reason: RingEndReason): Promise<void> {
+    if (!this.isConfigured || !device.voipToken) return;
+
+    await this.send(device.voipToken, callId, { messageType: 'ringEnded', callId, reason });
+  }
+
+  private async send(token: string, callId: string, data: Record<string, string>): Promise<void> {
+    const accessToken = await this.authToken();
     const response = await fetch(
       `https://fcm.googleapis.com/v1/projects/${this.projectId}/messages:send`,
       {
@@ -49,9 +65,9 @@ export class FcmPushProvider implements CallPushProvider {
         headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
         body: JSON.stringify({
           message: {
-            token: device.voipToken,
-            data: { messageType: 'incomingCall', incomingCall: JSON.stringify(event) },
-            android: { priority: 'high', ttl: '45s', collapse_key: payload.callId },
+            token,
+            data,
+            android: { priority: 'high', ttl: '45s', collapse_key: callId },
           },
         }),
       },

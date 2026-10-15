@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from 'react';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { PortalProvider } from 'react-native-teleport';
 
 /**
  * Root provider stack — mirrors web/src/app/providers/AppProviders.tsx. Grows here as
@@ -9,7 +10,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <SafeAreaProvider>
-      <KeyboardProvider>{children}</KeyboardProvider>
+      <KeyboardProvider>
+        <PortalProvider>{children}</PortalProvider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }

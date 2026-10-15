@@ -2,7 +2,7 @@ import type { CallSession } from 'expo-callkit-telecom';
 
 import { useNativeCallStore } from '../store/native-call-store';
 import { extractCallMetadata } from './call-metadata';
-import type { loadCallKitModule } from './callkit-module';
+import type { CallKitApi } from './callkit-module';
 import { getTrackedSession, trackSession } from './session-registry';
 
 export function restoreIncomingSession(session: CallSession): void {
@@ -14,6 +14,7 @@ export function restoreIncomingSession(session: CallSession): void {
     serverCallId: incoming.serverCallId,
     metadata,
     caller: incoming.caller,
+    group: metadata.channelKind !== 'dm',
   });
   useNativeCallStore.getState().setCall({
     sessionId: session.id,
@@ -24,9 +25,7 @@ export function restoreIncomingSession(session: CallSession): void {
   });
 }
 
-export async function hydrateCallSession(
-  CallKit: NonNullable<Awaited<ReturnType<typeof loadCallKitModule>>>,
-): Promise<void> {
+export async function hydrateCallSession(CallKit: CallKitApi): Promise<void> {
   const session = await CallKit.getActiveCallSession();
   if (session) restoreIncomingSession(session);
 }

@@ -1,19 +1,11 @@
 import { Module } from '@nestjs/common';
 
-import { ChannelsRepositoryModule } from '../channels';
-import { ChannelMembershipsRepositoryModule } from '../memberships/channel-memberships-repository.module';
-import { ChannelAccessFacade } from './channel-access.facade';
-import { CommunityAccessService } from './community-access.service';
-import { ChannelAccessRepository } from './repository/channel-access.repository';
-import { DrizzleChannelAccessRepository } from './repository/drizzle-channel-access.repository';
+import { ChannelAccessPolicyModule } from './channel-access';
+import { ChannelPermissionsModule } from './permissions';
+import { ChannelAccessSyncModule } from './sync';
 
+/** Brings channel access into the communities component; others import the part they use. */
 @Module({
-  imports: [ChannelsRepositoryModule, ChannelMembershipsRepositoryModule],
-  providers: [
-    CommunityAccessService,
-    ChannelAccessFacade,
-    { provide: ChannelAccessRepository, useClass: DrizzleChannelAccessRepository },
-  ],
-  exports: [CommunityAccessService, ChannelAccessFacade],
+  imports: [ChannelAccessPolicyModule, ChannelPermissionsModule, ChannelAccessSyncModule],
 })
 export class ChannelAccessModule {}

@@ -40,5 +40,6 @@ export function useOutbox(key: string, delivered: ReadonlySet<string>) {
       update((current) => enqueue(current, input, createdAt)),
     fail: (nonce: string) => update((current) => markFailed(current, nonce)),
     settle: (nonce: string) => update((current) => without(current, nonce)),
+    discard: (nonce: string) => update((current) => without(current, nonce)),
   };
 }

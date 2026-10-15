@@ -8,10 +8,14 @@ type WebToNativeCallMessage = { type: 'calls/connect'; payload: NativeCallConnec
 
 /** Hands a just-started or just-joined call off to the native mobile shell —
  * see NativeCallConnectPayload for why. No-ops outside the native shell. */
-export function requestNativeCallConnect(payload: NativeCallConnectPayload): void {
+export function requestNativeCallConnect(payload: Omit<NativeCallConnectPayload, 'group'>): void {
   const message: WebToNativeCallMessage = {
     type: 'calls/connect',
-    payload: { ...payload, calleeAvatarPath: resolveImageUrl(payload.calleeAvatarPath) },
+    payload: {
+      ...payload,
+      calleeAvatarPath: resolveImageUrl(payload.calleeAvatarPath),
+      group: payload.calleeAvatarPath === undefined,
+    },
   };
   postToNative(message);
 }

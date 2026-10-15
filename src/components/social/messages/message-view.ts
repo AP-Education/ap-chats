@@ -1,5 +1,7 @@
 import type { MessageModel } from './types/message.types';
 
+export type MessageView = ReturnType<typeof messageView>;
+
 export function messageView(message: MessageModel, seq: bigint, viewerMemberId?: string) {
   return {
     id: message.id,

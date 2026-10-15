@@ -4,6 +4,7 @@ import { message as toast, Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
+import { useConversationPermissions } from '@/features/social/conversation-scope/store';
 import { ReplyExcerpt } from '@/features/social/messaging/components/ReplyExcerpt/ReplyExcerpt';
 
 import { PinnedMessages } from '../PinnedMessages/PinnedMessages';
@@ -18,8 +19,8 @@ const useStyles = createStyles(({ token, css }) => ({
     min-height: 52px;
     padding: 0 20px;
     border-bottom: 1px solid ${token.colorBorderSecondary};
-    background: var(--app-surface, rgba(255, 255, 255, 0.92));
-    backdrop-filter: var(--app-surface-blur, blur(48px) saturate(1.2));
+    background: var(--glass, rgba(255, 255, 255, 0.86));
+    backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
 
     @media (max-width: ${token.screenMD}px) {
       gap: 6px;
@@ -57,12 +58,12 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 interface PinnedMessageBarProps {
-  canUnpin: boolean;
   onJump: (messageId: string) => void;
 }
 
-export function PinnedMessageBar({ canUnpin, onJump }: PinnedMessageBarProps) {
+export function PinnedMessageBar({ onJump }: PinnedMessageBarProps) {
   const { styles } = useStyles();
+  const { canPin: canUnpin } = useConversationPermissions();
   const [listOpen, setListOpen] = useState(false);
   const bar = usePinnedMessageBar();
 

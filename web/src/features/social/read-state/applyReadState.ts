@@ -50,9 +50,8 @@ function writeReadState(
     void queryClient.invalidateQueries({ queryKey: summaryKey, exact: true });
   }
   if (state.unreadCount === 0) {
-    queryClient.setQueryData<Array<{ id: string }>>(
-      unreadDirectMessagesKey(identity, workspaceId),
-      (current) => current?.filter((entry) => entry.id !== channelId),
+    queryClient.setQueryData<Array<{ id: string }>>(unreadDirectMessagesKey(identity), (current) =>
+      current?.filter((entry) => entry.id !== channelId),
     );
   }
   queryClient.setQueriesData<InfiniteData<HistoryPage, PageCursor>>(

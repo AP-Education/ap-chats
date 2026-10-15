@@ -1,4 +1,4 @@
-import { useConversationExtensions } from '@/features/social/conversation/extensions';
+import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
 
 import { useMessageActionScope } from './MessageActionScope';
 

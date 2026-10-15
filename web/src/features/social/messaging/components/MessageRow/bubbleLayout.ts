@@ -28,6 +28,16 @@ export interface BubbleLayout {
   jumboEmoji: number;
   /** Where the time goes; null while the message is being edited. */
   meta: MessageMetaPlacement | null;
+  /** Reaction chips close the bubble. */
+  reactions: boolean;
+}
+
+interface BubbleContent {
+  hasText: boolean;
+  hasImages: boolean;
+  hasFiles: boolean;
+  jumboEmoji: number;
+  reactions: boolean;
 }
 
 export function bubbleLayout(
@@ -35,20 +45,55 @@ export function bubbleLayout(
   pendingAttachments: AttachmentDraft[] | undefined,
   editing: boolean,
 ): BubbleLayout {
+  const content = bubbleContent(item, pendingAttachments);
+  const { hasText, jumboEmoji } = content;
+
+  if (editing) return { variant: 'text', hasText, jumboEmoji: 0, meta: null, reactions: false };
+
+  return {
+    variant: bubbleVariant(content),
+    hasText,
+    jumboEmoji,
+    meta: metaPlacement(content),
+    reactions: content.reactions,
+  };
+}
+
+function bubbleContent(
+  item: MessageHistoryItem,
+  pendingAttachments: AttachmentDraft[] | undefined,
+): BubbleContent {
   const markdown = item.message.markdown;
-  const hasText = Boolean(markdown?.trim());
   const attachments = item.message.attachments ?? [];
   const images = pendingAttachments ? [] : attachments.filter((file) => file.preview === 'image');
-  const hasFiles = pendingAttachments
-    ? pendingAttachments.length > 0
-    : images.length < attachments.length;
-  const jumboEmoji = attachments.length || pendingAttachments ? 0 : jumboEmojiCount(markdown);
+  const hasAttachments = attachments.length > 0 || Boolean(pendingAttachments);
 
-  if (editing) return { variant: 'text', hasText, jumboEmoji: 0, meta: null };
-  if (jumboEmoji) return { variant: 'emoji', hasText, jumboEmoji, meta: 'emoji' };
+  return {
+    hasText: Boolean(markdown?.trim()),
+    hasImages: images.length > 0,
+    hasFiles: pendingAttachments
+      ? pendingAttachments.length > 0
+      : images.length < attachments.length,
+    jumboEmoji: hasAttachments ? 0 : jumboEmojiCount(markdown),
+    reactions: Boolean(item.reactions?.length),
+  };
+}
 
-  const variant = images.length ? 'media' : 'text';
-  if (hasText) return { variant, hasText, jumboEmoji, meta: 'inline' };
-  if (hasFiles) return { variant, hasText, jumboEmoji, meta: 'block' };
-  return { variant, hasText, jumboEmoji, meta: 'overlay' };
+function bubbleVariant({ jumboEmoji, hasImages }: BubbleContent): BubbleVariant {
+  if (jumboEmoji) return 'emoji';
+  return hasImages ? 'media' : 'text';
+}
+
+// The time closes whatever ends the bubble: the last line of text, the files, the reaction row,
+// or the photo and large emoji it sits on.
+function metaPlacement({
+  jumboEmoji,
+  hasText,
+  hasFiles,
+  reactions,
+}: BubbleContent): MessageMetaPlacement {
+  if (jumboEmoji) return 'emoji';
+  if (!hasText && !hasFiles) return 'overlay';
+  if (reactions) return 'reactions';
+  return hasText ? 'inline' : 'block';
 }

@@ -15,11 +15,11 @@ import {
 import { ChatTextIcon, ProhibitIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
-import { useParams } from 'react-router-dom';
+import { useMatch, useParams } from 'react-router-dom';
 
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
-import { ConversationProvider } from '@/features/social/conversation/store';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
+import { ConversationProvider } from '@/features/social/conversation-scope/store';
 import { DirectMessageActions } from '@/features/social/direct-messages/components/DirectMessageActions';
 import { DirectProfilePanel } from '@/features/social/direct-messages/components/DirectProfilePanel/DirectProfilePanel';
 import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDirectMessages';
@@ -28,6 +28,7 @@ import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspa
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 import { Avatar } from '@/shared/ui/Avatar';
+import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 const useStyles = createStyles(({ css }) => ({
   name: css`
@@ -51,12 +52,14 @@ function NoConversationSelected() {
         </PageHeader>
       )}
       <PageBody>
-        <ContentState>
-          <ContentStateIcon>
-            <ChatTextIcon />
-          </ContentStateIcon>
-          <ContentStateTitle>Оберіть розмову або напишіть колезі</ContentStateTitle>
-        </ContentState>
+        <RefreshOnPull>
+          <ContentState>
+            <ContentStateIcon>
+              <ChatTextIcon />
+            </ContentStateIcon>
+            <ContentStateTitle>Оберіть розмову або напишіть колезі</ContentStateTitle>
+          </ContentState>
+        </RefreshOnPull>
       </PageBody>
     </Page>
   );
@@ -64,17 +67,20 @@ function NoConversationSelected() {
 
 export default function DirectMessagePage() {
   const { styles } = useStyles();
-  const { id: workspaceId } = useRequiredWorkspace();
+  const { id: activeWorkspaceId } = useRequiredWorkspace();
   const { channelId } = useParams<{ channelId: string }>();
-  const conversation = useDirectMessage(workspaceId, channelId);
+  // Opened from the calls, the conversation goes back to them.
+  const listPath = useMatch('/calls/*') ? '/calls' : '/direct';
+  const conversation = useDirectMessage(channelId);
   const unavailable = useTrackConversation(
     'direct',
-    workspaceId,
+    activeWorkspaceId,
     channelId,
     conversation,
-    '/direct',
+    listPath,
   );
-  const { byId, currentMember } = useWorkspaceMemberLabels(workspaceId);
+  // A conversation belongs to people rather than to the active workspace, so it names its own.
+  const { byId, currentMember } = useWorkspaceMemberLabels(conversation.data?.workspaceId);
 
   if (!channelId) return <NoConversationSelected />;
   if (conversation.isPending) return <Page />;
@@ -104,7 +110,7 @@ export default function DirectMessagePage() {
     );
   }
 
-  const { participant } = conversation.data;
+  const { participant, workspaceId } = conversation.data;
   const name = participant.displayName ?? 'Ім’я недоступне';
   return (
     <Page>
@@ -120,6 +126,12 @@ export default function DirectMessagePage() {
             placeholder: `Повідомлення для ${name}`,
             autoFocus: true,
           },
+          permissions: {
+            canPost: participant.active,
+            canReact: participant.active,
+            canManage: false,
+            canPin: participant.active,
+          },
         }}
       >
         <WorkspaceChannelPresence channelId={channelId} />
@@ -134,12 +146,7 @@ export default function DirectMessagePage() {
           </PageActions>
         </PageHeader>
         <PageBody transparent>
-          <ConversationView
-            canPost={participant.active}
-            canManage={false}
-            canPin={participant.active}
-            currentMember={currentMember}
-          />
+          <ConversationView currentMember={currentMember} />
         </PageBody>
       </ConversationProvider>
       <PageAside>

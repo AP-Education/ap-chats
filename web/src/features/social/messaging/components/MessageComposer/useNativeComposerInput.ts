@@ -9,7 +9,8 @@ import {
   useState,
 } from 'react';
 
-import type { ComposerEditorApi } from '../../types';
+import type { ComposerEditorApi } from '@/features/social/mentions/types';
+
 import { createComposerSessionId, type NativeInputMode, readComposerMessage } from './native-input';
 import type { GifResult, PickerTab } from './picker';
 

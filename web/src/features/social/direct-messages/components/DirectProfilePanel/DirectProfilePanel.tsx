@@ -4,6 +4,7 @@ import { createStyles } from 'antd-style';
 import type { DirectMessage } from '@/features/social/direct-messages/api/direct-messages-api';
 import { MemberIdentity } from '@/features/social/people/components/MemberIdentity';
 import type { WorkspaceMember } from '@/features/workspaces/types';
+import { accessLevelLabels } from '@/features/workspaces/workspace-access';
 
 const joinedFormat = new Intl.DateTimeFormat('uk-UA', {
   day: 'numeric',
@@ -37,11 +38,9 @@ export function DirectProfilePanel({ participant, member }: DirectProfilePanelPr
   const { styles } = useStyles();
   const name = member?.profile.displayName ?? participant.displayName ?? 'Ім’я недоступне';
   const avatarPath = member?.profile.avatarPath ?? participant.avatarPath;
-  const role = !participant.active
-    ? 'Більше не в просторі'
-    : member?.role === 'owner'
-      ? 'Власник простору'
-      : 'Учасник простору';
+  const role = participant.active
+    ? accessLevelLabels[member?.accessLevel ?? 'member']
+    : 'Більше не в просторі';
 
   return (
     <div className={styles.shell}>

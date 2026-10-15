@@ -33,18 +33,18 @@ export interface MemberSummary extends MemberAppearance {
   memberId: string;
 }
 
-export interface MemberProfile extends MemberAppearance {
-  id: string;
-  /** The OIDC subject, or a reserved one such as bot:star-me for a bot. */
-  oidcUserId: string;
-}
+export type WorkspaceAccessLevel = 'owner' | 'manager' | 'member';
 
 export interface WorkspaceMember {
   id: string;
   workspaceId: string;
   userProfileId: string;
-  profile: MemberProfile;
-  role: 'owner' | 'member';
+  profile: MemberAppearance & {
+    id: string;
+    /** The OIDC subject, or a reserved one such as bot:star-me for a bot. */
+    oidcUserId: string;
+  };
+  accessLevel: WorkspaceAccessLevel;
   status: 'active' | 'removed';
   leftAt: string | null;
   createdAt: string;

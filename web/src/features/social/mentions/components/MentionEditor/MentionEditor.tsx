@@ -1,22 +1,25 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createStyles } from 'antd-style';
 import { type ComponentProps, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { useConversationScope } from '@/features/social/conversation/store';
-import {
-  ComposerEditor,
-  type ComposerEditorHandle,
-} from '@/features/social/messaging/components/ComposerEditor/ComposerEditor';
-import { useMessageEditorSlot } from '@/features/social/messaging/MessageEditorSlot';
-import type { MemberSummary } from '@/features/workspaces/types';
-import { apiRequest } from '@/shared/api/http';
+import { useChannels } from '@/features/communities/channels/hooks/useChannels';
+import { useRoles } from '@/features/roles/hooks/useRoles';
+import { useConversationScope } from '@/features/social/conversation-scope/store';
 
-import { mentionChip, restoreEditor, serializeEditor } from './mention-editor-dom';
-import { MentionCandidateList } from './MentionCandidateList';
+import { useMessageEditorSlot } from '../../MessageEditorSlot';
+import { ComposerEditor, type ComposerEditorHandle } from '../ComposerEditor/ComposerEditor';
+import { restoreEditor, serializeEditor, tokenChip } from './mention-editor-dom';
+import { SuggestionList } from './SuggestionList';
+import type { Suggestion, SuggestionQuery } from './suggestions';
+import { tokenizeTypedEveryone } from './typed-everyone';
+import { useChannelSuggestions } from './useChannelSuggestions';
+import { usePeopleSuggestions } from './usePeopleSuggestions';
 
-const MENTION_QUERY_PATTERN = /(?:^|[\s(])@([\p{L}\p{N}._-]{0,80})$/u;
+const SUGGESTION_QUERY_PATTERN = /(?:^|[\s(])([@#])([\p{L}\p{N}._-]{0,80})$/u;
+
+function sameQuery(a: SuggestionQuery | null, b: SuggestionQuery | null) {
+  return a?.trigger === b?.trigger && a?.text === b?.text;
+}
 
 const useStyles = createStyles(({ token, css }) => ({
   wrapper: css`
@@ -62,37 +65,37 @@ export function MentionEditor() {
     suggestionsHost,
   } = useMessageEditorSlot();
   const { styles, cx } = useStyles();
-  const { workspaceId, channelId } = useConversationScope();
-  const { token } = useQueryAuth();
+  const { workspaceId, composer } = useConversationScope();
+  const channels = useChannels(workspaceId);
+  const { query: roles } = useRoles(workspaceId);
   const composerRef = useRef<ComposerEditorHandle>(null);
   // Reseeded in onMount whenever the inner ComposerEditor remounts (a new
   // draftKey) rather than only once: this component instance outlives that,
   // since switching drafts no longer remounts MentionEditor itself.
   const labels = useRef<Record<string, string>>(initialDraft?.labels ?? {});
-  const [query, setQuery] = useState<string | null>(null);
+  const [query, setQuery] = useState<SuggestionQuery | null>(null);
   const [active, setActive] = useState(0);
-  const candidates = useQuery({
-    queryKey: ['mention-candidates', workspaceId, channelId, query],
-    queryFn: () =>
-      apiRequest<MemberSummary[]>(
-        `/api/workspaces/${workspaceId}/channels/${channelId}/mention-candidates?q=${encodeURIComponent(query ?? '')}`,
-        token as string,
-      ),
-    enabled: Boolean(token && query !== null),
-    staleTime: 30_000,
-    // Typing narrows the list in place instead of closing it between keystrokes.
-    placeholderData: keepPreviousData,
-  });
+  const peopleSuggestions = usePeopleSuggestions(query);
+  const channelSuggestions = useChannelSuggestions(query);
+  // Each source answers only its own trigger.
+  const suggestions = peopleSuggestions ?? channelSuggestions;
+  const items = suggestions?.items ?? [];
 
+  // TODO(everyone): every outgoing @everyone, picked or typed, passes here; confirm before a big channel.
   function currentMarkdown() {
-    return serializeEditor(composerRef.current?.rootElement() ?? null);
+    const markdown = serializeEditor(composerRef.current?.rootElement() ?? null);
+    return composer.groupMentions ? tokenizeTypedEveryone(markdown) : markdown;
+  }
+
+  function currentDraft() {
+    return { markdown: currentMarkdown(), labels: labels.current };
   }
 
   // Fires on every keystroke and click: the editor's content and/or the caret
-  // position may have moved, so both the draft echo and the @-query tracking
+  // position may have moved, so both the draft echo and the suggestion query
   // get re-derived from scratch rather than threaded through as separate state.
   function handleActivity() {
-    onChange?.({ markdown: currentMarkdown(), labels: labels.current });
+    onChange?.(currentDraft());
     const root = composerRef.current?.rootElement();
     const selection = window.getSelection();
     if (
@@ -105,29 +108,29 @@ export function MentionEditor() {
       return;
     }
     const before = (selection.anchorNode.textContent ?? '').slice(0, selection.anchorOffset);
-    const match = before.match(MENTION_QUERY_PATTERN);
-    const nextQuery = match ? match[1]! : null;
+    const match = before.match(SUGGESTION_QUERY_PATTERN);
+    const nextQuery = match
+      ? { trigger: match[1] as SuggestionQuery['trigger'], text: match[2]! }
+      : null;
     // Key-ups land here too; only a new query resets the highlight, not the arrow that moved it.
-    if (nextQuery !== query) setActive(0);
+    if (!sameQuery(nextQuery, query)) setActive(0);
     setQuery(nextQuery);
   }
 
-  function pick(candidate: MemberSummary) {
+  function pick({ token, label }: Suggestion) {
     const selection = window.getSelection();
     if (!selection || !selection.isCollapsed || selection.anchorNode?.nodeType !== Node.TEXT_NODE)
       return;
     const node = selection.anchorNode;
     const before = (node.textContent ?? '').slice(0, selection.anchorOffset);
-    const match = before.match(MENTION_QUERY_PATTERN);
+    const match = before.match(SUGGESTION_QUERY_PATTERN);
     if (!match) return;
     const range = document.createRange();
-    range.setStart(node, selection.anchorOffset - match[1]!.length - 1);
+    range.setStart(node, selection.anchorOffset - match[2]!.length - 1);
     range.setEnd(node, selection.anchorOffset);
-    const name = candidate.displayName ?? 'учасник';
-    labels.current[candidate.memberId] = name;
-    const chip = mentionChip(candidate.memberId, name, styles.chip);
+    if (token.kind !== 'everyone') labels.current[token.id] = label;
     const fragment = document.createDocumentFragment();
-    fragment.append(chip, document.createTextNode(' '));
+    fragment.append(tokenChip(token, labels.current, styles.chip), document.createTextNode(' '));
     composerRef.current?.insertNode(fragment, range);
     setQuery(null);
     handleActivity();
@@ -135,7 +138,7 @@ export function MentionEditor() {
   }
 
   useImperativeHandle(editorRef, () => ({
-    markdown: currentMarkdown,
+    draft: currentDraft,
     clear: () => {
       composerRef.current?.clear();
       labels.current = {};
@@ -163,24 +166,24 @@ export function MentionEditor() {
           setQuery(null);
           return;
         }
-        if (query === null || !candidates.data?.length) return;
+        if (!items.length) return;
         if (event.key === 'ArrowDown') {
           event.preventDefault();
           event.stopPropagation();
-          setActive((index) => (index + 1) % candidates.data!.length);
+          setActive((index) => (index + 1) % items.length);
           return;
         }
         if (event.key === 'ArrowUp') {
           event.preventDefault();
           event.stopPropagation();
-          setActive((index) => (index - 1 + candidates.data!.length) % candidates.data!.length);
+          setActive((index) => (index - 1 + items.length) % items.length);
           return;
         }
         if (event.key === 'Enter') {
           event.preventDefault();
           event.stopPropagation();
-          const candidate = candidates.data[active] ?? candidates.data[0];
-          if (candidate) pick(candidate);
+          const suggestion = items[active] ?? items[0];
+          if (suggestion) pick(suggestion);
         }
       }}
     >
@@ -188,8 +191,17 @@ export function MentionEditor() {
         key={draftKey}
         editorRef={composerRef}
         onMount={(root) => {
-          labels.current = initialDraft?.labels ?? {};
-          restoreEditor(root, initialDraft ?? { markdown: '', labels: {} }, styles.chip);
+          const draft = initialDraft ?? { markdown: '', labels: {} };
+          labels.current = draft.labels;
+          // A message being edited carries no channel or role names; the cached lists have them.
+          const listedNames = Object.fromEntries(
+            [...(channels.data ?? []), ...(roles.data ?? [])].map(({ id, name }) => [id, name]),
+          );
+          restoreEditor(
+            root,
+            { ...draft, labels: { ...listedNames, ...draft.labels } },
+            styles.chip,
+          );
         }}
         className={cx(styles.editor, className)}
         editorStyle={editorStyle}
@@ -201,11 +213,11 @@ export function MentionEditor() {
         onEscape={onEscape}
         onPasteFiles={onPasteFiles}
       />
-      {query !== null && candidates.data && candidates.data.length > 0 && (
-        <MentionSuggestions
+      {query && suggestions && items.length > 0 && (
+        <SuggestionPopup
           host={suggestionsHost}
-          candidates={candidates.data}
-          query={query}
+          group={suggestions}
+          query={query.text}
           active={active}
           onActivate={setActive}
           onPick={pick}
@@ -215,12 +227,12 @@ export function MentionEditor() {
   );
 }
 
-type MentionSuggestionsProps = Omit<ComponentProps<typeof MentionCandidateList>, 'placement'> & {
+type SuggestionPopupProps = Omit<ComponentProps<typeof SuggestionList>, 'placement'> & {
   host: HTMLElement | null | undefined;
 };
 
 /** Docks in the composer's strip when there is one; an inline editor gets a floating list. */
-function MentionSuggestions({ host, ...list }: MentionSuggestionsProps) {
-  if (!host) return <MentionCandidateList placement="floating" {...list} />;
-  return createPortal(<MentionCandidateList placement="docked" {...list} />, host);
+function SuggestionPopup({ host, ...list }: SuggestionPopupProps) {
+  if (!host) return <SuggestionList placement="floating" {...list} />;
+  return createPortal(<SuggestionList placement="docked" {...list} />, host);
 }

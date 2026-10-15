@@ -1,8 +1,10 @@
 import { createStyles } from 'antd-style';
+import type { ReactNode } from 'react';
 
-import type { ActionTarget, ConversationAction } from '@/features/social/conversation/actions';
 import { AssistedActionLabel } from '@/features/social/conversation/components/AssistedActionLabel/AssistedActionLabel';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
+
+import type { ActionTarget, ConversationAction } from '../../types';
 
 const useStyles = createStyles(({ token, css }) => ({
   group: css`
@@ -49,6 +51,7 @@ const useStyles = createStyles(({ token, css }) => ({
 interface MessageActionSheetProps {
   open: boolean;
   onClose: () => void;
+  header?: ReactNode;
   target: ActionTarget;
   groups: ConversationAction[][];
   onAction: (action: ConversationAction, target: ActionTarget) => void;
@@ -57,6 +60,7 @@ interface MessageActionSheetProps {
 export function MessageActionSheet({
   open,
   onClose,
+  header,
   target,
   groups,
   onAction,
@@ -64,6 +68,7 @@ export function MessageActionSheet({
   const { styles, cx } = useStyles();
   return (
     <BottomSheet open={open} onClose={onClose} aria-label="Дії з повідомленням">
+      {header}
       {groups.map((group, index) => (
         <div className={styles.group} key={index}>
           {group.map((action) => (

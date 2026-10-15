@@ -86,7 +86,6 @@ test('authenticates a socket and joins only its user room', { timeout: 5000 }, a
   const namespace = socketServer.of('/chats');
   assert.equal(namespace.adapter.rooms.get(RealtimeRooms.user('alice'))?.size, 1);
   assert.equal(namespace.adapter.rooms.has(RealtimeRooms.user('bob')), false);
-  assert.equal(namespace.adapter.rooms.has(RealtimeRooms.conversation('some-id')), false);
 });
 
 test('delivers a personal event to every device of that user', { timeout: 5000 }, async () => {
@@ -105,6 +104,36 @@ test('delivers a personal event to every device of that user', { timeout: 5000 }
   assert.deepEqual(await secondEvent, { id: 'notice-1' });
   assert.deepEqual(unexpected, []);
 });
+
+test(
+  'a watcher who may no longer see a room stops hearing it and leaves',
+  { timeout: 5000 },
+  async () => {
+    const alice = client('alice');
+    const bob = client('bob');
+    await Promise.all([connect(alice), connect(bob)]);
+    const namespace = socketServer.of('/chats');
+    namespace.in([RealtimeRooms.user('alice'), RealtimeRooms.user('bob')]).socketsJoin('watched');
+
+    const heardByAlice = new Promise<unknown>((resolve) => alice.once('update', resolve));
+    const heardByBob: unknown[] = [];
+    bob.on('update', (payload) => heardByBob.push(payload));
+
+    await publisher.toWatchers('watched', 'update', { id: 'update-1' }, async (userIds) =>
+      userIds.filter((userId) => userId === 'alice'),
+    );
+
+    assert.deepEqual(await heardByAlice, { id: 'update-1' });
+    assert.deepEqual(heardByBob, []);
+    const watching = [...(namespace.adapter.rooms.get('watched') ?? [])];
+    const aliceSockets = namespace.adapter.rooms.get(RealtimeRooms.user('alice'));
+    assert.ok(watching.length > 0, 'alice still watches');
+    assert.ok(
+      watching.every((socketId) => aliceSockets?.has(socketId)),
+      'bob left the room',
+    );
+  },
+);
 
 // A personal event must not depend on which app happens to trigger it: a user
 // signed into two different apps still shares one delivery target.

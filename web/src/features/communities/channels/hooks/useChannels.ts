@@ -6,12 +6,9 @@ import { communityQueryKeys } from '../../queryKeys';
 import { type ChannelScope, getChannel, listChannels } from '../api/channels-api';
 import type { Channel } from '../types';
 
-// All public channels plus every channel the workspace member has joined —
-// enough to derive both "my channels" and "channels I could join" for the
-// sidebar without a second request.
 export function useChannels(
   workspaceId: string | undefined,
-  scope: ChannelScope = 'available',
+  scope: ChannelScope = 'mine',
 ): UseQueryResult<Channel[]> {
   const { token, identity } = useQueryAuth();
 
@@ -36,10 +33,10 @@ export function useChannel(
     enabled: Boolean(token && workspaceId && channelId),
     initialData: () =>
       queryClient
-        .getQueryData<Channel[]>(communityQueryKeys.channels(identity, workspaceId, 'available'))
+        .getQueryData<Channel[]>(communityQueryKeys.channels(identity, workspaceId, 'mine'))
         ?.find((channel) => channel.id === channelId),
     initialDataUpdatedAt: () =>
-      queryClient.getQueryState(communityQueryKeys.channels(identity, workspaceId, 'available'))
+      queryClient.getQueryState(communityQueryKeys.channels(identity, workspaceId, 'mine'))
         ?.dataUpdatedAt,
   });
 }

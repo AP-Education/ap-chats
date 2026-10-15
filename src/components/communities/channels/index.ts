@@ -1,3 +1,2 @@
-export * from './channels-repository.module';
-export * from './repository/channels.repository';
-export * from './types';
+export { ChannelsModule } from './channels.module';
+export { ChannelsRepository } from './repository/channels.repository';

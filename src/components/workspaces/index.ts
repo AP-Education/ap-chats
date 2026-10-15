@@ -1,2 +1,2 @@
-export * from './workspaces.module';
-export * from './workspaces/events';
+export { WorkspacesModule } from './workspaces.module';
+export { WORKSPACE_CREATED_EVENT, WorkspaceCreatedEvent } from './workspaces/events';

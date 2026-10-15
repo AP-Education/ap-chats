@@ -1,3 +1,5 @@
+import { readToken, tokenAttributes } from '../../mention-tokens';
+
 interface MarkdownNode {
   type: string;
   name?: string;
@@ -9,17 +11,11 @@ interface MarkdownNode {
   };
 }
 
-const memberIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 function visit(node: MarkdownNode): void {
-  if (node.type === 'textDirective' && node.name === 'member') {
-    const memberId = node.children?.map((child) => child.value ?? '').join('') ?? '';
-    if (memberIdPattern.test(memberId)) {
-      node.data = {
-        hName: 'span',
-        hProperties: { 'data-member-id': memberId },
-      };
-    }
+  if (node.type === 'textDirective') {
+    const label = node.children?.map((child) => child.value ?? '').join('') ?? '';
+    const token = readToken(node.name, label);
+    if (token) node.data = { hName: 'span', hProperties: tokenAttributes(token) };
   }
 
   node.children?.forEach(visit);

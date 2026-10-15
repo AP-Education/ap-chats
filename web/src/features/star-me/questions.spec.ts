@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { SentMessage } from '@/features/social/conversation/extensions';
+import type { SentMessage } from '@/features/social/conversation-scope/extensions';
 
 import { askRequest, asksStarMe, lastFailure, withStatus } from './questions.ts';
 import type { QuestionStatus } from './types';
@@ -11,7 +11,7 @@ const starMe = 'b0b0b0b0-0000-4000-8000-000000000001';
 function sent(markdown: string, extra: Partial<SentMessage> = {}): SentMessage {
   return {
     channelId: 'channel',
-    input: { markdown, clientNonce: 'nonce' },
+    input: { markdown },
     landed: new Promise(() => {}),
     ...extra,
   };

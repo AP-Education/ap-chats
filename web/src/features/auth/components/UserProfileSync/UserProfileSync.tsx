@@ -2,6 +2,7 @@ import { useCurrentUser } from '@ap-education/shell-sdk';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
+import { workspaceQueryKeys } from '@/features/workspaces/queryKeys';
 import { apiRequest, jsonInit } from '@/shared/api/http';
 
 const synchronizedTokens = new Set<string>();
@@ -35,7 +36,9 @@ function SignedInProfileSync({
     synchronizedTokens.add(idToken);
     void apiRequest<void>('/api/user-profile/me', accessToken, jsonInit('PUT', { idToken })).then(
       () => {
-        void queryClient.invalidateQueries({ queryKey: ['workspace-members', identity] });
+        void queryClient.invalidateQueries({
+          queryKey: workspaceQueryKeys.everyonesMembers(identity),
+        });
         void queryClient.invalidateQueries({ queryKey: ['messaging', identity] });
         void queryClient.invalidateQueries({ queryKey: ['pins', identity] });
       },

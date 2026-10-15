@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import type { ConversationExtension } from '@/features/social/conversation/extensions';
+import type { ConversationExtension } from '@/features/social/conversation-scope/extensions';
 
 import { askStarMeAction } from '../actions';
 import { StarMeActivity } from '../components/StarMeActivity/StarMeActivity';

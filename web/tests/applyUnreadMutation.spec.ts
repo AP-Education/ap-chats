@@ -10,7 +10,7 @@ import type { ChannelUnread } from '../src/features/social/read-state/hooks/useW
 import { workspaceUnreadKey } from '../src/features/social/read-state/queryKeys';
 
 const summary: ChannelUnread[] = [
-  { channelId: 'channel', kind: 'public', lastReadEntrySeq: '9', unreadCount: 2 },
+  { channelId: 'channel', kind: 'channel', lastReadEntrySeq: '9', unreadCount: 2 },
   { channelId: 'dm', kind: 'dm', lastReadEntrySeq: '0', unreadCount: 1 },
 ];
 
@@ -18,7 +18,7 @@ function mutation(changes: Partial<UnreadMutation> = {}): UnreadMutation {
   return {
     workspaceId: 'workspace',
     channelId: 'channel',
-    kind: 'public',
+    kind: 'channel',
     eventId: 'event',
     operation: 'append',
     subject: 'message',

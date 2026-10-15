@@ -1,7 +1,7 @@
 import type { UseMutationResult } from '@tanstack/react-query';
 
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
-import type { WorkspaceMember } from '@/features/workspaces/types';
+import { isWorkspaceAdministrator } from '@/features/workspaces/workspace-access';
 
 import { useChannelCategories } from '../../channel-categories/hooks/useChannelCategories';
 import type { ChannelCategory, CreateChannelCategoryInput } from '../../channel-categories/types';
@@ -19,17 +19,15 @@ interface ChannelSectionsResult {
   isLoading: boolean;
   isError: boolean;
   retry: () => void;
-  isOwner: boolean;
-  currentMember: WorkspaceMember | undefined;
+  isAdministrator: boolean;
   sections: ChannelSectionData[];
   createCategory: UseMutationResult<ChannelCategory, Error, CreateChannelCategoryInput>;
 }
 
-// A category id doubles as its section id; joined channels with no category
-// fall under this key instead.
+// A category id doubles as its section id; channels with no category fall under this key instead.
 export const UNCATEGORIZED = 'uncategorized';
 
-// One pass over the joined channels instead of one filter per category.
+// One pass over the channels instead of one filter per category.
 function groupByCategory(channels: Channel[]): Map<string, Channel[]> {
   const groups = new Map<string, Channel[]>();
   for (const channel of channels) {
@@ -41,10 +39,8 @@ function groupByCategory(channels: Channel[]): Map<string, Channel[]> {
   return groups;
 }
 
-// Owns the data behind ChannelsSidebar: the active workspace's channels and
-// categories, reshaped into the sections the sidebar renders (categories in
-// order, then an "uncategorized" bucket, then public channels the member
-// hasn't joined). Keeps that derivation out of the component's JSX.
+// Owns the data behind ChannelsSidebar: the person's channels and the workspace categories,
+// reshaped into the sections the sidebar renders (categories in order, then "uncategorized").
 export function useChannelSections(workspaceId: string): ChannelSectionsResult {
   const channelsQuery = useChannels(workspaceId);
   const channels = channelsQuery.data;
@@ -56,35 +52,24 @@ export function useChannelSections(workspaceId: string): ChannelSectionsResult {
     retry: retryMembers,
   } = useWorkspaceMemberLabels(workspaceId);
 
-  const isOwner = currentMember?.role === 'owner';
+  const isAdministrator = isWorkspaceAdministrator(currentMember);
   const categories = categoriesQuery.data ?? [];
-  const joined = channels?.filter((channel) => channel.isMember) ?? [];
-  const discoverable =
-    channels?.filter((channel) => !channel.isMember && channel.kind === 'public') ?? [];
-  const joinedByCategory = groupByCategory(joined);
+  const channelsByCategory = groupByCategory(channels ?? []);
 
   const sections: ChannelSectionData[] = [
     ...categories.map((category) => ({
       id: category.id,
       name: category.name,
-      channels: joinedByCategory.get(category.id) ?? [],
-      canCreateChannel: isOwner,
+      channels: channelsByCategory.get(category.id) ?? [],
+      canCreateChannel: isAdministrator,
     })),
     {
       id: UNCATEGORIZED,
       name: 'Без категорії',
-      channels: joinedByCategory.get(UNCATEGORIZED) ?? [],
-      canCreateChannel: isOwner,
+      channels: channelsByCategory.get(UNCATEGORIZED) ?? [],
+      canCreateChannel: isAdministrator,
     },
   ];
-  if (discoverable.length) {
-    sections.push({
-      id: 'discoverable',
-      name: 'Публічні канали',
-      channels: discoverable,
-      canCreateChannel: false,
-    });
-  }
 
   return {
     isLoading: channelsQuery.isPending || categoriesQuery.isPending || membersLoading,
@@ -97,8 +82,7 @@ export function useChannelSections(workspaceId: string): ChannelSectionsResult {
       if (categoriesQuery.isError) void categoriesQuery.refetch();
       if (membersError) retryMembers();
     },
-    isOwner,
-    currentMember,
+    isAdministrator,
     sections,
     createCategory,
   };

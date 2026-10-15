@@ -17,6 +17,13 @@ export type AuthState =
 /** The authorization server refused to renew the session; only signing in again helps. */
 export class SessionExpiredError extends Error {}
 
+/** No session to act for: signed out, or its renewal was just refused. */
+export class NotSignedInError extends Error {
+  constructor() {
+    super('Not signed in');
+  }
+}
+
 /**
  * Port for the OIDC login/refresh/logout mechanics. The concrete adapter (expo-auth-session
  * today) sits behind this interface so it can be swapped or faked in tests without

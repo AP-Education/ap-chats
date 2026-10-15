@@ -1,13 +1,8 @@
 import { useIsMobile } from '@ap-education/ui';
 import { createContext, type PropsWithChildren, type RefObject, useContext, useState } from 'react';
 
-import type {
-  ActionContext,
-  ActionTarget,
-  ConversationAction,
-} from '@/features/social/conversation/actions';
-
 import type { AttachmentDraft } from '../../attachments/types';
+import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';
 
 interface MessageActionInput {
@@ -23,6 +18,8 @@ interface MessageActionInput {
 
 interface MessageActionScope extends MessageActionInput {
   isMobile: boolean;
+  isOwn: boolean;
+  canReact: boolean;
   messageTarget: ActionTarget;
   selectedText: string;
   textTarget: ActionTarget;
@@ -72,6 +69,8 @@ export function MessageActionProvider({
       value={{
         ...value,
         isMobile,
+        isOwn: value.item.message.authorMemberId === value.context.memberId,
+        canReact: !value.delivery && value.context.canReact,
         messageTarget,
         textTarget,
         selectedText,

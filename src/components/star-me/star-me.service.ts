@@ -7,10 +7,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { ChannelAccessFacade } from '@/components/communities/channel-access';
-import { ChannelMembershipsService } from '@/components/communities/memberships';
-import { MessagesFacade } from '@/components/social/messages';
-import { WorkspaceMembersRepository } from '@/components/workspaces/members/repository';
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
+import { SendMessageService } from '@/components/social/posting';
+import { WorkspaceMembersRepository } from '@/components/workspaces/members';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { Logger } from '@/globals/logger';
 import { EventPublisher } from '@/globals/publisher/event-publisher';
@@ -39,9 +38,8 @@ const MAX_ANSWER_CHARACTERS = 12_000;
 export class StarMeService {
   constructor(
     private readonly members: WorkspaceMembersRepository,
-    private readonly access: ChannelAccessFacade,
-    private readonly memberships: ChannelMembershipsService,
-    private readonly messages: MessagesFacade,
+    private readonly access: ChannelAccessPolicy,
+    private readonly messages: SendMessageService,
     private readonly repository: StarMeRepository,
     private readonly assistant: Assistant,
     private readonly activity: StarMeActivity,
@@ -61,7 +59,7 @@ export class StarMeService {
     dto: AnswerQuestionDto,
     accessToken: string,
   ): Promise<void> {
-    await this.access.requirePostAccess(asker, channelId);
+    await this.access.requirePostRight(asker, channelId);
     const starMe = await this.requireStarMe(asker.workspaceId);
     const question = await this.requireQuestion(asker, channelId, dto.questionId, starMe);
     if (dto.contextMessageIds?.length) {
@@ -179,15 +177,18 @@ export class StarMeService {
     answer: string,
     clientNonce: string,
   ): Promise<string> {
-    // Summoned into a channel, StarMe joins it on behalf of whoever asked.
-    await this.memberships.add(asker, question.channelId, starMe.id);
-
     try {
-      const sent = await this.messages.send(starMe, question.channelId, {
-        markdown: Array.from(answer.trim()).slice(0, MAX_ANSWER_CHARACTERS).join(''),
-        clientNonce,
-        replyToMessageId: question.id,
-      });
+      // Tech debt: StarMe posts on the asker's right to post, not on grants of its own.
+      const sent = await this.messages.send(
+        starMe,
+        question.channelId,
+        {
+          markdown: Array.from(answer.trim()).slice(0, MAX_ANSWER_CHARACTERS).join(''),
+          clientNonce,
+          replyToMessageId: question.id,
+        },
+        asker,
+      );
       return sent.id;
     } catch (error) {
       // A second request for the same question may finish first; its answer stands.

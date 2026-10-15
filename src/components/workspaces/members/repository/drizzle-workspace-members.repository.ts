@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, eq, ilike, inArray, ne } from 'drizzle-orm';
+import { and, asc, eq, ilike, inArray, ne } from 'drizzle-orm';
 
-import { userProfiles, workspaceMembers } from '@/database/drizzle/schema';
+import { activeRoleMembers, userProfiles, workspaceMembers } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
-import type { WorkspaceMember } from '../types';
+import type { WorkspaceAccessLevel } from '../../access/types';
+import type { MemberSummary, RoleBadge, WorkspaceMember } from '../types';
 import { WorkspaceMembersRepository } from './workspace-members.repository';
 
 @Injectable()
@@ -25,7 +26,7 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
     return rows.map((row) => this.toModel(row.member, row.profile));
   }
 
-  search(workspaceId: string, viewerId: string, query: string) {
+  search(workspaceId: string, viewerId: string, query: string): Promise<MemberSummary[]> {
     const escaped = query.replace(/[\\%_]/gu, '\\$&');
     return this.txHost.tx
       .select({
@@ -80,6 +81,58 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
     return member && this.toModel(member.member, member.profile);
   }
 
+  async findManyByIds(workspaceId: string, memberIds: string[]): Promise<WorkspaceMember[]> {
+    if (!memberIds.length) return [];
+    const rows = await this.txHost.tx
+      .select({ member: workspaceMembers, profile: userProfiles })
+      .from(workspaceMembers)
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, workspaceId),
+          inArray(workspaceMembers.id, memberIds),
+          eq(workspaceMembers.status, 'active'),
+        ),
+      );
+    return rows.map((row) => this.toModel(row.member, row.profile));
+  }
+
+  roleBadgesOf(workspaceId: string, memberId: string): Promise<RoleBadge[]> {
+    return this.txHost.tx
+      .select({
+        id: activeRoleMembers.roleId,
+        name: activeRoleMembers.name,
+        color: activeRoleMembers.color,
+      })
+      .from(activeRoleMembers)
+      .where(
+        and(
+          eq(activeRoleMembers.workspaceId, workspaceId),
+          eq(activeRoleMembers.memberId, memberId),
+        ),
+      )
+      .orderBy(asc(activeRoleMembers.position), asc(activeRoleMembers.name));
+  }
+
+  async changeAccessLevel(
+    workspaceId: string,
+    memberId: string,
+    accessLevel: WorkspaceAccessLevel,
+  ): Promise<WorkspaceMember | undefined> {
+    const [changed] = await this.txHost.tx
+      .update(workspaceMembers)
+      .set({ accessLevel, updatedAt: new Date() })
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, workspaceId),
+          eq(workspaceMembers.id, memberId),
+          eq(workspaceMembers.status, 'active'),
+        ),
+      )
+      .returning({ id: workspaceMembers.id });
+    return changed && this.findById(workspaceId, changed.id);
+  }
+
   async remove(workspaceId: string, userId: string): Promise<void> {
     await this.txHost.tx
       .update(workspaceMembers)
@@ -114,7 +167,7 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
         avatarPath: profile.avatarPath,
         isBot: profile.isBot,
       },
-      role: row.role,
+      accessLevel: row.accessLevel,
       status: row.status,
       leftAt: row.leftAt,
       createdAt: row.createdAt,

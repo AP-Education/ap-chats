@@ -1,42 +1,9 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from '@/components/auth';
-import { ChannelAccessModule } from '@/components/communities/channel-access';
-import { ChannelAudienceModule } from '@/components/communities/channel-audience';
-import { EntriesModule } from '@/components/social/entries/entries.module';
-import { VoipPushModule } from '@/components/voip-push';
-import { WorkspacesModule } from '@/components/workspaces';
-
-import { CallsController } from './calls.controller';
-import { CallsGateway } from './calls.gateway';
-import { CallsService } from './calls.service';
-import { CallsHistoryController } from './calls-history.controller';
-import { AiNativeCallProvider, CallProvider, LiveKitCallProvider } from './provider';
-import { CallsRepository, DrizzleCallsRepository } from './repository';
+import { LiveCallsModule } from './calls';
+import { CallsHistoryModule } from './history';
 
 @Module({
-  imports: [
-    AuthModule,
-    ChannelAccessModule,
-    ChannelAudienceModule,
-    EntriesModule,
-    VoipPushModule,
-    WorkspacesModule,
-  ],
-  controllers: [CallsController, CallsHistoryController],
-  providers: [
-    CallsService,
-    CallsGateway,
-    AiNativeCallProvider,
-    LiveKitCallProvider,
-    {
-      provide: CallProvider,
-      inject: [AiNativeCallProvider, LiveKitCallProvider],
-      useFactory: (aiNative: AiNativeCallProvider, livekit: LiveKitCallProvider) =>
-        aiNative.isConfigured ? aiNative : livekit,
-    },
-    { provide: CallsRepository, useClass: DrizzleCallsRepository },
-  ],
-  exports: [CallsService],
+  imports: [LiveCallsModule, CallsHistoryModule],
 })
 export class CallsModule {}

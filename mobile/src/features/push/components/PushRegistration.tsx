@@ -1,31 +1,13 @@
 import * as Notifications from 'expo-notifications';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
 import { useAuthStore } from '../../auth';
 import { loadCallKitModule } from '../../calls/utils/callkit-module';
-import { dismissPresentedNotifications } from '../api/presented-notifications';
 import { registerCurrentDeviceForPush } from '../api/register-current-device';
-import { unregisterCurrentDevice } from '../api/unregister-current-device';
 
 export function PushRegistration() {
   const status = useAuthStore((state) => state.status);
-  const accessToken = useAuthStore((state) =>
-    state.status === 'signed-in' ? state.tokens.accessToken : null,
-  );
-  const sessionToken = useRef<string | null>(null);
-
-  // A logout and a failed refresh both end the session; either way this phone stops getting pushes.
-  useEffect(() => {
-    const endedToken = accessToken ? null : sessionToken.current;
-    sessionToken.current = accessToken;
-
-    if (!endedToken) return;
-
-    void unregisterCurrentDevice(endedToken);
-    // The previous account's previews must not stay on screen for whoever uses the phone next.
-    void dismissPresentedNotifications();
-  }, [accessToken]);
 
   // Registration calls are already serialized; a failure simply retries the next time the app opens.
   useEffect(() => {
@@ -33,10 +15,11 @@ export function PushRegistration() {
 
     let cancelled = false;
     let voipSubscription: { remove(): void } | undefined;
-    const register = () => {
+    let knownPushToken: string | undefined;
+    const register = (devicePushToken?: Notifications.DevicePushToken) => {
       if (cancelled) return;
 
-      void registerCurrentDeviceForPush().catch((error: unknown) => {
+      void registerCurrentDeviceForPush(devicePushToken).catch((error: unknown) => {
         if (__DEV__) console.warn('[push] registration retries on next foreground', error);
       });
     };
@@ -45,11 +28,17 @@ export function PushRegistration() {
     const appState = AppState.addEventListener('change', (state) => {
       if (state === 'active') register();
     });
-    const pushToken = Notifications.addPushTokenListener(register);
+    // Asking for the token reports it here as well; only one the push service replaced is news.
+    const pushToken = Notifications.addPushTokenListener((token) => {
+      if (token.data === knownPushToken) return;
+
+      knownPushToken = token.data;
+      register(token);
+    });
     void loadCallKitModule().then((CallKit) => {
       if (!CallKit || cancelled) return;
 
-      voipSubscription = CallKit.addVoIPPushTokenUpdatedListener(register);
+      voipSubscription = CallKit.addVoIPPushTokenUpdatedListener(() => register());
       CallKit.registerVoIPPush();
       register();
     });

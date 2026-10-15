@@ -70,6 +70,8 @@ const useStyles = createStyles(({ token, css }) => ({
       --mention-me-bg: var(--mention-bg);
       --mention-me-bg-hover: var(--mention-bg-hover);
       --mention-me-color: var(--mention-color);
+      --mention-role-bg: var(--mention-bg);
+      --mention-role-color: var(--mention-color);
       align-items: flex-end;
       margin-right: 8px;
     }

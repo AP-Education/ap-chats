@@ -34,8 +34,8 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 function endedDuration(call: CallHistoryItem['call']): string | null {
-  if (call.status !== 'ended' || !call.endedAt) return null;
-  return formatCallDuration(call.startedAt, call.endedAt);
+  if (call.status !== 'ended' || !call.answeredAt || !call.endedAt) return null;
+  return formatCallDuration(call.answeredAt, call.endedAt);
 }
 
 interface CallCaptionProps {

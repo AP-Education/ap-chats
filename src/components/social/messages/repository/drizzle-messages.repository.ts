@@ -4,12 +4,12 @@ import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
+import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import { channelEntries, chatMessages } from '@/database/drizzle/schema';
-import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 import type {
   CreateMessageRecord,
-  ForwardMessageRecord,
+  ForwardedCopy,
   MessageModel,
   MessageWithSeq,
 } from '../types/message.types';
@@ -37,6 +37,25 @@ export class DrizzleMessagesRepository extends MessagesRepository {
         ),
       );
     return row ?? null;
+  }
+
+  async findByNonces(
+    channelId: string,
+    authorMemberId: string,
+    clientNonces: string[],
+  ): Promise<MessageWithSeq[]> {
+    if (!clientNonces.length) return [];
+    return this.txHost.tx
+      .select({ message: chatMessages, seq: channelEntries.seq })
+      .from(chatMessages)
+      .innerJoin(channelEntries, eq(channelEntries.messageId, chatMessages.id))
+      .where(
+        and(
+          eq(chatMessages.channelId, channelId),
+          eq(chatMessages.authorMemberId, authorMemberId),
+          inArray(chatMessages.clientNonce, clientNonces),
+        ),
+      );
   }
 
   async findById(workspaceId: string, channelId: string, id: string): Promise<MessageModel | null> {
@@ -85,31 +104,34 @@ export class DrizzleMessagesRepository extends MessagesRepository {
     return row;
   }
 
-  async insertForwardBatch(
-    workspaceId: string,
-    channelId: string,
-    authorMemberId: string,
-    sources: ForwardMessageRecord[],
-    requestDigest: string,
-  ): Promise<MessageModel[]> {
-    if (!sources.length) return [];
-    const records = sources.map((source) => ({
+  async insertForwarded(input: {
+    workspaceId: string;
+    channelId: string;
+    authorMemberId: string;
+    copies: ForwardedCopy[];
+    requestDigest: string;
+  }): Promise<MessageModel[]> {
+    const { workspaceId, channelId, authorMemberId, copies, requestDigest } = input;
+    if (!copies.length) return [];
+
+    const records = copies.map((copy) => ({
       id: randomUUID(),
       workspaceId,
       channelId,
       authorMemberId,
-      contentMarkdown: source.contentMarkdown,
-      attachments: source.attachments,
-      forwardedFromMessageId: source.sourceMessageId,
-      forwardedFromMemberId: source.sourceAuthorMemberId,
+      contentMarkdown: copy.contentMarkdown,
+      attachments: copy.attachments,
+      forwardedFromMessageId: copy.sourceMessageId,
+      forwardedFromMemberId: copy.sourceAuthorMemberId,
       requestDigest,
-      clientNonce: source.clientNonce,
+      clientNonce: copy.clientNonce,
     }));
     const inserted = await this.txHost.tx.insert(chatMessages).values(records).returning();
     const byId = new Map(inserted.map((message) => [message.id, message]));
+
     return records.map(({ id }) => {
       const message = byId.get(id);
-      if (!message) throw new Error('Forward batch message missing');
+      if (!message) throw new Error('Forwarded message missing');
       return message;
     });
   }

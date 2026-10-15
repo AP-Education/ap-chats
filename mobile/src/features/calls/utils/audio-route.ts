@@ -2,7 +2,7 @@ import type { AudioPort, AudioRoute } from 'expo-callkit-telecom';
 
 import { useNativeCallStore } from '../store/native-call-store';
 import type { AudioOutput, AudioOutputKind, CallAudioRoute } from '../types';
-import type { loadCallKitModule } from './callkit-module';
+import type { CallKitApi } from './callkit-module';
 
 const KIND_BY_PORT: Record<string, AudioOutputKind> = {
   builtInSpeaker: 'speaker',
@@ -56,17 +56,12 @@ export function syncAudioRoute(route: AudioRoute, availableRoutes?: AudioPort[])
 }
 
 // A call's first route comes with audio activation, which emits no route change.
-export function syncCurrentAudioRoute(
-  CallKit: NonNullable<Awaited<ReturnType<typeof loadCallKitModule>>>,
-): void {
+export function syncCurrentAudioRoute(CallKit: CallKitApi): void {
   const audio = CallKit.getAudioSession();
   syncAudioRoute(audio.currentRoute, audio.availableRoutes);
 }
 
 /** Speaker is the only route the library can force; everything else is the OS's best private device. */
-export function selectAudioOutput(
-  CallKit: NonNullable<Awaited<ReturnType<typeof loadCallKitModule>>>,
-  kind: AudioOutputKind,
-): void {
+export function selectAudioOutput(CallKit: CallKitApi, kind: AudioOutputKind): void {
   CallKit.setAudioSessionPortOverride(kind === 'speaker');
 }
