@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { usePush } from '@/features/notifications/hooks/usePush';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { getSharedAudioContext } from '@/shared/audio/audio-context';
-import { isAttending, isPresent } from '@/shared/hooks/useIsAttending';
+import { isAttending } from '@/shared/hooks/useIsAttending';
 
 import { playMessageBloop } from '../sound/messageBloop';
 
@@ -17,8 +17,8 @@ export function useMessageNotificationSound(openChannelId: string | undefined): 
   useSocketEvent('social:unread', (event) => {
     if (!event.alert) return;
 
-    // The server holds pushes back by the same test, so this stays silent exactly when it pushes.
-    if (push.enabled && !isPresent()) return;
+    // A push only shows while no app window is in front (see push-sw.js), so this is the alert then.
+    if (push.enabled && !isAttending()) return;
 
     const isOpen = event.channelId === openChannelId;
     if (isOpen && isAttending()) return;

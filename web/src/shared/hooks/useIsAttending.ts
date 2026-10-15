@@ -1,8 +1,13 @@
 import { useSyncExternalStore } from 'react';
 
+/** The page is on screen, focused or not. */
+export function isShowing(): boolean {
+  return document.visibilityState === 'visible';
+}
+
 /** The user is looking at this tab: visible and focused. A synchronous read for callbacks. */
 export function isAttending(): boolean {
-  return document.visibilityState === 'visible' && document.hasFocus();
+  return isShowing() && document.hasFocus();
 }
 
 function subscribe(onChange: () => void) {
