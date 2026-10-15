@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
+import { READABLE_WHEN_LOCKED } from '../../../shared/api/secure-store-access';
 import type { TokenSet, TokenStore } from '../types';
 
 const KEY = 'ap-app.tokens';
@@ -17,7 +18,9 @@ export class SecureTokenStore implements TokenStore {
   }
 
   async save(tokens: TokenSet): Promise<void> {
-    await SecureStore.setItemAsync(KEY, JSON.stringify(tokens));
+    // A rewrite keeps an item's old accessibility, so the item is recreated to apply this one.
+    await SecureStore.deleteItemAsync(KEY);
+    await SecureStore.setItemAsync(KEY, JSON.stringify(tokens), READABLE_WHEN_LOCKED);
   }
 
   async clear(): Promise<void> {

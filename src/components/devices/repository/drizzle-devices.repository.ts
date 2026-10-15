@@ -5,8 +5,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { devices, type Platform, platformEnum } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
-import type { RegisterDeviceDto } from '../dto';
-import type { DeviceRecord } from '../types';
+import type { DeviceRecord, DeviceRegistration } from '../types';
 import { DevicesRepository } from './devices.repository';
 
 @Injectable()
@@ -15,23 +14,24 @@ export class DrizzleDevicesRepository extends DevicesRepository {
     super();
   }
 
-  async register(userId: string, dto: RegisterDeviceDto): Promise<void> {
+  async register(userId: string, registration: DeviceRegistration): Promise<void> {
     await this.txHost.tx
       .insert(devices)
       .values({
         userId,
-        ...dto,
-        pushToken: dto.pushToken ?? null,
-        voipToken: dto.voipToken ?? null,
+        ...registration,
+        pushToken: registration.pushToken ?? null,
+        voipToken: registration.voipToken ?? null,
       })
       .onConflictDoUpdate({
         target: devices.installationId,
         set: {
           userId,
-          platform: dto.platform,
-          pushToken: dto.pushToken,
-          voipToken: dto.voipToken,
-          apnsEnvironment: dto.apnsEnvironment ?? 'production',
+          platform: registration.platform,
+          pushToken: registration.pushToken,
+          voipToken: registration.voipToken,
+          apnsEnvironment: registration.apnsEnvironment ?? 'production',
+          releaseKeyHash: registration.releaseKeyHash,
           updatedAt: new Date(),
         },
       });
@@ -41,6 +41,14 @@ export class DrizzleDevicesRepository extends DevicesRepository {
     await this.txHost.tx
       .delete(devices)
       .where(and(eq(devices.userId, userId), eq(devices.installationId, installationId)));
+  }
+
+  async releaseByKey(installationId: string, releaseKeyHash: string): Promise<void> {
+    await this.txHost.tx
+      .delete(devices)
+      .where(
+        and(eq(devices.installationId, installationId), eq(devices.releaseKeyHash, releaseKeyHash)),
+      );
   }
 
   listForUser(userId: string): Promise<DeviceRecord[]> {

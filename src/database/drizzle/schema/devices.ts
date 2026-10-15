@@ -15,6 +15,8 @@ export const devices = pgTable(
     apnsEnvironment: text('apns_environment', { enum: ['sandbox', 'production'] })
       .notNull()
       .default('production'),
+    /** SHA-256 of the key the phone keeps for taking itself off pushes once its session is gone. */
+    releaseKeyHash: text('release_key_hash'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

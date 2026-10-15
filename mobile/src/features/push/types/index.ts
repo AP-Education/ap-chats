@@ -8,4 +8,5 @@ export interface RegisterDevicePayload {
   pushToken?: string | null;
   apnsEnvironment: 'sandbox' | 'production';
   voipToken?: string;
+  releaseKey: string;
 }

@@ -4,7 +4,6 @@ import { declineCall, leaveCall } from '../api/calls-api';
 import { useNativeCallStore } from '../store/native-call-store';
 import { playLeaveChime } from './call-chimes';
 import { playBusyTone } from './call-tones';
-import { requireAccessToken } from './require-access-token';
 import { untrackSession } from './session-registry';
 
 /** Cancels pending connections and releases media. User hangups notify the
@@ -37,10 +36,10 @@ export async function endCallSession(
   const { workspaceId, channelId } = session.metadata;
   try {
     if (!wasRinging) {
-      await leaveCall(await requireAccessToken(), workspaceId, channelId, session.serverCallId);
+      await leaveCall(workspaceId, channelId, session.serverCallId);
     } else {
       // A hangup before the answer action is a decline.
-      await declineCall(await requireAccessToken(), workspaceId, channelId, session.serverCallId);
+      await declineCall(workspaceId, channelId, session.serverCallId);
     }
   } catch (error) {
     if (__DEV__) console.warn('[calls] end failed', error);

@@ -3,20 +3,30 @@ import { create, type StoreApi, type UseBoundStore } from 'zustand';
 import {
   type AuthSessionProvider,
   type AuthState,
+  NotSignedInError,
   SessionExpiredError,
   type TokenSet,
   type TokenStore,
 } from '../types';
 
-const REFRESH_MARGIN_MS = 60_000;
-// Waking from the background often runs the refresh before the network is back.
-const RETRY_DELAYS_MS = [5_000, 15_000, 60_000];
+// Long enough for a request to reach the server before the token it carries expires.
+const EXPIRY_SKEW_MS = 30_000;
+
+function isExpired(tokens: TokenSet): boolean {
+  return tokens.expiresAt - Date.now() <= EXPIRY_SKEW_MS;
+}
 
 interface AuthActions {
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   restore: () => Promise<void>;
-  refreshNow: () => Promise<void>;
+  /** The access token to send now: renewed first only if it has expired. */
+  freshAccessToken: () => Promise<string>;
+  /**
+   * After the server turned `rejected` (by default the current token) down: the token to retry
+   * with, or null when renewing could not help and the rejection stands.
+   */
+  renewAccessToken: (rejected?: string) => Promise<string | null>;
 }
 
 export type AuthStoreState = AuthState & AuthActions;
@@ -28,20 +38,27 @@ export type AuthStore = UseBoundStore<StoreApi<AuthStoreState>>;
  * place that wires ports to adapters — this file never imports expo-auth-session or
  * expo-secure-store directly.
  *
- * The refresh timer lives in this closure (not in store state) so tokens keep renewing
- * even while the WebView is suspended in the background — the WebView only ever
- * receives already-valid tokens through the bridge, it never drives refresh.
+ * Renewal is the only thing that replaces the access token after sign-in, and it happens in two
+ * cases only, nothing on a schedule:
+ * - expired: the token's own expiry has passed when it is asked for;
+ * - rejected: the server turned the current token down. Once per token: a token that came out of
+ *   such a renewal and is turned down as well stays as it is, so a server refusing every token
+ *   can't drive a renewal loop.
+ * A token already replaced when its rejection arrives is never renewed again; the newer one is
+ * retried instead.
  */
 export function createAuthStore(
   session: AuthSessionProvider,
   tokenStore: TokenStore,
   configured: boolean,
 ): AuthStore {
-  let refreshTimer: ReturnType<typeof setTimeout> | null = null;
-  let failedRefreshes = 0;
   let generation = 0;
   let persistence = Promise.resolve();
-  let refreshInFlight: { generation: number; promise: Promise<void> } | null = null;
+  let restoring: Promise<void> = Promise.resolve();
+  // Accounts rotates refresh tokens and revokes the whole grant when a used one comes back,
+  // so two renewals must never run at once.
+  let renewal: { generation: number; promise: Promise<TokenSet> } | null = null;
+  let renewedAfterRejection: string | null = null;
   let logoutInFlight: Promise<void> | null = null;
   let logoutIdToken: string | undefined;
 
@@ -53,100 +70,90 @@ export function createAuthStore(
     return next;
   }
 
-  function clearRefreshTimer(): void {
-    if (refreshTimer !== null) clearTimeout(refreshTimer);
-    refreshTimer = null;
-  }
-
   const useAuthStore = create<AuthStoreState>()((set, get) => {
     function transition(state: AuthState): void {
-      const { signIn, signOut, restore, refreshNow } = get();
+      const { signIn, signOut, restore, freshAccessToken, renewAccessToken } = get();
       // Replace the state so signed-out/error states cannot retain merged tokens.
-      set({ ...state, signIn, signOut, restore, refreshNow }, true);
+      set({ ...state, signIn, signOut, restore, freshAccessToken, renewAccessToken }, true);
     }
 
     async function saveSession(tokens: TokenSet, version: number): Promise<void> {
       await persist(async () => {
         if (version === generation) await tokenStore.save(tokens);
       });
-      if (version !== generation) return;
-      transition({ status: 'signed-in', tokens });
-      scheduleRefresh(tokens);
+      if (version === generation) transition({ status: 'signed-in', tokens });
     }
 
-    function scheduleRefresh(tokens: TokenSet): void {
-      clearRefreshTimer();
-      failedRefreshes = 0;
-      if (!tokens.refreshToken) return;
-      const delay = Math.max(tokens.expiresAt - Date.now() - REFRESH_MARGIN_MS, 0);
-      refreshTimer = setTimeout(() => void refresh(tokens), delay);
+    async function endSession(version: number): Promise<void> {
+      try {
+        await persist(async () => {
+          if (version === generation) await tokenStore.clear();
+        });
+        if (version === generation) transition({ status: 'signed-out' });
+      } catch (error) {
+        if (version === generation) {
+          transition({ status: 'error', operation: 'sign-in', message: toMessage(error) });
+        }
+      }
     }
 
-    function retryRefresh(tokens: TokenSet): void {
-      clearRefreshTimer();
-      const delay = RETRY_DELAYS_MS[Math.min(failedRefreshes++, RETRY_DELAYS_MS.length - 1)];
-      refreshTimer = setTimeout(() => void refresh(tokens), delay);
-    }
-
-    function refresh(tokens: TokenSet): Promise<void> {
+    function renew(tokens: TokenSet): Promise<TokenSet> {
       const version = generation;
-      if (refreshInFlight?.generation === version) return refreshInFlight.promise;
+      if (renewal?.generation === version) return renewal.promise;
+
       const promise = (async () => {
         try {
-          const refreshed = await session.refresh(tokens);
-          if (version !== generation) return;
-          await saveSession(refreshed, version);
+          const renewed = await session.refresh(tokens);
+          if (version !== generation) throw new NotSignedInError();
+          await saveSession(renewed, version);
+          return renewed;
         } catch (error) {
-          if (version !== generation) return;
-          // Only a refused grant ends the session; until then the person stays in.
-          if (!(error instanceof SessionExpiredError)) {
-            retryRefresh(tokens);
-            return;
-          }
-          clearRefreshTimer();
-          try {
-            await persist(async () => {
-              if (version === generation) await tokenStore.clear();
-            });
-            if (version === generation) transition({ status: 'signed-out' });
-          } catch (error) {
-            if (version === generation) {
-              transition({ status: 'error', operation: 'sign-in', message: toMessage(error) });
-            }
-          }
+          if (version !== generation) throw new NotSignedInError();
+          // Only a refused grant ends the session; a dropped connection leaves it for the next use.
+          if (!(error instanceof SessionExpiredError)) throw error;
+          await endSession(version);
+          throw new NotSignedInError();
         }
       })();
-      refreshInFlight = { generation: version, promise };
-      void promise.finally(() => {
-        if (refreshInFlight?.promise === promise) refreshInFlight = null;
-      });
+
+      const settle = () => {
+        if (renewal?.promise === promise) renewal = null;
+      };
+      promise.then(settle, settle);
+      renewal = { generation: version, promise };
       return promise;
+    }
+
+    async function currentTokens(): Promise<TokenSet> {
+      await restoring;
+      const state = get();
+      if (state.status !== 'signed-in') throw new NotSignedInError();
+      return state.tokens;
     }
 
     return {
       status: configured ? 'signed-out' : 'unconfigured',
 
-      async restore() {
-        if (get().status !== 'signed-out') return;
+      restore() {
+        if (get().status !== 'signed-out') return restoring;
         const version = generation;
-        try {
-          const tokens = await tokenStore.load();
-          if (tokens && version === generation) {
-            transition({ status: 'signed-in', tokens });
-            scheduleRefresh(tokens);
+        restoring = (async () => {
+          try {
+            const tokens = await tokenStore.load();
+            if (tokens && version === generation) transition({ status: 'signed-in', tokens });
+          } catch (error) {
+            if (version === generation) {
+              transition({ status: 'error', operation: 'sign-in', message: toMessage(error) });
+            }
           }
-        } catch (error) {
-          if (version === generation) {
-            transition({ status: 'error', operation: 'sign-in', message: toMessage(error) });
-          }
-        }
+        })();
+        return restoring;
       },
 
       async signIn() {
         const status = get().status;
         if (status !== 'signed-out' && status !== 'error') return;
         const version = ++generation;
-        clearRefreshTimer();
         transition({ status: 'signing-in' });
         try {
           const tokens = await session.signIn();
@@ -166,7 +173,6 @@ export function createAuthStore(
         const state = get();
         if (state.status === 'signed-in') logoutIdToken = state.tokens.idToken;
         ++generation;
-        clearRefreshTimer();
         transition({ status: 'signing-out' });
         logoutInFlight = (async () => {
           try {
@@ -184,11 +190,22 @@ export function createAuthStore(
         logoutInFlight = null;
       },
 
-      // Triggered by web/ over the bridge on a 401 — doesn't wait for the schedule,
-      // which can't fire while the app was backgrounded past the token's TTL.
-      async refreshNow() {
-        const state = get();
-        if (state.status === 'signed-in') await refresh(state.tokens);
+      async freshAccessToken() {
+        const tokens = await currentTokens();
+        if (!isExpired(tokens)) return tokens.accessToken;
+        return (await renew(tokens)).accessToken;
+      },
+
+      async renewAccessToken(rejected) {
+        const tokens = await currentTokens();
+        const current = tokens.accessToken;
+        if (rejected && rejected !== current) return current;
+        if (isExpired(tokens)) return (await renew(tokens)).accessToken;
+        if (current === renewedAfterRejection) return null;
+
+        const renewed = await renew(tokens);
+        renewedAfterRejection = renewed.accessToken;
+        return renewed.accessToken;
       },
     };
   });

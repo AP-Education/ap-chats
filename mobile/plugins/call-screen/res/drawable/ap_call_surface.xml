@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CallSurfaceBackground's glows over the ink base: teal, cyan, indigo and a deep teal. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape><solid android:color="#071113" /></shape>
+    </item>
+    <item>
+        <shape>
+            <gradient android:type="radial" android:centerX="0.2" android:centerY="0.14"
+                android:gradientRadius="90%p" android:startColor="#8C0F8A83" android:endColor="#000F8A83" />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <gradient android:type="radial" android:centerX="0.84" android:centerY="0.22"
+                android:gradientRadius="60%p" android:startColor="#3309C6CC" android:endColor="#0009C6CC" />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <gradient android:type="radial" android:centerX="0.78" android:centerY="0.92"
+                android:gradientRadius="100%p" android:startColor="#573C34C9" android:endColor="#003C34C9" />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <gradient android:type="radial" android:centerX="0.08" android:centerY="0.88"
+                android:gradientRadius="75%p" android:startColor="#380F8A83" android:endColor="#000F8A83" />
+        </shape>
+    </item>
+</layer-list>

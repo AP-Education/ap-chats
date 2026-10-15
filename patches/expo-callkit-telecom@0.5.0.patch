@@ -1,0 +1,319 @@
+diff --git a/android/build.gradle b/android/build.gradle
+index 41580a4edff11e616afdafe7f82ce94214c063cd..e4c89bb518e3f339384085c5d60f0df623ebfff6 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -19,6 +19,7 @@ android {
+ 
+ dependencies {
+   implementation "androidx.core:core-telecom:1.0.1"
++  implementation "com.facebook.react:react-android"
+   implementation "com.google.firebase:firebase-messaging:24.1.0"
+ 
+   // expo-notifications may be included as a source project or as a prebuilt
+diff --git a/android/src/main/java/expo/modules/callkittelecom/ExpoCallKitTelecomModule.kt b/android/src/main/java/expo/modules/callkittelecom/ExpoCallKitTelecomModule.kt
+index f6443f6a8869aa084ec9fce8a6d3ae34d1fd8e2f..be01c6f5385bb78a051bd1feac2216cbf564f729 100644
+--- a/android/src/main/java/expo/modules/callkittelecom/ExpoCallKitTelecomModule.kt
++++ b/android/src/main/java/expo/modules/callkittelecom/ExpoCallKitTelecomModule.kt
+@@ -96,6 +96,9 @@ class ExpoCallKitTelecomModule : Module() {
+ 
+         OnNewIntent { intent -> handleAnswerIntent(intent) }
+ 
++        // A call screen started fresh while the module already runs gets neither of the above.
++        OnActivityEntersForeground { handleLaunchIntent() }
++
+         // Register per-event observers
+         OnStartObserving(CallEvents.CALL_SESSION_ADDED) {
+             CallEventEmitter.startObserving(CallEvents.CALL_SESSION_ADDED)
+diff --git a/android/src/main/java/expo/modules/callkittelecom/IncomingCallActivity.kt b/android/src/main/java/expo/modules/callkittelecom/IncomingCallActivity.kt
+index d6de69927081743699d906d862f377801c5d5619..8e2b32352cd2927ce7ee9d8cf08beda846908e60 100644
+--- a/android/src/main/java/expo/modules/callkittelecom/IncomingCallActivity.kt
++++ b/android/src/main/java/expo/modules/callkittelecom/IncomingCallActivity.kt
+@@ -5,6 +5,8 @@ import android.app.KeyguardManager
+ import android.content.Context
+ import android.content.Intent
+ import android.graphics.BitmapFactory
++import android.graphics.Color
++import android.os.Build
+ import android.os.Bundle
+ import android.view.View
+ import android.view.WindowManager
+@@ -12,7 +14,10 @@ import android.widget.ImageButton
+ import android.widget.ImageView
+ import android.widget.TextView
+ import androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
++import androidx.core.view.WindowCompat
++import androidx.core.view.WindowInsetsControllerCompat
+ import expo.modules.callkittelecom.managers.CallManager
++import expo.modules.callkittelecom.managers.CallScreen
+ import expo.modules.callkittelecom.models.CallSessionStatus
+ import expo.modules.callkittelecom.store.CallStore
+ import expo.modules.callkittelecom.utils.CallKitTelecomLog
+@@ -82,6 +87,28 @@ class IncomingCallActivity : Activity() {
+                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                 WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+         )
++        drawEdgeToEdge()
++    }
++
++    // The fullscreen theme leaves the system bars and the camera cutout black around the screen.
++    @Suppress("DEPRECATION")
++    private fun drawEdgeToEdge() {
++        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
++        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
++        WindowCompat.setDecorFitsSystemWindows(window, false)
++        window.statusBarColor = Color.TRANSPARENT
++        window.navigationBarColor = Color.TRANSPARENT
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
++            window.attributes.layoutInDisplayCutoutMode =
++                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
++        }
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
++            window.isNavigationBarContrastEnforced = false
++        }
++        WindowInsetsControllerCompat(window, window.decorView).apply {
++            isAppearanceLightStatusBars = false
++            isAppearanceLightNavigationBars = false
++        }
+     }
+ 
+     private fun parseCallId(): UUID? {
+@@ -108,15 +135,27 @@ class IncomingCallActivity : Activity() {
+     }
+ 
+     private fun bindCallerInfo(displayName: String?, hasVideo: Boolean) {
+-        val name = displayName ?: "Unknown"
++        val name = displayName ?: getString(R.string.expo_callkit_telecom_unknown_caller)
+ 
+-        findViewById<TextView>(R.id.expo_callkit_telecom_avatar_text).text =
+-            name.firstOrNull()?.uppercase() ?: "?"
++        findViewById<TextView>(R.id.expo_callkit_telecom_avatar_text).text = initialsOf(name)
+ 
+         findViewById<TextView>(R.id.expo_callkit_telecom_caller_name).text = name
+ 
+         findViewById<TextView>(R.id.expo_callkit_telecom_subtitle).text =
+-            if (hasVideo) "Incoming video call" else "Incoming call"
++            getString(
++                if (hasVideo) R.string.expo_callkit_telecom_incoming_video_call
++                else R.string.expo_callkit_telecom_incoming_call
++            )
++    }
++
++    /** The first letters of the first and last words, as a person without a photo is drawn. */
++    private fun initialsOf(name: String): String {
++        fun letterOf(word: String) = word.firstOrNull { it.isLetterOrDigit() }?.toString().orEmpty()
++
++        val words = name.trim().split(Regex("""\s+""")).filter { word -> word.any { it.isLetterOrDigit() } }
++        val first = words.firstOrNull() ?: return "?"
++        val last = if (words.size > 1) words.last() else ""
++        return (letterOf(first) + letterOf(last)).uppercase()
+     }
+ 
+     /**
+@@ -188,6 +227,14 @@ class IncomingCallActivity : Activity() {
+         // Answer immediately — don't wait for keyguard dismissal
+         CallManager.shared.answerCall(id)
+ 
++        // The app's own call screen shows over the keyguard; only what lies behind it asks for an unlock.
++        val callScreen = CallScreen.declared(this)
++        if (callScreen != null) {
++            startActivity(callScreen.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
++            finish()
++            return
++        }
++
+         // Dismiss keyguard, then bring the main app to the foreground
+         val keyguardManager = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+         keyguardManager.requestDismissKeyguard(
+diff --git a/android/src/main/java/expo/modules/callkittelecom/managers/CallNotificationManager.kt b/android/src/main/java/expo/modules/callkittelecom/managers/CallNotificationManager.kt
+index bc6e57d71eae2a30998027ab7fda64a61fd28809..06644a4e7fea2340b117949a1d1fe8c8a7dd4aa8 100644
+--- a/android/src/main/java/expo/modules/callkittelecom/managers/CallNotificationManager.kt
++++ b/android/src/main/java/expo/modules/callkittelecom/managers/CallNotificationManager.kt
+@@ -15,6 +15,7 @@ import androidx.core.app.NotificationManagerCompat
+ import androidx.core.app.Person
+ import androidx.core.graphics.drawable.IconCompat
+ import expo.modules.callkittelecom.IncomingCallActivity
++import expo.modules.callkittelecom.R
+ import expo.modules.callkittelecom.services.CallNotificationReceiver
+ import expo.modules.callkittelecom.utils.CallKitTelecomLog
+ import java.util.UUID
+@@ -99,11 +100,12 @@ object CallNotificationManager {
+         val channel =
+             NotificationChannel(
+                     incomingChannelId,
+-                    "Incoming calls",
++                    appContext.getString(R.string.expo_callkit_telecom_channel_incoming),
+                     NotificationManager.IMPORTANCE_HIGH,
+                 )
+                 .apply {
+-                    description = "Notifications for incoming calls"
++                    description =
++                        appContext.getString(R.string.expo_callkit_telecom_channel_incoming_description)
+                     lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                     setSound(ringtoneUri, ringtoneAttributes)
+                     enableVibration(true)
+@@ -122,11 +124,12 @@ object CallNotificationManager {
+         val channel =
+             NotificationChannel(
+                     CHANNEL_ONGOING,
+-                    "Ongoing calls",
++                    appContext.getString(R.string.expo_callkit_telecom_channel_ongoing),
+                     NotificationManager.IMPORTANCE_DEFAULT,
+                 )
+                 .apply {
+-                    description = "Notifications for active calls"
++                    description =
++                        appContext.getString(R.string.expo_callkit_telecom_channel_ongoing_description)
+                     setSound(null, null)
+                     enableVibration(false)
+                 }
+@@ -173,7 +176,7 @@ object CallNotificationManager {
+     fun showIncomingCall(context: Context, callId: UUID, callerName: String?, hasVideo: Boolean) {
+         cancelDelayedCancel()
+         val ctx = context.applicationContext
+-        val displayName = callerName ?: "Unknown"
++        val displayName = callerName ?: ctx.getString(R.string.expo_callkit_telecom_unknown_caller)
+ 
+         // Answer action uses PendingIntent.getActivity() to bring the app to
+         // foreground. On Android 12+, BroadcastReceivers cannot start activities
+@@ -181,7 +184,7 @@ object CallNotificationManager {
+         // directly. CallNotificationReceiver intercepts the intent via
+         // onNewIntent to trigger the actual call answer.
+         val answerIntent =
+-            ctx.packageManager.getLaunchIntentForPackage(ctx.packageName)?.apply {
++            CallScreen.intent(ctx)?.apply {
+                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                 action = CallNotificationReceiver.ACTION_ANSWER
+                 putExtra(CallNotificationReceiver.EXTRA_CALL_ID, callId.toString())
+@@ -214,7 +217,10 @@ object CallNotificationManager {
+                     ctx,
+                     incomingChannelId,
+                     displayName,
+-                    if (hasVideo) "Incoming video call" else "Incoming call",
++                    ctx.getString(
++                        if (hasVideo) R.string.expo_callkit_telecom_incoming_video_call
++                        else R.string.expo_callkit_telecom_incoming_call
++                    ),
+                 )
+                 .setStyle(
+                     NotificationCompat.CallStyle.forIncomingCall(
+@@ -237,7 +243,7 @@ object CallNotificationManager {
+     fun showDialingCall(context: Context, callId: UUID, callerName: String?) {
+         cancelDelayedCancel()
+         val ctx = context.applicationContext
+-        val displayName = callerName ?: "Unknown"
++        val displayName = callerName ?: ctx.getString(R.string.expo_callkit_telecom_unknown_caller)
+ 
+         val hangupIntent =
+             Intent(ctx, CallNotificationReceiver::class.java).apply {
+@@ -279,7 +285,7 @@ object CallNotificationManager {
+     ) {
+         cancelDelayedCancel()
+         val ctx = context.applicationContext
+-        val displayName = callerName ?: "Unknown"
++        val displayName = callerName ?: ctx.getString(R.string.expo_callkit_telecom_unknown_caller)
+ 
+         val hangupIntent =
+             Intent(ctx, CallNotificationReceiver::class.java).apply {
+@@ -297,7 +303,7 @@ object CallNotificationManager {
+         val contentIntent = buildFullScreenIntent(ctx, callId)
+ 
+         val notification =
+-            buildBase(ctx, CHANNEL_ONGOING, displayName, "Ongoing call")
++            buildBase(ctx, CHANNEL_ONGOING, displayName, ctx.getString(R.string.expo_callkit_telecom_ongoing_call))
+                 .setStyle(
+                     NotificationCompat.CallStyle.forOngoingCall(buildPerson(displayName), hangupPI)
+                 )
+@@ -317,10 +323,10 @@ object CallNotificationManager {
+     fun showEndedCall(context: Context, callId: UUID, callerName: String?) {
+         cancelDelayedCancel()
+         val ctx = context.applicationContext
+-        val displayName = callerName ?: "Unknown"
++        val displayName = callerName ?: ctx.getString(R.string.expo_callkit_telecom_unknown_caller)
+ 
+         val notification =
+-            buildBase(ctx, CHANNEL_ONGOING, displayName, "Call ended")
++            buildBase(ctx, CHANNEL_ONGOING, displayName, ctx.getString(R.string.expo_callkit_telecom_call_ended))
+                 .setOngoing(false)
+                 .setAutoCancel(true)
+                 .build()
+@@ -402,10 +408,10 @@ object CallNotificationManager {
+         )
+     }
+ 
+-    /** Builds a full-screen intent that launches the app's main activity. */
++    /** Builds a full-screen intent that opens the app's call screen. */
+     private fun buildFullScreenIntent(context: Context, callId: UUID): PendingIntent {
+         val launchIntent =
+-            context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
++            CallScreen.intent(context)?.apply {
+                 flags =
+                     Intent.FLAG_ACTIVITY_NEW_TASK or
+                         Intent.FLAG_ACTIVITY_SINGLE_TOP or
+diff --git a/android/src/main/java/expo/modules/callkittelecom/managers/CallScreen.kt b/android/src/main/java/expo/modules/callkittelecom/managers/CallScreen.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..5f44f47841d92ebdfea20eff0e350feabae2c521
+--- /dev/null
++++ b/android/src/main/java/expo/modules/callkittelecom/managers/CallScreen.kt
+@@ -0,0 +1,22 @@
++package expo.modules.callkittelecom.managers
++
++import android.content.Context
++import android.content.Intent
++
++/**
++ * Where a call is shown once it is answered or its notification tapped: the app's own call screen
++ * when it declares an activity for [ACTION_SHOW_CALL], otherwise its launch activity. A call screen
++ * of its own may show over the keyguard, so answering from the lock screen needs no unlock.
++ */
++internal object CallScreen {
++    const val ACTION_SHOW_CALL = "expo.modules.callkittelecom.SHOW_CALL"
++
++    fun declared(context: Context): Intent? {
++        val probe = Intent(ACTION_SHOW_CALL).setPackage(context.packageName)
++        val activity = context.packageManager.resolveActivity(probe, 0)?.activityInfo ?: return null
++        return Intent().setClassName(activity.packageName, activity.name)
++    }
++
++    fun intent(context: Context): Intent? =
++        declared(context) ?: context.packageManager.getLaunchIntentForPackage(context.packageName)
++}
+diff --git a/android/src/main/java/expo/modules/callkittelecom/services/ExpoCallKitTelecomMessagingService.kt b/android/src/main/java/expo/modules/callkittelecom/services/ExpoCallKitTelecomMessagingService.kt
+index de5f40796b3d2e5ef0c1ac6d58c096bd76c6b069..64abb7b1948cb5d760357baac3de6f29aeefbf52 100644
+--- a/android/src/main/java/expo/modules/callkittelecom/services/ExpoCallKitTelecomMessagingService.kt
++++ b/android/src/main/java/expo/modules/callkittelecom/services/ExpoCallKitTelecomMessagingService.kt
+@@ -3,6 +3,7 @@ package expo.modules.callkittelecom.services
+ import android.os.Handler
+ import android.os.Looper
+ import android.util.Log
++import com.facebook.react.ReactApplication
+ import com.google.firebase.messaging.RemoteMessage
+ import expo.modules.callkittelecom.managers.CallManager
+ import expo.modules.callkittelecom.managers.VoIPPushManager
+@@ -77,6 +78,8 @@ class ExpoCallKitTelecomMessagingService : ExpoFirebaseMessagingService() {
+ 
+             CallManager.shared.reportIncomingCall(event)
+             Log.d(TAG, "Reported incoming call from FCM payload")
++            // Answer and decline reach the app's server through its JS, which a push alone never starts.
++            (applicationContext as? ReactApplication)?.reactHost?.start()
+         } catch (error: IllegalStateException) {
+             Log.w(TAG, "Ignoring incoming call push while another session exists: ${error.message}")
+         } catch (error: Throwable) {
+diff --git a/android/src/main/res/values/strings.xml b/android/src/main/res/values/strings.xml
+new file mode 100644
+index 0000000000000000000000000000000000000000..a5615e2e6345fcea6c6e34e3db0a3ee9da15ef7d
+--- /dev/null
++++ b/android/src/main/res/values/strings.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- An app overrides these by name to show calls in its own language. -->
++<resources>
++    <string name="expo_callkit_telecom_unknown_caller">Unknown</string>
++    <string name="expo_callkit_telecom_incoming_call">Incoming call</string>
++    <string name="expo_callkit_telecom_incoming_video_call">Incoming video call</string>
++    <string name="expo_callkit_telecom_ongoing_call">Ongoing call</string>
++    <string name="expo_callkit_telecom_call_ended">Call ended</string>
++    <string name="expo_callkit_telecom_channel_incoming">Incoming calls</string>
++    <string name="expo_callkit_telecom_channel_incoming_description">Notifications for incoming calls</string>
++    <string name="expo_callkit_telecom_channel_ongoing">Ongoing calls</string>
++    <string name="expo_callkit_telecom_channel_ongoing_description">Notifications for active calls</string>
++</resources>

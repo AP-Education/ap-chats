@@ -78,40 +78,30 @@ test('CallKit initialization failure is caught without crashing the app', async 
   assert.equal(await loadCallKitModule(), null);
 });
 
-function sessionFixture(
+/** Loading the module is what starts it, as the JS runtime does. */
+function startCallSession(
   callkit: Promise<unknown>,
   livekit: object = {},
   dependencies: Record<string, unknown> = {},
 ) {
   let imports = 0;
-  let cleanup: (() => void) | undefined;
-  const { CallSession } = load<{ CallSession: () => null }>(
-    '../src/features/calls/components/CallSession.tsx',
-    {
-      react: {
-        useEffect: (effect: () => () => void) => {
-          cleanup = effect();
-        },
-      },
-      '../store/native-call-store': {},
-      '../utils/answer-call': {},
-      '../utils/audio-route': {},
-      '../utils/call-metadata': {},
-      '../utils/callkit-module': { loadCallKitModule: () => callkit },
-      '../utils/end-call': {},
-      '../utils/mute-call': {},
-      '../utils/session-registry': {},
-      '../utils/hydrate-call-session': {},
-      '../utils/synchronize-call-session': {},
-      '@livekit/react-native': () => {
-        imports++;
-        if (livekit instanceof Error) throw livekit;
-        return livekit;
-      },
-      ...dependencies,
+  load('../src/features/calls/background/call-session.ts', {
+    '../utils/answer-call': {},
+    '../utils/audio-route': {},
+    '../utils/callkit-module': { loadCallKitModule: () => callkit },
+    '../utils/drop-ring-without-session': { dropRingWithoutSession: async () => {} },
+    '../utils/end-call': {},
+    '../utils/mute-call': {},
+    '../utils/hydrate-call-session': {},
+    '../utils/synchronize-call-session': {},
+    '@livekit/react-native': () => {
+      imports++;
+      if (livekit instanceof Error) throw livekit;
+      return livekit;
     },
-  );
-  return { mount: CallSession, unmount: () => cleanup?.(), imports: () => imports };
+    ...dependencies,
+  });
+  return { imports: () => imports };
 }
 
 async function flush() {
@@ -186,34 +176,18 @@ test('call signals dismiss other-device rings, never the call being answered or 
 });
 
 test('call session does not request a LiveKit bundle when CallKit is unavailable', async () => {
-  const f = sessionFixture(Promise.resolve(null));
-  f.mount();
+  const session = startCallSession(Promise.resolve(null));
   await flush();
-  assert.equal(f.imports(), 0);
-});
-
-test('unmount during CallKit loading prevents the LiveKit bundle request', async () => {
-  let finish!: (value: object) => void;
-  const f = sessionFixture(
-    new Promise<object>((resolve) => {
-      finish = resolve;
-    }),
-  );
-  f.mount();
-  f.unmount();
-  finish({});
-  await flush();
-  assert.equal(f.imports(), 0);
+  assert.equal(session.imports(), 0);
 });
 
 test('LiveKit bundle failure is caught instead of escaping as an unhandled HMR rejection', async () => {
-  const f = sessionFixture(
+  const session = startCallSession(
     Promise.resolve({}),
     new Error('Expected HMRClient.setup() call at startup.'),
   );
-  f.mount();
   await flush();
-  assert.equal(f.imports(), 1);
+  assert.equal(session.imports(), 1);
 });
 
 test('cold bootstrap registers CallKit-owned audio before replay and handles system endings locally', async () => {
@@ -234,7 +208,7 @@ test('cold bootstrap registers CallKit-owned audio before replay and handles sys
     addSetMutedActionListener: listen('muted'),
     addAudioRouteChangedListener: listen('audio-route'),
   };
-  const f = sessionFixture(
+  startCallSession(
     Promise.resolve(CallKit),
     {
       registerGlobals: (options: { autoConfigureAudioSession: boolean }) => {
@@ -261,7 +235,6 @@ test('cold bootstrap registers CallKit-owned audio before replay and handles sys
       },
     },
   );
-  f.mount();
   await flush();
   assert.deepEqual(steps, ['media-globals', 'answer-replay', 'hydrate']);
 
@@ -270,5 +243,38 @@ test('cold bootstrap registers CallKit-owned audio before replay and handles sys
   listeners.get('removed')?.({ id: 'cold-call' });
   listeners.get('ended')?.({ id: 'cold-call' });
   assert.deepEqual(steps.slice(3), ['local-cleanup', 'local-cleanup', 'notify-server']);
-  f.unmount();
+});
+
+test('a phone signed out of the app drops a ring it could never answer, and leaves the calls', async () => {
+  const cases = [
+    ['signed-out', ['end ring failed', 'release']],
+    ['signed-in', []],
+    // A session that could not be read (a locked keychain) is not a sign-out.
+    ['error', []],
+  ] as const;
+
+  for (const [status, expected] of cases) {
+    const steps: string[] = [];
+    const { dropRingWithoutSession } = load<{
+      dropRingWithoutSession: (CallKit: unknown) => Promise<void>;
+    }>('../src/features/calls/utils/drop-ring-without-session.ts', {
+      '../../auth': {
+        authRestored: Promise.resolve(),
+        useAuthStore: { getState: () => ({ status }) },
+      },
+      '../../push/api/release-current-device': {
+        releaseCurrentDevice: async () => {
+          steps.push('release');
+        },
+      },
+    });
+
+    await dropRingWithoutSession({
+      getActiveCallSession: async () => ({ id: 'ring', status: 'ringing' }),
+      reportCallEnded: async (id: string, reason: string) => {
+        steps.push(`end ${id} ${reason}`);
+      },
+    });
+    assert.deepEqual(steps, expected, status);
+  }
 });
