@@ -52,6 +52,13 @@ export const useMentionChipStyles = createStyles(({ token, css }) => ({
     background: var(--mention-role-bg, color-mix(in srgb, var(--role-color) 18%, transparent));
     color: var(--mention-role-color, var(--role-color));
   `,
+  // A bot here is an assistant: its mention carries a faint indigo-to-violet wash, hover
+  // included. The spark's teal end is left out, since it would vanish into the teal accent.
+  mentionAssistant: css`
+    &&& {
+      background-image: linear-gradient(100deg, rgb(84 104 245 / 0.38), rgb(168 85 247 / 0.38));
+    }
+  `,
   mentionMeTrigger: css`
     &:hover,
     &:focus-visible {

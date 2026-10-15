@@ -4,6 +4,7 @@ import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import { Fragment, useMemo } from 'react';
 
+import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
 import { useConversation } from '@/features/social/conversation-scope/store';
 import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
@@ -186,6 +187,7 @@ export function MessageTimeline({
   const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
   const selecting = useConversation((state) => state.selectedIds.length > 0);
   const keyboardSwipe = useKeyboardSwipe(requestComposerBlur);
+  const extensions = useConversationExtensions();
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   const firstUnreadSeq = pages.find((page) => page.firstUnreadSeq !== null)?.firstUnreadSeq ?? null;
   // A deleted message keeps its seq (read state, scroll anchoring, and reply
@@ -276,6 +278,9 @@ export function MessageTimeline({
                 ))}
               </section>
             ))}
+            {/* Only the live end: what happens next has no place after an older stretch. */}
+            {!hasNewer &&
+              extensions.map(({ id, TimelineEnd }) => TimelineEnd && <TimelineEnd key={id} />)}
             {hasNewer && (
               <Button
                 className={styles.load}

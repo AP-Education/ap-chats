@@ -55,6 +55,7 @@ export const messagingActions: ConversationAction[] = [
   {
     id: 'delete',
     icon: <TrashIcon size={18} />,
+    accent: 'danger',
     label: () => 'Видалити',
     available: (target, context) =>
       context.canPost &&

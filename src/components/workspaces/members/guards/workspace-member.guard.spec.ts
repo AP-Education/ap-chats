@@ -39,6 +39,7 @@ test('guard resolves active workspace member and exposes it on request', async (
       oidcUserId: 'accounts-user',
       displayName: 'User',
       avatarPath: null,
+      isBot: false,
     },
     accessLevel: 'member',
     status: 'active',

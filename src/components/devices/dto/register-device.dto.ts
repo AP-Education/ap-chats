@@ -2,6 +2,8 @@ import { IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class
 
 import { platformEnum } from '@/database/drizzle/schema';
 
+import { RELEASE_KEY_PATTERN } from './release-device.dto';
+
 export class RegisterDeviceDto {
   @IsString()
   @MinLength(1)
@@ -26,4 +28,8 @@ export class RegisterDeviceDto {
   @IsOptional()
   @IsIn(['sandbox', 'production'])
   apnsEnvironment?: 'sandbox' | 'production';
+
+  @IsOptional()
+  @Matches(RELEASE_KEY_PATTERN)
+  releaseKey?: string;
 }

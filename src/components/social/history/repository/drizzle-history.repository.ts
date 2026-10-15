@@ -124,6 +124,8 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         authorProfile: {
           displayName: authors.displayName,
           avatarPath: authors.avatarPath,
+          // Joined beside the role colour, so a missing person reads as no bot.
+          isBot: sql<boolean>`coalesce(${authors.isBot}, false)`,
           roleColor: authorRoles.roleColor,
         },
         reply: {
@@ -135,11 +137,13 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         replyAuthorProfile: {
           displayName: replyAuthors.displayName,
           avatarPath: replyAuthors.avatarPath,
+          isBot: sql<boolean>`coalesce(${replyAuthors.isBot}, false)`,
           roleColor: replyAuthorRoles.roleColor,
         },
         forwardAuthorProfile: {
           displayName: forwardAuthors.displayName,
           avatarPath: forwardAuthors.avatarPath,
+          isBot: sql<boolean>`coalesce(${forwardAuthors.isBot}, false)`,
           roleColor: forwardAuthorRoles.roleColor,
         },
         pin: messagePins,
@@ -151,6 +155,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         startedByProfile: {
           displayName: startedByProfiles.displayName,
           avatarPath: startedByProfiles.avatarPath,
+          isBot: sql<boolean>`coalesce(${startedByProfiles.isBot}, false)`,
           roleColor: startedByRoles.roleColor,
         },
       })
@@ -206,7 +211,8 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     const mention = sql`json_build_object(
       'memberId', ${workspaceMembers.id},
       'displayName', ${userProfiles.displayName},
-      'avatarPath', ${userProfiles.avatarPath}
+      'avatarPath', ${userProfiles.avatarPath},
+      'isBot', ${userProfiles.isBot}
     )`;
 
     return (

@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { confirmDirectMessage } from '@/features/social/direct-messages/cache';
@@ -78,6 +78,7 @@ function synthesize(
       memberId,
       displayName,
       avatarPath: null,
+      isBot: false,
     })),
   };
 }
@@ -88,6 +89,20 @@ function findMessage(messages: readonly MessageHistoryItem[], messageId: string 
 
 function byCreatedAt(a: DisplayItem, b: DisplayItem) {
   return a.item.createdAt.localeCompare(b.item.createdAt);
+}
+
+/** A sent message's arrival at the server, which a failed attempt only postpones. */
+interface Landing {
+  landed: Promise<Message>;
+  land: (message: Message) => void;
+}
+
+function expectLanding(): Landing {
+  let land: (message: Message) => void = () => {};
+  const landed = new Promise<Message>((resolve) => {
+    land = resolve;
+  });
+  return { landed, land };
 }
 
 /**
@@ -104,6 +119,7 @@ export function useMessageOperations(
 ) {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
+  const landings = useRef(new Map<string, Landing>());
 
   const messages = useMemo(() => items.filter(isMessageItem), [items]);
   const delivered = useMemo(
@@ -178,6 +194,8 @@ export function useMessageOperations(
       return;
     }
 
+    landings.current.get(input.clientNonce)?.land(message);
+    landings.current.delete(input.clientNonce);
     confirmDirectMessage(queryClient, identity, channelId, message);
     await mergeSent(token, message);
     outbox.settle(input.clientNonce);
@@ -190,15 +208,18 @@ export function useMessageOperations(
 
   const { uploadingSends, start: startUploadingSend } = useUploadingSends(dispatch);
 
+  /** Sends the message; settles once the server has it, however many retries that takes. */
   function send(
     input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
     pending?: PendingAttachmentCommit,
-  ) {
-    if (!pending) {
-      dispatch({ ...input, clientNonce: randomId() }, new Date().toISOString());
-      return;
-    }
-    startUploadingSend(input, pending);
+  ): Promise<Message> {
+    const clientNonce = pending?.nonce ?? randomId();
+    const landing = expectLanding();
+    landings.current.set(clientNonce, landing);
+
+    if (pending) startUploadingSend(input, pending);
+    else dispatch({ ...input, clientNonce }, new Date().toISOString());
+    return landing.landed;
   }
 
   function retry(rowId: string) {

@@ -133,7 +133,7 @@ test('reactions on PostgreSQL', async (t) => {
     const [row] = rows;
     assert.equal(row?.type === 'MESSAGE' && row.reply, null, 'no reply preview');
     assert.deepEqual(row?.type === 'MESSAGE' && row.mentions, [
-      { memberId, displayName: 'Person 2', avatarPath: null },
+      { memberId, displayName: 'Person 2', avatarPath: null, isBot: false },
     ]);
   });
 

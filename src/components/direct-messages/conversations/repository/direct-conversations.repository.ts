@@ -3,7 +3,11 @@ import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import type { MemberPair } from '../types';
 
 export abstract class DirectConversationsRepository {
-  abstract isActiveMember(workspaceId: string, memberId: string): Promise<boolean>;
+  /** An active member of the workspace, and whether a person or a bot. */
+  abstract findActiveMember(
+    workspaceId: string,
+    memberId: string,
+  ): Promise<{ isBot: boolean } | undefined>;
 
   /** Holds the pair until the transaction ends, so two openings never create two conversations. */
   abstract lockPair(pair: MemberPair): Promise<void>;

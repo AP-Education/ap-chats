@@ -1,6 +1,7 @@
 import { message as toast, Modal } from 'antd';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
+import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
 import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
 import { forwardingActions } from '@/features/social/forwarding/actions';
 import { messagingActions } from '@/features/social/messaging/actions';
@@ -21,7 +22,7 @@ import { pinActions } from '@/features/social/pins/actions';
 import { usePinActions } from '@/features/social/pins/hooks/usePins';
 import { reactionActions } from '@/features/social/reactions/actions';
 
-export const conversationActions = [
+const builtInActions = [
   ...messagingActions,
   ...forwardingActions,
   ...pinActions,
@@ -60,6 +61,11 @@ export function useConversationActions({
   const actionContext = useMemo(
     () => ({ memberId, canPost, canReact, canManage, canPin }),
     [memberId, canPost, canReact, canManage, canPin],
+  );
+  const extensions = useConversationExtensions();
+  const actions = useMemo(
+    () => [...builtInActions, ...extensions.flatMap((extension) => extension.actions ?? [])],
+    [extensions],
   );
 
   const commands: ActionCommands = {
@@ -109,6 +115,10 @@ export function useConversationActions({
         .catch(() => toast.error('Не вдалося змінити закріплення.'));
     },
     showReactions: (item) => setReactionsMessageId(item.message.id),
+    ask: (member, targetItems) => {
+      setIntent({ kind: 'ask', member, messageIds: targetItems.map((item) => item.message.id) });
+      clearSelection();
+    },
   };
   const commandsRef = useRef(commands);
   useLayoutEffect(() => {
@@ -136,6 +146,7 @@ export function useConversationActions({
   }
 
   return {
+    actions,
     actionContext,
     selectedItems,
     clearSelection,

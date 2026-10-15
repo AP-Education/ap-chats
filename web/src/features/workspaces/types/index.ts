@@ -21,17 +21,28 @@ export interface UploadedFile {
   url: string;
 }
 
+/** How a member shows to others: a name, a picture, and whether a person or a bot. */
+export interface MemberAppearance {
+  displayName: string | null;
+  avatarPath: string | null;
+  isBot: boolean;
+}
+
+/** A member as lists, mentions and message headers show them. */
+export interface MemberSummary extends MemberAppearance {
+  memberId: string;
+}
+
 export type WorkspaceAccessLevel = 'owner' | 'manager' | 'member';
 
 export interface WorkspaceMember {
   id: string;
   workspaceId: string;
   userProfileId: string;
-  profile: {
+  profile: MemberAppearance & {
     id: string;
+    /** The OIDC subject, or a reserved one such as bot:star-me for a bot. */
     oidcUserId: string;
-    displayName: string | null;
-    avatarPath: string | null;
   };
   accessLevel: WorkspaceAccessLevel;
   status: 'active' | 'removed';

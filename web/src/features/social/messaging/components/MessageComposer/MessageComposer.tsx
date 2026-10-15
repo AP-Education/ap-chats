@@ -39,10 +39,10 @@ import type { Gif } from '../../gifs/types';
 import { useLinkedGif } from '../../gifs/useLinkedGif';
 import type { GifBlock, PendingAttachmentCommit, SendMessageCommand } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
-import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
 import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
 import { useAttachmentDrop } from './AttachmentDropZone';
 import { ComposerAction } from './ComposerAction';
+import { composerIntent, IntentExcerpt } from './composerIntents';
 import { DesktopPickerPopover } from './DesktopPickerPopover';
 import { PickerPanel, type PickerTab } from './picker';
 import { useBrowserKeyboardHeight } from './useBrowserKeyboardHeight';
@@ -284,7 +284,10 @@ export function MessageComposer({
   // Sending never waits on attachment upload completion (matches Discord/
   // Telegram/Slack/WhatsApp) — only a failed draft doesn't count, since it's
   // left out of the send and stays in the composer for the user to handle.
-  const canSend = hasContent || uploads.drafts.some((draft) => draft.status !== 'error');
+  const canSend =
+    hasContent ||
+    Boolean(intent && composerIntent(intent.kind).speaksForItself) ||
+    uploads.drafts.some((draft) => draft.status !== 'error');
 
   useLayoutEffect(() => {
     if (intent || (composer.autoFocus && !isCompact)) editableRef.current?.focus();
@@ -307,13 +310,8 @@ export function MessageComposer({
   const handleSend = useCallback(() => {
     const draft = editableRef.current?.draft();
     if (!canSend) return;
-    const markdown = draft?.markdown.trim() ?? '';
-    const input = {
-      markdown,
-      labels: draft?.labels,
-      ...(intent ? { replyToMessageId: intent.messageId } : {}),
-      ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
-    };
+    const composed = { markdown: draft?.markdown.trim() ?? '', labels: draft?.labels ?? {} };
+    const input = intent ? composerIntent(intent.kind).compose(intent, composed) : composed;
     const nonce = randomId();
     const drafts = uploads.commit(nonce);
     const pending = drafts.length
@@ -326,7 +324,7 @@ export function MessageComposer({
         }
       : undefined;
     sendQueue.current = sendQueue.current.then(async () => {
-      const blocks = await linkedGif.blocksFor(markdown);
+      const blocks = await linkedGif.blocksFor(input.markdown);
       onSend({ ...input, ...(blocks ? { blocks } : {}) }, pending);
     });
 
@@ -355,13 +353,14 @@ export function MessageComposer({
 
   // A picked GIF goes out as its link with the GIF already found, as on Discord.
   function sendGif(prepare: () => Promise<GifBlock>) {
-    const reply = {
-      ...(intent ? { replyToMessageId: intent.messageId } : {}),
-      ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
-    };
+    const sentIntent = intent;
     sendQueue.current = sendQueue.current.then(async () => {
       const block = await prepare();
-      onSend({ markdown: block.link, blocks: [block], ...reply });
+      const composed = { markdown: block.link, labels: {} };
+      const input = sentIntent
+        ? composerIntent(sentIntent.kind).compose(sentIntent, composed)
+        : composed;
+      onSend({ ...input, blocks: [block] });
     });
     setIntent(null);
     closePicker();
@@ -565,16 +564,14 @@ export function MessageComposer({
                 )}
                 {intent && (
                   <div className={styles.reply}>
-                    <ReplyExcerpt
-                      title={
-                        intent.quoteText ? 'Цитата' : `Відповідь для ${replyAuthor ?? 'учасника'}`
-                      }
-                      markdown={replyPreview ?? 'Повідомлення'}
-                      quoteText={intent.quoteText}
+                    <IntentExcerpt
+                      intent={intent}
+                      replyAuthor={replyAuthor}
+                      replyPreview={replyPreview}
                     />
                     <IconButton
                       size={28}
-                      aria-label="Скасувати відповідь"
+                      aria-label={composerIntent(intent.kind).cancelLabel}
                       onClick={() => setIntent(null)}
                     >
                       <XIcon size={16} />

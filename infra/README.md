@@ -194,7 +194,7 @@ backend-LMS and advertised in Accounts discovery. The Chats Caddyfile serves
 `https://chats.ap-platform.online`. Register the clients by running
 `infra/scripts/register-production-oidc-clients.sql` in the production
 **backend-LMS database**, which owns Accounts clients. The script inserts or
-replaces the LMS web and Connect web/mobile settings, including logout callbacks. It uses
+replaces the LMS web, Connect web/mobile and AI Native settings, including logout callbacks. It uses
 application ID `6e8c8a93-d26b-4f2d-8d40-8bc9f31f2b02`; that application must
 already exist in production. For example, with `DATABASE_URL` pointing at
 that database:
@@ -210,7 +210,9 @@ The Chats web client is `ap-chats-web`, with redirect URI
 `https://chats.ap-platform.online/auth/callback` and logout return to
 `https://chats.ap-platform.online`. The native client is `ap-chats-mobile`,
 with `apchats://auth/callback` for both login and logout, matching
-`mobile/app.json`. Its public release settings are committed in
+`mobile/app.json`. It is also allowed the `refresh_token` grant: the app asks for
+`offline_access` and renews its session with refresh tokens, since it has no
+Accounts cookie to renew against the way the browser does. Its public release settings are committed in
 `mobile/.env.production`, including the web/API URLs, Accounts issuer,
 `EXPO_PUBLIC_OIDC_CLIENT_ID=ap-chats-mobile` and the Chats audience. The EAS
 `production` profile selects the production environment. Expo loads the file

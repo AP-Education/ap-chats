@@ -9,6 +9,7 @@ import {
   channelMemberships,
   channels,
   directMessages,
+  userProfiles,
   workspaceMembers,
 } from '@/database/drizzle/schema';
 
@@ -21,10 +22,11 @@ export class DrizzleDirectConversationsRepository extends DirectConversationsRep
     super();
   }
 
-  async isActiveMember(workspaceId: string, memberId: string): Promise<boolean> {
+  async findActiveMember(workspaceId: string, memberId: string) {
     const [row] = await this.txHost.tx
-      .select({ id: workspaceMembers.id })
+      .select({ isBot: userProfiles.isBot })
       .from(workspaceMembers)
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
       .where(
         and(
           eq(workspaceMembers.workspaceId, workspaceId),
@@ -32,7 +34,7 @@ export class DrizzleDirectConversationsRepository extends DirectConversationsRep
           eq(workspaceMembers.status, 'active'),
         ),
       );
-    return row !== undefined;
+    return row;
   }
 
   async lockPair({ workspaceId, firstMemberId, secondMemberId }: MemberPair): Promise<void> {

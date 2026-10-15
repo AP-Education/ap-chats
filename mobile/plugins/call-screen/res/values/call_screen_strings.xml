@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="expo_callkit_telecom_unknown_caller">Дзвінок</string>
+    <string name="expo_callkit_telecom_incoming_call">Вхідний дзвінок</string>
+    <string name="expo_callkit_telecom_incoming_video_call">Вхідний відеодзвінок</string>
+    <string name="expo_callkit_telecom_ongoing_call">Триває дзвінок</string>
+    <string name="expo_callkit_telecom_call_ended">Дзвінок завершено</string>
+    <string name="expo_callkit_telecom_channel_incoming">Вхідні дзвінки</string>
+    <string name="expo_callkit_telecom_channel_incoming_description">Вхідний дзвінок на весь екран і зі звуком</string>
+    <string name="expo_callkit_telecom_channel_ongoing">Поточний дзвінок</string>
+    <string name="expo_callkit_telecom_channel_ongoing_description">Дзвінок, що триває, у шторці сповіщень</string>
+</resources>

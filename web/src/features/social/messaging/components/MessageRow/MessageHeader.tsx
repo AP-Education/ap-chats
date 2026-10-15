@@ -1,4 +1,5 @@
 import { ForwardedLabel } from './ForwardedLabel';
+import { MessageAddons } from './MessageAddons';
 import { MessageAuthorName } from './MessageAuthorName';
 import { ReplyReference } from './ReplyReference';
 
@@ -9,6 +10,7 @@ export function MessageHeader({ onJump }: { onJump: (messageId: string) => void 
       <MessageAuthorName />
       <ForwardedLabel />
       <ReplyReference onJump={onJump} />
+      <MessageAddons onJump={onJump} />
     </>
   );
 }

@@ -4,6 +4,7 @@ RUN corepack enable
 WORKDIR /app
 # Every workspace manifest keeps the lockfile check honest; only the API's own packages get installed.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY patches ./patches
 COPY web/package.json ./web/
 COPY mobile/package.json ./mobile/
 

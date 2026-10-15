@@ -14,6 +14,7 @@ import {
 } from '@ap-education/ui';
 import { ChatsIcon, ProhibitIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { ChannelDetail } from '@/features/communities/channels/components/ChannelDetail';
@@ -22,6 +23,7 @@ import { ChannelMembersPanel } from '@/features/communities/memberships/componen
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
 import { ConversationProvider } from '@/features/social/conversation-scope/store';
 import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
+import { useStarMeExtension } from '@/features/star-me/hooks/useStarMeExtension';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
@@ -71,6 +73,8 @@ export default function ChannelContent() {
   const { channelId } = useParams<{ channelId?: string }>();
   const query = useChannel(workspaceId, channelId);
   const unavailable = useTrackConversation('channels', workspaceId, channelId, query, '/channels');
+  const starMe = useStarMeExtension(workspaceId);
+  const extensions = useMemo(() => (starMe ? [starMe] : []), [starMe]);
 
   if (!channelId) return <NoChannelSelected />;
   if (query.isPending) return <Page />;
@@ -97,6 +101,7 @@ export default function ChannelContent() {
     <Page>
       <ConversationProvider
         key={`${workspaceId}:${channel.id}`}
+        extensions={extensions}
         scope={{
           workspaceId,
           channelId: channel.id,

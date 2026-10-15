@@ -1,3 +1,4 @@
+import { createAuthorizedFetch } from './api/authorized-fetch';
 import { loadOidcConfig } from './api/config';
 import { NativeAuthSession } from './api/native-auth-session';
 import { SecureTokenStore } from './api/secure-token-store';
@@ -19,4 +20,8 @@ export const useAuthStore = createAuthStore(
 // firing again on every remount/Strict Mode double-invoke).
 export const authRestored = useAuthStore.getState().restore();
 
+/** The native app's own API calls: the WebView renews through the bridge instead. */
+export const authorizedFetch = createAuthorizedFetch(useAuthStore);
+
 export type { AuthState, TokenSet } from './types';
+export { NotSignedInError } from './types';

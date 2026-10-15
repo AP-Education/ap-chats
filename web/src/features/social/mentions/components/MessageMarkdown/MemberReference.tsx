@@ -17,7 +17,11 @@ export function MemberReference({ memberId, person, inline, mine }: MemberRefere
   const { styles, cx } = useMentionChipStyles();
   const { workspaceId } = useConversationScope();
   const text = tokenText({ kind: 'member', id: memberId }, person?.displayName ?? undefined);
-  const mentionClass = cx(styles.mention, mine && styles.mentionMe);
+  const mentionClass = cx(
+    styles.mention,
+    mine && styles.mentionMe,
+    person?.isBot && styles.mentionAssistant,
+  );
 
   if (inline || !person)
     return (

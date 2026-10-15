@@ -2,7 +2,6 @@ import type { Room } from 'livekit-client';
 
 import { activeCall } from '../api/calls-api';
 import { outgoingRing, ringDeadline } from './outgoing-ring';
-import { requireAccessToken } from './require-access-token';
 import { watchRoomPresence } from './room-presence';
 import type { TrackedSessionMetadata } from './session-registry';
 
@@ -53,9 +52,7 @@ export function placeCall(call: CallToFollow, outcomes: PlacedCallOutcomes): Pla
   // A failed ask leaves the call ringing, unless something already showed it was answered.
   async function ask(answeredMeanwhile?: number) {
     const { workspaceId, channelId } = call.metadata;
-    const live = await requireAccessToken()
-      .then((token) => activeCall(token, workspaceId, channelId))
-      .catch(() => undefined);
+    const live = await activeCall(workspaceId, channelId).catch(() => undefined);
     if (settled) return;
 
     if (live === undefined) {

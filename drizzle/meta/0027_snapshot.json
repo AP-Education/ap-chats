@@ -1,5 +1,5 @@
 {
-  "id": "57f3688f-1bc1-44d2-91a1-aabdbc9978ce",
+  "id": "65f7c527-de4f-4313-bca4-8286e0cb22a9",
   "prevId": "958a3569-2e28-40b7-8bc7-e9844479943e",
   "version": "7",
   "dialect": "postgresql",
@@ -831,12 +831,6 @@
           "notNull": true,
           "default": "'[]'::jsonb"
         },
-        "gif": {
-          "name": "gif",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
         "content_version": {
           "name": "content_version",
           "type": "integer",
@@ -1008,10 +1002,6 @@
         "chat_messages_revision_check": {
           "name": "chat_messages_revision_check",
           "value": "\"chat_messages\".\"revision\" >= 1"
-        },
-        "chat_messages_gif_check": {
-          "name": "chat_messages_gif_check",
-          "value": "\"chat_messages\".\"gif\" IS NULL OR jsonb_typeof(\"chat_messages\".\"gif\") = 'object'"
         },
         "chat_messages_attachments_check": {
           "name": "chat_messages_attachments_check",
@@ -1237,6 +1227,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'production'"
+        },
+        "release_key_hash": {
+          "name": "release_key_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
