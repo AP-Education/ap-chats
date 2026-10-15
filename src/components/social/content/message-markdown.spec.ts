@@ -11,6 +11,7 @@ test('allows a blank caption only when the caller explicitly permits attachment 
     markdown: '',
     plainText: '',
     mentions: { memberIds: [], roleIds: [], everyone: false },
+    links: [],
   });
 });
 
@@ -70,6 +71,23 @@ test('keeps a channel link as markup without mentioning anyone', async () => {
   assert.equal(result.markdown, 'See :channel[123e4567-e89b-42d3-a456-426614174000]');
   assert.deepEqual(result.mentions, { memberIds: [], roleIds: [], everyone: false });
   await assert.rejects(markdown.normalize(':channel[general]'));
+});
+
+test('keeps the text as typed, so a link with an underscore still opens', async () => {
+  const source = 'see https://example.com/a_b?utm_source=chat and snake_case';
+  const result = await markdown.normalize(source);
+
+  assert.equal(result.markdown, source);
+  assert.equal(result.plainText, `${source}\n`);
+});
+
+test('reads bare links as links, the way the client shows them', async () => {
+  const result = await markdown.normalize(
+    'gif https://klipy.com/gifs/hello-hi-662 and [docs](https://example.com) or ~~not~~ this',
+  );
+
+  assert.deepEqual(result.links, ['https://klipy.com/gifs/hello-hi-662', 'https://example.com']);
+  assert.equal(result.markdown.includes('~~not~~'), true);
 });
 
 test('preserves single and blank line breaks in stored Markdown', async () => {

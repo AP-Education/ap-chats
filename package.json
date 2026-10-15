@@ -73,6 +73,7 @@
     "reflect-metadata": "0.2.2",
     "remark": "^15.0.1",
     "remark-directive": "^4.0.0",
+    "remark-gfm": "^4.0.1",
     "rxjs": "7.8.2",
     "sharp": "^0.35.4",
     "socket.io": "^4.8.3",

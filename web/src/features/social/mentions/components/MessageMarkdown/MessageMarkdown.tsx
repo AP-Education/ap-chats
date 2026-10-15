@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import { reachesViewer, type ViewerReach } from '../../mention-reach';
 import { tokenFromAttributes } from '../../mention-tokens';
 import type { MentionLabel } from '../../types';
+import { withoutLinkEscapes } from './link-escapes';
 import { mentionDirective } from './mention-directive';
 import { MentionReference } from './MentionReference';
 
@@ -105,7 +106,7 @@ export function MessageMarkdown({
         unwrapDisallowed
         components={components}
       >
-        {markdown}
+        {withoutLinkEscapes(markdown)}
       </ReactMarkdown>
     </MarkdownScopeContext.Provider>
   );

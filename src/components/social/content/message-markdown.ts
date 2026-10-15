@@ -9,6 +9,7 @@ type MarkdownNode = {
   name?: string;
   attributes?: Record<string, string | null>;
   children?: MarkdownNode[];
+  position?: { start: { offset?: number }; end: { offset?: number } };
 };
 
 const allowedTypes = new Set([
@@ -17,6 +18,7 @@ const allowedTypes = new Set([
   'text',
   'strong',
   'emphasis',
+  'delete',
   'inlineCode',
   'code',
   'link',
@@ -25,6 +27,12 @@ const allowedTypes = new Set([
   'listItem',
   'break',
   'textDirective',
+  // GFM shapes the client shows as plain text, accepted as they were before the server read GFM.
+  'table',
+  'tableRow',
+  'tableCell',
+  'footnoteDefinition',
+  'footnoteReference',
 ]);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -32,6 +40,8 @@ export interface NormalizedMessageContent {
   markdown: string;
   plainText: string;
   mentions: MentionTargets;
+  /** Every link the text makes, bare ones included, in the order they appear. */
+  links: string[];
 }
 
 interface CollectedMentions {
@@ -40,10 +50,17 @@ interface CollectedMentions {
   everyone: boolean;
 }
 
-const noMentions = (): CollectedMentions => ({
-  memberIds: new Set(),
-  roleIds: new Set(),
-  everyone: false,
+/** What one pass over the tree gathers. */
+interface Reading {
+  mentions: CollectedMentions;
+  plain: string[];
+  links: string[];
+}
+
+const newReading = (): Reading => ({
+  mentions: { memberIds: new Set(), roleIds: new Set(), everyone: false },
+  plain: [],
+  links: [],
 });
 
 type ReadReference = (value: string, mentions: CollectedMentions) => string;
@@ -89,56 +106,73 @@ const references = new Map<string, ReadReference>([
   ],
 ]);
 
-function readDirective(node: MarkdownNode, mentions: CollectedMentions, plain: string[]): void {
+function readDirective(node: MarkdownNode, { mentions, plain }: Reading): void {
   if (Object.keys(node.attributes ?? {}).length)
     throw new BadRequestException('Unsupported Markdown directive');
   const [label, ...rest] = node.children ?? [];
   if (!label || rest.length || label.type !== 'text')
     throw new BadRequestException('Invalid mention');
   const value = label.value?.toLowerCase() ?? '';
-  label.value = value;
 
   const read = node.name ? references.get(node.name) : undefined;
   if (!read) throw new BadRequestException('Unsupported Markdown directive');
   plain.push(read(value, mentions));
 }
 
-function validateTree(node: MarkdownNode, mentions: CollectedMentions, plain: string[]): void {
-  if (!allowedTypes.has(node.type)) throw new BadRequestException('Unsupported Markdown syntax');
-  if (node.type === 'link') {
-    if (!node.url || node.url.length > 2_048) throw new BadRequestException('Invalid link');
-    try {
-      const url = new URL(node.url);
-      if (!['https:', 'http:', 'mailto:'].includes(url.protocol))
-        throw new BadRequestException('Unsupported link protocol');
-    } catch {
-      throw new BadRequestException('Invalid link');
-    }
+function readLink(node: MarkdownNode, { links }: Reading): void {
+  if (!node.url || node.url.length > 2_048) throw new BadRequestException('Invalid link');
+  try {
+    const url = new URL(node.url);
+    if (!['https:', 'http:', 'mailto:'].includes(url.protocol))
+      throw new BadRequestException('Unsupported link protocol');
+  } catch {
+    throw new BadRequestException('Invalid link');
   }
+  links.push(node.url);
+}
+
+function validateTree(node: MarkdownNode, reading: Reading): void {
+  if (!allowedTypes.has(node.type)) throw new BadRequestException('Unsupported Markdown syntax');
+  if (node.type === 'link') readLink(node, reading);
   if (node.type === 'textDirective') {
-    readDirective(node, mentions, plain);
+    readDirective(node, reading);
     return;
   }
   if (node.type === 'text' || node.type === 'inlineCode' || node.type === 'code') {
-    plain.push(node.value ?? '');
+    reading.plain.push(node.value ?? '');
   }
-  for (const child of node.children ?? []) validateTree(child, mentions, plain);
-  if (['paragraph', 'blockquote', 'listItem'].includes(node.type)) plain.push('\n');
+  for (const child of node.children ?? []) validateTree(child, reading);
+  if (['paragraph', 'blockquote', 'listItem', 'tableRow'].includes(node.type))
+    reading.plain.push('\n');
 }
 
+// A reference is stored by its lowercase id; the rest of the text stays exactly as typed.
+function lowercaseReferences(source: string, node: MarkdownNode): string {
+  const start = node.position?.start.offset;
+  const end = node.position?.end.offset;
+  if (node.type === 'textDirective' && start !== undefined && end !== undefined) {
+    return source.slice(0, start) + source.slice(start, end).toLowerCase() + source.slice(end);
+  }
+
+  return (node.children ?? []).reduce((text, child) => lowercaseReferences(text, child), source);
+}
+
+// The client's grammar, web/src/features/social/mentions/components/MessageMarkdown, so a bare
+// link is a link on both sides.
 async function markdownProcessor() {
-  const [{ remark }, { default: remarkDirective }] = await Promise.all([
+  const [{ remark }, { default: remarkDirective }, { default: remarkGfm }] = await Promise.all([
     import('remark'),
     import('remark-directive'),
+    import('remark-gfm'),
   ]);
-  return remark().use(remarkDirective);
+  return remark().use(remarkDirective).use(remarkGfm, { singleTilde: false });
 }
 
 export async function messagePlainText(markdown: string): Promise<string> {
   const processor = await markdownProcessor();
-  const plain: string[] = [];
-  validateTree(processor.parse(markdown) as MarkdownNode, noMentions(), plain);
-  return plain.join('');
+  const reading = newReading();
+  validateTree(processor.parse(markdown) as MarkdownNode, reading);
+  return reading.plain.join('');
 }
 
 @Injectable()
@@ -152,23 +186,27 @@ export class MessageMarkdownService {
       throw new BadRequestException('Message contains control characters');
 
     const processor = await markdownProcessor();
-    const tree = processor.parse(normalizedSource);
-    const mentions = noMentions();
-    const plain: string[] = [];
-    validateTree(tree as MarkdownNode, mentions, plain);
-    const markdown = processor.stringify(tree).trim();
-    if (!allowBlank && !plain.join('').trim())
-      throw new BadRequestException('Message cannot be blank');
+    const tree = processor.parse(normalizedSource) as MarkdownNode;
+    const reading = newReading();
+    validateTree(tree, reading);
+
+    // Kept as typed, not re-serialized from the tree, which would escape every _ and * in it.
+    const markdown = lowercaseReferences(normalizedSource, tree).trim();
+    const plainText = reading.plain.join('');
+    if (!allowBlank && !plainText.trim()) throw new BadRequestException('Message cannot be blank');
     if (Buffer.byteLength(markdown, 'utf8') > 32_768)
       throw new BadRequestException('Message is too long');
+
+    const { mentions, links } = reading;
     return {
       markdown,
-      plainText: plain.join(''),
+      plainText,
       mentions: {
         memberIds: [...mentions.memberIds],
         roleIds: [...mentions.roleIds],
         everyone: mentions.everyone,
       },
+      links,
     };
   }
 }
