@@ -49,6 +49,15 @@ export default defineConfig(
     },
   },
   {
+    // Expo requires config plugins in Node during prebuild, outside the app bundle.
+    files: ['mobile/plugins/**/*.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: { ...globals.node, ...globals.es2023 },
+    },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
+  {
     files: ['web/**/*.{ts,tsx}', 'mobile/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks },
     rules: reactHooks.configs.flat.recommended.rules,
