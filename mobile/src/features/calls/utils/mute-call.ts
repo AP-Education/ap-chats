@@ -2,16 +2,13 @@ import type { SetMutedActionEvent } from 'expo-callkit-telecom';
 
 import { useNativeCallStore } from '../store/native-call-store';
 import { playMuteChime, playUnmuteChime } from './call-chimes';
-import type { loadCallKitModule } from './callkit-module';
+import type { CallKitApi } from './callkit-module';
 import { getTrackedSession } from './session-registry';
 
 /** Fires both when the system's own mute button is pressed and when our
  * NativeInCallScreen calls setMuted itself — one path either way. Takes the
  * already-loaded module rather than importing it statically — see callkit-module.ts. */
-export async function setCallMuted(
-  event: SetMutedActionEvent,
-  CallKit: NonNullable<Awaited<ReturnType<typeof loadCallKitModule>>>,
-): Promise<void> {
+export async function setCallMuted(event: SetMutedActionEvent, CallKit: CallKitApi): Promise<void> {
   const call = useNativeCallStore.getState().call;
   if (call?.sessionId !== event.id) return;
 

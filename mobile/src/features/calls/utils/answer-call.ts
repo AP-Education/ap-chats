@@ -1,10 +1,12 @@
 import type { CallAnsweredEvent } from 'expo-callkit-telecom';
 
+import { NotSignedInError } from '../../auth';
 import { joinCall } from '../api/calls-api';
+import { useAnswerFailureStore } from '../store/answer-failure-store';
 import { useNativeCallStore } from '../store/native-call-store';
 import { syncCurrentAudioRoute } from './audio-route';
 import { trackCallCues } from './call-cues';
-import type { loadCallKitModule } from './callkit-module';
+import type { CallKitApi } from './callkit-module';
 import { endCallSession } from './end-call';
 import { hydrateCallSession } from './hydrate-call-session';
 import { connectRoom, waitForAudioSessionActive } from './livekit-room';
@@ -14,10 +16,7 @@ import { trackRemoteParticipant } from './track-remote-participant';
 /** The user answered from the system UI — join the same LiveKit room the web
  * app's useJoinCall would, then tell CallKit/Telecom media is ready. Takes the
  * already-loaded module rather than importing it statically — see callkit-module.ts. */
-export async function answerCall(
-  event: CallAnsweredEvent,
-  CallKit: NonNullable<Awaited<ReturnType<typeof loadCallKitModule>>>,
-): Promise<void> {
+export async function answerCall(event: CallAnsweredEvent, CallKit: CallKitApi): Promise<void> {
   let session = getTrackedSession(event.id);
   try {
     if (!session) {
@@ -27,6 +26,7 @@ export async function answerCall(
     if (!session) throw new Error('Incoming call session is unavailable');
     if (session.answerRequestId) return;
     session.answerRequestId = event.requestId;
+    useAnswerFailureStore.getState().clear();
     const signal = session.abortController.signal;
     const current = useNativeCallStore.getState().call;
     const mutedBeforeAnswer = current?.sessionId === event.id && current.isMuted;
@@ -63,6 +63,9 @@ export async function answerCall(
   } catch (error) {
     if (session?.abortController.signal.aborted) return;
     if (__DEV__) console.warn('[calls] answer failed', error);
+    useAnswerFailureStore
+      .getState()
+      .fail(error instanceof NotSignedInError ? 'signed-out' : 'unreachable');
     const cleanup = endCallSession(event);
     await CallKit.failIncomingCallConnected(event.id, event.requestId).catch(() => undefined);
     await CallKit.endCall(event.id).catch(() => undefined);

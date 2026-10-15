@@ -7,6 +7,7 @@ import { runInNewContext } from 'node:vm';
 import type { CallEndedReason } from 'expo-callkit-telecom';
 import ts from 'typescript';
 
+import { useAnswerFailureStore } from '../src/features/calls/store/answer-failure-store';
 import { useNativeCallStore } from '../src/features/calls/store/native-call-store';
 import type { NativeCallConnectPayload } from '../src/features/calls/types';
 import type { answerCall } from '../src/features/calls/utils/answer-call';
@@ -172,6 +173,7 @@ function fixture(t: TestContext) {
   });
   const dependencies = {
     '../store/native-call-store': { useNativeCallStore },
+    '../store/answer-failure-store': { useAnswerFailureStore },
     // Each request waits for the session's token first, as authorizedFetch does.
     '../api/calls-api': {
       joinCall: async (
@@ -194,6 +196,7 @@ function fixture(t: TestContext) {
         steps.push('decline');
       },
     },
+    '../../auth': { NotSignedInError: class extends Error {} },
     './session-registry': registry,
     './hydrate-call-session': hydration,
     './livekit-room': mediaFunctions,
@@ -237,6 +240,7 @@ function fixture(t: TestContext) {
   t.after(() => {
     registry.untrackSession(id);
     useNativeCallStore.getState().clearCall();
+    useAnswerFailureStore.getState().clear();
   });
   return {
     steps,
@@ -340,6 +344,7 @@ test('a failed media connection fails the native answer and leaves the server ca
   assert.equal(leaves(f.steps), 1);
   assert.ok(f.steps.includes('fail-answer') && f.steps.includes('end-native'));
   assert.equal(useNativeCallStore.getState().call, null);
+  assert.equal(useAnswerFailureStore.getState().failure, 'unreachable', 'the call window says why');
 });
 
 test('a remote native ending releases media without echoing decline or leave', async (t) => {

@@ -5,7 +5,7 @@ import { useNativeCallStore } from '../store/native-call-store';
 import type { NativeCallConnectPayload } from '../types';
 import { syncCurrentAudioRoute } from './audio-route';
 import { trackCallCues } from './call-cues';
-import { loadCallKitModule } from './callkit-module';
+import { type CallKitApi, loadCallKitModule } from './callkit-module';
 import { endCallSession } from './end-call';
 import { restoreIncomingSession } from './hydrate-call-session';
 import { connectRoom, waitForAudioSessionActive } from './livekit-room';
@@ -120,7 +120,7 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
 
 async function waitForOutgoingCallStarted(
   sessionId: string,
-  CallKit: NonNullable<Awaited<ReturnType<typeof loadCallKitModule>>>,
+  CallKit: CallKitApi,
   signal: AbortSignal,
 ): Promise<void> {
   let finish!: () => void;

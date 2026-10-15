@@ -3,12 +3,10 @@ import type { CallEndedReason } from 'expo-callkit-telecom';
 import { activeCall, CallsApiError } from '../api/calls-api';
 import { useNativeCallStore } from '../store/native-call-store';
 import { callOutcome } from './call-outcome';
-import type { loadCallKitModule } from './callkit-module';
+import type { CallKitApi } from './callkit-module';
 import { getTrackedSession } from './session-registry';
 
-export async function synchronizeCallSession(
-  CallKit: NonNullable<Awaited<ReturnType<typeof loadCallKitModule>>>,
-): Promise<void> {
+export async function synchronizeCallSession(CallKit: CallKitApi): Promise<void> {
   const current = useNativeCallStore.getState().call;
   if (!current) return;
   const session = getTrackedSession(current.sessionId);
