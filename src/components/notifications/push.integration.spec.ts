@@ -137,12 +137,14 @@ test('push persistence on PostgreSQL', async (t) => {
         installationId: 'install',
         platform: 'ios',
         pushToken: 'A',
+        releaseKeyHash: null,
       });
       const [previous] = await devices.listForUser('owner-A');
       await devices.register('owner-B', {
         installationId: 'install',
         platform: 'ios',
         pushToken: 'B',
+        releaseKeyHash: null,
       });
 
       await devices.unregister('owner-A', 'install');
@@ -153,6 +155,22 @@ test('push persistence on PostgreSQL', async (t) => {
       assert.equal(current?.pushToken, 'B');
     },
   );
+
+  await t.test('a phone releases itself only with the key it registered with', async () => {
+    const installationId = randomUUID();
+    await devices.register('owner', {
+      installationId,
+      platform: 'android',
+      pushToken: 'token',
+      releaseKeyHash: 'kept-hash',
+    });
+
+    await devices.releaseByKey(installationId, 'guessed-hash');
+    assert.equal((await devices.listForUser('owner')).length, 1);
+
+    await devices.releaseByKey(installationId, 'kept-hash');
+    assert.equal((await devices.listForUser('owner')).length, 0);
+  });
 
   await t.test('the previous owner of a browser subscription cannot touch it', async () => {
     const registration = {

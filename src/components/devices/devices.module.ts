@@ -7,6 +7,7 @@ import { DrizzleWebPushRepository } from './browser/repository/drizzle-web-push.
 import { WebPushRepository } from './browser/repository/web-push.repository';
 import { WebPushController } from './browser/web-push.controller';
 import { WebPushService } from './browser/web-push.service';
+import { DeviceReleaseController } from './device-release.controller';
 import { DevicesController } from './devices.controller';
 import { DevicesService } from './devices.service';
 import { DevicesRepository, DrizzleDevicesRepository } from './repository';
@@ -15,7 +16,7 @@ import { NativePushTargetsStrategy } from './targets/native-push-targets.strateg
 
 @Module({
   imports: [DrizzleModule, AuthModule],
-  controllers: [DevicesController, WebPushController],
+  controllers: [DevicesController, DeviceReleaseController, WebPushController],
   providers: [
     WebPushService,
     { provide: WebPushRepository, useClass: DrizzleWebPushRepository },

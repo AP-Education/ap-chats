@@ -1,0 +1,1 @@
+ALTER TABLE "devices" ADD COLUMN "release_key_hash" text;
