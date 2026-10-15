@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 import { message } from 'antd';
 import { useEffect, useState } from 'react';
 
@@ -6,17 +6,19 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import { attachmentUrl } from '../../attachments/attachments-api';
-import type { Attachment } from '../../attachments/types';
+import type { Attachment, UploadScope } from '../../attachments/types';
 
-export function useAttachmentUrl(
+export type AttachmentUrlVariant = 'thumbnail' | 'preview';
+
+/** A signed address of an attachment, shared by the rows and the viewer through one cache entry. */
+export function attachmentUrlQuery(
+  { token, identity }: ReturnType<typeof useQueryAuth>,
+  scope: UploadScope,
   messageId: string,
   attachmentId: string,
-  variant: 'thumbnail' | 'preview',
-  enabled: boolean,
+  variant: AttachmentUrlVariant,
 ) {
-  const { token, identity } = useQueryAuth();
-  const scope = useConversationScope();
-  return useQuery({
+  return queryOptions({
     queryKey: [
       'attachment-url',
       identity,
@@ -27,10 +29,24 @@ export function useAttachmentUrl(
       variant,
     ],
     queryFn: () => attachmentUrl(token!, scope, messageId, attachmentId, variant),
-    enabled: Boolean(enabled && token),
+    // Signed addresses live 15 minutes; one is reused well before it runs out.
     staleTime: 10 * 60_000,
     gcTime: 15 * 60_000,
     retry: 1,
+  });
+}
+
+export function useAttachmentUrl(
+  messageId: string,
+  attachmentId: string,
+  variant: AttachmentUrlVariant,
+  enabled: boolean,
+) {
+  const auth = useQueryAuth();
+  const scope = useConversationScope();
+  return useQuery({
+    ...attachmentUrlQuery(auth, scope, messageId, attachmentId, variant),
+    enabled: Boolean(enabled && auth.token),
   });
 }
 

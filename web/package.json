@@ -25,6 +25,7 @@
     "antd": "6.5.4",
     "antd-style": "4.1.0",
     "livekit-client": "^2.22.3",
+    "photoswipe": "5.4.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
