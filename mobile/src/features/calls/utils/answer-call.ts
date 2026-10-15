@@ -8,7 +8,6 @@ import type { loadCallKitModule } from './callkit-module';
 import { endCallSession } from './end-call';
 import { hydrateCallSession } from './hydrate-call-session';
 import { connectRoom, waitForAudioSessionActive } from './livekit-room';
-import { requireAccessToken } from './require-access-token';
 import { getTrackedSession } from './session-registry';
 import { trackRemoteParticipant } from './track-remote-participant';
 
@@ -38,9 +37,7 @@ export async function answerCall(
       isMuted: mutedBeforeAnswer,
     });
     const { workspaceId, channelId } = session.metadata;
-    const accessToken = await requireAccessToken();
-    if (signal.aborted) return;
-    const grant = await joinCall(accessToken, workspaceId, channelId, session.serverCallId);
+    const grant = await joinCall(workspaceId, channelId, session.serverCallId, signal);
     if (signal.aborted) return;
     const room = await connectRoom(grant.url, grant.token, signal);
     if (signal.aborted) {

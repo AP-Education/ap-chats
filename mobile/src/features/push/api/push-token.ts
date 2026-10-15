@@ -25,7 +25,10 @@ export async function requestPushPermission(): Promise<boolean> {
   );
 }
 
-export async function getExpoPushToken(): Promise<string | null> {
+/** `devicePushToken` when one is in hand: asking the OS for it again reports it to every listener. */
+export async function getExpoPushToken(
+  devicePushToken?: Notifications.DevicePushToken,
+): Promise<string | null> {
   await ensureMessageChannel();
   const permissions = await Notifications.getPermissionsAsync();
   if (
@@ -35,5 +38,5 @@ export async function getExpoPushToken(): Promise<string | null> {
     return null;
   const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
   if (!projectId || Constants.executionEnvironment === 'storeClient') return null;
-  return (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+  return (await Notifications.getExpoPushTokenAsync({ projectId, devicePushToken })).data;
 }

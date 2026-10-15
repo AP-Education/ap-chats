@@ -172,19 +172,28 @@ function fixture(t: TestContext) {
   });
   const dependencies = {
     '../store/native-call-store': { useNativeCallStore },
+    // Each request waits for the session's token first, as authorizedFetch does.
     '../api/calls-api': {
-      joinCall: async () => {
+      joinCall: async (
+        _workspace: string,
+        _channel: string,
+        _call: string,
+        signal?: AbortSignal,
+      ) => {
+        await auth.promise;
+        if (signal?.aborted) throw new Error('Request aborted');
         steps.push('join');
         return payload.grant;
       },
       leaveCall: async () => {
+        await auth.promise;
         steps.push('leave');
       },
       declineCall: async () => {
+        await auth.promise;
         steps.push('decline');
       },
     },
-    './require-access-token': { requireAccessToken: () => auth.promise },
     './session-registry': registry,
     './hydrate-call-session': hydration,
     './livekit-room': mediaFunctions,
@@ -472,7 +481,6 @@ test('foreground sync keeps a local answer but dismisses a ring answered on anot
   }>('synchronize-call-session', {
     '../store/native-call-store': { useNativeCallStore },
     '../api/calls-api': { activeCall: async () => ({ id: 'server-call', status: 'active' }) },
-    './require-access-token': { requireAccessToken: async () => 'token' },
     './call-outcome': outcome,
     './session-registry': registry,
   });
@@ -498,7 +506,6 @@ function placedCallFixture(live: Live) {
   const { placeCall: place } = load<{ placeCall: typeof placeCall }>('placed-call', {
     '../api/calls-api': { activeCall: async () => state.live },
     './outgoing-ring': outgoing,
-    './require-access-token': { requireAccessToken: async () => 'token' },
     './room-presence': {
       watchRoomPresence: (_room: unknown, { joined }: { joined: () => void }) => {
         state.someoneJoins = joined;

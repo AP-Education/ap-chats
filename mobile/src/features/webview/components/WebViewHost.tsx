@@ -37,6 +37,7 @@ import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
 import { buildBridgeScript } from '../utils/inject-bridge';
 import { insetBottomScript, pageBottom, pageKeyboardInset } from '../utils/page-inset';
 import { APP_SHELL_USER_AGENT } from '../utils/shell-user-agent';
+import { tokenMessage } from '../utils/token-message';
 import { ConnectionErrorScreen } from './ConnectionErrorScreen';
 import { SetupScreen } from './SetupScreen';
 
@@ -118,29 +119,10 @@ export function WebViewHost() {
     if (webUrl) void loadLastLocation(webUrl).then((url) => setStartUrl(url ?? webUrl));
   }, []);
 
-  // Pushes the current token into web/ whenever it changes (sign-in, refresh).
+  // Pushes the current token into web/ whenever it changes (sign-in, renewal).
   useEffect(() => {
-    if (loadCount === 0) return;
-
-    let message: NativeToWebMessage;
-    if (auth.status === 'signed-in') {
-      message = {
-        type: 'auth/token',
-        payload: {
-          accessToken: auth.tokens.accessToken,
-          expiresAt: auth.tokens.expiresAt,
-          idToken: auth.tokens.idToken,
-        },
-      };
-    } else if (auth.status === 'unconfigured') {
-      // AuthGate never reveals the WebView except for 'unconfigured' and 'signed-in' (see
-      // AuthGate.tsx), so this is the only other status reachable here — tell web/ not to
-      // wait for a token that is never coming, instead of spinning its header forever.
-      message = { type: 'auth/unavailable' };
-    } else {
-      return;
-    }
-    webViewRef.current?.injectJavaScript(buildBridgeScript(message));
+    const message = tokenMessage(auth);
+    if (loadCount > 0 && message) webViewRef.current?.injectJavaScript(buildBridgeScript(message));
   }, [auth, loadCount]);
 
   // Routed only once the page says it can; it acknowledges, and the tap stays pending until then.
@@ -206,8 +188,15 @@ export function WebViewHost() {
       forgetLastLocation();
       void useAuthStore.getState().signOut();
     } else if (message.type === 'auth/refresh-request') {
-      // Updates the store; the effect above picks up the new token and re-injects it.
-      void useAuthStore.getState().refreshNow();
+      // web/ waits for a token back, so one goes back whether or not this one was renewed.
+      void useAuthStore
+        .getState()
+        .renewAccessToken()
+        .catch(() => null)
+        .then(() => {
+          const reply = tokenMessage(useAuthStore.getState());
+          if (reply) webViewRef.current?.injectJavaScript(buildBridgeScript(reply));
+        });
     } else if (message.type === 'calls/connect') {
       void connectBridgedCall(message.payload);
     } else if (message.type === 'appearance/changed') {

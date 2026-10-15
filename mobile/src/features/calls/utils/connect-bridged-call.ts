@@ -10,7 +10,6 @@ import { endCallSession } from './end-call';
 import { restoreIncomingSession } from './hydrate-call-session';
 import { connectRoom, waitForAudioSessionActive } from './livekit-room';
 import { placeCall } from './placed-call';
-import { requireAccessToken } from './require-access-token';
 import { findTrackedSessionIdByServerCallId, trackSession } from './session-registry';
 import { trackRemoteParticipant } from './track-remote-participant';
 
@@ -47,12 +46,7 @@ export async function connectBridgedCall(payload: NativeCallConnectPayload): Pro
     } catch (error) {
       if (__DEV__) console.warn('[calls] outgoing start failed', error);
       try {
-        await leaveCall(
-          await requireAccessToken(),
-          payload.workspaceId,
-          payload.channelId,
-          payload.grant.callId,
-        );
+        await leaveCall(payload.workspaceId, payload.channelId, payload.grant.callId);
       } catch (cleanupError) {
         if (__DEV__) console.warn('[calls] outgoing cleanup failed', cleanupError);
       }

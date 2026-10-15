@@ -6,7 +6,6 @@ import { io, type Socket } from 'socket.io-client';
 import { useAuthStore } from '../../auth';
 import { useNativeCallStore } from '../store/native-call-store';
 import { loadCallKitModule } from '../utils/callkit-module';
-import { requireAccessToken } from '../utils/require-access-token';
 import { findPlacedCall, findTrackedSessionIdByServerCallId } from '../utils/session-registry';
 import { synchronizeCallSession } from '../utils/synchronize-call-session';
 
@@ -26,15 +25,22 @@ export function CallSignalSocket() {
   useEffect(() => {
     if (status !== 'signed-in' || !apiUrl) return;
 
+    let sentToken: string | undefined;
     const socket: Socket = io(`${apiUrl}/chats`, {
       // Re-read on every (re)connect attempt, like web/'s socket-client.ts —
       // not just once here, so a refreshed token is picked up without
       // tearing this socket down and recreating it.
       auth: (callback) => {
-        void requireAccessToken().then(
-          (token) => callback({ token }),
-          () => callback({ token: '' }),
-        );
+        void useAuthStore
+          .getState()
+          .freshAccessToken()
+          .then(
+            (token) => {
+              sentToken = token;
+              callback({ token });
+            },
+            () => callback({ token: '' }),
+          );
       },
     });
 
@@ -72,11 +78,12 @@ export function CallSignalSocket() {
       }
     });
     socket.on('connect_error', (error: Error & { data?: { code?: string } }) => {
-      if (error.data?.code === 'AUTH_TOKEN_EXPIRED')
-        void useAuthStore
-          .getState()
-          .refreshNow()
-          .then(() => socket.connect());
+      if (error.data?.code !== 'AUTH_TOKEN_EXPIRED') return;
+      void useAuthStore
+        .getState()
+        .renewAccessToken(sentToken)
+        .then((renewed) => renewed && socket.connect())
+        .catch(() => undefined);
     });
     // On the device that placed the call, an answer connects it rather than dismissing anything.
     socket.on('call:accepted', (payload: unknown) => {
