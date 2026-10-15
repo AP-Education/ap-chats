@@ -222,13 +222,12 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
+type ComposedMessage = Omit<SendMessageCommand, 'clientNonce' | 'attachments'>;
+
 interface MessageComposerProps {
   replyAuthor?: string;
   replyPreview?: string;
-  onSend: (
-    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
-    pending?: PendingAttachmentCommit,
-  ) => void;
+  onSend: (input: ComposedMessage, pending?: PendingAttachmentCommit) => void;
   /** The text-input to compose with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
   children: ReactNode;
 }
@@ -300,15 +299,25 @@ export function MessageComposer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blurComposerToken]);
 
-  const handleSend = useCallback(() => {
+  const readMessage = useCallback((): ComposedMessage => {
     const draft = editableRef.current?.draft();
-    if (!canSend) return;
-    const input = {
+    return {
       markdown: draft?.markdown.trim() ?? '',
       labels: draft?.labels,
       ...(intent ? { replyToMessageId: intent.messageId } : {}),
       ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
     };
+  }, [intent]);
+
+  const clearSent = useCallback(() => {
+    editableRef.current?.clear();
+    clearDraft();
+    setIntent(null);
+  }, [clearDraft, setIntent]);
+
+  const handleSend = useCallback(() => {
+    if (!canSend) return;
+    const input = readMessage();
     const nonce = randomId();
     const drafts = uploads.commit(nonce);
     if (drafts.length) {
@@ -322,12 +331,10 @@ export function MessageComposer({
     } else {
       onSend(input);
     }
-    editableRef.current?.clear();
-    clearDraft();
-    setIntent(null);
+    clearSent();
     // Sending keeps the active input surface, including an open emoji panel.
     if (!activeTab) editableRef.current?.focus();
-  }, [canSend, uploads, onSend, intent, clearDraft, setIntent, activeTab]);
+  }, [canSend, readMessage, uploads, onSend, clearSent, activeTab]);
 
   function insertEmoji(emoji: string) {
     editableRef.current?.insertText(emoji);
