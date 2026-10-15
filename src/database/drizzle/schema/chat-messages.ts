@@ -25,6 +25,8 @@ export interface StoredAttachment {
   width: number | null;
   height: number | null;
   description: string | null;
+  /** An image's ThumbHash, base64; files stored before it was kept have none. */
+  placeholder?: string;
 }
 
 /** A GIF as a message keeps it: the media URL exactly as its service serves it, never a copy. */

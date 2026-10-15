@@ -10,6 +10,8 @@ export interface Attachment {
   width: number | null;
   height: number | null;
   description: string | null;
+  /** An image's ThumbHash, base64: its colours and a blurred stand-in before it loads. */
+  placeholder?: string;
 }
 
 // What a fresh post and a forward of it both carry unmodified: what's

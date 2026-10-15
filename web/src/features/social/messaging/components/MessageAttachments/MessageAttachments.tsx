@@ -1,104 +1,23 @@
-import { ArrowClockwiseIcon, ImageIcon } from '@phosphor-icons/react';
-import { createStyles } from 'antd-style';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import type { Attachment } from '../../attachments/types';
+import { AttachmentAlbum } from './AttachmentAlbum';
 import { AttachmentViewer } from './AttachmentViewer';
 import { FileAttachment } from './FileAttachment';
-import { useAttachmentUrl, useVisibleAttachment } from './useAttachmentAccess';
-
-const useStyles = createStyles(({ token, css }) => ({
-  mosaic: css`
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 2px;
-    width: 420px;
-    max-width: 100%;
-    overflow: hidden;
-    border-radius: calc(var(--bubble-radius, ${token.borderRadius * 2}px) - ${token.paddingXXS}px);
-  `,
-  tile: css`
-    position: relative;
-    display: grid;
-    place-items: center;
-    aspect-ratio: 4 / 3;
-    min-width: 0;
-    padding: 0;
-    overflow: hidden;
-    border: 0;
-    background: ${token.colorFillSecondary};
-    color: ${token.colorTextSecondary};
-    cursor: zoom-in;
-    &:focus-visible {
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: -2px;
-    }
-    &:disabled {
-      cursor: default;
-    }
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-  `,
-  // A lone image keeps its own proportions (bounded, never cropped) —
-  // the fixed cover-cropped tile only makes sense once images must tile
-  // together, same split Discord/Telegram draw between one image and a grid.
-  single: css`
-    position: relative;
-    display: grid;
-    place-items: center;
-    max-width: 100%;
-    padding: 0;
-    overflow: hidden;
-    border: 0;
-    border-radius: calc(var(--bubble-radius, ${token.borderRadius * 2}px) - ${token.paddingXXS}px);
-    background: ${token.colorFillSecondary};
-    color: ${token.colorTextSecondary};
-    cursor: zoom-in;
-    &:focus-visible {
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: -2px;
-    }
-    &:disabled {
-      cursor: default;
-    }
-    img {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-  `,
-  unsized: css`
-    width: 420px;
-    max-width: 100%;
-    border-radius: calc(var(--bubble-radius, ${token.borderRadius * 2}px) - ${token.paddingXXS}px);
-  `,
-  alt: css`
-    position: absolute;
-    bottom: 6px;
-    left: 6px;
-    padding: 2px ${token.paddingXXS}px;
-    border-radius: ${token.borderRadiusXS}px;
-    background: ${token.colorBgContainer};
-    color: ${token.colorText};
-    font-size: 10px;
-    font-weight: 600;
-  `,
-}));
+import { ImageAttachment } from './ImageAttachment';
 
 export function MessageAttachments({
   attachments,
   messageId,
   available = true,
+  overlay,
 }: {
   attachments: Attachment[];
   messageId: string;
   available?: boolean;
+  /** The time, when the photos close the bubble. */
+  overlay?: ReactNode;
 }) {
-  const { styles } = useStyles();
   const [selected, setSelected] = useState<number | null>(null);
   const images = attachments.filter((file) => file.preview === 'image');
   const files = attachments.filter((file) => file.preview !== 'image');
@@ -111,22 +30,18 @@ export function MessageAttachments({
           attachment={images[0]!}
           messageId={messageId}
           available={available}
-          natural
+          overlay={overlay}
           onOpen={() => setSelected(0)}
         />
       )}
       {images.length > 1 && (
-        <div className={styles.mosaic} data-attachment-media>
-          {images.map((image, index) => (
-            <ImageAttachment
-              key={image.id}
-              attachment={image}
-              messageId={messageId}
-              available={available}
-              onOpen={() => setSelected(index)}
-            />
-          ))}
-        </div>
+        <AttachmentAlbum
+          images={images}
+          messageId={messageId}
+          available={available}
+          overlay={overlay}
+          onOpen={setSelected}
+        />
       )}
       {files.map((file) => (
         <FileAttachment
@@ -149,76 +64,5 @@ export function MessageAttachments({
         />
       )}
     </>
-  );
-}
-
-const SINGLE_MAX_WIDTH = 420;
-const SINGLE_MAX_HEIGHT = 320;
-
-function naturalBoxSize(attachment: Attachment): { width: number; height: number } | undefined {
-  if (!attachment.width || !attachment.height) return undefined;
-  const scale = Math.min(
-    SINGLE_MAX_WIDTH / attachment.width,
-    SINGLE_MAX_HEIGHT / attachment.height,
-    1,
-  );
-  return {
-    width: Math.round(attachment.width * scale),
-    height: Math.round(attachment.height * scale),
-  };
-}
-
-function ImageAttachment({
-  attachment,
-  messageId,
-  available,
-  natural,
-  onOpen,
-}: {
-  attachment: Attachment;
-  messageId: string;
-  available: boolean;
-  natural?: boolean;
-  onOpen: () => void;
-}) {
-  const { styles, cx } = useStyles();
-  const { observeElement, visible } = useVisibleAttachment();
-  const access = useAttachmentUrl(messageId, attachment.id, 'thumbnail', available && visible);
-  const [failed, setFailed] = useState(false);
-  const broken = failed || access.isError;
-  const box = natural ? naturalBoxSize(attachment) : undefined;
-  return (
-    <button
-      ref={observeElement}
-      type="button"
-      className={box ? styles.single : cx(styles.tile, natural && styles.unsized)}
-      style={box}
-      data-attachment-media={natural || undefined}
-      disabled={!available}
-      aria-label={`${broken ? 'Повторити перегляд' : 'Переглянути'} ${attachment.name}`}
-      title={attachment.description || attachment.name}
-      onClick={() => {
-        if (broken) {
-          setFailed(false);
-          void access.refetch();
-        } else onOpen();
-      }}
-    >
-      {access.data && !failed ? (
-        <img
-          src={access.data.url}
-          loading="lazy"
-          decoding="async"
-          alt={attachment.description || attachment.name}
-          referrerPolicy="no-referrer"
-          onError={() => setFailed(true)}
-        />
-      ) : broken ? (
-        <ArrowClockwiseIcon size={28} aria-hidden />
-      ) : (
-        <ImageIcon size={28} aria-hidden />
-      )}
-      {attachment.description && <span className={styles.alt}>ALT</span>}
-    </button>
   );
 }

@@ -61,7 +61,7 @@ export function useAttachmentDownload(messageId: string, attachment: Attachment)
 }
 
 export function useVisibleAttachment() {
-  const [element, setElement] = useState<HTMLButtonElement | null>(null);
+  const [element, setElement] = useState<HTMLElement | null>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     if (!element) return;
@@ -78,4 +78,22 @@ export function useVisibleAttachment() {
     return () => observer.disconnect();
   }, [element]);
   return { observeElement: setElement, visible };
+}
+
+/** A message's photo as shown: its address once it nears the screen, and a retry if it broke. */
+export function useAttachmentImage(messageId: string, attachmentId: string, available: boolean) {
+  const { observeElement, visible } = useVisibleAttachment();
+  const access = useAttachmentUrl(messageId, attachmentId, 'thumbnail', available && visible);
+  const [failed, setFailed] = useState(false);
+
+  return {
+    observeElement,
+    src: access.data && !failed ? access.data.url : undefined,
+    broken: failed || access.isError,
+    markBroken: () => setFailed(true),
+    retry: () => {
+      setFailed(false);
+      void access.refetch();
+    },
+  };
 }

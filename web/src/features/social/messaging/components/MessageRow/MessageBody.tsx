@@ -36,7 +36,7 @@ export function MessageBody({
     <MessageMeta placement={layout.meta} />
   );
   const blocks = item.message.blocks ?? [];
-  // On a GIF the time sits inside it, in its colours; on photos it stays on the bubble.
+  // On media the time sits on whatever closes the bubble, in its colours: a GIF, else the photos.
   const mediaMeta = layout.meta === 'overlay' && <MessageMeta placement="overlay" />;
   const blocksClose = blocks.length > 0;
 
@@ -49,6 +49,7 @@ export function MessageBody({
           attachments={item.message.attachments ?? []}
           messageId={item.message.id}
           available={!delivery}
+          overlay={!blocksClose && mediaMeta}
         />
       )}
       {editing && (
@@ -64,9 +65,7 @@ export function MessageBody({
         />
       )}
       <MessageBlocks blocks={blocks} overlay={blocksClose && mediaMeta} />
-      {(layout.meta === 'block' || (layout.meta === 'overlay' && !blocksClose)) && (
-        <MessageMeta placement={layout.meta} />
-      )}
+      {layout.meta === 'block' && <MessageMeta placement="block" />}
       {layout.reactions && (
         <MessageReactions
           item={item}
