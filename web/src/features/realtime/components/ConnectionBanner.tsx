@@ -68,7 +68,7 @@ export function ConnectionBanner() {
 
   const isAuthError = status === 'error' && error?.kind === 'auth';
   const message = isAuthError
-    ? 'Не вдалося підключитися до сервера. Оновіть сторінку.'
+    ? 'Не вдалося підключитися до сервера'
     : status === 'reconnecting'
       ? 'Відновлюємо з’єднання'
       : 'Ви офлайн. Відновлюємо з’єднання';
