@@ -8,8 +8,8 @@ interface ConversationState {
   selectedIds: string[];
   intent: ComposerIntent;
   editingId: string | null;
-  /** Bumped by the timeline on scroll so the composer can dismiss the on-screen
-   * keyboard — a counter rather than a boolean since there's nothing to "unset". */
+  /** Bumped by the timeline's closing swipe so the composer dismisses the on-screen keyboard;
+   * a counter rather than a boolean since there's nothing to "unset". */
   blurComposerToken: number;
   toggleSelected: (id: string) => void;
   clearSelection: () => void;

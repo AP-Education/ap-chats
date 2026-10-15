@@ -2,7 +2,7 @@ import { useIsMobile } from '@ap-education/ui';
 import { ArrowDownIcon, ArrowUpIcon, ChatsCircleIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
-import { Fragment, useMemo, useRef } from 'react';
+import { Fragment, useMemo } from 'react';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
 import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
@@ -14,6 +14,7 @@ import { isMessageItem } from '../../types';
 import { HistoryItemRow } from '../HistoryItemRow/HistoryItemRow';
 import { HistoryRun } from '../HistoryRun/HistoryRun';
 import { buildTimelineDays, formatDayLabel, runAvatar } from './timeline-days';
+import { useKeyboardSwipe } from './useKeyboardSwipe';
 import { useMobileMessageSelection } from './useMobileMessageSelection';
 import { useScrollAnchoring } from './useScrollAnchoring';
 
@@ -184,7 +185,7 @@ export function MessageTimeline({
   const isMobile = useIsMobile();
   const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
   const selecting = useConversation((state) => state.selectedIds.length > 0);
-  const gesture = useRef<{ x: number; y: number; dismissed: boolean } | null>(null);
+  const keyboardSwipe = useKeyboardSwipe(requestComposerBlur);
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   const firstUnreadSeq = pages.find((page) => page.firstUnreadSeq !== null)?.firstUnreadSeq ?? null;
   // A deleted message keeps its seq (read state, scroll anchoring, and reply
@@ -223,26 +224,7 @@ export function MessageTimeline({
           ref={scrollRef}
           className={styles.scroll}
           onScroll={onScroll}
-          onPointerDown={(event) => {
-            if (event.pointerType === 'touch')
-              gesture.current = { x: event.clientX, y: event.clientY, dismissed: false };
-          }}
-          onPointerUp={() => {
-            gesture.current = null;
-          }}
-          onPointerCancel={() => {
-            gesture.current = null;
-          }}
-          onTouchMove={(event) => {
-            const touch = event.touches[0];
-            const start = gesture.current;
-            if (!touch || !start || start.dismissed) return;
-            const vertical = Math.abs(touch.clientY - start.y);
-            if (vertical > 10 && vertical > Math.abs(touch.clientX - start.x)) {
-              start.dismissed = true;
-              requestComposerBlur();
-            }
-          }}
+          {...keyboardSwipe}
           role="log"
           aria-label="Повідомлення каналу"
           aria-live="off"

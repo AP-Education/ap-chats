@@ -285,8 +285,7 @@ export function MessageComposer({
     if (intent || (composer.autoFocus && !isCompact)) editableRef.current?.focus();
   }, [composer.autoFocus, intent, isCompact]);
 
-  // Scrolling the history should dismiss the on-screen keyboard, same as any native chat
-  // app — the timeline bumps blurComposerToken on scroll (see MessageTimeline.tsx). Skips
+  // The timeline bumps blurComposerToken on a closing swipe (see useKeyboardSwipe). Skips
   // the token's initial value so mounting doesn't blur a composer that just autofocused.
   const mountedRef = useRef(false);
   useEffect(() => {
