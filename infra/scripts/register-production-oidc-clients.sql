@@ -32,8 +32,14 @@ INSERT INTO oidc_clients (
         'ap-chats-web',
         '6e8c8a93-d26b-4f2d-8d40-8bc9f31f2b02',
         'AP Chats web client',
-        ARRAY['https://chats.ap-platform.online/auth/callback'],
-        ARRAY['https://chats.ap-platform.online'],
+        ARRAY[
+            'https://chats.ap-platform.online/auth/callback',
+            'http://localhost:5556/auth/callback'
+        ],
+        ARRAY[
+            'https://chats.ap-platform.online',
+            'http://localhost:5556'
+        ],
         ARRAY['authorization_code'],
         ARRAY['code'],
         'none',
@@ -44,14 +50,34 @@ INSERT INTO oidc_clients (
     (
         'ap-chats-mobile',
         '6e8c8a93-d26b-4f2d-8d40-8bc9f31f2b02',
-        'AP Chats mobile client',
+        'AP Connect mobile client',
         ARRAY['apchats://auth/callback'],
         ARRAY['apchats://auth/callback'],
-        ARRAY['authorization_code'],
+        -- Native apps renew with refresh tokens (offline_access); web renews against the session cookie.
+        ARRAY['authorization_code', 'refresh_token'],
         ARRAY['code'],
         'none',
         'https://chats.ap-platform.online',
         'NATIVE',
+        now()
+    ),
+    (
+        'ai-native',
+        '6e8c8a93-d26b-4f2d-8d40-8bc9f31f2b02',
+        'AI Native',
+        ARRAY[
+            'https://ai.ap-platform.online/auth/callback',
+            'http://ai.ai-native.localhost/auth/callback'
+        ],
+        ARRAY[
+            'https://ai.ap-platform.online',
+            'http://ai.ai-native.localhost'
+        ],
+        ARRAY['authorization_code'],
+        ARRAY['code'],
+        'none',
+        'https://ai.ap-platform.online',
+        'WEB',
         now()
     )
 ON CONFLICT (client_id) DO UPDATE SET
@@ -65,7 +91,12 @@ ON CONFLICT (client_id) DO UPDATE SET
     resource = EXCLUDED.resource,
     application_type = EXCLUDED.application_type,
     updated_at = EXCLUDED.updated_at
-RETURNING client_id, application_id, redirect_uris, post_logout_redirect_uris,
-          resource, application_type;
+RETURNING
+    client_id,
+    redirect_uris,
+    post_logout_redirect_uris,
+    grant_types,
+    resource,
+    application_type;
 
 COMMIT;
