@@ -3,12 +3,10 @@ import { View } from 'react-native';
 import { WindowBackground } from './features/appearance';
 import { AuthGate } from './features/auth/components/AuthGate';
 import {
-  CallSession,
-  CallSignalSocket,
+  CallRuntime,
   NativeInCallScreen,
   NativeIncomingCallScreen,
   NativeMiniCallBar,
-  ProximityMonitor,
 } from './features/calls';
 import { CallReadinessGate } from './features/calls/components/CallReadinessGate';
 import { NotificationResponses } from './features/push/components/NotificationResponses';
@@ -28,15 +26,7 @@ export default function App() {
       <ErrorBoundary label="push-registration">
         <PushRegistration />
       </ErrorBoundary>
-      <ErrorBoundary label="call-session">
-        <CallSession />
-      </ErrorBoundary>
-      <ErrorBoundary label="call-signal-socket">
-        <CallSignalSocket />
-      </ErrorBoundary>
-      <ErrorBoundary label="proximity-monitor">
-        <ProximityMonitor />
-      </ErrorBoundary>
+      <CallRuntime />
       {/* A normal flex column, not a Fragment: NativeMiniCallBar is a regular
           sibling here (not an absolute overlay) so the WebView actually
           shrinks to make room for it instead of it covering the WebView's
