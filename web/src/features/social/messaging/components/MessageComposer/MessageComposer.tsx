@@ -228,6 +228,10 @@ interface MessageComposerProps {
   replyAuthor?: string;
   replyPreview?: string;
   onSend: (input: ComposedMessage, pending?: PendingAttachmentCommit) => void;
+  /** Hands the message over to be sent later; the composer clears once `onScheduled` runs. */
+  onSchedule?: (input: ComposedMessage, onScheduled: () => void) => void;
+  /** Beside the input's own buttons, e.g. a way into what is scheduled. */
+  accessory?: ReactNode;
   /** The text-input to compose with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
   children: ReactNode;
 }
@@ -236,6 +240,8 @@ export function MessageComposer({
   replyAuthor,
   replyPreview,
   onSend,
+  onSchedule,
+  accessory,
   children,
 }: MessageComposerProps) {
   const { styles, cx } = useStyles();
@@ -299,6 +305,9 @@ export function MessageComposer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blurComposerToken]);
 
+  // Files go only with a message sent now; the server keeps no uploads for later.
+  const canSchedule = hasContent && uploads.drafts.length === 0;
+
   const readMessage = useCallback((): ComposedMessage => {
     const draft = editableRef.current?.draft();
     return {
@@ -335,6 +344,8 @@ export function MessageComposer({
     // Sending keeps the active input surface, including an open emoji panel.
     if (!activeTab) editableRef.current?.focus();
   }, [canSend, readMessage, uploads, onSend, clearSent, activeTab]);
+
+  const handleSchedule = onSchedule && (() => onSchedule(readMessage(), clearSent));
 
   function insertEmoji(emoji: string) {
     editableRef.current?.insertText(emoji);
@@ -421,6 +432,7 @@ export function MessageComposer({
 
   const toolbarButtons = (
     <div className={styles.toolbarRight}>
+      {accessory}
       <IconButton
         size={toolbarActionSize}
         className={cx(styles.toolbarButton, activeTab === 'emoji' && styles.toolbarButtonActive)}
@@ -455,6 +467,7 @@ export function MessageComposer({
   // instead of three icons competing for a narrow toolbar.
   const compactToolbarButton = (
     <div className={styles.toolbarRight}>
+      {accessory}
       <IconButton
         size={toolbarActionSize}
         className={cx(styles.toolbarButton, activeTab !== null && styles.toolbarButtonActive)}
@@ -605,7 +618,12 @@ export function MessageComposer({
             <MessageEditorSlotProvider slot={slot}>{children}</MessageEditorSlotProvider>
           </div>
         </MessageInputSurface>
-        <ComposerAction hasContent={canSend} onSend={handleSend} />
+        <ComposerAction
+          hasContent={canSend}
+          onSend={handleSend}
+          onSchedule={handleSchedule}
+          canSchedule={canSchedule}
+        />
       </div>
       {isCompact && activeTab && !isNativeShell() && (
         <div className={styles.mobileSheet} style={{ height: keyboardHeight }}>
