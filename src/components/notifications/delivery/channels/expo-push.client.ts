@@ -30,6 +30,9 @@ export class ExpoPushClient {
         body: envelope.body,
         sound: 'default',
         channelId: 'messages',
+        // Android's default is FCM's normal priority, which Doze holds back from any app left on
+        // optimized battery use until it next wakes; a message someone sent is worth waking for.
+        priority: 'high',
         ttl,
         data: {
           eventId: envelope.eventId,

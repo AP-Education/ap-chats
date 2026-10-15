@@ -44,3 +44,19 @@ test('a rate limit stays retryable', async () => {
     (error) => error instanceof Error && !(error instanceof PermanentJobError),
   );
 });
+
+test('a message goes out at high priority, so a phone in Doze still shows it', async () => {
+  const sent: { priority?: string }[] = [];
+  const provider = new ExpoPushClient({ get: () => undefined } as never);
+  Object.assign(provider, {
+    client: {
+      sendPushNotificationsAsync: async (messages: { priority?: string }[]) => {
+        sent.push(...messages);
+        return [{ status: 'ok', id: 'ticket' }];
+      },
+    },
+  });
+
+  assert.equal(await provider.send(validToken, notification, 60), 'accepted');
+  assert.equal(sent[0]?.priority, 'high');
+});
