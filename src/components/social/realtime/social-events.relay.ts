@@ -33,6 +33,10 @@ import {
   READ_STATE_ADVANCED_EVENT,
   ReadStateAdvancedEvent,
 } from '../read-state/events/read-state-advanced.event';
+import {
+  SCHEDULED_MESSAGES_CHANGED_EVENT,
+  ScheduledMessagesChangedEvent,
+} from '../scheduling/events/scheduled-messages-changed.event';
 import { ChannelBroadcast } from './channel-broadcast';
 
 /** Social's socket protocol in one place: which committed change reaches whom, and as what. */
@@ -91,5 +95,12 @@ export class SocialEventsRelay {
   onReadStateAdvanced(event: ReadStateAdvancedEvent) {
     const { workspaceId, channelId, state } = event;
     this.realtime.toUser(event.userId, 'social:read-state', { workspaceId, channelId, ...state });
+  }
+
+  // A schedule is its author's alone, so only their devices learn to fetch it again.
+  @OnEvent(SCHEDULED_MESSAGES_CHANGED_EVENT)
+  onScheduledMessagesChanged(event: ScheduledMessagesChangedEvent) {
+    const { workspaceId, channelId } = event;
+    this.realtime.toUser(event.userId, 'social:scheduled', { workspaceId, channelId });
   }
 }

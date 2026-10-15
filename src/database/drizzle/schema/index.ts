@@ -15,6 +15,7 @@ export * from './message-pins';
 export * from './message-reactions';
 export * from './role-members';
 export * from './roles';
+export * from './scheduled-messages';
 export * from './user-profiles';
 export * from './web-push-subscriptions';
 export * from './workspace-members';

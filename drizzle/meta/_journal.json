@@ -197,6 +197,13 @@
       "when": 1792058324321,
       "tag": "0027_device_release_key",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792068982192,
+      "tag": "0028_scheduled_messages",
+      "breakpoints": true
     }
   ]
 }

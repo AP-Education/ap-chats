@@ -21,6 +21,7 @@ social
   attachments   → messages          життєвий цикл upload (uploading → ready → attached)
   pins, reactions, read-state → messages
   posting       → messages, attachments, pins   send / edit / delete, кожен окремим use case
+  scheduling    → posting                       відкладений send: тримає запит до часу, тоді проводить його через posting
   forwarding    → messages, direct-messages/conversations
   history       → read-state        read model таймлайну
   realtime                          протокол сокетів social в одному relay
