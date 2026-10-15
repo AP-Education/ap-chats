@@ -1,3 +1,4 @@
+import type { GifBlock } from '../../types';
 import type { PickerTab } from './picker';
 
 let sessionSequence = 0;
@@ -24,7 +25,24 @@ export type NativeComposerMessage =
       tab: PickerTab;
     }
   | { type: 'composer/insert'; sessionId: string; requestId: number; text: string }
-  | { type: 'composer/gif'; sessionId: string; requestId: number; url: string; title: string };
+  | {
+      type: 'composer/gif';
+      sessionId: string;
+      requestId: number;
+      slug: string;
+      title: string;
+      media: GifBlock['media'];
+    };
+
+function isGifMedia(value: unknown): value is GifBlock['media'] {
+  if (!value || typeof value !== 'object') return false;
+  const media = value as Record<string, unknown>;
+  return (
+    typeof media.url === 'string' &&
+    typeof media.width === 'number' &&
+    typeof media.height === 'number'
+  );
+}
 
 export function readComposerMessage(
   value: unknown,
@@ -44,8 +62,9 @@ export function readComposerMessage(
     return message as NativeComposerMessage;
   if (
     message.type === 'composer/gif' &&
-    typeof message.url === 'string' &&
-    typeof message.title === 'string'
+    typeof message.slug === 'string' &&
+    typeof message.title === 'string' &&
+    isGifMedia(message.media)
   )
     return message as NativeComposerMessage;
   return null;

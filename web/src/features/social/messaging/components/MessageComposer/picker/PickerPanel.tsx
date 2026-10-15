@@ -2,8 +2,8 @@ import { Segmented } from 'antd';
 import { createStyles } from 'antd-style';
 import { lazy, Suspense } from 'react';
 
+import type { Gif } from '../../../gifs/types';
 import { EmojiTabSkeleton } from './EmojiTabSkeleton';
-import type { GifResult } from './gif-provider';
 import { GifTab } from './GifTab';
 import { StickerTab } from './StickerTab';
 
@@ -42,7 +42,7 @@ interface PickerPanelProps {
   activeTab: PickerTab;
   onTabChange: (tab: PickerTab) => void;
   onPickEmoji: (emoji: string) => void;
-  onPickGif: (gif: GifResult) => void;
+  onPickGif: (gif: Gif) => void;
 }
 
 // Sizing is owned entirely by whatever wraps this panel (the desktop popover's fixed

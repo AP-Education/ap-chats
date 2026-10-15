@@ -1,3 +1,4 @@
+import type { MessageGif } from '../../content/message-gif';
 import type {
   CreateMessageRecord,
   ForwardedCopy,
@@ -32,6 +33,9 @@ export abstract class MessagesRepository {
     copies: ForwardedCopy[];
     requestDigest: string;
   }): Promise<MessageModel[]>;
-  abstract updateContent(id: string, markdown: string, nextRevision: number): Promise<MessageModel>;
+  abstract updateContent(
+    id: string,
+    content: { markdown: string; gif: MessageGif | null; revision: number },
+  ): Promise<MessageModel>;
   abstract tombstone(ids: string[]): Promise<void>;
 }

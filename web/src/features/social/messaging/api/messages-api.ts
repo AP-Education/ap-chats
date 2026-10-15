@@ -5,6 +5,7 @@ import type {
   HistoryItem,
   HistoryPage,
   Message,
+  MessageEdit,
   MessageHistoryItem,
   SendMessageCommand,
 } from '../types';
@@ -51,6 +52,7 @@ export function sendMessage(
       id: attachment.id,
       description: attachment.description ?? undefined,
     })),
+    blocks: input.blocks,
   };
   return apiRequest(messagesUrl(workspaceId, channelId), token, jsonInit('POST', payload));
 }
@@ -90,13 +92,12 @@ export function editMessage(
   workspaceId: string,
   channelId: string,
   messageId: string,
-  markdown: string,
-  revision?: number,
+  change: MessageEdit & { revision?: number },
 ): Promise<Message> {
   return apiRequest(
     `${messagesUrl(workspaceId, channelId)}/${messageId}`,
     token,
-    jsonInit('PATCH', { markdown, ...(revision === undefined ? {} : { revision }) }),
+    jsonInit('PATCH', change),
   );
 }
 

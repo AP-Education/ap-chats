@@ -24,18 +24,26 @@ import {
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
 import { MessageEditorSlotProvider } from '@/features/social/mentions/MessageEditorSlot';
-import type { ComposerEditorApi, ComposerEditorSlotProps } from '@/features/social/mentions/types';
+import type {
+  ComposerDraft,
+  ComposerEditorApi,
+  ComposerEditorSlotProps,
+} from '@/features/social/mentions/types';
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
 import { randomId } from '@/shared/lib/random-id';
 
 import { useAttachments } from '../../attachments/useAttachments';
-import type { PendingAttachmentCommit, SendMessageCommand } from '../../types';
+import { gifBlock } from '../../gifs/klipy-items';
+import { withPlaceholder } from '../../gifs/linked-gif';
+import type { Gif } from '../../gifs/types';
+import { useLinkedGif } from '../../gifs/useLinkedGif';
+import type { GifBlock, PendingAttachmentCommit, SendMessageCommand } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
 import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
 import { useAttachmentDrop } from './AttachmentDropZone';
 import { ComposerAction } from './ComposerAction';
-import { type GifResult, PickerPanel, type PickerTab } from './picker';
+import { PickerPanel, type PickerTab } from './picker';
 import { useBrowserKeyboardHeight } from './useBrowserKeyboardHeight';
 import { useComposerDraft } from './useComposerDraft';
 import { useNativeComposerInput } from './useNativeComposerInput';
@@ -267,11 +275,14 @@ export function MessageComposer({
   const [webActiveTab, setActiveTab] = useState<PickerTab | null>(null);
   const [lastActiveTab, setLastActiveTab] = useState<PickerTab>(readLastPickerTab);
   const keyboardHeight = useBrowserKeyboardHeight();
+  const linkedGif = useLinkedGif();
+  // Sends leave in the order written, though a GIF lookup may hold one back for a moment.
+  const sendQueue = useRef(Promise.resolve());
   const nativeInput = useNativeComposerInput({
     draftKey,
     editorRef: editableRef,
     onInsert: insertEmoji,
-    onGif: pickGif,
+    onGif: (block) => sendGif(() => withPlaceholder(block)),
     onTab: persistLastTab,
   });
   const activeTab = isNativeShell() ? nativeInput.activeTab : webActiveTab;
@@ -302,38 +313,62 @@ export function MessageComposer({
   const handleSend = useCallback(() => {
     const draft = editableRef.current?.draft();
     if (!canSend) return;
+    const markdown = draft?.markdown.trim() ?? '';
     const input = {
-      markdown: draft?.markdown.trim() ?? '',
+      markdown,
       labels: draft?.labels,
       ...(intent ? { replyToMessageId: intent.messageId } : {}),
       ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
     };
     const nonce = randomId();
     const drafts = uploads.commit(nonce);
-    if (drafts.length) {
-      onSend(input, {
-        nonce,
-        drafts,
-        watchCommitted: uploads.watchCommitted,
-        uncommit: uploads.uncommit,
-        releaseCommitted: uploads.releaseCommitted,
-      });
-    } else {
-      onSend(input);
-    }
+    const pending = drafts.length
+      ? {
+          nonce,
+          drafts,
+          watchCommitted: uploads.watchCommitted,
+          uncommit: uploads.uncommit,
+          releaseCommitted: uploads.releaseCommitted,
+        }
+      : undefined;
+    sendQueue.current = sendQueue.current.then(async () => {
+      const blocks = await linkedGif.blocksFor(markdown);
+      onSend({ ...input, ...(blocks ? { blocks } : {}) }, pending);
+    });
+
     editableRef.current?.clear();
     clearDraft();
     setIntent(null);
     // Sending keeps the active input surface, including an open emoji panel.
     if (!activeTab) editableRef.current?.focus();
-  }, [canSend, uploads, onSend, intent, clearDraft, setIntent, activeTab]);
+  }, [canSend, uploads, onSend, intent, clearDraft, setIntent, activeTab, linkedGif]);
+
+  const handleDraftChange = useCallback(
+    (draft: ComposerDraft) => {
+      syncHasContent(draft);
+      linkedGif.prefetch(draft.markdown);
+    },
+    [syncHasContent, linkedGif],
+  );
 
   function insertEmoji(emoji: string) {
     editableRef.current?.insertText(emoji);
   }
 
-  function pickGif(gif: Pick<GifResult, 'title' | 'url'>) {
-    onSend({ markdown: `![${gif.title || 'GIF'}](${gif.url})` });
+  function pickGif(gif: Gif) {
+    sendGif(() => withPlaceholder(gifBlock(gif), gif.placeholder ?? undefined));
+  }
+
+  // A picked GIF goes out as its link with the GIF already found, as on Discord.
+  function sendGif(prepare: () => Promise<GifBlock>) {
+    const reply = {
+      ...(intent ? { replyToMessageId: intent.messageId } : {}),
+      ...(intent?.quoteText ? { quoteText: intent.quoteText } : {}),
+    };
+    sendQueue.current = sendQueue.current.then(async () => {
+      const block = await prepare();
+      onSend({ markdown: block.link, blocks: [block], ...reply });
+    });
     setIntent(null);
     closePicker();
   }
@@ -472,7 +507,7 @@ export function MessageComposer({
       className: styles.editable,
       ariaLabel: composer.ariaLabel,
       placeholder: composer.placeholder,
-      onChange: syncHasContent,
+      onChange: handleDraftChange,
       onSubmit: handleSend,
       onEscape,
       onPasteFiles: uploads.addFiles,
@@ -484,7 +519,7 @@ export function MessageComposer({
       styles.editable,
       composer.ariaLabel,
       composer.placeholder,
-      syncHasContent,
+      handleDraftChange,
       handleSend,
       onEscape,
       uploads.addFiles,

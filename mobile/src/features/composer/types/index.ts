@@ -16,9 +16,22 @@ export interface EmojiCategory {
   items: EmojiItem[];
 }
 
-export interface GifResult {
-  id: string;
-  title: string;
-  previewUrl: string;
+export interface GifImage {
   url: string;
+  width: number;
+  height: number;
+}
+
+export interface GifResult {
+  slug: string;
+  title: string;
+  /** A small animated GIF for the picker tile, which React Native plays on both platforms. */
+  preview: GifImage;
+  /** What the message shows: the page renders it, in WebKit or Chromium, not React Native. */
+  media: GifImage;
+}
+
+export interface GifPage {
+  gifs: GifResult[];
+  nextPage: number | null;
 }

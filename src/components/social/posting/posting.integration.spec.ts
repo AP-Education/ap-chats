@@ -41,6 +41,33 @@ test('a quote needs the message it replies to, and a batch delete names each mes
   assert.equal(deleteErrors([id]).length, 0);
 });
 
+const gifLink = 'https://klipy.com/gifs/hello-hi-662';
+const gifBlock = {
+  type: 'gif' as const,
+  provider: 'klipy' as const,
+  link: gifLink,
+  title: 'Hello',
+  media: { url: 'https://static.klipy.com/ii/hello.webp', width: 498, height: 498 },
+};
+
+test('a GIF block loads only from a GIF service CDN, one per message', () => {
+  const blockErrors = (blocks: object[]) =>
+    validateSync(
+      plainToInstance(SendMessageDto, { markdown: gifLink, clientNonce: randomUUID(), blocks }),
+    );
+  const elsewhere = { ...gifBlock, media: { ...gifBlock.media, url: 'https://evil.test/a.webp' } };
+
+  assert.equal(blockErrors([gifBlock]).length, 0);
+  assert.equal(blockErrors([elsewhere]).length, 1);
+  assert.equal(blockErrors([gifBlock, gifBlock]).length, 1);
+  const tinted = (placeholder: string) => ({
+    ...gifBlock,
+    media: { ...gifBlock.media, placeholder },
+  });
+  assert.equal(blockErrors([tinted('3OcRJYB4d3h/iIeHeEh3eIhw+j3A')]).length, 0);
+  assert.equal(blockErrors([tinted('not a thumbhash')]).length, 1);
+});
+
 test('posting messages on PostgreSQL', async (t) => {
   const { pg, db } = await migratedDatabase();
   t.after(() => pg.close());
@@ -227,6 +254,47 @@ test('posting messages on PostgreSQL', async (t) => {
       chat.services.forwarding.forward(chat.author, { ...forward, messageIds: [other.id] }),
       ConflictException,
     );
+  });
+
+  await t.test(
+    'a GIF shows only with its link, and an edit keeps it while the link stays',
+    async () => {
+      const chat = await team();
+      const edit = (id: string, markdown: string) =>
+        chat.services.editing.edit(chat.author, chat.channelId, id, { markdown });
+
+      const sent = await chat.send(chat.author, gifLink, { blocks: [gifBlock] });
+      assert.deepEqual(sent.blocks, [gifBlock]);
+      const unlinkedSend = await chat.send(chat.author, 'no link here', { blocks: [gifBlock] });
+      assert.deepEqual(unlinkedSend.blocks, []);
+
+      const captioned = await edit(sent.id, `так ${gifLink}`);
+      assert.deepEqual(captioned.blocks, [gifBlock]);
+
+      const unlinked = await edit(sent.id, 'так');
+      assert.deepEqual(unlinked.blocks, []);
+    },
+  );
+
+  await t.test('a forward carries the GIF, and a deleted message shows none', async () => {
+    const chat = await team();
+    const { channelId: targetId } = await seed.channel(chat.creator, 'public', [chat.author]);
+    const source = await chat.send(chat.author, gifLink, { blocks: [gifBlock] });
+
+    const { messages } = await chat.services.forwarding.forward(chat.author, {
+      target: { kind: 'channel', id: targetId },
+      sourceChannelId: chat.channelId,
+      batchNonce: randomUUID(),
+      messageIds: [source.id],
+    });
+    assert.deepEqual(messages[0]?.blocks, [gifBlock]);
+
+    await chat.remove(chat.author, source.id);
+    const [stored] = await db
+      .select({ gif: schema.chatMessages.gif })
+      .from(schema.chatMessages)
+      .where(eq(schema.chatMessages.id, source.id));
+    assert.equal(stored?.gif, null);
   });
 
   await t.test('a forward to a person that fails leaves no conversation behind', async () => {

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 import type { AttachmentDraft } from '../../attachments/types';
 import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
-import type { DeliveryStatus, HistoryItem, MessageHistoryItem } from '../../types';
+import type { DeliveryStatus, EditMessage, HistoryItem } from '../../types';
 
 // Everything a strategy might need, regardless of which fields its own kind
 // actually uses (a call entry ignores onEdit/actions/delivery, for instance).
@@ -11,7 +11,7 @@ export interface HistoryItemRenderContext {
   actions: ConversationAction[];
   onAction: (action: ConversationAction, target: ActionTarget) => void;
   onJump: (messageId: string) => void;
-  onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
+  onEdit: EditMessage;
   delivery: DeliveryStatus | undefined;
   pendingAttachments: AttachmentDraft[] | undefined;
 }

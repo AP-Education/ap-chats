@@ -310,7 +310,7 @@ reservation caps. Defaults match `.env.example` for the three public limits
 and the config schema for the pending limits. See `docs/chat-uploads.md`
 for the full storage permission and migration requirements.
 
-Set `VITE_TENOR_API_KEY` in `web/.env.production` to enable GIF search.
+Set `VITE_KLIPY_API_KEY` in `web/.env.production` to enable GIF search.
 Like the OIDC and image URL settings, it is baked into the web image and
 requires rebuilding that image when changed. The root `.dockerignore`
 excludes local dependency trees and deploy credentials from both build contexts.

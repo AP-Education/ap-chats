@@ -67,10 +67,12 @@ const useStyles = createStyles(({ token, css }) => ({
     background: var(--chat-service-strong, rgba(0, 0, 0, 0.45));
     color: #fff;
   `,
+  // Inside the photo or GIF it closes, tinted from that corner of it when the media has a ThumbHash.
   overlay: css`
     position: absolute;
-    right: 10px;
-    bottom: 10px;
+    right: 8px;
+    bottom: 8px;
+    background: var(--media-badge-end, var(--chat-service-strong, rgba(0, 0, 0, 0.45)));
   `,
   emoji: css`
     position: absolute;

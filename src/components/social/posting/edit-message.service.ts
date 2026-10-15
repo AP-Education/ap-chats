@@ -6,6 +6,7 @@ import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { EventPublisher } from '@/globals/publisher';
 
 import { MessageMarkdownService } from '../content';
+import type { MessageGif } from '../content/message-gif';
 import type { NormalizedMessageContent } from '../content/message-markdown';
 import { MessagesService } from '../messages';
 import {
@@ -13,6 +14,7 @@ import {
   MessageUpdatedEvent,
 } from '../messages/events/message-updated.event';
 import type { EditMessageDto } from './dto/send-message.dto';
+import { requestedGif } from './requested-gif';
 
 @Injectable()
 export class EditMessageService {
@@ -34,6 +36,7 @@ export class EditMessageService {
 
     const { message, announce } = await this.revise(author, channelId, messageId, {
       content,
+      gif: requestedGif(request.blocks),
       expectedRevision: request.revision,
     });
     announce();
@@ -46,7 +49,11 @@ export class EditMessageService {
     author: WorkspaceMember,
     channelId: string,
     messageId: string,
-    change: { content: NormalizedMessageContent; expectedRevision: number | undefined },
+    change: {
+      content: NormalizedMessageContent;
+      gif: MessageGif | undefined;
+      expectedRevision: number | undefined;
+    },
   ) {
     const channel = await this.access.requirePostAccess(author, channelId);
     const message = await this.messages.revise(author, channel, messageId, change);

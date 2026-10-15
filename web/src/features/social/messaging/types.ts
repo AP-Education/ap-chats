@@ -3,6 +3,20 @@ import type { ReactNode } from 'react';
 import type { MessageReaction } from '../reactions/types';
 import type { Attachment, AttachmentDraft } from './attachments/types';
 
+/** A GIF for a GIF link its message makes, loaded straight from its service's CDN. */
+export interface GifBlock {
+  type: 'gif';
+  provider: 'klipy' | 'giphy' | 'tenor';
+  /** The GIF link in the text it shows for. */
+  link: string;
+  title: string;
+  /** `placeholder` is the GIF's ThumbHash, which tints its frame and badges. */
+  media: { url: string; width: number; height: number; placeholder?: string };
+}
+
+/** What a message shows besides its text and files, told apart by `type`. */
+export type MessageBlock = GifBlock;
+
 export interface Message {
   id: string;
   seq: string;
@@ -10,6 +24,7 @@ export interface Message {
   clientNonce: string | null;
   markdown: string | null;
   attachments?: Attachment[];
+  blocks?: MessageBlock[];
   contentVersion: number;
   revision: number;
   replyToMessageId: string | null;
@@ -108,9 +123,22 @@ export interface SendMessageCommand {
   replyToMessageId?: string;
   quoteText?: string;
   attachments?: Attachment[];
+  blocks?: MessageBlock[];
   /** The composer's names for its inline references, so the echo shows them before history does. */
   labels?: Record<string, string>;
 }
+
+/** A message's new text, with a GIF found for a new link in it; the current GIF stays otherwise. */
+export interface MessageEdit {
+  markdown: string;
+  blocks?: MessageBlock[];
+}
+
+export type EditMessage = (
+  item: MessageHistoryItem,
+  edit: MessageEdit,
+  overwrite?: boolean,
+) => Promise<void>;
 
 // 'uploading': attachments are still in flight — sending never waits on them
 // (matches Discord/Telegram/Slack/WhatsApp), so a message can sit here before

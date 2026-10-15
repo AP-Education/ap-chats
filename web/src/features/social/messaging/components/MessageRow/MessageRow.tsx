@@ -5,7 +5,7 @@ import { useConversation } from '@/features/social/conversation-scope/store';
 
 import type { AttachmentDraft } from '../../attachments/types';
 import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
-import type { DeliveryStatus, MessageHistoryItem } from '../../types';
+import type { DeliveryStatus, EditMessage, MessageHistoryItem } from '../../types';
 import { Bubble } from '../Bubble/Bubble';
 import { SELECTION_GUTTER } from '../HistoryRun/HistoryRun';
 import { bubbleLayout } from './bubbleLayout';
@@ -117,7 +117,7 @@ interface MessageRowProps {
   actions: ConversationAction[];
   onAction: (action: ConversationAction, target: ActionTarget) => void;
   onJump: (messageId: string) => void;
-  onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
+  onEdit: EditMessage;
   delivery?: DeliveryStatus;
   pendingAttachments?: AttachmentDraft[];
 }

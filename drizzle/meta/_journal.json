@@ -190,6 +190,13 @@
       "when": 1791973501131,
       "tag": "0026_member_role_presentation",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1792059190182,
+      "tag": "0027_message_gif",
+      "breakpoints": true
     }
   ]
 }

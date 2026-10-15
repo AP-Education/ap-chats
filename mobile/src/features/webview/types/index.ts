@@ -19,7 +19,14 @@ export type NativeToWebMessage =
   | { type: 'auth/unavailable' }
   | ({ type: 'composer/state' } & ComposerInputState)
   | { type: 'composer/insert'; sessionId: string; requestId: number; text: string }
-  | { type: 'composer/gif'; sessionId: string; requestId: number; url: string; title: string }
+  | {
+      type: 'composer/gif';
+      sessionId: string;
+      requestId: number;
+      slug: string;
+      title: string;
+      media: { url: string; width: number; height: number };
+    }
   /**
    * The native input now covers `inset` px of the page's bottom beyond its own safe area, reached
    * over `duration` ms on `easing`; the page never resizes for it.

@@ -3,9 +3,10 @@ import type { RefObject } from 'react';
 import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { MessageReactions } from '@/features/social/reactions/components/MessageReactions/MessageReactions';
 
-import type { MessageHistoryItem } from '../../types';
+import type { EditMessage } from '../../types';
 import { MessageAttachments } from '../MessageAttachments/MessageAttachments';
 import { PendingAttachments } from '../MessageAttachments/PendingAttachments';
+import { MessageBlocks } from '../MessageBlocks/MessageBlocks';
 import type { BubbleLayout } from './bubbleLayout';
 import { useMessageActionScope } from './MessageActionScope';
 import { MessageEditor } from './MessageEditor';
@@ -16,11 +17,12 @@ interface MessageBodyProps {
   layout: BubbleLayout;
   contentRef: RefObject<HTMLDivElement | null>;
   minHeight: number;
-  onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
+  onEdit: EditMessage;
   onCloseEdit: () => void;
 }
 
-// Attachments come first and the caption last, so the time can close the caption's last line.
+// Attachments come first and the caption after them, so the time can close its last line; blocks
+// like a GIF go under the text, as on Discord.
 export function MessageBody({
   layout,
   contentRef,
@@ -33,6 +35,10 @@ export function MessageBody({
   const textMeta = (layout.meta === 'inline' || layout.meta === 'emoji') && (
     <MessageMeta placement={layout.meta} />
   );
+  const blocks = item.message.blocks ?? [];
+  // On a GIF the time sits inside it, in its colours; on photos it stays on the bubble.
+  const mediaMeta = layout.meta === 'overlay' && <MessageMeta placement="overlay" />;
+  const blocksClose = blocks.length > 0;
 
   return (
     <>
@@ -57,7 +63,8 @@ export function MessageBody({
           meta={textMeta}
         />
       )}
-      {(layout.meta === 'block' || layout.meta === 'overlay') && (
+      <MessageBlocks blocks={blocks} overlay={blocksClose && mediaMeta} />
+      {(layout.meta === 'block' || (layout.meta === 'overlay' && !blocksClose)) && (
         <MessageMeta placement={layout.meta} />
       )}
       {layout.reactions && (

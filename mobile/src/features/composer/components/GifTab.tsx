@@ -1,6 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
 import { MagnifyingGlass } from 'phosphor-react-native';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -13,10 +13,10 @@ import {
 
 import { radius, spacing } from '../../../shell/theme';
 import { type ShellPalette, useShellPalette, useThemedStyles } from '../../appearance';
-import { isGifSearchConfigured, searchGifs } from '../api/gif-provider';
+import { isGifSearchConfigured } from '../api/gif-provider';
+import { useGifSearch } from '../hooks/useGifSearch';
 import type { GifResult } from '../types';
 
-const SEARCH_DEBOUNCE_MS = 350;
 const COLUMNS = 2;
 
 interface GifTabProps {
@@ -28,32 +28,8 @@ export function GifTab({ onPick, onSearchFocus }: GifTabProps) {
   const palette = useShellPalette();
   const styles = useThemedStyles(themedStyles);
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<GifResult[]>([]);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const configured = isGifSearchConfigured();
-
-  useEffect(() => {
-    if (!configured) return;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => {
-      setStatus('loading');
-      searchGifs(query, controller.signal)
-        .then((found) => {
-          setResults(found);
-          setStatus('idle');
-        })
-        .catch((error: unknown) => {
-          if (controller.signal.aborted) return;
-          console.error('GIF search failed', error);
-          setStatus('error');
-        });
-    }, SEARCH_DEBOUNCE_MS);
-
-    return () => {
-      clearTimeout(timeout);
-      controller.abort();
-    };
-  }, [query, configured]);
+  const { status, gifs, loadMore } = useGifSearch(query, configured);
 
   if (!configured) {
     return (
@@ -69,7 +45,8 @@ export function GifTab({ onPick, onSearchFocus }: GifTabProps) {
         <MagnifyingGlass size={16} color={palette.textSecondary} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Пошук GIF"
+          // KLIPY's terms require its name as the search placeholder.
+          placeholder="Пошук у KLIPY"
           placeholderTextColor={palette.textSecondary}
           value={query}
           onChangeText={setQuery}
@@ -77,7 +54,7 @@ export function GifTab({ onPick, onSearchFocus }: GifTabProps) {
           accessibilityLabel="Пошук GIF"
         />
       </View>
-      {status === 'loading' && results.length === 0 ? (
+      {status === 'loading' && gifs.length === 0 ? (
         <View style={styles.state}>
           <ActivityIndicator color={palette.primary} />
         </View>
@@ -85,25 +62,32 @@ export function GifTab({ onPick, onSearchFocus }: GifTabProps) {
         <View style={styles.state}>
           <Text style={styles.stateText}>Не вдалося завантажити GIF. Спробуйте ще раз.</Text>
         </View>
-      ) : results.length === 0 ? (
+      ) : gifs.length === 0 ? (
         <View style={styles.state}>
           <Text style={styles.stateText}>Нічого не знайдено.</Text>
         </View>
       ) : (
         <FlashList
+          masonry
           keyboardShouldPersistTaps="always"
           keyboardDismissMode="none"
-          data={results}
+          data={gifs}
           numColumns={COLUMNS}
-          keyExtractor={(gif) => gif.id}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          keyExtractor={(gif, index) => `${index}:${gif.slug}`}
           renderItem={({ item: gif }) => (
             <Pressable
-              style={styles.tile}
+              style={[styles.tile, { aspectRatio: gif.preview.width / gif.preview.height }]}
               accessibilityRole="button"
               accessibilityLabel={gif.title || 'GIF'}
               onPress={() => onPick(gif)}
             >
-              <Image source={{ uri: gif.previewUrl }} style={styles.tileImage} resizeMode="cover" />
+              <Image
+                source={{ uri: gif.preview.url }}
+                style={styles.tileImage}
+                resizeMode="cover"
+              />
             </Pressable>
           )}
         />
@@ -127,7 +111,6 @@ const themedStyles = (palette: ShellPalette) =>
     searchInput: { flex: 1, fontSize: 15, color: palette.text, padding: 0 },
     tile: {
       flex: 1,
-      aspectRatio: 1,
       margin: 3,
       borderRadius: radius.sm,
       overflow: 'hidden',

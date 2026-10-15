@@ -36,6 +36,10 @@ interface BubbleContent {
   hasText: boolean;
   hasImages: boolean;
   hasFiles: boolean;
+  /** A GIF under the text closes the bubble, as on Discord. */
+  hasGif: boolean;
+  /** Nothing but a GIF, which then shows without a bubble. */
+  isLoneGif: boolean;
   jumboEmoji: number;
   reactions: boolean;
 }
@@ -67,10 +71,16 @@ function bubbleContent(
   const attachments = item.message.attachments ?? [];
   const images = pendingAttachments ? [] : attachments.filter((file) => file.preview === 'image');
   const hasAttachments = attachments.length > 0 || Boolean(pendingAttachments);
+  const gif = item.message.blocks?.find((block) => block.type === 'gif');
+  const hasGif = Boolean(gif);
+  // A lone GIF link says nothing the GIF itself does not, so only the GIF shows, as on Discord.
+  const isOnlyGifLink = gif !== undefined && markdown?.trim() === gif.link;
 
   return {
-    hasText: Boolean(markdown?.trim()),
-    hasImages: images.length > 0,
+    hasText: Boolean(markdown?.trim()) && !isOnlyGifLink,
+    hasImages: images.length > 0 || hasGif,
+    hasGif,
+    isLoneGif: hasGif && !hasAttachments && (!markdown?.trim() || isOnlyGifLink),
     hasFiles: pendingAttachments
       ? pendingAttachments.length > 0
       : images.length < attachments.length,
@@ -79,21 +89,23 @@ function bubbleContent(
   };
 }
 
-function bubbleVariant({ jumboEmoji, hasImages }: BubbleContent): BubbleVariant {
-  if (jumboEmoji) return 'emoji';
+function bubbleVariant({ jumboEmoji, isLoneGif, hasImages }: BubbleContent): BubbleVariant {
+  if (jumboEmoji || isLoneGif) return 'bare';
   return hasImages ? 'media' : 'text';
 }
 
 // The time closes whatever ends the bubble: the last line of text, the files, the reaction row,
-// or the photo and large emoji it sits on.
+// or the photo, GIF and large emoji it sits on.
 function metaPlacement({
   jumboEmoji,
   hasText,
   hasFiles,
+  hasGif,
   reactions,
 }: BubbleContent): MessageMetaPlacement {
   if (jumboEmoji) return 'emoji';
   if (!hasText && !hasFiles) return 'overlay';
   if (reactions) return 'reactions';
+  if (hasGif) return 'overlay';
   return hasText ? 'inline' : 'block';
 }

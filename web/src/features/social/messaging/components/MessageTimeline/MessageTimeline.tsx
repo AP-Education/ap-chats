@@ -9,7 +9,7 @@ import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 import { keyboardGlidePart } from '../../keyboard-glide-part';
 import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
-import type { DisplayItem, HistoryPage, MessageHistoryItem } from '../../types';
+import type { DisplayItem, EditMessage, HistoryPage } from '../../types';
 import { isMessageItem } from '../../types';
 import { HistoryItemRow } from '../HistoryItemRow/HistoryItemRow';
 import { HistoryRun } from '../HistoryRun/HistoryRun';
@@ -155,7 +155,7 @@ interface MessageTimelineProps {
   actions: ConversationAction[];
   onAction: (action: ConversationAction, target: ActionTarget) => void;
   onJump: (messageId: string) => void;
-  onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
+  onEdit: EditMessage;
   hasOlder: boolean;
   hasNewer: boolean;
   loadingOlder: boolean;

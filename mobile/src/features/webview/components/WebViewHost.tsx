@@ -256,8 +256,9 @@ export function WebViewHost() {
       type: 'composer/gif',
       sessionId,
       requestId,
-      url: gif.url,
+      slug: gif.slug,
       title: gif.title,
+      media: gif.media,
     };
     webViewRef.current?.injectJavaScript(buildBridgeScript(message));
   }

@@ -3,7 +3,7 @@ declare const __BUILD_ID__: string;
 
 interface ImportMetaEnv {
   readonly VITE_IMAGES_URL?: string;
-  readonly VITE_TENOR_API_KEY?: string;
+  readonly VITE_KLIPY_API_KEY?: string;
 }
 
 interface ImportMeta {

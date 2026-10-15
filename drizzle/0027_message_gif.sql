@@ -1,0 +1,2 @@
+ALTER TABLE "chat_messages" ADD COLUMN "gif" jsonb;--> statement-breakpoint
+ALTER TABLE "chat_messages" ADD CONSTRAINT "chat_messages_gif_check" CHECK ("chat_messages"."gif" IS NULL OR jsonb_typeof("chat_messages"."gif") = 'object');

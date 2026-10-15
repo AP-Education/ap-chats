@@ -1,36 +1,41 @@
-import { useEffect, useState } from 'react';
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
 
-import { type GifResult, searchGifs } from './gif-provider';
+import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
+
+import { searchGifs } from '../../../gifs/klipy-api';
+import type { Gif } from '../../../gifs/types';
+import { messagingQueryKeys } from '../../../queryKeys';
 
 const SEARCH_DEBOUNCE_MS = 350;
 
 export interface GifSearch {
   status: 'searching' | 'failed' | 'ready';
-  results: GifResult[];
+  gifs: Gif[];
+  hasMore: boolean;
+  loadMore: () => void;
 }
 
 export function useGifSearch(query: string, enabled: boolean): GifSearch {
-  const [search, setSearch] = useState<GifSearch>({ status: 'searching', results: [] });
+  const settledQuery = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
+  const search = useInfiniteQuery({
+    queryKey: messagingQueryKeys.gifSearch(settledQuery),
+    queryFn: ({ pageParam, signal }) => searchGifs(settledQuery, pageParam, signal),
+    initialPageParam: 1,
+    getNextPageParam: (page) => page.nextPage,
+    enabled,
+    // Earlier results stay on screen while the next query runs.
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60_000,
+  });
 
-  useEffect(() => {
-    if (!enabled) return;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => {
-      setSearch((current) => ({ ...current, status: 'searching' }));
-      searchGifs(query, controller.signal)
-        .then((results) => setSearch({ status: 'ready', results }))
-        .catch((error: unknown) => {
-          if (controller.signal.aborted) return;
-          console.error('GIF search failed', error);
-          setSearch((current) => ({ ...current, status: 'failed' }));
-        });
-    }, SEARCH_DEBOUNCE_MS);
+  const { isFetchingNextPage, fetchNextPage } = search;
+  const loadMore = useCallback(() => {
+    if (!isFetchingNextPage) void fetchNextPage();
+  }, [isFetchingNextPage, fetchNextPage]);
 
-    return () => {
-      clearTimeout(timeout);
-      controller.abort();
-    };
-  }, [query, enabled]);
+  const status = search.isError ? 'failed' : search.isPending ? 'searching' : 'ready';
+  const gifs = search.data?.pages.flatMap((page) => page.gifs) ?? [];
 
-  return search;
+  return { status, gifs, hasMore: search.hasNextPage, loadMore };
 }

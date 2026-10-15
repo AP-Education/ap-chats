@@ -6,7 +6,11 @@ import { forwardingActions } from '@/features/social/forwarding/actions';
 import { messagingActions } from '@/features/social/messaging/actions';
 import { flashMessage } from '@/features/social/messaging/flashMessage';
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
-import type { HistoryItem, MessageHistoryItem } from '@/features/social/messaging/types';
+import type {
+  EditMessage,
+  HistoryItem,
+  MessageHistoryItem,
+} from '@/features/social/messaging/types';
 import type {
   ActionCommands,
   ActionTarget,
@@ -118,10 +122,10 @@ export function useConversationActions({
   useLayoutEffect(() => {
     editRef.current = operations.edit;
   });
-  const onEdit = useCallback(
-    (item: MessageHistoryItem, markdown: string, overwrite?: boolean) =>
+  const onEdit = useCallback<EditMessage>(
+    (item, edit, overwrite) =>
       editRef
-        .current(item.message.id, markdown, overwrite ? undefined : item.message.revision)
+        .current(item.message.id, edit, overwrite ? undefined : item.message.revision)
         .then(() => undefined),
     [],
   );

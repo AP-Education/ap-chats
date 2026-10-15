@@ -9,4 +9,6 @@ export const messagingQueryKeys = {
     channelId: string,
     messageId?: string,
   ) => ['messaging', identity, workspaceId, channelId, 'history', messageId ?? 'unread'] as const,
+  gif: (link: string) => ['messaging', 'gif', link] as const,
+  gifSearch: (query: string) => ['messaging', 'gif-search', query] as const,
 };

@@ -1,3 +1,4 @@
+import type { MessageGif } from '../../content/message-gif';
 import type { NormalizedMessageContent } from '../../content/message-markdown';
 
 export interface Attachment {
@@ -18,6 +19,7 @@ export interface Attachment {
 export interface MessageContent {
   contentMarkdown: string;
   attachments: Attachment[];
+  gif: MessageGif | null;
   clientNonce: string;
 }
 
@@ -53,6 +55,7 @@ export interface MessageRef {
 export interface NewMessage {
   content: NormalizedMessageContent;
   attachments: Attachment[];
+  gif: MessageGif | null;
   replyToMessageId: string | null;
   quoteText: string | null;
   clientNonce: string;
@@ -83,6 +86,7 @@ export type CreateMessageRecord = Pick<
     Pick<
       MessageModel,
       | 'attachments'
+      | 'gif'
       | 'replyToMessageId'
       | 'quoteText'
       | 'forwardedFromMessageId'
