@@ -12,6 +12,7 @@ interface MentionableMember {
   memberId: string;
   displayName: string | null;
   avatarPath: string | null;
+  isBot: boolean;
 }
 
 const EVERYONE_ALIASES = ['everyone', 'all', 'усі', 'всі'];
@@ -30,6 +31,7 @@ function memberSuggestion(member: MentionableMember): Suggestion {
     token: { kind: 'member', id: member.memberId },
     label: member.displayName ?? 'Ім’я недоступне',
     visual: { avatarPath: member.avatarPath },
+    isBot: member.isBot,
   };
 }
 

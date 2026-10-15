@@ -16,6 +16,8 @@ export interface Suggestion {
   label: string;
   visual: { avatarPath: string | null } | { icon: Icon } | { roleColor: string | null };
   hint?: string;
+  /** The suggestion is a bot, badged as one beside its name. */
+  isBot?: boolean;
 }
 
 /** Everything one trigger offers, with how its popup is announced. */

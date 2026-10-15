@@ -58,6 +58,7 @@ export function ConversationView({ currentMember, readOnlyFooter }: Conversation
       memberId: currentMember?.id ?? '',
       displayName: currentMember?.profile.displayName ?? null,
       avatarPath: currentMember?.profile.avatarPath ?? null,
+      isBot: false,
       // Unsent rows are the viewer's own, which never show a name to colour.
       roleColor: null,
     }),

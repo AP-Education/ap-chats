@@ -2,7 +2,12 @@ import { messageView } from '../messages/message-view';
 import type { ChannelReadState } from '../read-state/types';
 import type { CallHistoryRow, HistoryRow, MessageHistoryRow } from './types/history.types';
 
-type Profile = { displayName: string | null; avatarPath: string | null; roleColor: string | null };
+type Profile = {
+  displayName: string | null;
+  avatarPath: string | null;
+  isBot: boolean;
+  roleColor: string | null;
+};
 
 interface HistoryPageInput {
   rows: HistoryRow[];
@@ -89,6 +94,6 @@ function messageItemView(row: MessageHistoryRow, viewerMemberId: string) {
   };
 }
 
-function personView(memberId: string, { displayName, avatarPath, roleColor }: Profile) {
-  return { memberId, displayName, avatarPath, roleColor };
+function personView(memberId: string, { displayName, avatarPath, isBot, roleColor }: Profile) {
+  return { memberId, displayName, avatarPath, isBot, roleColor };
 }

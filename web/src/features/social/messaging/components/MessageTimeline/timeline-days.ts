@@ -1,4 +1,6 @@
-import type { DisplayItem, HistoryItem, MessageAuthor } from '../../types';
+import type { MemberSummary } from '@/features/workspaces/types';
+
+import type { DisplayItem, HistoryItem } from '../../types';
 import { isMessageItem } from '../../types';
 
 export interface TimelineEntry {
@@ -10,7 +12,7 @@ export interface TimelineEntry {
 export interface TimelineRun {
   key: string;
   /** Who wrote the messages or placed the calls in it. */
-  author: MessageAuthor;
+  author: MemberSummary;
   unreadBefore: boolean;
   entries: TimelineEntry[];
 }
@@ -62,13 +64,13 @@ export function buildTimelineDays(
 export function runAvatar(
   run: TimelineRun,
   viewerMemberId: string | undefined,
-): MessageAuthor | null {
+): MemberSummary | null {
   if (run.author.memberId === viewerMemberId) return null;
   return run.author;
 }
 
 // A call belongs to whoever placed it, the same way a message belongs to its writer.
-function authorOf(item: HistoryItem): MessageAuthor {
+function authorOf(item: HistoryItem): MemberSummary {
   if (isMessageItem(item)) return item.author;
   return item.startedBy;
 }

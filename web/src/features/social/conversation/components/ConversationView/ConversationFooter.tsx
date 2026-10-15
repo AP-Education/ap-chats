@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 
+import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
 import {
   useConversation,
   useConversationPermissions,
+  useConversationScope,
 } from '@/features/social/conversation-scope/store';
 import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { MessageComposer } from '@/features/social/messaging/components/MessageComposer';
@@ -31,16 +33,26 @@ function WritableConversationFooter({
   items,
   send,
 }: Pick<ConversationFooterProps, 'items' | 'send'>) {
+  const { channelId } = useConversationScope();
   const intent = useConversation((state) => state.intent);
-  const replyTarget = intent
-    ? items.filter(isMessageItem).find((item) => item.message.id === intent.messageId)
-    : undefined;
+  const extensions = useConversationExtensions();
+  const replyTarget =
+    intent?.kind === 'reply'
+      ? items.filter(isMessageItem).find((item) => item.message.id === intent.messageId)
+      : undefined;
 
   function onSend(
     input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
     pending?: PendingAttachmentCommit,
   ) {
-    send(input, pending);
+    const sent = {
+      channelId,
+      input,
+      landed: send(input, pending),
+      ...(intent?.kind === 'ask' ? { picked: intent.messageIds } : {}),
+      ...(replyTarget ? { replyToAuthorId: replyTarget.author.memberId } : {}),
+    };
+    extensions.forEach((extension) => extension.sent?.(sent));
   }
 
   return (

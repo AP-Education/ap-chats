@@ -26,10 +26,32 @@ test('stores canonical Markdown and derives structured mentions without persisti
   assert.deepEqual(await markdown.normalize(normalized.markdown), normalized);
 });
 
-test('rejects executable links, unsupported syntax, and blank messages', async () => {
-  await assert.rejects(markdown.normalize('[run](javascript:alert(1))'));
-  await assert.rejects(markdown.normalize('![image](https://example.com/image.png)'));
+test('formatting chat does not support is dropped and its text kept, not refused', async () => {
+  const cases: [string, string][] = [
+    ['# Підсумок\nтекст', 'Підсумок\n\nтекст'],
+    ['до\n\n---\n\nпісля', 'до\n\nпісля'],
+    ['![схема](https://example.com/a.png)', '[схема](https://example.com/a.png)'],
+    ['[run](javascript:alert(1))', 'run'],
+  ];
+
+  for (const [source, expected] of cases) {
+    const normalized = await markdown.normalize(source);
+    assert.equal(normalized.markdown, expected);
+    assert.deepEqual(await markdown.normalize(normalized.markdown), normalized);
+  }
+});
+
+test('HTML and unknown directives read as the text they were typed as', async () => {
+  const normalized = await markdown.normalize('<b>важливо</b> о 10:30, ::note');
+
+  assert.equal(normalized.plainText.trim(), '<b>важливо</b> о 10:30, ::note');
+  assert.deepEqual(normalized.mentions, { memberIds: [], roleIds: [], everyone: false });
+  assert.deepEqual(await markdown.normalize(normalized.markdown), normalized);
+});
+
+test('a blank message is still refused', async () => {
   await assert.rejects(markdown.normalize('   '));
+  await assert.rejects(markdown.normalize('---'));
 });
 
 test('does not index text that only resembles a mention', async () => {
@@ -49,7 +71,7 @@ test('reads :mention[everyone] as a mention of the whole channel, but not inside
     ':mention[everyone]next',
   );
   assert.equal((await markdown.normalize('`:mention[everyone]`')).mentions.everyone, false);
-  await assert.rejects(markdown.normalize(':mention[team]'));
+  await readsAsText(':mention[team]');
 });
 
 test('reads :role[id] as a mention of everyone in that role', async () => {
@@ -61,7 +83,7 @@ test('reads :role[id] as a mention of everyone in that role', async () => {
     roleIds: ['123e4567-e89b-42d3-a456-426614174000'],
     everyone: false,
   });
-  await assert.rejects(markdown.normalize(':role[design]'));
+  await readsAsText(':role[design]');
 });
 
 test('keeps a channel link as markup without mentioning anyone', async () => {
@@ -69,7 +91,15 @@ test('keeps a channel link as markup without mentioning anyone', async () => {
 
   assert.equal(result.markdown, 'See :channel[123e4567-e89b-42d3-a456-426614174000]');
   assert.deepEqual(result.mentions, { memberIds: [], roleIds: [], everyone: false });
-  await assert.rejects(markdown.normalize(':channel[general]'));
+  await readsAsText(':channel[general]');
+});
+
+test('stores an escaped colon so it parses back as text, not as a directive', async () => {
+  const normalized = await markdown.normalize('Зустріч о 10\\:30, тема\\:бюджет');
+
+  assert.equal(normalized.markdown, 'Зустріч о 10\\:30, тема\\:бюджет');
+  assert.equal(normalized.plainText.trim(), 'Зустріч о 10:30, тема:бюджет');
+  assert.deepEqual(await markdown.normalize(normalized.markdown), normalized);
 });
 
 test('preserves single and blank line breaks in stored Markdown', async () => {
@@ -88,3 +118,11 @@ test('notification text matches normalized content without rewriting stored Mark
   assert.ok(content.plainText.includes('@123e4567-e89b-42d3-a456-426614174000'));
   assert.equal(content.plainText.includes('https://example.com'), false);
 });
+
+// A reference that points at nothing keeps its text and mentions no one.
+async function readsAsText(source: string) {
+  const normalized = await markdown.normalize(source);
+
+  assert.equal(normalized.plainText.trim(), source);
+  assert.deepEqual(normalized.mentions, { memberIds: [], roleIds: [], everyone: false });
+}

@@ -25,6 +25,7 @@ export class DrizzleRoleMembersRepository extends RoleMembersRepository {
         memberId: activeRoleMembers.memberId,
         displayName: userProfiles.displayName,
         avatarPath: userProfiles.avatarPath,
+        isBot: userProfiles.isBot,
       })
       .from(activeRoleMembers)
       .innerJoin(workspaceMembers, eq(workspaceMembers.id, activeRoleMembers.memberId))

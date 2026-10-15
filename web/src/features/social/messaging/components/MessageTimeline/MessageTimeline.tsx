@@ -4,6 +4,7 @@ import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import { Fragment, useMemo, useRef } from 'react';
 
+import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
 import { useConversation } from '@/features/social/conversation-scope/store';
 import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
@@ -184,6 +185,7 @@ export function MessageTimeline({
   const isMobile = useIsMobile();
   const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
   const selecting = useConversation((state) => state.selectedIds.length > 0);
+  const extensions = useConversationExtensions();
   const gesture = useRef<{ x: number; y: number; dismissed: boolean } | null>(null);
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
   const firstUnreadSeq = pages.find((page) => page.firstUnreadSeq !== null)?.firstUnreadSeq ?? null;
@@ -294,6 +296,9 @@ export function MessageTimeline({
                 ))}
               </section>
             ))}
+            {/* Only the live end: what happens next has no place after an older stretch. */}
+            {!hasNewer &&
+              extensions.map(({ id, TimelineEnd }) => TimelineEnd && <TimelineEnd key={id} />)}
             {hasNewer && (
               <Button
                 className={styles.load}

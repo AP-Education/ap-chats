@@ -1,14 +1,21 @@
 import { createStyles } from 'antd-style';
 
 import { useConversationScope } from '@/features/social/conversation-scope/store';
+import { BotBadge } from '@/features/social/people/components/BotBadge/BotBadge';
 import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
 
 import { useMessageActionScope } from './MessageActionScope';
 
 const useStyles = createStyles(({ token, css }) => ({
   // Only the first bubble of a run names its author (HistoryRun hides the rest).
+  line: css`
+    display: var(--run-author, flex);
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  `,
   author: css`
-    display: var(--run-author, block);
+    display: block;
     max-width: 100%;
     padding: 0;
     overflow: hidden;
@@ -39,14 +46,17 @@ export function MessageAuthorName() {
   if (item.message.authorMemberId === context.memberId) return null;
 
   return (
-    <MemberProfileTrigger member={{ ...item.author, workspaceId }}>
-      <button
-        type="button"
-        className={styles.author}
-        style={item.author.roleColor ? { color: item.author.roleColor } : undefined}
-      >
-        {author}
-      </button>
-    </MemberProfileTrigger>
+    <span className={styles.line}>
+      <MemberProfileTrigger member={{ ...item.author, workspaceId }}>
+        <button
+          type="button"
+          className={styles.author}
+          style={item.author.roleColor ? { color: item.author.roleColor } : undefined}
+        >
+          {author}
+        </button>
+      </MemberProfileTrigger>
+      {item.author.isBot && <BotBadge />}
+    </span>
   );
 }

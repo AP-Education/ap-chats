@@ -25,10 +25,20 @@ export class SendMessageService {
     private readonly events: EventPublisher,
   ) {}
 
-  async send(author: WorkspaceMember, channelId: string, request: SendMessageDto) {
+  /**
+   * Posts on `authority`'s right to post, the author's own unless given. Tech debt: a bot answering
+   * a question posts on the asker's right rather than its own channel grants; drop the parameter
+   * once bots hold grants.
+   */
+  async send(
+    author: WorkspaceMember,
+    channelId: string,
+    request: SendMessageDto,
+    authority: WorkspaceMember = author,
+  ) {
     const draft = await this.composer.draft(request);
 
-    const { message, announce } = await this.post(author, channelId, draft);
+    const { message, announce } = await this.post(author, authority, channelId, draft);
     announce();
 
     return message;
@@ -38,10 +48,11 @@ export class SendMessageService {
   @Transactional()
   private async post(
     author: WorkspaceMember,
+    authority: WorkspaceMember,
     channelId: string,
     draft: MessageDraft,
   ): Promise<{ message: MessageView; announce: Announce }> {
-    const channel = await this.access.requirePostAccess(author, channelId);
+    const channel = await this.access.requirePostAccess(authority, channelId);
     const repeated = await this.messages.findRepeat(author, channelId, draft);
     if (repeated) return { message: repeated, announce: nothingToAnnounce };
 

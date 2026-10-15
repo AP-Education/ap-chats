@@ -25,6 +25,8 @@ export class DrizzleChannelAudienceRepository extends ChannelAudienceRepository 
           eq(channelMemberships.workspaceId, workspaceId),
           eq(channelMemberships.channelId, channelId),
           eq(workspaceMembers.status, 'active'),
+          // Bots have no devices and keep no unread state.
+          eq(userProfiles.isBot, false),
         ),
       );
     return rows;
