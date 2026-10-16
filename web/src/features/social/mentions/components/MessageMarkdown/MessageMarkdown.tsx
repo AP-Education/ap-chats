@@ -27,6 +27,32 @@ interface MarkdownScope {
 
 const MarkdownScopeContext = createContext<MarkdownScope>({ inline: false, people: new Map() });
 
+// A link the sanitizer emptied, such as javascript:, keeps only its label.
+function MarkdownLink({
+  href,
+  title,
+  children,
+}: {
+  href?: string;
+  title?: string;
+  children: ReactNode;
+}) {
+  const { inline } = useContext(MarkdownScopeContext);
+  if (inline || !href) return <span>{children}</span>;
+  return (
+    <a
+      href={href}
+      title={title}
+      target="_blank"
+      rel="noopener noreferrer"
+      onPointerDown={(event) => event.stopPropagation()}
+      onContextMenu={(event) => event.stopPropagation()}
+    >
+      {children}
+    </a>
+  );
+}
+
 // Element views live outside the render: a fresh function per render is a new component type,
 // which remounts the text and drops any selection the reader is making in it.
 const components: Components = {
@@ -34,22 +60,15 @@ const components: Components = {
     const { inline } = useContext(MarkdownScopeContext);
     return inline ? <span>{children} </span> : <p>{children}</p>;
   },
-  a: function Link({ children, href, title }) {
-    const { inline } = useContext(MarkdownScopeContext);
-    if (inline) return <span>{children}</span>;
-    return (
-      <a
-        href={href}
-        title={title}
-        target="_blank"
-        rel="noopener noreferrer"
-        onPointerDown={(event) => event.stopPropagation()}
-        onContextMenu={(event) => event.stopPropagation()}
-      >
-        {children}
-      </a>
-    );
-  },
+  a: ({ children, href, title }) => (
+    <MarkdownLink href={href} title={title}>
+      {children}
+    </MarkdownLink>
+  ),
+  // Chat shows no inline images; one typed in Markdown reads as a link to it.
+  img: ({ src, alt }) => (
+    <MarkdownLink href={typeof src === 'string' ? src : undefined}>{alt || src}</MarkdownLink>
+  ),
   br: function Break() {
     const { inline } = useContext(MarkdownScopeContext);
     return inline ? <> </> : <br />;
@@ -94,6 +113,7 @@ export function MessageMarkdown({
           'code',
           'pre',
           'a',
+          'img',
           'blockquote',
           'ul',
           'ol',
