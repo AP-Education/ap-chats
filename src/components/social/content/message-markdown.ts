@@ -20,12 +20,19 @@ const KEPT_TYPES = new Set([
   'text',
   'strong',
   'emphasis',
+  'delete',
   'inlineCode',
   'code',
   'blockquote',
   'list',
   'listItem',
   'break',
+  // GFM shapes the client shows as plain text, read for their text.
+  'table',
+  'tableRow',
+  'tableCell',
+  'footnoteDefinition',
+  'footnoteReference',
 ]);
 const BLOCK_CONTAINERS = new Set(['root', 'blockquote', 'listItem']);
 const LINK_PROTOCOLS = new Set(['https:', 'http:', 'mailto:']);
@@ -35,12 +42,21 @@ export interface NormalizedMessageContent {
   markdown: string;
   plainText: string;
   mentions: MentionTargets;
+  /** Every link the text makes, bare ones included, in the order they appear. */
+  links: string[];
 }
 
 interface CollectedMentions {
   memberIds: Set<string>;
   roleIds: Set<string>;
   everyone: boolean;
+}
+
+/** What one pass over the tree gathers. */
+interface Reading {
+  mentions: CollectedMentions;
+  plain: string[];
+  links: string[];
 }
 
 interface Reference {
@@ -50,10 +66,10 @@ interface Reference {
   read: (value: string, mentions: CollectedMentions) => string;
 }
 
-const noMentions = (): CollectedMentions => ({
-  memberIds: new Set(),
-  roleIds: new Set(),
-  everyone: false,
+const newReading = (): Reading => ({
+  mentions: { memberIds: new Set(), roleIds: new Set(), everyone: false },
+  plain: [],
+  links: [],
 });
 
 const isId = (value: string) => uuidPattern.test(value);
@@ -154,57 +170,54 @@ function sourceOf(node: MarkdownNode, source: string): string {
   return source.slice(start, end);
 }
 
-// After reshape every node is one chat keeps, so this only reads the text and the mentions.
-function collect(node: MarkdownNode, mentions: CollectedMentions, plain: string[]): void {
+// A reference is stored by its lowercase id; the rest of the text stays exactly as typed.
+function lowercaseReferences(source: string, node: MarkdownNode): string {
+  const start = node.position?.start.offset;
+  const end = node.position?.end.offset;
+  if (referenceOf(node) && start !== undefined && end !== undefined) {
+    return source.slice(0, start) + source.slice(start, end).toLowerCase() + source.slice(end);
+  }
+
+  return (node.children ?? []).reduce((text, child) => lowercaseReferences(text, child), source);
+}
+
+// Every node here is one chat keeps, so this only reads the text, the mentions and the links.
+function collect(node: MarkdownNode, reading: Reading): void {
   const reference = referenceOf(node);
   if (reference) {
-    plain.push(reference.read(reference.value, mentions));
+    reading.plain.push(reference.read(reference.value, reading.mentions));
     return;
   }
+  if (node.type === 'link' && node.url) reading.links.push(node.url);
   if (node.type === 'text' || node.type === 'inlineCode' || node.type === 'code') {
-    plain.push(node.value ?? '');
+    reading.plain.push(node.value ?? '');
   }
-  for (const child of node.children ?? []) collect(child, mentions, plain);
-  if (['paragraph', 'blockquote', 'listItem'].includes(node.type)) plain.push('\n');
+  for (const child of node.children ?? []) collect(child, reading);
+  if (['paragraph', 'blockquote', 'listItem', 'tableRow'].includes(node.type)) {
+    reading.plain.push('\n');
+  }
 }
 
-/** The one parser and printer chat markdown goes through, so what it prints parses back the same. */
-async function markdownProcessor() {
-  const [{ remark }, { default: remarkDirective }] = await Promise.all([
+// The client's grammar, web/src/features/social/mentions/components/MessageMarkdown, so a bare
+// link is a link on both sides.
+async function parseMarkdown(source: string): Promise<MarkdownNode> {
+  const [{ remark }, { default: remarkDirective }, { default: remarkGfm }] = await Promise.all([
     import('remark'),
     import('remark-directive'),
+    import('remark-gfm'),
   ]);
-  return remark().use(remarkDirective).use(escapeDirectiveColons);
+  return remark().use(remarkDirective).use(remarkGfm, { singleTilde: false }).parse(source);
 }
 
-// remark-directive escapes a colon only before an ASCII letter, yet `10:30` parses as a directive too.
-function escapeDirectiveColons(this: { data(): { toMarkdownExtensions?: object[] } }) {
-  const data = this.data();
-  data.toMarkdownExtensions ??= [];
-  data.toMarkdownExtensions.push({
-    unsafe: [
-      {
-        character: ':',
-        after: '[^\\s:]',
-        inConstruct: 'phrasing',
-        notInConstruct: ['destinationLiteral', 'destinationRaw', 'titleQuote', 'titleApostrophe'],
-      },
-    ],
-  });
-}
-
-async function chatTree(source: string) {
-  const processor = await markdownProcessor();
-  const tree: MarkdownNode = processor.parse(source);
-  tree.children = reshapeAll(tree, source);
-  return { processor, tree };
+/** What the text says, whatever formatting chat cannot show: its plain text, mentions and links. */
+function readTree(tree: MarkdownNode, source: string): Reading {
+  const reading = newReading();
+  collect({ ...tree, children: reshapeAll(tree, source) }, reading);
+  return reading;
 }
 
 export async function messagePlainText(markdown: string): Promise<string> {
-  const { tree } = await chatTree(markdown);
-  const plain: string[] = [];
-  collect(tree, noMentions(), plain);
-  return plain.join('');
+  return readTree(await parseMarkdown(markdown), markdown).plain.join('');
 }
 
 @Injectable()
@@ -217,23 +230,23 @@ export class MessageMarkdownService {
     if (/[\u0000-\u0008\u000B-\u001F\u007F]/u.test(normalizedSource))
       throw new BadRequestException('Message contains control characters');
 
-    const { processor, tree } = await chatTree(normalizedSource);
-    const mentions = noMentions();
-    const plain: string[] = [];
-    collect(tree, mentions, plain);
-    const markdown = processor.stringify(tree as never).trim();
-    if (!allowBlank && !plain.join('').trim())
-      throw new BadRequestException('Message cannot be blank');
-    if (Buffer.byteLength(markdown, 'utf8') > 32_768)
-      throw new BadRequestException('Message is too long');
+    const tree = await parseMarkdown(normalizedSource);
+    // Stored as typed: printing the tree back would escape every _ and * in it, links included.
+    const markdown = lowercaseReferences(normalizedSource, tree).trim();
+
+    const { plain, mentions, links } = readTree(tree, normalizedSource);
+    const plainText = plain.join('');
+    if (!allowBlank && !plainText.trim()) throw new BadRequestException('Message cannot be blank');
+
     return {
       markdown,
-      plainText: plain.join(''),
+      plainText,
       mentions: {
         memberIds: [...mentions.memberIds],
         roleIds: [...mentions.roleIds],
         everyone: mentions.everyone,
       },
+      links,
     };
   }
 }

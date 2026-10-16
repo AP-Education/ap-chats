@@ -12,6 +12,7 @@ import sharp from 'sharp';
 import { StorageProvider } from '@/components/uploads/storage';
 
 import type { Attachment } from '../messages/types/message.types';
+import { imagePlaceholder } from './image-placeholder';
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 const MAX_PIXELS = 20_000_000;
@@ -45,16 +46,18 @@ export async function identifyMedia(prefix: Buffer): Promise<{
   return { mediaType: detected.mime, preview };
 }
 
+type InspectedMedia = Pick<
+  Attachment,
+  'preview' | 'mediaType' | 'width' | 'height' | 'placeholder'
+>;
+
 @Injectable()
 export class AttachmentPreviewService {
   private rendering = false;
   private readonly waiting: (() => void)[] = [];
   constructor(private readonly storage: StorageProvider) {}
 
-  async inspect(
-    key: string,
-    size: number,
-  ): Promise<Pick<Attachment, 'preview' | 'mediaType' | 'width' | 'height'>> {
+  async inspect(key: string, size: number): Promise<InspectedMedia> {
     const media = await identifyMedia(await this.readPrefix(key));
     const result = { ...media, width: null, height: null };
     if (media.preview !== 'image') return result;
@@ -99,8 +102,8 @@ export class AttachmentPreviewService {
   private async thumbnail(
     key: string,
     size: number,
-    fallback: Pick<Attachment, 'preview' | 'mediaType' | 'width' | 'height'>,
-  ): Promise<Pick<Attachment, 'preview' | 'mediaType' | 'width' | 'height'>> {
+    fallback: InspectedMedia,
+  ): Promise<InspectedMedia> {
     const directory = await mkdtemp(join(tmpdir(), 'ap-chat-preview-'));
     try {
       const path = join(directory, 'original');
@@ -121,6 +124,7 @@ export class AttachmentPreviewService {
         failOn: 'error',
       } as const;
       let output: Buffer;
+      let placeholder: string;
       let metadata: sharp.Metadata;
       try {
         metadata = await sharp(path, options).metadata();
@@ -138,11 +142,18 @@ export class AttachmentPreviewService {
           .resize({ width: 960, height: 960, fit: 'inside', withoutEnlargement: true })
           .webp({ quality: 80, effort: 2 })
           .toBuffer();
+        placeholder = await imagePlaceholder(output);
       } catch {
         return { ...fallback, preview: null };
       }
       await this.storage.putPrivateObject(`${key}.preview.webp`, output, 'image/webp');
-      return { ...fallback, preview: 'image', width: metadata.width!, height: metadata.height! };
+      return {
+        ...fallback,
+        preview: 'image',
+        width: metadata.width!,
+        height: metadata.height!,
+        placeholder,
+      };
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

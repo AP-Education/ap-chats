@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { messagePlainText } from '@/components/social/content';
+import { isLoneGif, messagePlainText } from '@/components/social/content';
 
 import { NotificationContent } from '../delivery/notification-content';
 import type { NotificationPayload } from '../delivery/types';
@@ -29,6 +29,7 @@ export class MessageNotificationContentService extends NotificationContent {
 
     const { conversation, message } = preview;
     const text = await messagePlainText(message.contentMarkdown);
+    const body = isLoneGif(message.contentMarkdown, message.gif) ? 'GIF' : clip(text.trim(), 180);
 
     return {
       eventId: alert.id,
@@ -41,7 +42,7 @@ export class MessageNotificationContentService extends NotificationContent {
         kind: conversation.kind === 'dm' ? 'dm' : 'channel',
       },
       title: clip(titleFor(conversation, message.actorName), 100),
-      body: clip(text.trim(), 180) || 'Нове вкладення',
+      body: body || 'Нове вкладення',
     };
   }
 

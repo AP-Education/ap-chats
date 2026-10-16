@@ -1,7 +1,7 @@
 import { isNativeShell } from '@ap-education/shell-sdk';
 import { IconButton, useIsMobile } from '@ap-education/ui';
 import { KeyboardIcon, PaperclipIcon, SmileyIcon, XIcon } from '@phosphor-icons/react';
-import { Button, Popover } from 'antd';
+import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import {
   type PointerEvent,
@@ -21,24 +21,30 @@ import {
 } from '@/features/social/conversation-scope/extensions';
 import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
 import { MessageEditorSlotProvider } from '@/features/social/mentions/MessageEditorSlot';
-import type { ComposerEditorApi, ComposerEditorSlotProps } from '@/features/social/mentions/types';
+import type {
+  ComposerDraft,
+  ComposerEditorApi,
+  ComposerEditorSlotProps,
+} from '@/features/social/mentions/types';
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
 import { randomId } from '@/shared/lib/random-id';
 
 import { useAttachments } from '../../attachments/useAttachments';
-import type { PendingAttachmentCommit, SendMessageCommand } from '../../types';
+import { gifBlock } from '../../gifs/klipy-items';
+import { withPlaceholder } from '../../gifs/linked-gif';
+import type { PickedGif } from '../../gifs/types';
+import { useLinkedGif } from '../../gifs/useLinkedGif';
+import type { GifBlock, PendingAttachmentCommit, SendMessageCommand } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
 import { useAttachmentDrop } from './AttachmentDropZone';
 import { ComposerAction } from './ComposerAction';
-import { composerIntent, IntentExcerpt } from './composerIntents';
-import { type GifResult, PickerPanel, type PickerTab } from './picker';
+import { composerIntent, IntentExcerpt, type ReplyPreview } from './composerIntents';
+import { DesktopPickerPopover } from './DesktopPickerPopover';
+import { PickerPanel, type PickerTab } from './picker';
 import { useBrowserKeyboardHeight } from './useBrowserKeyboardHeight';
 import { useComposerDraft } from './useComposerDraft';
 import { useNativeComposerInput } from './useNativeComposerInput';
-
-const DESKTOP_PANEL_WIDTH = 360;
-const DESKTOP_PANEL_HEIGHT = 440;
 
 const LAST_PICKER_TAB_KEY = 'ap-chats:last-picker-tab';
 const PICKER_TABS: PickerTab[] = ['gif', 'sticker', 'emoji'];
@@ -88,10 +94,6 @@ const useStyles = createStyles(({ token, css }) => ({
       gap: 8px;
       padding: 4px 8px calc(8px + var(--app-inset-bottom, env(safe-area-inset-bottom, 0px)));
     }
-  `,
-  desktopPanel: css`
-    width: ${DESKTOP_PANEL_WIDTH}px;
-    height: ${DESKTOP_PANEL_HEIGHT}px;
   `,
   mobileSheet: css`
     flex-shrink: 0;
@@ -223,7 +225,7 @@ type ComposedMessage = Omit<SendMessageCommand, 'clientNonce' | 'attachments'>;
 
 interface MessageComposerProps {
   replyAuthor?: string;
-  replyPreview?: string;
+  replyPreview?: ReplyPreview;
   onSend: (input: ComposedMessage, pending?: PendingAttachmentCommit) => void;
   /** The text-input to compose with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
   children: ReactNode;
@@ -268,6 +270,9 @@ export function MessageComposer({
   const [webActiveTab, setActiveTab] = useState<PickerTab | null>(null);
   const [lastActiveTab, setLastActiveTab] = useState<PickerTab>(readLastPickerTab);
   const keyboardHeight = useBrowserKeyboardHeight();
+  const linkedGif = useLinkedGif();
+  // Sends leave in the order written, though a GIF lookup may hold one back for a moment.
+  const sendQueue = useRef(Promise.resolve());
   const nativeInput = useNativeComposerInput({
     draftKey,
     editorRef: editableRef,
@@ -289,8 +294,7 @@ export function MessageComposer({
     if (intent || (composer.autoFocus && !isCompact)) editableRef.current?.focus();
   }, [composer.autoFocus, intent, isCompact]);
 
-  // Scrolling the history should dismiss the on-screen keyboard, same as any native chat
-  // app — the timeline bumps blurComposerToken on scroll (see MessageTimeline.tsx). Skips
+  // The timeline bumps blurComposerToken on a closing swipe (see useKeyboardSwipe). Skips
   // the token's initial value so mounting doesn't blur a composer that just autofocused.
   const mountedRef = useRef(false);
   useEffect(() => {
@@ -321,21 +325,32 @@ export function MessageComposer({
     const input = readMessage();
     const nonce = randomId();
     const drafts = uploads.commit(nonce);
-    if (drafts.length) {
-      onSend(input, {
-        nonce,
-        drafts,
-        watchCommitted: uploads.watchCommitted,
-        uncommit: uploads.uncommit,
-        releaseCommitted: uploads.releaseCommitted,
-      });
-    } else {
-      onSend(input);
-    }
+    const pending = drafts.length
+      ? {
+          nonce,
+          drafts,
+          watchCommitted: uploads.watchCommitted,
+          uncommit: uploads.uncommit,
+          releaseCommitted: uploads.releaseCommitted,
+        }
+      : undefined;
+    sendQueue.current = sendQueue.current.then(async () => {
+      const blocks = await linkedGif.blocksFor(input.markdown);
+      onSend({ ...input, ...(blocks ? { blocks } : {}) }, pending);
+    });
+
     clearSent();
     // Sending keeps the active input surface, including an open emoji panel.
     if (!activeTab) editableRef.current?.focus();
-  }, [canSend, readMessage, uploads, onSend, clearSent, activeTab]);
+  }, [canSend, readMessage, uploads, onSend, clearSent, activeTab, linkedGif]);
+
+  const handleDraftChange = useCallback(
+    (draft: ComposerDraft) => {
+      syncHasContent(draft);
+      linkedGif.prefetch(draft.markdown);
+    },
+    [syncHasContent, linkedGif],
+  );
 
   // Other ways to send take the draft over through these, and decide its fate themselves.
   const commands = useMemo<ComposerCommands>(
@@ -351,8 +366,21 @@ export function MessageComposer({
     editableRef.current?.insertText(emoji);
   }
 
-  function pickGif(gif: Pick<GifResult, 'title' | 'url'>) {
-    onSend({ markdown: `![${gif.title || 'GIF'}](${gif.url})` });
+  function pickGif(gif: PickedGif) {
+    sendGif(() => withPlaceholder(gifBlock(gif), gif.placeholder ?? undefined));
+  }
+
+  // A picked GIF goes out as its link with the GIF already found, as on Discord.
+  function sendGif(prepare: () => Promise<GifBlock>) {
+    const sentIntent = intent;
+    sendQueue.current = sendQueue.current.then(async () => {
+      const block = await prepare();
+      const composed = { markdown: block.link, labels: {} };
+      const input = sentIntent
+        ? composerIntent(sentIntent.kind).compose(sentIntent, composed)
+        : composed;
+      onSend({ ...input, blocks: [block] });
+    });
     setIntent(null);
     closePicker();
   }
@@ -431,8 +459,8 @@ export function MessageComposer({
   );
 
   // One entry point that reopens whatever tab was used last; the panel's own tabs switch.
-  const toolbarButtons = (
-    <div className={styles.toolbarRight}>
+  const pickerButtons = (
+    <>
       {accessories}
       <IconButton
         size={toolbarActionSize}
@@ -443,7 +471,7 @@ export function MessageComposer({
       >
         <SmileyIcon size={22} weight={activeTab !== null ? 'duotone' : 'regular'} />
       </IconButton>
-    </div>
+    </>
   );
 
   // Compact (phone/tablet): the same entry point, which turns into the way back to the keyboard.
@@ -475,7 +503,7 @@ export function MessageComposer({
       className: styles.editable,
       ariaLabel: composer.ariaLabel,
       placeholder: composer.placeholder,
-      onChange: syncHasContent,
+      onChange: handleDraftChange,
       onSubmit: handleSend,
       onEscape,
       onPasteFiles: uploads.addFiles,
@@ -487,7 +515,7 @@ export function MessageComposer({
       styles.editable,
       composer.ariaLabel,
       composer.placeholder,
-      syncHasContent,
+      handleDraftChange,
       handleSend,
       onEscape,
       uploads.addFiles,
@@ -573,24 +601,16 @@ export function MessageComposer({
             isCompact ? (
               compactToolbarButton
             ) : (
-              <Popover
-                trigger={[]}
-                open={activeTab !== null}
-                onOpenChange={(open) => !open && closePicker()}
-                placement="topRight"
-                content={
-                  <div className={styles.desktopPanel}>
-                    <PickerPanel
-                      activeTab={activeTab ?? 'emoji'}
-                      onTabChange={selectTab}
-                      onPickEmoji={insertEmoji}
-                      onPickGif={pickGif}
-                    />
-                  </div>
-                }
+              <DesktopPickerPopover
+                activeTab={activeTab}
+                onTabChange={selectTab}
+                onPickEmoji={insertEmoji}
+                onPickGif={pickGif}
+                onClose={closePicker}
+                className={styles.toolbarRight}
               >
-                {toolbarButtons}
-              </Popover>
+                {pickerButtons}
+              </DesktopPickerPopover>
             )
           }
         >

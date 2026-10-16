@@ -1,3 +1,4 @@
+import type { MessageBlock } from '@/features/social/messaging/types';
 import type { MemberSummary } from '@/features/workspaces/types';
 import { apiRequest, jsonInit } from '@/shared/api/http';
 
@@ -17,6 +18,7 @@ export interface DirectMessage {
   lastMessage: {
     id: string;
     markdown: string | null;
+    blocks?: MessageBlock[];
     authorMemberId: string;
     createdAt: string;
   } | null;

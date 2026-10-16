@@ -19,6 +19,7 @@ import type {
   HistoryItem,
   Message,
   MessageAuthor,
+  MessageEdit,
   MessageHistoryItem,
   PendingAttachmentCommit,
   SendMessageCommand,
@@ -50,6 +51,7 @@ function synthesize(
       clientNonce: input.clientNonce,
       markdown: input.markdown,
       attachments: input.attachments ?? [],
+      blocks: input.blocks ?? [],
       contentVersion: 1,
       revision: 1,
       replyToMessageId: input.replyToMessageId ?? null,
@@ -226,9 +228,12 @@ export function useMessageOperations(
     dispatch(entry.input, entry.createdAt);
   }
 
-  async function edit(messageId: string, markdown: string, revision?: number) {
+  async function edit(messageId: string, change: MessageEdit, revision?: number) {
     if (!token) throw new Error('Not signed in');
-    const result = await editMessage(token, workspaceId, channelId, messageId, markdown, revision);
+    const result = await editMessage(token, workspaceId, channelId, messageId, {
+      ...change,
+      revision,
+    });
     refreshHistory();
     return result;
   }

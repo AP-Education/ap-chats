@@ -212,12 +212,14 @@ The Chats web client is `ap-chats-web`, with redirect URI
 with `apchats://auth/callback` for both login and logout, matching
 `mobile/app.json`. It is also allowed the `refresh_token` grant: the app asks for
 `offline_access` and renews its session with refresh tokens, since it has no
-Accounts cookie to renew against the way the browser does. Its public release settings are committed in
-`mobile/.env.production`, including the web/API URLs, Accounts issuer,
-`EXPO_PUBLIC_OIDC_CLIENT_ID=ap-chats-mobile` and the Chats audience. The EAS
-`production` profile selects the production environment. Expo loads the file
-when bundling a release; exported variables and EAS environment values take
-precedence. Keep any local overrides in `.env.local` out of release builds.
+Accounts cookie to renew against the way the browser does. Its public release settings live in
+`mobile/.env.production`, which is gitignored and kept on the machine that builds releases;
+`mobile/.env.example` lists the variables, and for production they hold the web/API URLs, the
+Accounts issuer, `EXPO_PUBLIC_OIDC_CLIENT_ID=ap-chats-mobile` and the Chats audience. The EAS
+`production` profile selects the production environment. Expo loads the file when bundling a release; exported variables and
+EAS environment values take precedence. An EAS cloud build does not upload gitignored files,
+so there the same values come from the EAS `production` environment. Keep any local overrides
+in `.env.local` out of release builds.
 Localhost and Expo Go callbacks are development settings.
 
 The public `VITE_*` values are compiled into the web image at build time.
@@ -312,7 +314,7 @@ reservation caps. Defaults match `.env.example` for the three public limits
 and the config schema for the pending limits. See `docs/chat-uploads.md`
 for the full storage permission and migration requirements.
 
-Set `VITE_TENOR_API_KEY` in `web/.env.production` to enable GIF search.
+Set `VITE_KLIPY_API_KEY` in `web/.env.production` to enable GIF search.
 Like the OIDC and image URL settings, it is baked into the web image and
 requires rebuilding that image when changed. The root `.dockerignore`
 excludes local dependency trees and deploy credentials from both build contexts.

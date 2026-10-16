@@ -9,6 +9,7 @@ import {
 import type { ChannelAccessSnapshot } from '@/components/communities/channel-access/channel-access/types';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
+import { keptGif, linkedGif, type MessageGif } from '../content/message-gif';
 import type { NormalizedMessageContent } from '../content/message-markdown';
 import { EntriesFacade } from '../entries';
 import { MentionsService } from '../mentions';
@@ -103,6 +104,7 @@ export class MessagesService {
       authorMemberId: author.id,
       contentMarkdown: message.content.markdown,
       attachments: message.attachments,
+      gif: message.gif,
       replyToMessageId: message.replyToMessageId,
       quoteText: message.quoteText,
       requestDigest: message.requestDigest,
@@ -138,7 +140,11 @@ export class MessagesService {
     author: WorkspaceMember,
     channel: ChannelAccessSnapshot,
     messageId: string,
-    change: { content: NormalizedMessageContent; expectedRevision: number | undefined },
+    change: {
+      content: NormalizedMessageContent;
+      gif: MessageGif | undefined;
+      expectedRevision: number | undefined;
+    },
   ): Promise<MessageView> {
     const message = await this.repository.findById(channel.workspaceId, channel.id, messageId);
     if (!message) throw new NotFoundException('Message not found');
@@ -155,11 +161,14 @@ export class MessagesService {
     if (isStale) throw new ConflictException('Message was changed');
 
     await this.mentions.requireValid(channel, content.mentions);
-    const revised = await this.repository.updateContent(
-      messageId,
-      content.markdown,
-      message.revision + 1,
-    );
+    const gif = change.gif
+      ? linkedGif(change.gif, content.links)
+      : keptGif(message.gif, content.links);
+    const revised = await this.repository.updateContent(messageId, {
+      markdown: content.markdown,
+      gif,
+      revision: message.revision + 1,
+    });
     await this.mentions.replace(this.mentionedBy(revised), content.mentions);
 
     return messageView(revised, await this.repository.entrySeq(messageId), author.id);

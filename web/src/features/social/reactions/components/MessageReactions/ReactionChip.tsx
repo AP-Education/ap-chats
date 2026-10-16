@@ -39,8 +39,8 @@ const useStyles = createStyles(({ token, css }) => ({
       --chip-bg: rgba(255, 255, 255, 0.14);
       --chip-mine-bg: rgba(255, 255, 255, 0.24);
     }
-    // Large emoji sit on the wallpaper without a bubble, in the page's own colours.
-    [data-variant='emoji'] & {
+    // Large emoji and a lone GIF sit on the wallpaper without a bubble, in the page's own colours.
+    [data-variant='bare'] & {
       --chip-accent: ${token.colorPrimaryTextActive};
       color: ${token.colorText};
     }

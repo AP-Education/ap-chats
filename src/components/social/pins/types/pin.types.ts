@@ -1,3 +1,5 @@
+import type { MessageBlock } from '../../messages/message-blocks';
+
 export interface MessagePin {
   workspaceId: string;
   channelId: string;
@@ -14,4 +16,5 @@ export interface PinnedMessage {
   authorMemberId: string;
   author: { memberId: string; displayName: string | null; avatarPath: string | null };
   markdown: string;
+  blocks: MessageBlock[];
 }

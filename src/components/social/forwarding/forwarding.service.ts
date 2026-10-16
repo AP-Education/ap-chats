@@ -59,6 +59,7 @@ export class ForwardingService {
       sourceAuthorMemberId: source.authorMemberId,
       contentMarkdown: source.contentMarkdown,
       attachments: source.attachments,
+      gif: source.gif,
       clientNonce: request.clientNonces[index]!,
     }));
     const messages = await this.messages.postForwarded(member, targetChannelId, {

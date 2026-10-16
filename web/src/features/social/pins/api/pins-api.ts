@@ -1,3 +1,4 @@
+import type { MessageBlock } from '@/features/social/messaging/types';
 import { apiRequest } from '@/shared/api/http';
 
 export interface PinnedMessage {
@@ -8,6 +9,7 @@ export interface PinnedMessage {
   authorMemberId: string;
   author: { memberId: string; displayName: string | null; avatarPath: string | null };
   markdown: string;
+  blocks?: MessageBlock[];
 }
 
 function pinsUrl(workspaceId: string, channelId: string) {

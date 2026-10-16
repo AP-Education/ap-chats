@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-import type { ActionContext, ActionTarget, ConversationAction, MessageHistoryItem } from './types';
+import type { ActionContext, ActionTarget, ConversationAction, EditMessage } from './types';
 
 /** What the conversation lets every row of its timeline do, the same for all of them. */
 export interface TimelineActions {
@@ -8,7 +8,7 @@ export interface TimelineActions {
   actions: ConversationAction[];
   run: (action: ConversationAction, target: ActionTarget) => void;
   jumpTo: (messageId: string) => void;
-  saveEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
+  saveEdit: EditMessage;
 }
 
 export const TimelineActionsContext = createContext<TimelineActions | null>(null);

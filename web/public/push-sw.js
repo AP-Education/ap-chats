@@ -1,6 +1,15 @@
 // Where Chats lives in the shell; the page passes it when it registers this worker.
 const LAUNCH_PATH = new URL(self.location.href).searchParams.get('launch') ?? '/';
 
+// Safari revokes a subscription after a few pushes that show nothing, even to a focused page.
+const userAgent = self.navigator?.userAgent ?? '';
+const showsEveryPush = /AppleWebKit/.test(userAgent) && !/Chrome|Chromium/.test(userAgent);
+
+async function appInFront() {
+  const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  return windows.some((client) => client.focused && client.visibilityState === 'visible');
+}
+
 self.addEventListener('push', (event) => {
   let data;
   try {
@@ -9,13 +18,21 @@ self.addEventListener('push', (event) => {
     data = null;
   }
   event.waitUntil(
-    self.registration.showNotification(typeof data?.title === 'string' ? data.title : 'AP Chats', {
-      body: typeof data?.body === 'string' ? data.body : 'Нове повідомлення',
-      icon: '/pwa-192x192.png',
-      tag: typeof data?.collapseKey === 'string' ? data.collapseKey : 'ap-connect',
-      renotify: true,
-      data: { userId: data?.userId, target: data?.target },
-    }),
+    (async () => {
+      // The app in front already sounds its own alert, as Telegram, Slack and Discord do.
+      if (!showsEveryPush && (await appInFront())) return;
+
+      await self.registration.showNotification(
+        typeof data?.title === 'string' ? data.title : 'AP Chats',
+        {
+          body: typeof data?.body === 'string' ? data.body : 'Нове повідомлення',
+          icon: '/pwa-192x192.png',
+          tag: typeof data?.collapseKey === 'string' ? data.collapseKey : 'ap-connect',
+          renotify: true,
+          data: { userId: data?.userId, target: data?.target },
+        },
+      );
+    })(),
   );
 });
 

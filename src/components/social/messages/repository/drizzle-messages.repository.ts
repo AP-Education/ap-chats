@@ -7,6 +7,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import { channelEntries, chatMessages } from '@/database/drizzle/schema';
 
+import type { MessageGif } from '../../content/message-gif';
 import type {
   CreateMessageRecord,
   ForwardedCopy,
@@ -121,6 +122,7 @@ export class DrizzleMessagesRepository extends MessagesRepository {
       authorMemberId,
       contentMarkdown: copy.contentMarkdown,
       attachments: copy.attachments,
+      gif: copy.gif,
       forwardedFromMessageId: copy.sourceMessageId,
       forwardedFromMemberId: copy.sourceAuthorMemberId,
       requestDigest,
@@ -136,10 +138,13 @@ export class DrizzleMessagesRepository extends MessagesRepository {
     });
   }
 
-  async updateContent(id: string, markdown: string, nextRevision: number): Promise<MessageModel> {
+  async updateContent(
+    id: string,
+    { markdown, gif, revision }: { markdown: string; gif: MessageGif | null; revision: number },
+  ): Promise<MessageModel> {
     const [row] = await this.txHost.tx
       .update(chatMessages)
-      .set({ contentMarkdown: markdown, revision: nextRevision, editedAt: new Date() })
+      .set({ contentMarkdown: markdown, gif, revision, editedAt: new Date() })
       .where(eq(chatMessages.id, id))
       .returning();
     if (!row) throw new Error('Message update failed');
@@ -153,6 +158,7 @@ export class DrizzleMessagesRepository extends MessagesRepository {
       .set({
         contentMarkdown: '',
         attachments: [],
+        gif: null,
         deletedAt: new Date(),
         revision: sql`${chatMessages.revision} + 1`,
       })

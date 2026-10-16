@@ -4,9 +4,16 @@ import { createStyles } from 'antd-style';
 import { Link, useMatch } from 'react-router-dom';
 
 import { previewText } from '@/features/social/mentions/mention-tokens';
+import { isLoneGif } from '@/features/social/messaging/gifs/gif-links';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
+
+function lastMessagePreview(message: NonNullable<DirectMessage['lastMessage']>): string {
+  if (message.markdown === null) return 'Повідомлення видалено';
+  if (!message.markdown) return 'Вкладення';
+  return isLoneGif(message) ? 'GIF' : previewText(message.markdown);
+}
 
 const dateFormat = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'numeric' });
 
@@ -168,14 +175,7 @@ export function DirectMessageRow({
   const isActive = useMatch('/direct/:channelId')?.params.channelId === item.id;
   const visibleUnreadCount = isActive ? 0 : unreadCount;
   const isMuted = item.notification.isMuted;
-  let preview = 'Нова розмова';
-  if (item.lastMessage) {
-    preview = item.lastMessage.markdown
-      ? previewText(item.lastMessage.markdown)
-      : item.lastMessage.markdown === null
-        ? 'Повідомлення видалено'
-        : 'Вкладення';
-  }
+  const preview = item.lastMessage ? lastMessagePreview(item.lastMessage) : 'Нова розмова';
   return (
     <Link
       to={`/direct/${item.id}`}

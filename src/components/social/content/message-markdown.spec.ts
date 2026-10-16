@@ -11,6 +11,7 @@ test('allows a blank caption only when the caller explicitly permits attachment 
     markdown: '',
     plainText: '',
     mentions: { memberIds: [], roleIds: [], everyone: false },
+    links: [],
   });
 });
 
@@ -26,25 +27,28 @@ test('stores canonical Markdown and derives structured mentions without persisti
   assert.deepEqual(await markdown.normalize(normalized.markdown), normalized);
 });
 
-test('formatting chat does not support is dropped and its text kept, not refused', async () => {
+test('formatting chat cannot show is stored as typed and read for its text', async () => {
   const cases: [string, string][] = [
-    ['# Підсумок\nтекст', 'Підсумок\n\nтекст'],
-    ['до\n\n---\n\nпісля', 'до\n\nпісля'],
-    ['![схема](https://example.com/a.png)', '[схема](https://example.com/a.png)'],
-    ['[run](javascript:alert(1))', 'run'],
+    ['# Підсумок\nтекст', 'Підсумок\nтекст\n'],
+    ['до\n\n---\n\nпісля', 'до\nпісля\n'],
+    ['![схема](https://example.com/a.png)', 'схема\n'],
+    ['[run](javascript:alert(1))', 'run\n'],
   ];
 
-  for (const [source, expected] of cases) {
+  for (const [source, plainText] of cases) {
     const normalized = await markdown.normalize(source);
-    assert.equal(normalized.markdown, expected);
-    assert.deepEqual(await markdown.normalize(normalized.markdown), normalized);
+    assert.equal(normalized.markdown, source);
+    assert.equal(normalized.plainText, plainText);
   }
+  assert.deepEqual((await markdown.normalize('[run](javascript:alert(1))')).links, []);
 });
 
 test('HTML and unknown directives read as the text they were typed as', async () => {
-  const normalized = await markdown.normalize('<b>важливо</b> о 10:30, ::note');
+  const source = '<b>важливо</b> о 10:30, Note:This ::note';
+  const normalized = await markdown.normalize(source);
 
-  assert.equal(normalized.plainText.trim(), '<b>важливо</b> о 10:30, ::note');
+  assert.equal(normalized.markdown, source);
+  assert.equal(normalized.plainText.trim(), source);
   assert.deepEqual(normalized.mentions, { memberIds: [], roleIds: [], everyone: false });
   assert.deepEqual(await markdown.normalize(normalized.markdown), normalized);
 });
@@ -100,6 +104,26 @@ test('stores an escaped colon so it parses back as text, not as a directive', as
   assert.equal(normalized.markdown, 'Зустріч о 10\\:30, тема\\:бюджет');
   assert.equal(normalized.plainText.trim(), 'Зустріч о 10:30, тема:бюджет');
   assert.deepEqual(await markdown.normalize(normalized.markdown), normalized);
+});
+
+test('keeps the text as typed, so a link with an underscore still opens', async () => {
+  const sources = [
+    'see https://example.com/a_b?utm_source=chat and snake_case',
+    '# План\nо 10:30, https://example.com/a_b?utm_source=chat',
+  ];
+
+  for (const source of sources) {
+    assert.equal((await markdown.normalize(source)).markdown, source);
+  }
+});
+
+test('reads bare links as links, the way the client shows them', async () => {
+  const result = await markdown.normalize(
+    'gif https://klipy.com/gifs/hello-hi-662 and [docs](https://example.com) or ~~not~~ this',
+  );
+
+  assert.deepEqual(result.links, ['https://klipy.com/gifs/hello-hi-662', 'https://example.com']);
+  assert.equal(result.markdown.includes('~~not~~'), true);
 });
 
 test('preserves single and blank line breaks in stored Markdown', async () => {

@@ -1,3 +1,4 @@
+import type { MessageGif } from '../../content/message-gif';
 import type { NormalizedMessageContent } from '../../content/message-markdown';
 
 export interface Attachment {
@@ -9,6 +10,8 @@ export interface Attachment {
   width: number | null;
   height: number | null;
   description: string | null;
+  /** An image's ThumbHash, base64: its colours and a blurred stand-in before it loads. */
+  placeholder?: string;
 }
 
 // What a fresh post and a forward of it both carry unmodified: what's
@@ -18,6 +21,7 @@ export interface Attachment {
 export interface MessageContent {
   contentMarkdown: string;
   attachments: Attachment[];
+  gif: MessageGif | null;
   clientNonce: string;
 }
 
@@ -53,6 +57,7 @@ export interface MessageRef {
 export interface NewMessage {
   content: NormalizedMessageContent;
   attachments: Attachment[];
+  gif: MessageGif | null;
   replyToMessageId: string | null;
   quoteText: string | null;
   clientNonce: string;
@@ -83,6 +88,7 @@ export type CreateMessageRecord = Pick<
     Pick<
       MessageModel,
       | 'attachments'
+      | 'gif'
       | 'replyToMessageId'
       | 'quoteText'
       | 'forwardedFromMessageId'

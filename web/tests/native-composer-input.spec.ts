@@ -48,3 +48,21 @@ test('malformed native events never reach editor operations', () => {
     null,
   );
 });
+
+test('a picked GIF brings its placeholder, and a shell built before it still sends one without', () => {
+  const gif = {
+    type: 'composer/gif',
+    sessionId: 'a',
+    requestId: 1,
+    slug: 'hello',
+    title: 'Hello',
+    media: { url: 'https://static.klipy.com/ii/hello.webp', width: 320, height: 240 },
+  };
+
+  assert.equal(
+    readComposerMessage({ ...gif, placeholder: 'data:image/webp;base64,AA' }, 'a', 1)?.type,
+    'composer/gif',
+  );
+  assert.equal(readComposerMessage(gif, 'a', 1)?.type, 'composer/gif');
+  assert.equal(readComposerMessage({ ...gif, placeholder: 4 }, 'a', 1), null);
+});

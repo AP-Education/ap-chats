@@ -85,7 +85,7 @@ docker build \
   --build-context previous="$WORK_DIR/previous" \
   --secret id=npm_token,env=GITHUB_TOKEN \
   --build-arg VITE_IMAGES_URL="${VITE_IMAGES_URL:-}" \
-  --build-arg VITE_TENOR_API_KEY="${VITE_TENOR_API_KEY:-}" \
+  --build-arg VITE_KLIPY_API_KEY="${VITE_KLIPY_API_KEY:-}" \
   -t "${REGISTRY}/ap-connect-web:${TAG}" \
   "$REPO_ROOT"
 

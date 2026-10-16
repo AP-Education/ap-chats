@@ -6,6 +6,7 @@ import { MessageReactions } from '@/features/social/reactions/components/Message
 import { useTimelineActions } from '../../timeline-actions-context';
 import { MessageAttachments } from '../MessageAttachments/MessageAttachments';
 import { PendingAttachments } from '../MessageAttachments/PendingAttachments';
+import { MessageBlocks } from '../MessageBlocks/MessageBlocks';
 import type { BubbleLayout } from './bubbleLayout';
 import { useMessageActionScope } from './MessageActionScope';
 import { MessageEditor } from './MessageEditor';
@@ -19,7 +20,8 @@ interface MessageBodyProps {
   onCloseEdit: () => void;
 }
 
-// Attachments come first and the caption last, so the time can close the caption's last line.
+// Attachments come first and the caption after them, so the time can close its last line; blocks
+// like a GIF go under the text, as on Discord.
 export function MessageBody({ layout, contentRef, minHeight, onCloseEdit }: MessageBodyProps) {
   const { editing, item, delivery, pendingAttachments, canReact, context } =
     useMessageActionScope();
@@ -27,6 +29,10 @@ export function MessageBody({ layout, contentRef, minHeight, onCloseEdit }: Mess
   const textMeta = (layout.meta === 'inline' || layout.meta === 'emoji') && (
     <MessageMeta placement={layout.meta} />
   );
+  const blocks = item.message.blocks ?? [];
+  // On media the time sits on whatever closes the bubble, in its colours: a GIF, else the photos.
+  const mediaMeta = layout.meta === 'overlay' && <MessageMeta placement="overlay" />;
+  const blocksClose = blocks.length > 0;
 
   return (
     <>
@@ -37,6 +43,7 @@ export function MessageBody({ layout, contentRef, minHeight, onCloseEdit }: Mess
           attachments={item.message.attachments ?? []}
           messageId={item.message.id}
           available={!delivery}
+          overlay={!blocksClose && mediaMeta}
         />
       )}
       {editing && (
@@ -51,9 +58,12 @@ export function MessageBody({ layout, contentRef, minHeight, onCloseEdit }: Mess
           meta={textMeta}
         />
       )}
-      {(layout.meta === 'block' || layout.meta === 'overlay') && (
-        <MessageMeta placement={layout.meta} />
-      )}
+      <MessageBlocks
+        blocks={blocks}
+        messageId={item.message.id}
+        overlay={blocksClose && mediaMeta}
+      />
+      {layout.meta === 'block' && <MessageMeta placement="block" />}
       {layout.reactions && (
         <MessageReactions
           item={item}

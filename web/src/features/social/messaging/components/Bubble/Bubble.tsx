@@ -1,6 +1,8 @@
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
+import { MEDIA_MAX_SIDE } from '../../media/media-fit';
+
 // The tail continues the bubble's flat bottom corner into a soft hook, shaped with a mask.
 // Bubbles carry no backdrop-filter: each would be its own blurred compositor layer, and a
 // conversation holds hundreds that every scroll, drag and keyboard frame recomposites.
@@ -160,7 +162,9 @@ const useStyles = createStyles(({ token, css }) => ({
       padding: 4px;
     }
 
+    // No wider than its media box, so a caption wraps under the photo, as in Telegram.
     &[data-variant='media'] {
+      max-width: min(${MEDIA_MAX_SIDE}px, 100%);
       padding: 4px;
     }
     &[data-variant='media'] > :not([data-attachment-media]) {
@@ -173,7 +177,8 @@ const useStyles = createStyles(({ token, css }) => ({
       margin-bottom: ${token.marginXXS}px;
     }
 
-    &[data-variant='emoji'] {
+    // Large emoji and a lone GIF sit on the wallpaper without a bubble, as in Telegram.
+    &[data-variant='bare'] {
       padding: 0;
       background: none;
       box-shadow: none;
@@ -197,7 +202,7 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-export type BubbleVariant = 'text' | 'media' | 'emoji';
+export type BubbleVariant = 'text' | 'media' | 'bare';
 
 interface BubbleProps {
   own: boolean;
@@ -209,7 +214,7 @@ interface BubbleProps {
 
 export function Bubble({ own, variant = 'text', tone, wide, children }: BubbleProps) {
   const { styles } = useStyles();
-  const hasTail = variant !== 'emoji';
+  const hasTail = variant !== 'bare';
 
   return (
     <div

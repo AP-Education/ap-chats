@@ -11,7 +11,7 @@ type Shown = {
   options: { tag?: string; renotify?: boolean; data: { userId?: string; target?: unknown } };
 };
 
-function serviceWorker() {
+function serviceWorker({ userAgent = 'Chrome/140' } = {}) {
   const listeners = new Map<string, (event: unknown) => void>();
   const shown: Shown[] = [];
   const opened: string[] = [];
@@ -24,6 +24,7 @@ function serviceWorker() {
     URL,
     self: {
       location: { origin, href: `${origin}/push-sw.js?launch=%2Fc%2F` },
+      navigator: { userAgent },
       addEventListener: (name: string, handler: (event: unknown) => void) =>
         listeners.set(name, handler),
       skipWaiting: async () => steps.push('skip-waiting'),
@@ -47,10 +48,12 @@ function serviceWorker() {
     // Plain copies: objects created inside the worker's VM context have another prototype.
     pageMessages: () => JSON.parse(JSON.stringify(pageMessages)),
     subscribed: () => JSON.parse(JSON.stringify(subscribed)),
-    openAppWindow: () => {
+    openAppWindow: ({ focused = false } = {}) => {
       windows = [
         {
           url: `${origin}/`,
+          focused,
+          visibilityState: 'visible',
           focus: async () => steps.push('focus'),
           postMessage: (message: unknown) => {
             steps.push('post');
@@ -95,6 +98,30 @@ test('every push shows a notification that re-alerts within its conversation, ev
   assert.deepEqual([first?.options.tag, second?.options.tag], ['channel', 'channel']);
   assert.equal(second?.options.renotify, true);
   assert.equal(unreadable?.options.tag, 'ap-connect');
+});
+
+test('a push stays silent while the app is in front, which sounds its own alert', async () => {
+  const worker = serviceWorker();
+  const message = push(() => ({ title: 'Title', userId: 'reader', collapseKey: 'channel' }));
+
+  worker.openAppWindow({ focused: true });
+  await worker.emit('push', message);
+  worker.openAppWindow({ focused: false });
+  await worker.emit('push', message);
+
+  assert.equal(worker.shown.length, 1);
+});
+
+test('Safari shows every push, since it revokes a subscription that stays silent', async () => {
+  const worker = serviceWorker({ userAgent: 'Version/26.0 Safari/605.1.15 AppleWebKit/605.1.15' });
+  worker.openAppWindow({ focused: true });
+
+  await worker.emit(
+    'push',
+    push(() => ({ title: 'Title', userId: 'reader' })),
+  );
+
+  assert.equal(worker.shown.length, 1);
 });
 
 test('a new worker takes over open pages at once, so their clicks reach it', async () => {

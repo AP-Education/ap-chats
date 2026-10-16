@@ -1,45 +1,66 @@
-import type { GifResult } from '../types';
+import type { GifImage, GifPage, GifResult } from '../types';
 
-// Google Tenor v2 — same provider Discord uses, and the same one web/'s picker uses
-// (see web/src/features/social/messaging/components/MessageComposer/picker/gif-provider.ts).
-const TENOR_API_KEY = process.env.EXPO_PUBLIC_TENOR_API_KEY?.trim();
-const TENOR_CLIENT_KEY = 'ap-chats-mobile';
-const RESULT_LIMIT = 24;
+// KLIPY, as web/src/features/social/messaging/gifs/klipy-api.ts: Google shut the Tenor API down.
+// Its terms ask for requests and media loads straight from the client.
+const APP_KEY = process.env.EXPO_PUBLIC_KLIPY_API_KEY?.trim();
+const PAGE_SIZE = 24;
+
+type KlipyFormats = Partial<Record<'gif' | 'webp', GifImage>>;
+
+interface KlipyResponse {
+  data: {
+    data: {
+      slug: string;
+      title: string;
+      blur_preview?: string;
+      file: { sm: KlipyFormats; md: KlipyFormats };
+    }[];
+    has_next?: boolean;
+  };
+}
+
+// Only what the app shows; KLIPY's extras, such as file size, are not part of a message.
+function image({ url, width, height }: GifImage): GifImage {
+  return { url, width, height };
+}
 
 export function isGifSearchConfigured(): boolean {
-  return Boolean(TENOR_API_KEY);
+  return Boolean(APP_KEY);
 }
 
-interface TenorResponse {
-  results: {
-    id: string;
-    content_description: string;
-    media_formats: { gif: { url: string }; tinygif?: { url: string } };
-  }[];
-}
+/** Trending GIFs for an empty query, matches otherwise; one page at a time. */
+export async function searchGifs(query: string, page: number, signal?: AbortSignal) {
+  if (!APP_KEY) return { gifs: [], nextPage: null } satisfies GifPage;
 
-export async function searchGifs(query: string, signal?: AbortSignal): Promise<GifResult[]> {
-  if (!TENOR_API_KEY) return [];
-
-  const params = new URLSearchParams({
-    key: TENOR_API_KEY,
-    client_key: TENOR_CLIENT_KEY,
-    limit: String(RESULT_LIMIT),
-    media_filter: 'gif',
-  });
   const trimmed = query.trim();
-  const endpoint = trimmed
-    ? `https://tenor.googleapis.com/v2/search?${params}&q=${encodeURIComponent(trimmed)}`
-    : `https://tenor.googleapis.com/v2/featured?${params}`;
+  const params = new URLSearchParams({
+    page: String(page),
+    per_page: String(PAGE_SIZE),
+    content_filter: 'medium',
+    ...(trimmed ? { q: trimmed } : {}),
+  });
+  const endpoint = `https://api.klipy.com/api/v1/${APP_KEY}/gifs/${trimmed ? 'search' : 'trending'}`;
 
-  const response = await fetch(endpoint, { signal });
-  if (!response.ok) throw new Error(`Tenor request failed: ${response.status}`);
-  const payload = (await response.json()) as TenorResponse;
+  const response = await fetch(`${endpoint}?${params}`, { signal });
+  if (!response.ok) throw new Error(`KLIPY request failed: ${response.status}`);
+  const payload = (await response.json()) as KlipyResponse;
 
-  return payload.results.map((result) => ({
-    id: result.id,
-    title: result.content_description,
-    previewUrl: result.media_formats.tinygif?.url ?? result.media_formats.gif.url,
-    url: result.media_formats.gif.url,
-  }));
+  // The tile is a GIF, which React Native animates on Android out of the box, unlike WebP.
+  const gifs = payload.data.data.flatMap(({ slug, title, blur_preview, file }): GifResult[] => {
+    const preview = file.sm.gif;
+    const media = file.md.webp ?? file.md.gif;
+    if (!preview || !media) return [];
+
+    return [
+      {
+        slug,
+        title,
+        preview: image(preview),
+        media: image(media),
+        placeholder: blur_preview ?? null,
+      },
+    ];
+  });
+
+  return { gifs, nextPage: payload.data.has_next ? page + 1 : null } satisfies GifPage;
 }

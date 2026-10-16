@@ -90,7 +90,11 @@ export function PinnedMessageBar({ onJump }: PinnedMessageBarProps) {
         )}
       </span>
       <button type="button" className={styles.body} onClick={showAndAdvance}>
-        <ReplyExcerpt title="Закріплене повідомлення" markdown={current.markdown} />
+        <ReplyExcerpt
+          title="Закріплене повідомлення"
+          markdown={current.markdown}
+          blocks={current.blocks}
+        />
       </button>
       <div className={styles.controls}>
         <Popover

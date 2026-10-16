@@ -3,7 +3,8 @@ import { Input } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
-import { type GifResult, isGifSearchConfigured } from './gif-provider';
+import { isGifSearchConfigured } from '../../../gifs/klipy-api';
+import type { Gif } from '../../../gifs/types';
 import { GifResults } from './GifResults';
 import { useGifSearch } from './useGifSearch';
 
@@ -28,7 +29,7 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 interface GifTabProps {
-  onPick: (gif: GifResult) => void;
+  onPick: (gif: Gif) => void;
 }
 
 export function GifTab({ onPick }: GifTabProps) {
@@ -40,7 +41,7 @@ export function GifTab({ onPick }: GifTabProps) {
   if (!configured) {
     return (
       <div className={styles.unavailable}>
-        Пошук GIF вимкнено: додайте VITE_TENOR_API_KEY, щоб увімкнути його.
+        Пошук GIF вимкнено: додайте VITE_KLIPY_API_KEY, щоб увімкнути його.
       </div>
     );
   }
@@ -51,7 +52,8 @@ export function GifTab({ onPick }: GifTabProps) {
         autoFocus
         allowClear
         prefix={<MagnifyingGlassIcon size={16} />}
-        placeholder="Пошук GIF"
+        // KLIPY's terms require its name as the search placeholder.
+        placeholder="Пошук у KLIPY"
         aria-label="Пошук GIF"
         value={query}
         onChange={(event) => setQuery(event.target.value)}

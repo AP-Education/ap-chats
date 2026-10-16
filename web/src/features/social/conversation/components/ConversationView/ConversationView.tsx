@@ -3,6 +3,7 @@ import { type ReactNode, useMemo, useRef } from 'react';
 
 import { ActiveCallBanner } from '@/features/calls/components/ActiveCallBanner';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
+import { MediaViewerProvider } from '@/features/social/media-viewer/providers/MediaViewerProvider';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import { keyboardGlidePart } from '@/features/social/messaging/keyboard-glide-part';
 import { PinnedMessageBar } from '@/features/social/pins/components/PinnedMessageBar/PinnedMessageBar';
@@ -86,11 +87,21 @@ export function ConversationView({ currentMember, readOnlyFooter }: Conversation
       className={styles.shell}
       data-conversation-drop-target
     >
-      <ConversationHistoryContent
-        navigation={navigation}
-        interaction={interaction}
-        operations={operations}
-      />
+      <MediaViewerProvider
+        items={navigation.items}
+        actions={{
+          actions: interaction.actions,
+          context: interaction.actionContext,
+          run: interaction.onAction,
+          showInChat: navigation.onJump,
+        }}
+      >
+        <ConversationHistoryContent
+          navigation={navigation}
+          interaction={interaction}
+          operations={operations}
+        />
+      </MediaViewerProvider>
       <div ref={topRef} className={styles.top}>
         <PinnedMessageBar onJump={navigation.onJump} />
         <ActiveCallBanner

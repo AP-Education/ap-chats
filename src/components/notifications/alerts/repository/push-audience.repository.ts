@@ -1,4 +1,5 @@
 import type { ChannelKind } from '@/components/communities/channels/types';
+import type { MessageGif } from '@/components/social/content';
 
 import type { StoredNotificationSettings } from '../../preferences/types';
 import type { ConversationRange, ConversationScope } from '../types';
@@ -20,6 +21,7 @@ export interface PushRecipient extends StoredNotificationSettings {
 
 export interface PushMessagePreview {
   contentMarkdown: string;
+  gif: MessageGif | null;
   actorName: string | null;
 }
 

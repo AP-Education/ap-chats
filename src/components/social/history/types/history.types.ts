@@ -10,6 +10,7 @@ export interface ReplyPreview {
   id: string;
   authorMemberId: string;
   contentMarkdown: string;
+  gif: MessageModel['gif'];
   deletedAt: Date | null;
 }
 

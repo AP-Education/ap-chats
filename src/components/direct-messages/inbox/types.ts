@@ -1,4 +1,5 @@
 import type { NotificationLevel } from '@/components/notifications/preferences/types';
+import type { MessageGif } from '@/components/social/content';
 
 interface ConversationPerson {
   id: string;
@@ -16,6 +17,7 @@ export interface ConversationRow {
   lastMessage: {
     id: string;
     markdown: string;
+    gif: MessageGif | null;
     deletedAt: Date | null;
     authorMemberId: string;
     createdAt: Date;

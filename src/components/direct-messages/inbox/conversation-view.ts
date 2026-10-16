@@ -1,4 +1,5 @@
 import { isMuted } from '@/components/notifications/preferences/notification-settings.rules';
+import { messageBlocks } from '@/components/social/messages/message-blocks';
 
 import type { ConversationRow } from './types';
 
@@ -25,6 +26,7 @@ export function conversationView(row: ConversationRow) {
       ? {
           id: row.lastMessage.id,
           markdown: row.lastMessage.deletedAt ? null : row.lastMessage.markdown,
+          blocks: row.lastMessage.deletedAt ? [] : messageBlocks(row.lastMessage),
           authorMemberId: row.lastMessage.authorMemberId,
           createdAt: row.lastMessage.createdAt,
         }

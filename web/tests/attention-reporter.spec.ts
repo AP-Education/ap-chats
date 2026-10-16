@@ -31,7 +31,7 @@ function page({ native = false } = {}) {
     on: (event: string, listener: () => void) => socket.addEventListener(event, listener),
     off: (event: string, listener: () => void) => socket.removeEventListener(event, listener),
   });
-  const state = { present: true };
+  const state = { present: true, showing: true };
   const posted: unknown[] = [];
   const exports = {} as { AttentionReporter: typeof AttentionReporter };
 
@@ -43,7 +43,10 @@ function page({ native = false } = {}) {
       ({
         react: { useEffect: (effect: () => void) => effect() },
         '@/features/realtime/stores/realtime-context': { useConnection: () => ({ socket }) },
-        '@/shared/hooks/useIsAttending': { isPresent: () => state.present },
+        '@/shared/hooks/useIsAttending': {
+          isPresent: () => state.present,
+          isShowing: () => state.showing,
+        },
         '@ap-education/shell-sdk': { isNativeShell: () => native },
         '../api/attention': {
           reportAttention: (connection: typeof socket, attending: boolean) =>
@@ -58,8 +61,12 @@ function page({ native = false } = {}) {
     socket,
     posted,
     renew: () => tick!(),
+    idle: () => {
+      state.present = false;
+    },
     leave: () => {
       state.present = false;
+      state.showing = false;
       window.dispatchEvent(new Event('blur'));
     },
     disconnect: () => {
@@ -92,4 +99,20 @@ test('inside the native shell only changes reach native, never the server', () =
 
   assert.deepEqual(p.socket.emitted, []);
   assert.deepEqual(p.posted, [true, false]);
+});
+
+test('inside the native shell an idle page still on screen keeps the banner back', () => {
+  const p = page({ native: true });
+  p.idle();
+  p.renew();
+
+  assert.deepEqual(p.posted, [true]);
+});
+
+test('a browser that went idle says so', () => {
+  const p = page();
+  p.idle();
+  p.renew();
+
+  assert.deepEqual(p.socket.emitted, [true, false]);
 });

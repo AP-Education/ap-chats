@@ -7,6 +7,8 @@ export interface Attachment {
   width: number | null;
   height: number | null;
   description: string | null;
+  /** An image's ThumbHash: its colours and a blurred stand-in before it loads. */
+  placeholder?: string;
 }
 
 export interface AttachmentPolicy {

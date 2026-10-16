@@ -7,7 +7,8 @@ import { MessageEditorSlotProvider } from '@/features/social/mentions/MessageEdi
 import type { ComposerEditorApi, ComposerEditorSlotProps } from '@/features/social/mentions/types';
 import { ApiError } from '@/shared/api/http';
 
-import type { MessageHistoryItem } from '../../types';
+import { useLinkedGif } from '../../gifs/useLinkedGif';
+import type { EditMessage, MessageHistoryItem } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -52,7 +53,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
 interface MessageEditorProps {
   item: MessageHistoryItem;
-  onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
+  onEdit: EditMessage;
   onClose: () => void;
   minHeight: number;
   /** The text-input to edit with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
@@ -65,6 +66,7 @@ export function MessageEditor({ item, onEdit, onClose, minHeight, children }: Me
   const [hasContent, setHasContent] = useState(Boolean(item.message.markdown?.trim()));
   const [saving, setSaving] = useState(false);
   const [conflict, setConflict] = useState(false);
+  const linkedGif = useLinkedGif();
   const labels = useMemo(
     () =>
       Object.fromEntries(
@@ -81,7 +83,8 @@ export function MessageEditor({ item, onEdit, onClose, minHeight, children }: Me
         return;
       setSaving(true);
       try {
-        await onEdit(item, markdown, overwrite);
+        const blocks = await linkedGif.blocksFor(markdown, item.message.blocks);
+        await onEdit(item, { markdown, ...(blocks ? { blocks } : {}) }, overwrite);
         onClose();
       } catch (error) {
         if (error instanceof ApiError && error.status === 409) setConflict(true);
@@ -90,7 +93,7 @@ export function MessageEditor({ item, onEdit, onClose, minHeight, children }: Me
         setSaving(false);
       }
     },
-    [item, saving, onEdit, onClose],
+    [item, saving, onEdit, onClose, linkedGif],
   );
 
   const slot = useMemo<ComposerEditorSlotProps>(

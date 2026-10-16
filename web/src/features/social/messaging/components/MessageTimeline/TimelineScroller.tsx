@@ -1,12 +1,13 @@
 import { useIsMobile } from '@ap-education/ui';
 import { ArrowDownIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
-import { type ReactNode, useRef } from 'react';
+import type { ReactNode } from 'react';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
 import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 import { keyboardGlidePart } from '../../keyboard-glide-part';
+import { useKeyboardSwipe } from './useKeyboardSwipe';
 import { useMobileMessageSelection } from './useMobileMessageSelection';
 import type { useScrollAnchoring } from './useScrollAnchoring';
 
@@ -88,13 +89,13 @@ interface TimelineScrollerProps {
   children: ReactNode;
 }
 
-/** The timeline's scrolling surface: a vertical drag puts the composer away, and a button leads back down. */
+/** The timeline's scrolling surface: a pull down puts the keyboard away, a button leads back down. */
 export function TimelineScroller({ anchoring, hasNewer, children }: TimelineScrollerProps) {
   const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
   const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
   const selecting = useConversation((state) => state.selectedIds.length > 0);
-  const gesture = useRef<{ x: number; y: number; dismissed: boolean } | null>(null);
+  const keyboardSwipe = useKeyboardSwipe(requestComposerBlur);
   const { scrollRef, onScroll, awayFromBottom, goDown } = anchoring;
   const downLabel = hasNewer ? 'До новіших повідомлень' : 'До низу розмови';
   useMobileMessageSelection(scrollRef, isMobile);
@@ -106,26 +107,7 @@ export function TimelineScroller({ anchoring, hasNewer, children }: TimelineScro
           ref={scrollRef}
           className={styles.scroll}
           onScroll={onScroll}
-          onPointerDown={(event) => {
-            if (event.pointerType === 'touch')
-              gesture.current = { x: event.clientX, y: event.clientY, dismissed: false };
-          }}
-          onPointerUp={() => {
-            gesture.current = null;
-          }}
-          onPointerCancel={() => {
-            gesture.current = null;
-          }}
-          onTouchMove={(event) => {
-            const touch = event.touches[0];
-            const start = gesture.current;
-            if (!touch || !start || start.dismissed) return;
-            const vertical = Math.abs(touch.clientY - start.y);
-            if (vertical > 10 && vertical > Math.abs(touch.clientX - start.x)) {
-              start.dismissed = true;
-              requestComposerBlur();
-            }
-          }}
+          {...keyboardSwipe}
           role="log"
           aria-label="Повідомлення каналу"
           aria-live="off"

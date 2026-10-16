@@ -7,9 +7,11 @@ import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { UploadsService } from '../attachments';
 import { MessageMarkdownService, messagePlainText } from '../content';
+import { linkedGif } from '../content/message-gif';
 import { MessagesService } from '../messages';
 import type { NewMessage } from '../messages/types/message.types';
 import type { SendMessageDto } from './dto/send-message.dto';
+import { requestedGif } from './requested-gif';
 import type { MessageDraft } from './types';
 
 @Injectable()
@@ -23,6 +25,7 @@ export class MessageComposer {
   async draft(request: SendMessageDto): Promise<MessageDraft> {
     const hasAttachments = Boolean(request.attachments?.length);
     const content = await this.markdown.normalize(request.markdown, hasAttachments);
+    const gif = linkedGif(requestedGif(request.blocks), content.links);
     const replyToMessageId = request.replyToMessageId ?? null;
     const quoteText = request.quoteText?.trim() || null;
     const requestDigest = digest({
@@ -30,11 +33,13 @@ export class MessageComposer {
       reply: replyToMessageId,
       quote: quoteText,
       attachments: hasAttachments ? request.attachments : undefined,
+      gif: gif ?? undefined,
     });
 
     return {
       content,
       attachmentRefs: request.attachments ?? [],
+      gif,
       replyToMessageId,
       quoteText,
       clientNonce: request.clientNonce,
@@ -54,6 +59,7 @@ export class MessageComposer {
     return {
       content: draft.content,
       attachments,
+      gif: draft.gif,
       replyToMessageId,
       quoteText,
       clientNonce: draft.clientNonce,

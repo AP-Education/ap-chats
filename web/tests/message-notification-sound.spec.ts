@@ -68,10 +68,7 @@ function fixture({
       },
       '@/shared/audio/audio-context': audio,
       '@ap-education/shell-sdk': { isNativeShell: () => native },
-      '@/shared/hooks/useIsAttending': {
-        isAttending: () => page.visible,
-        isPresent: () => page.visible,
-      },
+      '@/shared/hooks/useIsAttending': { isAttending: () => page.visible },
       '../sound/messageBloop': {
         playMessageBloop: () => {
           sounds.push(native ? 'native' : (audio.getSharedAudioContext()?.state ?? 'unavailable'));

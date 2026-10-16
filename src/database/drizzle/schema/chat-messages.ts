@@ -25,6 +25,16 @@ export interface StoredAttachment {
   width: number | null;
   height: number | null;
   description: string | null;
+  /** An image's ThumbHash, base64; files stored before it was kept have none. */
+  placeholder?: string;
+}
+
+/** A GIF as a message keeps it: the media URL exactly as its service serves it, never a copy. */
+export interface StoredGif {
+  provider: 'klipy' | 'giphy' | 'tenor';
+  link: string;
+  title: string;
+  media: { url: string; width: number; height: number; placeholder?: string };
 }
 
 export const chatMessages = pgTable(
@@ -36,6 +46,7 @@ export const chatMessages = pgTable(
     authorMemberId: uuid('author_member_id').notNull(),
     contentMarkdown: text('content_markdown').notNull(),
     attachments: jsonb('attachments').$type<StoredAttachment[]>().notNull().default([]),
+    gif: jsonb('gif').$type<StoredGif>(),
     contentVersion: integer('content_version').notNull().default(1),
     revision: integer('revision').notNull().default(1),
     replyToMessageId: uuid('reply_to_message_id'),
@@ -63,6 +74,10 @@ export const chatMessages = pgTable(
     index('chat_messages_attachments_idx').using('gin', table.attachments),
     check('chat_messages_content_version_check', sql`${table.contentVersion} = 1`),
     check('chat_messages_revision_check', sql`${table.revision} >= 1`),
+    check(
+      'chat_messages_gif_check',
+      sql`${table.gif} IS NULL OR jsonb_typeof(${table.gif}) = 'object'`,
+    ),
     check(
       'chat_messages_attachments_check',
       sql`jsonb_typeof(${table.attachments}) = 'array' AND jsonb_array_length(${table.attachments}) <= 10`,

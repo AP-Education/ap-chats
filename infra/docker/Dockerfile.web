@@ -20,9 +20,9 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 # Vite inlines these into the bundle at build time, so a tenant with a
 # different image bucket needs its own image build, not just a different runtime env.
 ARG VITE_IMAGES_URL
-ARG VITE_TENOR_API_KEY
+ARG VITE_KLIPY_API_KEY
 ENV VITE_IMAGES_URL=${VITE_IMAGES_URL} \
-    VITE_TENOR_API_KEY=${VITE_TENOR_API_KEY}
+    VITE_KLIPY_API_KEY=${VITE_KLIPY_API_KEY}
 COPY web ./web
 RUN pnpm --filter @ap-chats/web build --base=/remotes/chats/
 

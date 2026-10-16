@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 import { message } from 'antd';
 import { useEffect, useState } from 'react';
 
@@ -6,17 +6,19 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import { attachmentUrl } from '../../attachments/attachments-api';
-import type { Attachment } from '../../attachments/types';
+import type { Attachment, UploadScope } from '../../attachments/types';
 
-export function useAttachmentUrl(
+export type AttachmentUrlVariant = 'thumbnail' | 'preview';
+
+/** A signed address of an attachment, shared by the rows and the viewer through one cache entry. */
+export function attachmentUrlQuery(
+  { token, identity }: ReturnType<typeof useQueryAuth>,
+  scope: UploadScope,
   messageId: string,
   attachmentId: string,
-  variant: 'thumbnail' | 'preview',
-  enabled: boolean,
+  variant: AttachmentUrlVariant,
 ) {
-  const { token, identity } = useQueryAuth();
-  const scope = useConversationScope();
-  return useQuery({
+  return queryOptions({
     queryKey: [
       'attachment-url',
       identity,
@@ -27,10 +29,24 @@ export function useAttachmentUrl(
       variant,
     ],
     queryFn: () => attachmentUrl(token!, scope, messageId, attachmentId, variant),
-    enabled: Boolean(enabled && token),
+    // Signed addresses live 15 minutes; one is reused well before it runs out.
     staleTime: 10 * 60_000,
     gcTime: 15 * 60_000,
     retry: 1,
+  });
+}
+
+export function useAttachmentUrl(
+  messageId: string,
+  attachmentId: string,
+  variant: AttachmentUrlVariant,
+  enabled: boolean,
+) {
+  const auth = useQueryAuth();
+  const scope = useConversationScope();
+  return useQuery({
+    ...attachmentUrlQuery(auth, scope, messageId, attachmentId, variant),
+    enabled: Boolean(enabled && auth.token),
   });
 }
 
@@ -61,7 +77,7 @@ export function useAttachmentDownload(messageId: string, attachment: Attachment)
 }
 
 export function useVisibleAttachment() {
-  const [element, setElement] = useState<HTMLButtonElement | null>(null);
+  const [element, setElement] = useState<HTMLElement | null>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     if (!element) return;
@@ -78,4 +94,22 @@ export function useVisibleAttachment() {
     return () => observer.disconnect();
   }, [element]);
   return { observeElement: setElement, visible };
+}
+
+/** A message's photo as shown: its address once it nears the screen, and a retry if it broke. */
+export function useAttachmentImage(messageId: string, attachmentId: string, available: boolean) {
+  const { observeElement, visible } = useVisibleAttachment();
+  const access = useAttachmentUrl(messageId, attachmentId, 'thumbnail', available && visible);
+  const [failed, setFailed] = useState(false);
+
+  return {
+    observeElement,
+    src: access.data && !failed ? access.data.url : undefined,
+    broken: failed || access.isError,
+    markBroken: () => setFailed(true),
+    retry: () => {
+      setFailed(false);
+      void access.refetch();
+    },
+  };
 }

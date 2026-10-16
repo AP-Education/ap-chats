@@ -66,7 +66,11 @@ function fixture(kind: 'web' | 'expo' = 'web') {
     {
       memberRecipient: async () => recipients[0],
       conversation: async () => context,
-      latestMessage: async () => ({ actorName: 'Author', contentMarkdown: '**current** message' }),
+      latestMessage: async () => ({
+        actorName: 'Author',
+        contentMarkdown: '**current** message',
+        gif: null,
+      }),
     } as never,
     new NotificationPolicyService(),
   );
