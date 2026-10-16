@@ -1,13 +1,6 @@
 import { isNativeShell } from '@ap-education/shell-sdk';
 import { IconButton, useIsMobile } from '@ap-education/ui';
-import {
-  GifIcon,
-  KeyboardIcon,
-  PaperclipIcon,
-  SmileyIcon,
-  StickerIcon,
-  XIcon,
-} from '@phosphor-icons/react';
+import { KeyboardIcon, PaperclipIcon, SmileyIcon, XIcon } from '@phosphor-icons/react';
 import { Button, Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import {
@@ -370,12 +363,8 @@ export function MessageComposer({
 
   // Desktop only — there's no software keyboard to fight with here, so plain click
   // semantics (and the normal focus-shift that comes with them) are fine.
-  function openPicker(tab: PickerTab) {
-    setActiveTab((current) => {
-      const next = current === tab ? null : tab;
-      if (next) persistLastTab(next);
-      return next;
-    });
+  function togglePicker() {
+    setActiveTab((current) => (current ? null : lastActiveTab));
   }
 
   function closePicker() {
@@ -430,41 +419,23 @@ export function MessageComposer({
     editableRef.current?.suspendInput();
   }
 
+  // One entry point that reopens whatever tab was used last; the panel's own tabs switch.
   const toolbarButtons = (
     <div className={styles.toolbarRight}>
       {accessory}
       <IconButton
         size={toolbarActionSize}
-        className={cx(styles.toolbarButton, activeTab === 'emoji' && styles.toolbarButtonActive)}
-        aria-label="Емодзі"
-        aria-pressed={activeTab === 'emoji'}
-        onClick={() => openPicker('emoji')}
+        className={cx(styles.toolbarButton, activeTab !== null && styles.toolbarButtonActive)}
+        aria-label="Емодзі, GIF і стікери"
+        aria-pressed={activeTab !== null}
+        onClick={togglePicker}
       >
-        <SmileyIcon size={22} weight={activeTab === 'emoji' ? 'duotone' : 'regular'} />
-      </IconButton>
-      <IconButton
-        size={toolbarActionSize}
-        className={cx(styles.toolbarButton, activeTab === 'gif' && styles.toolbarButtonActive)}
-        aria-label="GIF"
-        aria-pressed={activeTab === 'gif'}
-        onClick={() => openPicker('gif')}
-      >
-        <GifIcon size={22} weight={activeTab === 'gif' ? 'duotone' : 'regular'} />
-      </IconButton>
-      <IconButton
-        size={toolbarActionSize}
-        className={cx(styles.toolbarButton, activeTab === 'sticker' && styles.toolbarButtonActive)}
-        aria-label="Стікери"
-        aria-pressed={activeTab === 'sticker'}
-        onClick={() => openPicker('sticker')}
-      >
-        <StickerIcon size={22} weight={activeTab === 'sticker' ? 'duotone' : 'regular'} />
+        <SmileyIcon size={22} weight={activeTab !== null ? 'duotone' : 'regular'} />
       </IconButton>
     </div>
   );
 
-  // Compact (phone/tablet): one entry point that reopens whatever tab was used last,
-  // instead of three icons competing for a narrow toolbar.
+  // Compact (phone/tablet): the same entry point, which turns into the way back to the keyboard.
   const compactToolbarButton = (
     <div className={styles.toolbarRight}>
       {accessory}
