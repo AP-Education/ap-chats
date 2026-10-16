@@ -1,0 +1,91 @@
+.row {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ant-padding-xs);
+  min-width: 0;
+  color: var(--ant-color-text);
+}
+
+.row[data-own] {
+  justify-content: flex-end;
+}
+
+/* Keyboard focus rings the bubble, not the whole row. */
+.row:focus-visible {
+  outline: none;
+}
+
+.row:focus-visible [data-variant] {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 2px;
+}
+
+.row[data-flash] {
+  animation: flash 0.85s ease-out;
+}
+
+@keyframes flash {
+  35% {
+    background: color-mix(in srgb, var(--ant-color-primary) 22%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+/* The band runs edge to edge behind the whole row, its avatar included, as in Telegram. */
+.row[data-selected]::before {
+  content: '';
+  position: absolute;
+  inset: -1px -100vw;
+  z-index: -1;
+  background: color-mix(in srgb, var(--ant-color-primary) 14%, transparent);
+  pointer-events: none;
+}
+
+.row[data-sending] [data-message-text] {
+  animation: appear 0.2s ease-out;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Sits in the run's gutter at the screen edge, wherever the bubble itself is. */
+.checkbox {
+  position: absolute;
+  top: 50%;
+  left: calc(
+    -1 * (var(--run-lead, 0px) + var(--selection-gutter)) + (var(--selection-gutter) - 22px) / 2
+  );
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  translate: 0 -50%;
+  appearance: none;
+  border: 2px solid var(--ant-color-text-quaternary);
+  border-radius: 50%;
+  background: transparent no-repeat center / 14px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.checkbox:checked {
+  border-color: var(--ant-color-primary);
+  background-color: var(--ant-color-primary);
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2016%2016'%3E%3Cpath%20d%3D'M3.5%208.5l3%203%206-7'%20fill%3D'none'%20stroke%3D'white'%20stroke-width%3D'2.2'%20stroke-linecap%3D'round'%20stroke-linejoin%3D'round'%2F%3E%3C%2Fsvg%3E");
+}
+
+.checkbox:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 2px;
+}

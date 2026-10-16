@@ -1,7 +1,6 @@
 import { IconButton, useIsMobile } from '@ap-education/ui';
 import { CalendarDotsIcon } from '@phosphor-icons/react';
 import { message as toast, Popover } from 'antd';
-import { createStyles, keyframes } from 'antd-style';
 import { useState } from 'react';
 
 import { BottomSheet } from '@/shared/ui/BottomSheet';
@@ -12,46 +11,12 @@ import { useScheduling } from '../../hooks/useScheduling';
 import type { ScheduledMessage } from '../../types';
 import { ScheduledMessages } from '../ScheduledMessages/ScheduledMessages';
 import { SchedulePicker } from '../SchedulePicker/SchedulePicker';
+import styles from './ScheduledMessagesEntry.module.css';
 
 const TITLE = 'Заплановані повідомлення';
 
-const hop = keyframes`
-  0%, 100% { transform: translateY(0) scale(1); }
-  35% { transform: translateY(-5px) scale(1.08); }
-  65% { transform: translateY(1px) scale(0.97); }
-`;
-
-const glow = keyframes`
-  from { background: color-mix(in srgb, currentColor 24%, transparent); }
-  to { background: transparent; }
-`;
-
-const useStyles = createStyles(({ token, css }) => ({
-  button: css`
-    color: ${token.colorPrimary};
-
-    && {
-      border-radius: var(--composer-control-radius, ${token.borderRadius}px);
-    }
-  `,
-  // A new message on the schedule, in place of a toast; without motion, the button lights up.
-  arrived: css`
-    animation: ${hop} 0.5s cubic-bezier(0.3, 0.7, 0.4, 1);
-
-    @media (prefers-reduced-motion: reduce) {
-      animation: ${glow} 0.9s ease-out;
-    }
-  `,
-  title: css`
-    margin: 0 0 8px;
-    font-size: ${token.fontSizeLG}px;
-    font-weight: 600;
-  `,
-}));
-
 /** Shown in the composer while the conversation holds messages of the viewer's waiting to go out. */
 export function ScheduledMessagesEntry() {
-  const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
   const { data } = useScheduledMessages();
   const scheduled = data ?? [];
@@ -82,7 +47,8 @@ export function ScheduledMessagesEntry() {
     <IconButton
       key={arrivals}
       size={isMobile ? 36 : 38}
-      className={cx(styles.button, arrivals > 0 && styles.arrived)}
+      className={styles.button}
+      data-arrived={arrivals > 0 || undefined}
       aria-label={`${TITLE}: ${scheduled.length}`}
       onClick={() => setListOpen(true)}
     >

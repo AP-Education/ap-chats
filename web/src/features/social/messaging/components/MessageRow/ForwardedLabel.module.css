@@ -1,0 +1,9 @@
+.forwarded {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-padding-xxs);
+  min-width: 0;
+  color: var(--bubble-accent);
+  font-size: var(--ant-font-size-sm);
+  line-height: 1.3;
+}

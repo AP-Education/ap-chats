@@ -2,7 +2,8 @@ import { type MentionToken, tokenText } from '../../mention-tokens';
 import type { MentionLabel } from '../../types';
 import { ChannelReference } from './ChannelReference';
 import { MemberReference } from './MemberReference';
-import { MentionChipText, useMentionChipStyles } from './MentionChip';
+import { MentionChipText } from './MentionChip';
+import styles from './MentionChip.module.css';
 import { RoleReference } from './RoleReference';
 
 interface MentionReferenceProps {
@@ -15,8 +16,6 @@ interface MentionReferenceProps {
 
 /** The one place a reference in a message becomes its tag, whatever kind it is. */
 export function MentionReference({ token, people, inline, mine }: MentionReferenceProps) {
-  const { styles, cx } = useMentionChipStyles();
-
   switch (token.kind) {
     case 'member':
       return (
@@ -33,7 +32,7 @@ export function MentionReference({ token, people, inline, mine }: MentionReferen
       return <ChannelReference channelId={token.id} inline={inline} />;
     case 'everyone':
       return (
-        <span className={cx(styles.mention, mine && styles.mentionMe)}>
+        <span className={styles.mention} data-me={mine || undefined}>
           <MentionChipText>{tokenText(token)}</MentionChipText>
         </span>
       );

@@ -1,4 +1,4 @@
-import { useIsMobile } from '@ap-education/ui';
+import { SWIPE_SETTLE_TRANSITION, useIsMobile } from '@ap-education/ui';
 import { ArrowDownIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
@@ -7,6 +7,7 @@ import { useConversation } from '@/features/social/conversation-scope/store';
 import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 import { keyboardGlidePart } from '../../keyboard-glide-part';
+import { MEDIA_MAX_SIDE } from '../../media/media-fit';
 import { useKeyboardSwipe } from './useKeyboardSwipe';
 import { useMobileMessageSelection } from './useMobileMessageSelection';
 import type { useScrollAnchoring } from './useScrollAnchoring';
@@ -30,6 +31,9 @@ const useStyles = createStyles(({ token, css }) => ({
     touch-action: pan-y pinch-zoom;
   `,
   feed: css`
+    // Rows read these from their static CSS: the swipe's settle curve and the media box's side.
+    --swipe-settle: ${SWIPE_SETTLE_TRANSITION};
+    --media-max-side: ${MEDIA_MAX_SIDE}px;
     display: flex;
     flex-direction: column;
     // A short history should hug the bottom of the viewport like any chat app, not

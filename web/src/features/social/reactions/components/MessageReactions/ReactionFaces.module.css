@@ -1,0 +1,12 @@
+.faces {
+  display: inline-flex;
+  margin-right: -6px;
+}
+
+.faces > * {
+  border-radius: 50%;
+}
+
+.faces > * + * {
+  margin-left: -6px;
+}

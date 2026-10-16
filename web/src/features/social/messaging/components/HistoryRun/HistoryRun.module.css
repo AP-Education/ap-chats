@@ -1,0 +1,67 @@
+.run {
+  /* How far the run's rows start past its padding: they keep their checks in the gutter. */
+  --run-lead: 0px;
+  /* Room at the screen edge for each row's check while messages are being selected. */
+  --selection-gutter: 40px;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ant-padding-xxs);
+  padding-inline: var(--ant-padding-xs);
+  transition: padding-left 0.18s ease;
+}
+
+.run + .run {
+  margin-top: var(--ant-margin-xs);
+}
+
+.run[data-has-avatar] {
+  --run-lead: calc(var(--ant-control-height-lg) + var(--ant-padding-xxs));
+}
+
+[data-selecting] .run {
+  padding-left: calc(var(--ant-padding-xs) + var(--selection-gutter));
+}
+
+/* Rides along the bottom of the viewport while a long run scrolls past. */
+.avatar {
+  position: sticky;
+  bottom: calc(var(--chat-inset-bottom, 0px) + var(--ant-padding-xxs));
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transform: translateX(calc(-1 * var(--run-swipe-offset, 0px)));
+  transition: var(--swipe-settle);
+}
+
+[data-swiping] > .avatar {
+  transition: none;
+}
+
+.avatar:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 2px;
+}
+
+/* Each row learns its place in the run: inner joints round less, only the first bubble names
+   the author and only the last one carries the tail. */
+.entries {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.entries > :not(:first-child) {
+  --run-top-radius: var(--ant-border-radius-sm);
+  --run-author: none;
+}
+
+.entries > :not(:last-child) {
+  --run-bottom-radius: var(--ant-border-radius-sm);
+  --run-tail: none;
+}

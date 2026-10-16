@@ -1,4 +1,3 @@
-import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
 import { useConversationScope } from '@/features/social/conversation-scope/store';
@@ -7,18 +6,8 @@ import { useWorkspaceMembers } from '@/features/workspaces/hooks/useWorkspaceMem
 
 import { useReactionToggle } from '../../hooks/useReactionToggle';
 import { chipFaces } from '../../reaction-display';
+import styles from './MessageReactions.module.css';
 import { ReactionChip } from './ReactionChip';
-
-const useStyles = createStyles(({ css }) => ({
-  row: css`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-    padding-top: 2px;
-  `,
-}));
 
 interface MessageReactionsProps {
   item: MessageHistoryItem;
@@ -29,7 +18,6 @@ interface MessageReactionsProps {
 }
 
 export function MessageReactions({ item, viewerMemberId, canReact, meta }: MessageReactionsProps) {
-  const { styles } = useStyles();
   const { workspaceId } = useConversationScope();
   const toggle = useReactionToggle(viewerMemberId);
   const members = useWorkspaceMembers(workspaceId).data ?? [];

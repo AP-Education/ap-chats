@@ -1,0 +1,68 @@
+/* Every state draws into one box, so settling a send or being read never moves the time. */
+.mark {
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mark [data-part] {
+  opacity: 0;
+  transition:
+    opacity 120ms ease-out,
+    stroke-dashoffset 220ms ease-out,
+    transform 240ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.mark [data-part='first'],
+.mark [data-part='second'] {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+/* A lone check sits centred, then steps aside for the second one. */
+.mark [data-part='first'] {
+  transform: translateX(2.5px);
+}
+
+.mark [data-hand] {
+  transform-origin: 9px 6px;
+}
+
+.mark[data-state='failed'] {
+  color: var(--bubble-accent);
+}
+
+.mark[data-state='failed'] [data-part='alert'],
+.mark[data-state='sending'] [data-part='clock'] {
+  opacity: 1;
+}
+
+.mark[data-state='sending'] [data-hand] {
+  animation: tick 1.2s linear infinite;
+}
+
+.mark[data-state='sent'] [data-part='first'],
+.mark[data-state='read'] [data-part='first'],
+.mark[data-state='read'] [data-part='second'] {
+  opacity: 1;
+  stroke-dashoffset: 0;
+}
+
+.mark[data-state='read'] [data-part='first'] {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mark[data-state='sending'] [data-hand] {
+    animation: none;
+  }
+}
+
+@keyframes tick {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,31 +1,55 @@
 import { useMobileMenu } from '@ap-education/shell-sdk';
-import { Drawer } from 'antd';
-import { createStyles, cx } from 'antd-style';
+import { createStyles } from 'antd-style';
 import { type PropsWithChildren, useEffect, useEffectEvent } from 'react';
+import { Drawer } from 'vaul';
 
 const insetTop = 'var(--app-inset-top, env(safe-area-inset-top, 0px))';
 const insetBottom = 'var(--app-inset-bottom, env(safe-area-inset-bottom, 0px))';
 const keyboardInset = 'var(--app-keyboard-inset, 0px)';
+// The shell drawer's pace (@ap-education/ui DRAWER_DURATION); vaul already moves on its curve.
+const MOVE_DURATION = '320ms';
 
 const useStyles = createStyles(({ token, css }) => ({
-  section: css`
-    overflow: hidden;
-    border-radius: 20px 20px 0 0;
+  overlay: css`
+    position: fixed;
+    inset: 0;
+    z-index: ${token.zIndexPopupBase};
+    background: ${token.colorBgMask};
+
+    &[data-vaul-overlay] {
+      animation-duration: ${MOVE_DURATION};
+    }
   `,
   // The sheet rises from the bottom edge, so its last action stays above the home indicator,
   // and above the native keyboard, which covers the page instead of resizing it.
-  body: css`
-    && {
-      padding: 8px 12px calc(16px + max(${keyboardInset}, ${insetBottom}));
+  sheet: css`
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: ${token.zIndexPopupBase};
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - ${insetTop} - 24px);
+    padding: 8px 12px calc(16px + max(${keyboardInset}, ${insetBottom}));
+    border-radius: 20px 20px 0 0;
+    background: ${token.colorBgElevated};
+    box-shadow: ${token.boxShadowSecondary};
+    outline: none;
+
+    &[data-vaul-drawer] {
+      animation-duration: ${MOVE_DURATION};
     }
   `,
-  filled: css`
-    && {
-      display: flex;
-      flex-direction: column;
-    }
+  title: css`
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
   `,
   handle: css`
+    flex: none;
     width: 36px;
     height: 4px;
     margin: 2px auto 16px;
@@ -38,13 +62,18 @@ interface BottomSheetProps extends PropsWithChildren {
   open: boolean;
   onClose: () => void;
   'aria-label': string;
-  destroyOnHidden?: boolean;
   /** Keeps one height while the content changes; the content then fills it. */
   height?: string;
 }
 
-/** A sheet of actions rising from the bottom of a phone screen. */
-export function BottomSheet({ open, onClose, height, children, ...rest }: BottomSheetProps) {
+/** A sheet of actions rising from the bottom of a phone screen; a finger pulls it down to close. */
+export function BottomSheet({
+  open,
+  onClose,
+  height,
+  children,
+  'aria-label': label,
+}: BottomSheetProps) {
   const { styles } = useStyles();
   const { isOpen: menuOpen } = useMobileMenu();
   const closeForMenu = useEffectEvent(() => {
@@ -59,20 +88,30 @@ export function BottomSheet({ open, onClose, height, children, ...rest }: Bottom
   // Grows by the keyboard so as much stays in view above it, short of the top of the screen.
   const size = height
     ? `min(calc(${height} + ${keyboardInset}), calc(100dvh - ${insetTop} - 24px))`
-    : 'auto';
+    : undefined;
 
   return (
-    <Drawer
-      placement="bottom"
+    <Drawer.Root
       open={open}
-      onClose={onClose}
-      closable={false}
-      size={size}
-      classNames={{ section: styles.section, body: cx(styles.body, height && styles.filled) }}
-      {...rest}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+      // The native keyboard covers the page and sends its inset; the sheet pads for it itself.
+      repositionInputs={false}
     >
-      <div className={styles.handle} aria-hidden="true" />
-      {children}
-    </Drawer>
+      <Drawer.Portal>
+        <Drawer.Overlay className={styles.overlay} />
+        <Drawer.Content
+          className={styles.sheet}
+          style={size ? { height: size } : undefined}
+          aria-modal
+          aria-describedby={undefined}
+        >
+          <Drawer.Title className={styles.title}>{label}</Drawer.Title>
+          <div className={styles.handle} aria-hidden="true" />
+          {children}
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
   );
 }

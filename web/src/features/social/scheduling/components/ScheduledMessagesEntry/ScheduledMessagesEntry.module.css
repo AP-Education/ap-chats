@@ -1,0 +1,43 @@
+.button {
+  border-radius: var(--composer-control-radius, var(--ant-border-radius));
+  color: var(--ant-color-primary);
+}
+
+/* A new message on the schedule, in place of a toast; without motion, the button lights up. */
+.button[data-arrived] {
+  animation: hop 0.5s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button[data-arrived] {
+    animation: glow 0.9s ease-out;
+  }
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: var(--ant-font-size-lg);
+  font-weight: 600;
+}
+
+@keyframes hop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  35% {
+    transform: translateY(-5px) scale(1.08);
+  }
+  65% {
+    transform: translateY(1px) scale(0.97);
+  }
+}
+
+@keyframes glow {
+  from {
+    background: color-mix(in srgb, currentColor 24%, transparent);
+  }
+  to {
+    background: transparent;
+  }
+}

@@ -1,0 +1,179 @@
+.root {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.suggestions {
+  position: relative;
+  margin: 0 12px;
+}
+
+@media (max-width: 768px) {
+  .suggestions {
+    margin: 0 6px;
+  }
+}
+
+/* Floats over the wallpaper and the messages scrolling beneath it; only its controls take pointer
+   input, the transparent gaps between them pass it through. */
+.shell {
+  --composer-radius: var(--ant-border-radius-lg);
+  --composer-control-radius: var(--ant-border-radius-lg);
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+/* Round, the way iOS composes: a pill of a field that grows into a rounded one, beside circular
+   controls. */
+html[data-platform='ios'] .shell {
+  --composer-radius: 22px;
+  --composer-control-radius: 50%;
+}
+
+.shell > * {
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  .shell {
+    gap: 8px;
+    padding: 4px 8px calc(8px + var(--app-inset-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+}
+
+/* Deliberately no transition: the real keyboard's own close animation already plays out at its
+   own pace (and we have no way to read its progress frame by frame from web content); animating
+   this height on top of that produces a visible double-motion/rebound instead of a clean swap.
+   Snapping instantly to the remembered height reads as "the keyboard became the panel", not two
+   animations. */
+.mobileSheet {
+  flex-shrink: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  padding: 8px 10px;
+  border-top: 1px solid var(--ant-color-border-secondary);
+  background: var(--ant-color-bg-container);
+}
+
+.mobileHidden {
+  display: inline-flex;
+}
+
+@media (max-width: 768px) {
+  .mobileHidden {
+    display: none;
+  }
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.editable {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 8px 4px;
+  line-height: 1.45;
+  font-size: var(--app-text-size, 16px);
+  color: var(--ant-color-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  outline: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ant-color-border) transparent;
+}
+
+.editable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.editable::-webkit-scrollbar-thumb {
+  background: var(--ant-color-border);
+  border-radius: var(--ant-border-radius-xs);
+}
+
+.editable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.editable:empty::before {
+  content: attr(data-placeholder);
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--ant-color-text-quaternary);
+  pointer-events: none;
+}
+
+/* With the 4px around it this makes a 44px line, the text centred in it. iOS zooms the page into
+   any field set below 16px, so smaller picks stop there on phones. */
+@media (max-width: 768px) {
+  .editable {
+    min-height: 36px;
+    max-height: 160px;
+    padding: 6px 0;
+    font-size: max(16px, var(--app-text-size, 16px));
+  }
+}
+
+.toolbarButton {
+  border-radius: var(--composer-control-radius, var(--ant-border-radius));
+  color: var(--ant-color-text-secondary);
+}
+
+.toolbarButton[aria-pressed='true'] {
+  background: var(--ant-color-primary-bg);
+  color: var(--ant-color-primary-text-active);
+}
+
+/* One element, so its focus ring and hover take the same shape as the control itself: the
+   composer's radius, like the send button and the input beside it. */
+.mobileAttach {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobileAttach {
+    display: inline-flex;
+    flex-shrink: 0;
+    border-radius: var(--composer-control-radius);
+    background: var(--glass, rgba(255, 255, 255, 0.86));
+    backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
+    box-shadow: 0 1px 2px rgba(23, 46, 42, 0.12);
+  }
+}
+
+.reply {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: var(--ant-padding-xxs) var(--ant-padding-xxs) var(--ant-padding-xxs) var(--ant-padding);
+  border-radius: var(--ant-border-radius);
+  background: var(--ant-color-primary-bg);
+}
+
+.reply::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: 4px;
+  border-radius: var(--ant-border-radius-xs);
+  background: var(--ant-color-primary);
+}

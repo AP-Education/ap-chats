@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, BackHandler, Platform, useWindowDimensions } from 'react-native';
+import { AppState, Platform, useWindowDimensions } from 'react-native';
 import {
   AndroidSoftInputModes,
   KeyboardController,
@@ -218,29 +218,31 @@ export function useComposerInput(
     publish({ ...current.current, mode: 'search' });
   }, [cancelKeyboardWait, publish]);
 
+  /** Android's back: search returns to its picker, the picker closes; false when neither shows. */
+  const back = useCallback((): boolean => {
+    if (current.current.mode === 'search') {
+      selectTab(current.current.tab);
+      return true;
+    }
+    if (current.current.mode !== 'picker') return false;
+
+    close();
+    return true;
+  }, [close, selectTab]);
+
   useEffect(() => {
     if (Platform.OS === 'android') {
       KeyboardController.setInputMode(AndroidSoftInputModes.SOFT_INPUT_ADJUST_NOTHING);
     }
-    const back = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (current.current.mode === 'search') {
-        selectTab(current.current.tab);
-        return true;
-      }
-      if (current.current.mode !== 'picker') return false;
-      close();
-      return true;
-    });
     const appState = AppState.addEventListener('change', (status) => {
       if (status !== 'active') close();
     });
     return () => {
-      back.remove();
       appState.remove();
       cancelKeyboardWait();
       if (Platform.OS === 'android') KeyboardController.setDefaultMode();
     };
-  }, [cancelKeyboardWait, close, selectTab]);
+  }, [cancelKeyboardWait, close]);
 
   useEffect(() => {
     measuredHeight.set(0);
@@ -256,5 +258,6 @@ export function useComposerInput(
     selectTab,
     search,
     close,
+    back,
   };
 }

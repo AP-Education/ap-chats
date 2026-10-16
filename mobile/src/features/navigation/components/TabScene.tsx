@@ -7,17 +7,15 @@ interface TabSceneProps {
   id: string;
   active: boolean;
   barHidden: boolean;
-  /** Set where the app draws its own bar over the scene, rather than the system's. */
-  ownBarSpace?: number;
   /** How much of the screen's bottom the bar covers, so the page's lists keep clear of it. */
   onInset: (bottom: number) => void;
 }
 
 /** A tab's place for the page: the one WebView is teleported into whichever tab is active. */
-export function TabScene({ id, active, barHidden, ownBarSpace, onInset }: TabSceneProps) {
+export function TabScene({ id, active, barHidden, onInset }: TabSceneProps) {
   const barHeight = useBottomTabBarHeight();
-  // Both bars float over the page rather than push it up.
-  const covered = barHidden ? 0 : (ownBarSpace ?? barHeight);
+  // The bar floats over the page rather than push it up.
+  const covered = barHidden ? 0 : barHeight;
 
   useEffect(() => {
     if (active) onInset(covered);

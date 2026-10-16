@@ -1,4 +1,3 @@
-import { createStyles } from 'antd-style';
 import { type ComponentProps, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -9,6 +8,7 @@ import { useConversationScope } from '@/features/social/conversation-scope/store
 import { useMessageEditorSlot } from '../../MessageEditorSlot';
 import { ComposerEditor, type ComposerEditorHandle } from '../ComposerEditor/ComposerEditor';
 import { restoreEditor, serializeEditor, tokenChip } from './mention-editor-dom';
+import styles from './MentionEditor.module.css';
 import { SuggestionList } from './SuggestionList';
 import type { Suggestion, SuggestionQuery } from './suggestions';
 import { tokenizeTypedEveryone } from './typed-everyone';
@@ -21,33 +21,6 @@ function sameQuery(a: SuggestionQuery | null, b: SuggestionQuery | null) {
   return a?.trigger === b?.trigger && a?.text === b?.text;
 }
 
-const useStyles = createStyles(({ token, css }) => ({
-  wrapper: css`
-    position: relative;
-    flex: 1;
-    min-width: 0;
-  `,
-  // Its height comes from where it is placed: the composer line or a bubble being edited.
-  editor: css`
-    outline: none;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    &:empty::before {
-      content: attr(data-placeholder);
-      color: ${token.colorTextQuaternary};
-      pointer-events: none;
-    }
-  `,
-  chip: css`
-    display: inline;
-    padding: 0 2px;
-    border-radius: ${token.borderRadiusXS}px;
-    background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimaryTextActive};
-    font-weight: 500;
-  `,
-}));
-
 export function MentionEditor() {
   const {
     initialDraft,
@@ -55,7 +28,6 @@ export function MentionEditor() {
     placeholder,
     ariaLabel,
     className,
-    editorStyle,
     autoFocus,
     onChange,
     onSubmit,
@@ -64,7 +36,6 @@ export function MentionEditor() {
     editorRef,
     suggestionsHost,
   } = useMessageEditorSlot();
-  const { styles, cx } = useStyles();
   const { workspaceId, composer } = useConversationScope();
   const channels = useChannels(workspaceId);
   const { query: roles } = useRoles(workspaceId);
@@ -203,8 +174,7 @@ export function MentionEditor() {
             styles.chip,
           );
         }}
-        className={cx(styles.editor, className)}
-        editorStyle={editorStyle}
+        className={[styles.editor, className].filter(Boolean).join(' ')}
         ariaLabel={ariaLabel}
         placeholder={placeholder}
         autoFocus={autoFocus}

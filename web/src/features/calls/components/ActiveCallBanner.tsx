@@ -1,90 +1,17 @@
 import { IconButton } from '@ap-education/ui';
 import { XIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
-import { createStyles, keyframes } from 'antd-style';
 import { useState } from 'react';
 
 import type { CallStatus } from '../api/calls-api';
 import { callActionLabel } from '../callActionLabel';
 import { CallIcon } from '../callIcons';
-import { CALL_PALETTE } from '../callTheme';
+import { CALL_ACCEPT_COLOURS } from '../callTheme';
 import { useActiveCall } from '../hooks/useActiveCall';
 import { useDeclineIncomingCall } from '../hooks/useDeclineIncomingCall';
 import { useKnownCallAction } from '../hooks/useKnownCallAction';
+import styles from './ActiveCallBanner.module.css';
 import { useCallDuration } from './ActiveCallOverlay/useCallDuration';
-
-const ripple = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(47, 158, 107, 0.45); }
-  70% { box-shadow: 0 0 0 8px rgba(47, 158, 107, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(47, 158, 107, 0); }
-`;
-
-const useStyles = createStyles(({ token, css }) => ({
-  // The header's translucent panel material, frosted, the same as the pinned strip above it.
-  banner: css`
-    display: flex;
-    align-items: center;
-    gap: ${token.paddingSM}px;
-    flex-shrink: 0;
-    min-height: 56px;
-    padding: 0 12px 0 20px;
-    border-bottom: 1px solid ${token.colorBorderSecondary};
-    background: var(--glass, rgba(255, 255, 255, 0.86));
-    backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
-
-    @media (max-width: ${token.screenMD}px) {
-      gap: 10px;
-      padding-inline: 12px 8px;
-    }
-  `,
-  icon: css`
-    display: grid;
-    place-items: center;
-    flex: 0 0 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: ${CALL_PALETTE.accept};
-    color: ${token.colorTextLightSolid};
-    animation: ${ripple} 1.8s ease-out infinite;
-
-    @media (prefers-reduced-motion: reduce) {
-      animation: none;
-    }
-  `,
-  info: css`
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    min-width: 0;
-    line-height: 18px;
-  `,
-  label: css`
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: ${token.colorText};
-    font-size: ${token.fontSizeSM}px;
-    font-weight: 600;
-  `,
-  duration: css`
-    color: ${token.colorTextSecondary};
-    font-size: ${token.fontSizeSM}px;
-    font-variant-numeric: tabular-nums;
-  `,
-  join: css`
-    &&:not(:disabled) {
-      background: ${CALL_PALETTE.accept};
-      color: ${token.colorTextLightSolid};
-    }
-
-    &&:not(:disabled):hover {
-      background: ${CALL_PALETTE.acceptHover};
-    }
-  `,
-  dismiss: css`
-    color: ${token.colorTextSecondary};
-  `,
-}));
 
 interface ActiveCallBannerProps {
   workspaceId: string;
@@ -102,7 +29,6 @@ export function ActiveCallBanner({
   title,
   calleeAvatarPath,
 }: ActiveCallBannerProps) {
-  const { styles } = useStyles();
   const activeCall = useActiveCall(workspaceId, channelId);
   const call = useKnownCallAction(workspaceId, channelId, title, calleeAvatarPath, activeCall.data);
   const decline = useDeclineIncomingCall();
@@ -126,7 +52,7 @@ export function ActiveCallBanner({
   }
 
   return (
-    <div className={styles.banner} role="status">
+    <div className={styles.banner} style={CALL_ACCEPT_COLOURS} role="status">
       <span className={styles.icon} aria-hidden>
         <CallIcon size={18} weight="fill" />
       </span>

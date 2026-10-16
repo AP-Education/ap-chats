@@ -2,7 +2,6 @@ import { isNativeShell } from '@ap-education/shell-sdk';
 import { IconButton, useIsMobile } from '@ap-education/ui';
 import { KeyboardIcon, PaperclipIcon, SmileyIcon, XIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
-import { createStyles } from 'antd-style';
 import {
   type PointerEvent,
   type ReactNode,
@@ -41,6 +40,7 @@ import { useAttachmentDrop } from './AttachmentDropZone';
 import { ComposerAction } from './ComposerAction';
 import { composerIntent, IntentExcerpt, type ReplyPreview } from './composerIntents';
 import { DesktopPickerPopover } from './DesktopPickerPopover';
+import styles from './MessageComposer.module.css';
 import { PickerPanel, type PickerTab } from './picker';
 import { useBrowserKeyboardHeight } from './useBrowserKeyboardHeight';
 import { useComposerDraft } from './useComposerDraft';
@@ -53,173 +53,6 @@ function readLastPickerTab(): PickerTab {
   const stored = localStorage.getItem(LAST_PICKER_TAB_KEY);
   return (PICKER_TABS as string[]).includes(stored ?? '') ? (stored as PickerTab) : 'emoji';
 }
-
-const useStyles = createStyles(({ token, css }) => ({
-  root: css`
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-  `,
-  suggestions: css`
-    position: relative;
-    margin: 0 12px;
-
-    @media (max-width: ${token.screenMD}px) {
-      margin: 0 6px;
-    }
-  `,
-  // Floats over the wallpaper and the messages scrolling beneath it; only its controls
-  // take pointer input, the transparent gaps between them pass it through.
-  shell: css`
-    --composer-radius: ${token.borderRadiusLG}px;
-    --composer-control-radius: ${token.borderRadiusLG}px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-    padding: 0 12px 12px;
-
-    // Round, the way iOS composes: a pill of a field that grows into a rounded one,
-    // beside circular controls.
-    html[data-platform='ios'] & {
-      --composer-radius: 22px;
-      --composer-control-radius: 50%;
-    }
-
-    & > * {
-      pointer-events: auto;
-    }
-
-    @media (max-width: ${token.screenMD}px) {
-      gap: 8px;
-      padding: 4px 8px calc(8px + var(--app-inset-bottom, env(safe-area-inset-bottom, 0px)));
-    }
-  `,
-  mobileSheet: css`
-    flex-shrink: 0;
-    overflow: hidden;
-    pointer-events: auto;
-    padding: 8px 10px;
-    border-top: 1px solid ${token.colorBorderSecondary};
-    background: ${token.colorBgContainer};
-    // Deliberately no transition: the real keyboard's own close animation already
-    // plays out at its own pace (and we have no way to read its progress frame by
-    // frame from web content); animating this height on top of that produces a visible
-    // double-motion/rebound instead of a clean swap. Snapping instantly to the
-    // remembered height reads as "the keyboard became the panel", not two animations.
-  `,
-  mobileHidden: css`
-    display: inline-flex;
-
-    @media (max-width: ${token.screenMD}px) {
-      display: none;
-    }
-  `,
-  // One element, so its focus ring and hover take the same shape as the control itself:
-  // the composer's radius, like the send button and the input beside it.
-  mobileAttach: css`
-    display: none;
-
-    @media (max-width: ${token.screenMD}px) {
-      && {
-        display: inline-flex;
-        flex-shrink: 0;
-        border-radius: var(--composer-control-radius);
-        background: var(--glass, rgba(255, 255, 255, 0.86));
-        backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
-        box-shadow: 0 1px 2px rgba(23, 46, 42, 0.12);
-      }
-    }
-  `,
-  toolbarRight: css`
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    flex-shrink: 0;
-  `,
-  editable: css`
-    flex: 1;
-    min-width: 0;
-    min-height: 40px;
-    max-height: 200px;
-    overflow-y: auto;
-    padding: 8px 4px;
-    line-height: 1.45;
-    font-size: var(--app-text-size, 16px);
-    color: ${token.colorText};
-    white-space: pre-wrap;
-    word-break: break-word;
-    outline: none;
-    scrollbar-width: thin;
-    scrollbar-color: ${token.colorBorder} transparent;
-
-    &::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: ${token.colorBorder};
-      border-radius: ${token.borderRadiusXS}px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    &:empty::before {
-      content: attr(data-placeholder);
-      display: block;
-      max-width: 100%;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      color: ${token.colorTextQuaternary};
-      pointer-events: none;
-    }
-
-    // With the 4px around it this makes a 44px line, the text centred in it. iOS zooms the
-    // page into any field set below 16px, so smaller picks stop there on phones.
-    @media (max-width: ${token.screenMD}px) {
-      min-height: 36px;
-      max-height: 160px;
-      padding: 6px 0;
-      font-size: max(16px, var(--app-text-size, 16px));
-    }
-  `,
-  toolbarButton: css`
-    color: ${token.colorTextSecondary};
-
-    && {
-      border-radius: var(--composer-control-radius, ${token.borderRadius}px);
-    }
-  `,
-  toolbarButtonActive: css`
-    background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimaryTextActive};
-  `,
-  reply: css`
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    min-width: 0;
-    padding: ${token.paddingXXS}px ${token.paddingXXS}px ${token.paddingXXS}px ${token.padding}px;
-    border-radius: ${token.borderRadius}px;
-    background: ${token.colorPrimaryBg};
-
-    &::before {
-      content: '';
-      position: absolute;
-      top: 6px;
-      bottom: 6px;
-      left: 6px;
-      width: 4px;
-      border-radius: ${token.borderRadiusXS}px;
-      background: ${token.colorPrimary};
-    }
-  `,
-}));
 
 type ComposedMessage = Omit<SendMessageCommand, 'clientNonce' | 'attachments'>;
 
@@ -237,7 +70,6 @@ export function MessageComposer({
   onSend,
   children,
 }: MessageComposerProps) {
-  const { styles, cx } = useStyles();
   const { workspaceId, channelId, composer } = useConversationScope();
   const { identity } = useQueryAuth();
   const draftKey = `ap-chats:draft:${identity}:${workspaceId}:${channelId}`;
@@ -464,7 +296,7 @@ export function MessageComposer({
       {accessories}
       <IconButton
         size={toolbarActionSize}
-        className={cx(styles.toolbarButton, activeTab !== null && styles.toolbarButtonActive)}
+        className={styles.toolbarButton}
         aria-label="Емодзі, GIF і стікери"
         aria-pressed={activeTab !== null}
         onClick={togglePicker}
@@ -480,7 +312,7 @@ export function MessageComposer({
       {accessories}
       <IconButton
         size={toolbarActionSize}
-        className={cx(styles.toolbarButton, activeTab !== null && styles.toolbarButtonActive)}
+        className={styles.toolbarButton}
         aria-label={activeTab !== null ? 'Клавіатура' : 'Емодзі, GIF і стікери'}
         aria-pressed={activeTab !== null}
         onPointerDown={(event) => event.preventDefault()}
@@ -512,7 +344,6 @@ export function MessageComposer({
     [
       draftKey,
       initialDraft,
-      styles.editable,
       composer.ariaLabel,
       composer.placeholder,
       handleDraftChange,
@@ -540,7 +371,7 @@ export function MessageComposer({
         />
         <IconButton
           size={44}
-          className={cx(styles.toolbarButton, styles.mobileAttach)}
+          className={`${styles.toolbarButton} ${styles.mobileAttach}`}
           aria-label="Додати файл"
           disabled={!uploads.policy}
           onClick={() => fileInput.current?.click()}

@@ -1,111 +1,21 @@
 import { PushPinIcon } from '@phosphor-icons/react';
-import { createStyles } from 'antd-style';
 
 import { DeliveryMark } from './DeliveryMark';
 import { useMessageActionScope } from './MessageActionScope';
+import styles from './MessageMeta.module.css';
 
 const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
 const fullFormat = new Intl.DateTimeFormat('uk-UA', { dateStyle: 'long', timeStyle: 'short' });
 
-const useStyles = createStyles(({ token, css }) => ({
-  // Floated after the last line of text: it shares that line while there is room and
-  // drops to its own line otherwise, the way chat bubbles keep the time in the corner.
-  meta: css`
-    position: relative;
-    top: 6px;
-    float: right;
-    display: inline-flex;
-    align-items: center;
-    gap: ${token.paddingXXS}px;
-    height: 1.5em;
-    margin: 0 -${token.paddingXXS}px 0 ${token.paddingSM}px;
-    color: var(--bubble-meta);
-    // The smallest text in a bubble: weight and a little tracking keep it legible on a fill.
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.5;
-    letter-spacing: 0.01em;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-    user-select: none;
-    -webkit-user-select: none;
-
-    // Trimmed to the cap height, the digits centre on the icons beside them instead of
-    // riding above them on the room the line keeps for descenders.
-    & > time,
-    & > span {
-      text-box: trim-both cap alphabetic;
-    }
-
-    & > svg {
-      flex-shrink: 0;
-    }
-  `,
-  block: css`
-    top: 0;
-    float: none;
-    display: flex;
-    justify-content: flex-end;
-    margin: 2px -${token.paddingXXS}px -2px ${token.paddingSM}px;
-  `,
-  // At the end of the reaction chips, level with them.
-  reactions: css`
-    top: 0;
-    float: none;
-    height: 28px;
-    margin-left: auto;
-  `,
-  // Over a photo, and over the corner of large emoji that have no bubble behind them.
-  badge: css`
-    top: auto;
-    float: none;
-    display: flex;
-    width: fit-content;
-    margin: 0;
-    padding: 0 6px;
-    border-radius: 999px;
-    background: var(--chat-service-strong, rgba(0, 0, 0, 0.45));
-    color: #fff;
-  `,
-  // Inside the photo or GIF it closes, tinted from that corner of it when the media has a ThumbHash.
-  overlay: css`
-    position: absolute;
-    right: 8px;
-    bottom: 8px;
-    background: var(--media-badge-end, var(--chat-service-strong, rgba(0, 0, 0, 0.45)));
-  `,
-  emoji: css`
-    position: absolute;
-    right: -6px;
-    bottom: 2px;
-    height: 1.55em;
-    padding: 0 6px;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.55;
-    letter-spacing: 0.01em;
-  `,
-}));
-
 export type MessageMetaPlacement = 'inline' | 'block' | 'overlay' | 'emoji' | 'reactions';
 
 export function MessageMeta({ placement }: { placement: MessageMetaPlacement }) {
-  const { styles, cx } = useStyles();
   const { item, delivery, isOwn } = useMessageActionScope();
   const createdAt = new Date(item.message.createdAt);
   const editedAt = item.message.editedAt ? new Date(item.message.editedAt) : null;
 
   return (
-    <span
-      className={cx(
-        styles.meta,
-        placement === 'block' && styles.block,
-        placement === 'reactions' && styles.reactions,
-        (placement === 'overlay' || placement === 'emoji') && styles.badge,
-        placement === 'overlay' && styles.overlay,
-        placement === 'emoji' && styles.emoji,
-      )}
-    >
+    <span className={styles.meta} data-placement={placement}>
       {item.pin && <PushPinIcon size={12} weight="fill" aria-label="Закріплено" />}
       {editedAt && <span title={`Відредаговано ${fullFormat.format(editedAt)}`}>ред.</span>}
       <time dateTime={item.message.createdAt} title={fullFormat.format(createdAt)}>

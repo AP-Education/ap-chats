@@ -1,5 +1,3 @@
-import { SWIPE_SETTLE_TRANSITION } from '@ap-education/ui';
-import { createStyles } from 'antd-style';
 import {
   type CSSProperties,
   type MouseEvent,
@@ -17,71 +15,10 @@ import { groupMessageActions } from './messageActionGroups';
 import type { MessageActionsProps } from './MessageActions';
 import { useMessageActionScope } from './MessageActionScope';
 import { MessageActionSheet } from './MessageActionSheet';
+import styles from './MessageTouchActions.module.css';
 import { useMessageReplySwipe } from './useMessageReplySwipe';
 
-const useStyles = createStyles(({ token, css }) => ({
-  // Nothing clips here: a swiped row slides off past the screen edge, and the selection
-  // check sits outside the row in the run's gutter.
-  gestureArea: css`
-    position: relative;
-    min-width: 0;
-
-    &[data-swiping] > div,
-    &[data-swiping] > span {
-      transition: none;
-    }
-  `,
-  // The whole row follows the finger, as in Telegram. A 2D translate keeps the resting
-  // rows off their own compositing layers.
-  touchTarget: css`
-    touch-action: pan-y pinch-zoom;
-    transform: translateX(calc(-1 * var(--message-swipe-offset, 0px)));
-    transition: ${SWIPE_SETTLE_TRANSITION};
-    &[data-message-readonly],
-    &[data-message-readonly] [data-message-text] {
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-    }
-    a,
-    button {
-      -webkit-touch-callout: default;
-    }
-    input,
-    textarea,
-    [contenteditable='true'] {
-      user-select: text;
-      -webkit-user-select: text;
-      -webkit-touch-callout: default;
-    }
-  `,
-  replyHint: css`
-    position: absolute;
-    top: 50%;
-    right: 8px;
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: ${token.colorPrimaryBg};
-    color: ${token.colorPrimaryTextActive};
-    opacity: var(--message-reply-progress, 0);
-    transform: translateY(-50%);
-    scale: 0.85;
-    pointer-events: none;
-    transition:
-      opacity 220ms ease-out,
-      scale 220ms ease-out;
-
-    [data-reply-ready] > & {
-      scale: 1;
-    }
-  `,
-}));
-
 export function MessageTouchActions({ rowProps, children }: MessageActionsProps) {
-  const { styles } = useStyles();
   const scope = useMessageActionScope();
   const areaRef = useRef<HTMLDivElement>(null);
   const [sheetOpen, setSheetOpen] = useState(false);

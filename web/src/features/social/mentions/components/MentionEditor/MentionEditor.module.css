@@ -1,0 +1,28 @@
+.wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Its height comes from where it is placed, the composer line or a bubble being edited, whose own
+   class restyles it: no specificity here. */
+:where(.editor) {
+  outline: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+:where(.editor):empty::before {
+  content: attr(data-placeholder);
+  color: var(--ant-color-text-quaternary);
+  pointer-events: none;
+}
+
+.chip {
+  display: inline;
+  padding: 0 2px;
+  border-radius: var(--ant-border-radius-xs);
+  background: var(--ant-color-primary-bg);
+  color: var(--ant-color-primary-text-active);
+  font-weight: 500;
+}

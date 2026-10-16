@@ -1,23 +1,9 @@
-import { createStyles } from 'antd-style';
-
 import { ForwardIcon } from '../../actionIcons';
 import { ForwardedAuthorName } from './ForwardedAuthorName';
+import styles from './ForwardedLabel.module.css';
 import { useMessageActionScope } from './MessageActionScope';
 
-const useStyles = createStyles(({ token, css }) => ({
-  forwarded: css`
-    display: flex;
-    align-items: center;
-    gap: ${token.paddingXXS}px;
-    min-width: 0;
-    color: var(--bubble-accent);
-    font-size: ${token.fontSizeSM}px;
-    line-height: 1.3;
-  `,
-}));
-
 export function ForwardedLabel() {
-  const { styles } = useStyles();
   const { item } = useMessageActionScope();
 
   if (!item.message.isForwarded) return null;

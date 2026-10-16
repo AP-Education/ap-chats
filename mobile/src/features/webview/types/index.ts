@@ -37,9 +37,13 @@ export type NativeToWebMessage =
   | { type: 'notifications/permission'; status: PushPermission }
   | { type: 'navigation/select'; id: string }
   /** How much of the page's bottom the native tab bar covers. */
-  | { type: 'navigation/inset'; bottom: number };
+  | { type: 'navigation/inset'; bottom: number }
+  /** Android's back: the page closes what is open or steps back, else answers back-unhandled. */
+  | { type: 'navigation/back' };
 
 export type WebToNativeMessage =
+  /** A new document started: what the previous one announced (tabs, back, readiness) is gone. */
+  | { type: 'page/started' }
   | { type: 'auth/sign-out' }
   | { type: 'auth/refresh-request' }
   | { type: 'calls/connect'; payload: NativeCallConnectPayload }
@@ -47,6 +51,10 @@ export type WebToNativeMessage =
   | { type: 'appearance/changed'; payload: ShellPalette }
   /** The page's tab bar, which native draws over it. */
   | { type: 'navigation/tabs'; payload: TabBarModel }
+  /** Whether the page takes Android's back; while it doesn't, the system's own back applies. */
+  | { type: 'navigation/handles-back'; handles: boolean }
+  /** Nothing left to close or step back from: the system's back goes ahead. */
+  | { type: 'navigation/back-unhandled' }
   | { type: 'haptics/selection' }
   | { type: 'notifications/message-sound' }
   /** The page can route a tapped notification now; sent on every mount of its handler. */

@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 // The call surface's brand colours. Calls render inside AppearanceScope('dark'), so
 // glass, text and the base come from the dark theme's tokens; only the aurora and the
 // answer colours are the calls' own. mobile/src/features/calls/callTheme.ts mirrors them.
@@ -11,6 +13,12 @@ export const CALL_PALETTE = {
   acceptHover: '#35b277',
   live: '#4ade80',
 } as const;
+
+/** The answer colours for CSS modules, which read them as custom properties. */
+export const CALL_ACCEPT_COLOURS = {
+  '--call-accept': CALL_PALETTE.accept,
+  '--call-accept-hover': CALL_PALETTE.acceptHover,
+} as CSSProperties;
 
 export const CALL_AURORA = [
   'radial-gradient(55% 45% at 20% 14%, rgba(15, 138, 131, 0.55), transparent 72%)',

@@ -1,68 +1,20 @@
 import { IconButton } from '@ap-education/ui';
 import { ListBulletsIcon, PushPinIcon, XIcon } from '@phosphor-icons/react';
 import { message as toast, Popover } from 'antd';
-import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import { useConversationPermissions } from '@/features/social/conversation-scope/store';
 import { ReplyExcerpt } from '@/features/social/messaging/components/ReplyExcerpt/ReplyExcerpt';
 
 import { PinnedMessages } from '../PinnedMessages/PinnedMessages';
+import styles from './PinnedMessageBar.module.css';
 import { usePinnedMessageBar } from './usePinnedMessageBar';
-
-const useStyles = createStyles(({ token, css }) => ({
-  bar: css`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-    min-height: 52px;
-    padding: 0 20px;
-    border-bottom: 1px solid ${token.colorBorderSecondary};
-    background: var(--glass, rgba(255, 255, 255, 0.86));
-    backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
-
-    @media (max-width: ${token.screenMD}px) {
-      gap: 6px;
-      padding-inline: 8px;
-    }
-  `,
-  pin: css`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
-    color: ${token.colorPrimary};
-  `,
-  count: css`
-    font-size: 12px;
-    font-weight: 650;
-  `,
-  body: css`
-    display: block;
-    flex: 1;
-    min-width: 0;
-    padding: 6px 0;
-    border: 0;
-    background: transparent;
-    text-align: left;
-    cursor: pointer;
-  `,
-  controls: css`
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    flex-shrink: 0;
-    color: ${token.colorTextSecondary};
-  `,
-}));
 
 interface PinnedMessageBarProps {
   onJump: (messageId: string) => void;
 }
 
 export function PinnedMessageBar({ onJump }: PinnedMessageBarProps) {
-  const { styles } = useStyles();
   const { canPin: canUnpin } = useConversationPermissions();
   const [listOpen, setListOpen] = useState(false);
   const bar = usePinnedMessageBar();

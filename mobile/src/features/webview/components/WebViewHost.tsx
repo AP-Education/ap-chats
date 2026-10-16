@@ -2,7 +2,7 @@ import { selectionAsync } from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Linking, Platform, StyleSheet, View } from 'react-native';
+import { AppState, BackHandler, Linking, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Portal } from 'react-native-teleport';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
@@ -25,6 +25,8 @@ import {
   useComposerInput,
 } from '../../composer';
 import { NativeTabs } from '../../navigation/components/NativeTabs';
+import { OverlayTabs } from '../../navigation/components/OverlayTabs';
+import { SystemBack } from '../../navigation/components/SystemBack';
 import type { TabBarModel } from '../../navigation/types';
 import { changePushPermission } from '../../push/api/change-push-permission';
 import { dismissPresentedNotifications } from '../../push/api/presented-notifications';
@@ -63,10 +65,13 @@ export function WebViewHost() {
   const [messageSoundRequest, setMessageSoundRequest] = useState(0);
   const [tabBar, setTabBar] = useState<TabBarModel | null>(null);
   const insets = useSafeAreaInsets();
-  // WKWebView reports the safe areas to the page (viewport-fit=cover), so the page draws its own
-  // surfaces under the status bar and home indicator. Android's WebView reports them only in newer
-  // versions, so native keeps the page clear of the system bars there and the WebView out of it.
+  // The page runs down under the home indicator or the navigation bar on both platforms. At the top,
+  // WKWebView reports the status bar to the page (viewport-fit=cover); Android's WebView does only
+  // in newer versions, so native keeps the page below it there and the WebView out of the insets.
   const edgeToEdge = Platform.OS === 'ios';
+  // iOS's system bar lives inside its tab controller, so the page moves into the active tab there;
+  // on Android the app's own bar floats over a page that never moves.
+  const pageMovesBetweenTabs = Platform.OS === 'ios';
   const [containerHeight, setContainerHeight] = useState(0);
   const sendInputState = useCallback((state: ComposerInputState) => {
     webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'composer/state', ...state }));
@@ -77,16 +82,16 @@ export function WebViewHost() {
   const [pageGap, setPageGap] = useState(0);
   // The page's own safe area can't tell its bottom inside a tab: it grows under the tab bar and
   // empties under the keyboard. Native knows, and writes it into the page's CSS.
-  const insetBottom = insetBottomScript(pageBottom(pageGap, insets.bottom, edgeToEdge).safeArea);
+  const insetBottom = insetBottomScript(pageBottom(pageGap, insets.bottom).safeArea);
   const room = useRef(0);
   const sendInset = useCallback(
     ({ duration, easing }: InsetMotion) => {
-      const inset = pageKeyboardInset(room.current, pageBottom(pageGap, insets.bottom, edgeToEdge));
+      const inset = pageKeyboardInset(room.current, pageBottom(pageGap, insets.bottom));
       webViewRef.current?.injectJavaScript(
         buildBridgeScript({ type: 'keyboard/inset', inset, duration, easing }),
       );
     },
-    [edgeToEdge, insets.bottom, pageGap],
+    [insets.bottom, pageGap],
   );
   const handleRoom = useCallback(
     (next: number, motion: InsetMotion) => {
@@ -112,6 +117,8 @@ export function WebViewHost() {
   }, []);
   const reservedInset = edgeToEdge ? 0 : insets.bottom;
   const input = useComposerInput(sendInputState, handleRoom, { reservedInset, containerHeight });
+  // The page says whether it takes Android's back; a new document starts without it.
+  const pageTakesBack = useRef(false);
   // Opens on the page the person left; unset until the stored one is read, a moment at launch.
   const [startUrl, setStartUrl] = useState<string>();
 
@@ -160,6 +167,22 @@ export function WebViewHost() {
     );
   }
 
+  // Android reports the page's own history steps as loads too, so the page says when it starts.
+  function startPage() {
+    input.close();
+    // Hidden rather than dropped: the page lives inside a tab's host until it reloads.
+    setTabBar((current) => current && { ...current, visible: false });
+    pageTakesBack.current = false;
+    useNotificationStore.getState().setWebReady(false);
+  }
+
+  function sendBackToPage(): boolean {
+    if (!pageTakesBack.current) return false;
+
+    webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'navigation/back' }));
+    return true;
+  }
+
   function handleMessage(event: WebViewMessageEvent) {
     let message: WebToNativeMessage;
     try {
@@ -169,6 +192,8 @@ export function WebViewHost() {
     }
     if (isComposerInputRequest(message)) {
       input.request(message);
+    } else if (message.type === 'page/started') {
+      startPage();
     } else if (message.type === 'notifications/ready') {
       useNotificationStore.getState().setWebReady(true);
     } else if (message.type === 'notifications/ack') {
@@ -203,6 +228,11 @@ export function WebViewHost() {
       useAppearanceStore.getState().setPalette(message.payload);
     } else if (message.type === 'navigation/tabs') {
       setTabBar(message.payload);
+    } else if (message.type === 'navigation/handles-back') {
+      pageTakesBack.current = message.handles;
+    } else if (message.type === 'navigation/back-unhandled') {
+      // The system's own back: Android 12+ and MainActivity send the app to the background.
+      BackHandler.exitApp();
     } else if (message.type === 'haptics/selection') {
       void selectionAsync().catch(() => undefined);
     } else if (message.type === 'notifications/message-sound') {
@@ -269,9 +299,13 @@ export function WebViewHost() {
       }}
     >
       <MessageNotificationSound request={messageSoundRequest} />
-      <View style={[styles.webviewWrapper, { paddingBottom: reservedInset }]}>
+      <SystemBack onBack={() => input.back() || sendBackToPage()} />
+      <View style={styles.webviewWrapper}>
         {startUrl && (
-          <Portal hostName={tabBar?.activeId} style={styles.page}>
+          <Portal
+            hostName={pageMovesBetweenTabs ? tabBar?.activeId : undefined}
+            style={styles.page}
+          >
             <View ref={pageRef} style={styles.page} onLayout={measurePage} collapsable={false}>
               <WebView<object>
                 ref={webViewRef}
@@ -289,13 +323,7 @@ export function WebViewHost() {
                 contentInsetAdjustmentBehavior="never"
                 scrollEnabled={false}
                 bounces={false}
-                onLoadStart={() => {
-                  clearPageInsets();
-                  input.close();
-                  // Hidden rather than dropped: the page lives inside a tab's host until it reloads.
-                  setTabBar((current) => current && { ...current, visible: false });
-                  useNotificationStore.getState().setWebReady(false);
-                }}
+                onLoadStart={clearPageInsets}
                 applicationNameForUserAgent={APP_SHELL_USER_AGENT}
                 onNavigationStateChange={(event) => rememberLocation(event.url, webUrl)}
                 onMessage={handleMessage}
@@ -332,9 +360,12 @@ export function WebViewHost() {
             </View>
           </Portal>
         )}
-        {tabBar && (
-          <NativeTabs model={tabBar} onSelect={handleSelectTab} onInset={handleTabBarInset} />
-        )}
+        {tabBar &&
+          (pageMovesBetweenTabs ? (
+            <NativeTabs model={tabBar} onSelect={handleSelectTab} onInset={handleTabBarInset} />
+          ) : (
+            <OverlayTabs model={tabBar} onSelect={handleSelectTab} onInset={handleTabBarInset} />
+          ))}
       </View>
       <EmojiKeyboardPanel
         mode={input.mode}
