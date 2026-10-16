@@ -1,5 +1,11 @@
+import { useMemo } from 'react';
+
 import { MessageTimeline } from '@/features/social/messaging/components/MessageTimeline/MessageTimeline';
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
+import {
+  type TimelineActions,
+  TimelineActionsContext,
+} from '@/features/social/messaging/timeline-actions-context';
 import { UnsentMessagesContext } from '@/features/social/messaging/unsent-messages-context';
 import { peerReadSeqOf } from '@/features/social/read-receipts/read-receipts';
 import { PeerReadContext } from '@/features/social/read-receipts/stores/peer-read-context';
@@ -18,30 +24,25 @@ export function ConversationTimeline({
   interaction,
   operations,
 }: ConversationTimelineProps) {
-  const { history, pages, historyTargetId, targetMessageId, onJump } = navigation;
+  const { historyWindow, historyTargetId, onJump } = navigation;
   const { actions, actionContext, onAction, onEdit } = interaction;
+  // Stable, so every memoised row keeps skipping renders that only touch other rows.
+  const timelineActions = useMemo<TimelineActions>(
+    () => ({ viewer: actionContext, actions, run: onAction, jumpTo: onJump, saveEdit: onEdit }),
+    [actionContext, actions, onAction, onJump, onEdit],
+  );
 
   return (
-    <UnsentMessagesContext.Provider value={operations}>
-      <PeerReadContext.Provider value={peerReadSeqOf(pages)}>
-        <MessageTimeline
-          key={historyTargetId ?? 'unread'}
-          pages={pages}
-          displayItems={operations.displayItems}
-          actionContext={actionContext}
-          actions={actions}
-          onAction={onAction}
-          onJump={onJump}
-          onEdit={onEdit}
-          hasOlder={history.hasPreviousPage}
-          hasNewer={history.hasNextPage}
-          loadingOlder={history.isFetchingPreviousPage}
-          loadingNewer={history.isFetchingNextPage}
-          loadOlder={() => history.fetchPreviousPage()}
-          loadNewer={() => history.fetchNextPage()}
-          targetMessageId={targetMessageId}
-        />
-      </PeerReadContext.Provider>
-    </UnsentMessagesContext.Provider>
+    <TimelineActionsContext.Provider value={timelineActions}>
+      <UnsentMessagesContext.Provider value={operations}>
+        <PeerReadContext.Provider value={peerReadSeqOf(historyWindow.pages)}>
+          <MessageTimeline
+            key={historyTargetId ?? 'unread'}
+            history={historyWindow}
+            displayItems={operations.displayItems}
+          />
+        </PeerReadContext.Provider>
+      </UnsentMessagesContext.Provider>
+    </TimelineActionsContext.Provider>
   );
 }
