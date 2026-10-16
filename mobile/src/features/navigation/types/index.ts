@@ -17,4 +17,6 @@ export interface TabBarModel {
   visible: boolean;
   /** How long the drawer takes to reach `visible`, so the bar moves with it. */
   duration?: number;
+  /** A page dialog covers the screen; the bar steps out of its way until it closes. */
+  covered?: boolean;
 }

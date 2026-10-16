@@ -17,7 +17,7 @@ interface OverlayTabsProps {
 export function OverlayTabs({ model, onSelect, onInset }: OverlayTabsProps) {
   const underKeyboard = useKeyboardState((state) => state.isVisible);
   const barSpace = useFloatingTabBarSpace();
-  const coversPage = model.visible && !underKeyboard;
+  const coversPage = model.visible && !model.covered && !underKeyboard;
 
   useEffect(() => {
     onInset(coversPage ? barSpace : 0);

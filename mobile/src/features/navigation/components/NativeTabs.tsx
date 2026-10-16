@@ -28,7 +28,7 @@ interface NativeTabsProps {
 export function NativeTabs({ model, onSelect, onInset }: NativeTabsProps) {
   const palette = useShellPalette();
   const keyboardShown = useKeyboardState((state) => state.isVisible);
-  const barHidden = !model.visible || keyboardShown;
+  const barHidden = !model.visible || model.covered || keyboardShown;
   const routes = useMemo(() => model.items.map(toRoute), [model.items]);
   const index = Math.max(
     0,

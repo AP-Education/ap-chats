@@ -15,6 +15,8 @@ const SHADOW_ROOM = 16;
 const DRAWER_DURATION = 320;
 const DRAWER_EASING = cubicBezier(0.32, 0.72, 0, 1);
 const DRAWER_PARALLAX = 32;
+// A page dialog rises where the bar sits, so the bar fades out of its way instead.
+const COVER_FADE = 150;
 
 /** How much of the screen's bottom the floating bar covers, measured up from the screen's edge. */
 export function useFloatingTabBarSpace(): number {
@@ -45,11 +47,17 @@ export const FloatingTabBar = ({ model, onSelect, underKeyboard }: FloatingTabBa
     transitionDuration: drawerMove,
     transitionTimingFunction: DRAWER_EASING,
   };
+  const edgeTransition: CSSTransitionProperties = {
+    transitionProperty: ['transform', 'opacity'],
+    transitionDuration: [drawerMove, COVER_FADE],
+    transitionTimingFunction: [DRAWER_EASING, 'ease-out'],
+  };
+  const covered = model.covered ?? false;
   // The clip ends where the conversation's left edge is; the bar inside keeps its place but for the
   // drawer's parallax.
   const edgeShift = model.visible ? 0 : -width;
   const barShift = model.visible ? 0 : width - DRAWER_PARALLAX;
-  const hidden = !model.visible || underKeyboard;
+  const hidden = !model.visible || covered || underKeyboard;
 
   return (
     <Animated.View
@@ -57,9 +65,10 @@ export const FloatingTabBar = ({ model, onSelect, underKeyboard }: FloatingTabBa
         styles.drawerEdge,
         {
           bottom: insets.bottom + BAR_MARGIN - SHADOW_ROOM,
+          opacity: covered ? 0 : 1,
           transform: [{ translateX: edgeShift }],
         },
-        transition,
+        edgeTransition,
       ]}
       pointerEvents={hidden ? 'none' : 'box-none'}
     >
