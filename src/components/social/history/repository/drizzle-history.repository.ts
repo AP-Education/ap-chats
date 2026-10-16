@@ -73,6 +73,8 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     const replyAuthors = alias(userProfiles, 'reply_authors');
     const forwardAuthors = alias(userProfiles, 'forward_authors');
     const startedByProfiles = alias(userProfiles, 'started_by_profiles');
+    // Technical debt: a direct conversation still lives in a workspace (direct_messages.workspace_id),
+    // so its two people come with that workspace's roles, though it belongs to them, not to it.
     const authorRoles = alias(memberRolePresentation, 'author_roles');
     const replyAuthorRoles = alias(memberRolePresentation, 'reply_author_roles');
     const forwardAuthorRoles = alias(memberRolePresentation, 'forward_author_roles');
