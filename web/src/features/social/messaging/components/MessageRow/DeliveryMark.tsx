@@ -1,8 +1,7 @@
-import { createStyles, keyframes } from 'antd-style';
-
 import { useIsReadByPeer } from '@/features/social/read-receipts/stores/peer-read-context';
 
 import type { DeliveryStatus } from '../../types';
+import styles from './DeliveryMark.module.css';
 
 type MarkState = 'failed' | 'sending' | 'sent' | 'read';
 
@@ -13,75 +12,6 @@ const labels: Record<MarkState, string> = {
   read: 'Прочитано',
 };
 
-const tick = keyframes`
-  to { transform: rotate(360deg); }
-`;
-
-const useStyles = createStyles(({ css }) => ({
-  // Every state draws into one box, so settling a send or being read never moves the time.
-  mark: css`
-    overflow: visible;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.1;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-
-    & [data-part] {
-      opacity: 0;
-      transition:
-        opacity 120ms ease-out,
-        stroke-dashoffset 220ms ease-out,
-        transform 240ms cubic-bezier(0.2, 0, 0, 1);
-    }
-
-    & [data-part='first'],
-    & [data-part='second'] {
-      stroke-dasharray: 1;
-      stroke-dashoffset: 1;
-    }
-
-    // A lone check sits centred, then steps aside for the second one.
-    & [data-part='first'] {
-      transform: translateX(2.5px);
-    }
-
-    & [data-hand] {
-      transform-origin: 9px 6px;
-    }
-
-    &[data-state='failed'] {
-      color: var(--bubble-accent);
-    }
-
-    &[data-state='failed'] [data-part='alert'],
-    &[data-state='sending'] [data-part='clock'] {
-      opacity: 1;
-    }
-
-    &[data-state='sending'] [data-hand] {
-      animation: ${tick} 1.2s linear infinite;
-    }
-
-    &[data-state='sent'] [data-part='first'],
-    &[data-state='read'] [data-part='first'],
-    &[data-state='read'] [data-part='second'] {
-      opacity: 1;
-      stroke-dashoffset: 0;
-    }
-
-    &[data-state='read'] [data-part='first'] {
-      transform: none;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      &[data-state='sending'] [data-hand] {
-        animation: none;
-      }
-    }
-  `,
-}));
-
 /** Telegram's marks as one glyph: a clock while sending, one check once sent, two once read. */
 export function DeliveryMark({
   delivery,
@@ -90,7 +20,6 @@ export function DeliveryMark({
   delivery: DeliveryStatus | undefined;
   seq: string;
 }) {
-  const { styles } = useStyles();
   const isRead = useIsReadByPeer(seq);
   const state = markState(delivery, isRead);
 

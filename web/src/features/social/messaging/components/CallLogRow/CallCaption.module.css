@@ -1,0 +1,24 @@
+.caption {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-padding-xxs);
+  color: var(--bubble-muted);
+  font-size: var(--ant-font-size-sm);
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.missed {
+  color: var(--ant-color-error);
+}
+
+/* Own bubbles keep their muted ink: red on the accent fill would not read. */
+[data-own] .missed {
+  color: inherit;
+}
+
+.time {
+  margin-left: var(--ant-margin-xs);
+  color: var(--bubble-meta);
+  font-size: 12px;
+}

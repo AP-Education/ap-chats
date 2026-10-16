@@ -1,52 +1,14 @@
-import { createStyles } from 'antd-style';
-
 import { useTimelineActions } from '../../timeline-actions-context';
 import type { CallHistoryItem } from '../../types';
 import { Bubble } from '../Bubble/Bubble';
 import { CallBubbleAction } from './CallBubbleAction';
 import { CallCaption } from './CallCaption';
-
-const useStyles = createStyles(({ token, css }) => ({
-  row: css`
-    display: flex;
-    min-width: 0;
-
-    &[data-own] {
-      justify-content: flex-end;
-    }
-  `,
-  call: css`
-    display: flex;
-    align-items: center;
-    gap: ${token.padding}px;
-    min-width: 220px;
-    padding: 2px 0;
-
-    @media (max-width: ${token.screenMD}px) {
-      gap: ${token.paddingSM}px;
-      min-width: 200px;
-    }
-  `,
-  details: css`
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  `,
-  // Reads as message text, so it follows the size picked in the shell.
-  title: css`
-    font-size: var(--app-text-size, 16px);
-    font-weight: 600;
-    line-height: 1.3;
-  `,
-}));
+import styles from './CallLogRow.module.css';
 
 /** The call's permanent record: a bubble on the side of whoever placed it, joining their
  * run like a message would. Discovering an ongoing call stays the ActiveCallBanner's job;
  * the bubble's own button joins it while it runs and calls back once it has ended. */
 export function CallLogRow({ item }: { item: CallHistoryItem }) {
-  const { styles } = useStyles();
   const { viewer } = useTimelineActions();
   const { call } = item;
   const outgoing = call.startedByMemberId === viewer.memberId;

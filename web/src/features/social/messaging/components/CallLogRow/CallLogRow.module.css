@@ -1,0 +1,38 @@
+.row {
+  display: flex;
+  min-width: 0;
+}
+
+.row[data-own] {
+  justify-content: flex-end;
+}
+
+.call {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-padding);
+  min-width: 220px;
+  padding: 2px 0;
+}
+
+@media (max-width: 768px) {
+  .call {
+    gap: var(--ant-padding-sm);
+    min-width: 200px;
+  }
+}
+
+.details {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Reads as message text, so it follows the size picked in the shell. */
+.title {
+  font-size: var(--app-text-size, 16px);
+  font-weight: 600;
+  line-height: 1.3;
+}

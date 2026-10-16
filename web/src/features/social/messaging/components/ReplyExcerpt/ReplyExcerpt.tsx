@@ -1,56 +1,9 @@
 import { LinkIcon, PaperclipIcon } from '@phosphor-icons/react';
-import { createStyles } from 'antd-style';
 
 import { isLoneGif } from '../../gifs/gif-links';
 import type { MessageBlock } from '../../types';
 import { MessagePreview } from '../MessagePreview/MessagePreview';
-
-const useStyles = createStyles(({ token, css }) => ({
-  body: css`
-    min-width: 0;
-    width: 100%;
-    text-align: left;
-  `,
-  title: css`
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--excerpt-accent, ${token.colorPrimary});
-    font-size: 14px;
-    line-height: 1.3;
-    font-weight: 600;
-  `,
-  preview: css`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    min-width: 0;
-    color: var(--excerpt-muted, ${token.colorTextSecondary});
-    font-size: 14px;
-    line-height: 1.3;
-  `,
-  icon: css`
-    flex: 0 0 auto;
-  `,
-  text: css`
-    display: block;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-
-    pre,
-    code,
-    blockquote,
-    ul,
-    ol {
-      display: inline;
-      white-space: inherit;
-      margin: 0;
-      padding: 0;
-    }
-  `,
-}));
+import styles from './ReplyExcerpt.module.css';
 
 export function ReplyExcerpt({
   title,
@@ -63,7 +16,6 @@ export function ReplyExcerpt({
   blocks?: MessageBlock[];
   quoteText?: string | null;
 }) {
-  const { styles } = useStyles();
   const image = /!\[[^\]]*\]\([^)]+\)/.test(markdown ?? '');
   const link =
     !isLoneGif({ markdown, blocks }) && /\[[^\]]+\]\([^)]+\)|https?:\/\/\S+/.test(markdown ?? '');

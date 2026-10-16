@@ -1,0 +1,52 @@
+/* A solid green handset, so calling back reads as the bubble's one action. */
+.action {
+  display: grid;
+  place-items: center;
+  flex: 0 0 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--call-accept);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+@media (max-width: 768px) {
+  .action {
+    flex-basis: 52px;
+    height: 52px;
+  }
+}
+
+.action:hover:not(:disabled) {
+  background: var(--call-accept-hover);
+}
+
+.action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.action[data-live] {
+  animation: ripple 1.8s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action[data-live] {
+    animation: none;
+  }
+}
+
+@keyframes ripple {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--call-accept) 45%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}

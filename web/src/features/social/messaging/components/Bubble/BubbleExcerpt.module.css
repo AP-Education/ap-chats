@@ -1,0 +1,36 @@
+.excerpt {
+  --excerpt-accent: var(--bubble-accent);
+  --excerpt-muted: var(--bubble-muted);
+  position: relative;
+  display: block;
+  /* A button only shrinks to fit, so it is stretched to the bubble; unlike width: 100%,
+     stretch keeps the inset a media bubble gives its captions. */
+  width: -webkit-fill-available;
+  width: -moz-available;
+  width: stretch;
+  min-width: 0;
+  padding: var(--ant-padding-xxs) var(--ant-padding-xs) var(--ant-padding-xxs) var(--ant-padding);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--ant-border-radius);
+  background: var(--excerpt-bg, color-mix(in srgb, var(--excerpt-accent) 12%, transparent));
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The stripe is its own pill inside the block, so it stays straight instead of bending along
+   the rounded corners. */
+.excerpt::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: 4px;
+  border-radius: var(--ant-border-radius-xs);
+  background: var(--excerpt-accent);
+}
+
+.excerpt:hover {
+  background: var(--excerpt-bg-hover, color-mix(in srgb, var(--excerpt-accent) 18%, transparent));
+}

@@ -1,0 +1,63 @@
+/* Nothing clips here: a swiped row slides off past the screen edge, and the selection check sits
+   outside the row in the run's gutter. */
+.gestureArea {
+  position: relative;
+  min-width: 0;
+}
+
+.gestureArea[data-swiping] > div,
+.gestureArea[data-swiping] > span {
+  transition: none;
+}
+
+/* The whole row follows the finger, as in Telegram. A 2D translate keeps the resting rows off
+   their own compositing layers. */
+.touchTarget {
+  touch-action: pan-y pinch-zoom;
+  transform: translateX(calc(-1 * var(--message-swipe-offset, 0px)));
+  transition: var(--swipe-settle);
+}
+
+.touchTarget[data-message-readonly],
+.touchTarget[data-message-readonly] [data-message-text] {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.touchTarget a,
+.touchTarget button {
+  -webkit-touch-callout: default;
+}
+
+.touchTarget input,
+.touchTarget textarea,
+.touchTarget [contenteditable='true'] {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+}
+
+.replyHint {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--ant-color-primary-bg);
+  color: var(--ant-color-primary-text-active);
+  opacity: var(--message-reply-progress, 0);
+  transform: translateY(-50%);
+  scale: 0.85;
+  pointer-events: none;
+  transition:
+    opacity 220ms ease-out,
+    scale 220ms ease-out;
+}
+
+[data-reply-ready] > .replyHint {
+  scale: 1;
+}

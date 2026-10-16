@@ -1,4 +1,3 @@
-import { createStyles } from 'antd-style';
 import { memo, useLayoutEffect, useRef } from 'react';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
@@ -7,107 +6,13 @@ import type { AttachmentDraft } from '../../attachments/types';
 import { useTimelineActions } from '../../timeline-actions-context';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';
 import { Bubble } from '../Bubble/Bubble';
-import { SELECTION_GUTTER } from '../HistoryRun/HistoryRun';
 import { bubbleLayout } from './bubbleLayout';
 import { MessageActions } from './MessageActions';
 import { MessageActionProvider } from './MessageActionScope';
 import { MessageBody } from './MessageBody';
 import { MessageHeader } from './MessageHeader';
+import styles from './MessageRow.module.css';
 import { UnsentNotice } from './UnsentNotice';
-
-const CHECK_MARK = `url("data:image/svg+xml,${encodeURIComponent(
-  "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M3.5 8.5l3 3 6-7' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>",
-)}")`;
-
-const useStyles = createStyles(({ token, css }) => ({
-  row: css`
-    position: relative;
-    isolation: isolate;
-    display: flex;
-    align-items: flex-end;
-    gap: ${token.paddingXS}px;
-    min-width: 0;
-    color: ${token.colorText};
-
-    &[data-own] {
-      justify-content: flex-end;
-    }
-    // Keyboard focus rings the bubble, not the whole row.
-    &:focus-visible {
-      outline: none;
-    }
-    &:focus-visible [data-variant] {
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: 2px;
-    }
-    &[data-flash] {
-      animation: flash 0.85s ease-out;
-    }
-    @keyframes flash {
-      35% {
-        background: color-mix(in srgb, ${token.colorPrimary} 22%, transparent);
-      }
-      100% {
-        background: transparent;
-      }
-    }
-  `,
-  // The band runs edge to edge behind the whole row, its avatar included, as in Telegram.
-  selected: css`
-    &::before {
-      content: '';
-      position: absolute;
-      inset: -1px -100vw;
-      z-index: -1;
-      background: color-mix(in srgb, ${token.colorPrimary} 14%, transparent);
-      pointer-events: none;
-    }
-  `,
-  sending: css`
-    [data-message-text] {
-      animation: appear 0.2s ease-out;
-    }
-    @keyframes appear {
-      from {
-        opacity: 0.35;
-      }
-      to {
-        opacity: 1;
-      }
-    }
-  `,
-  // Sits in the run's gutter at the screen edge, wherever the bubble itself is.
-  checkbox: css`
-    position: absolute;
-    top: 50%;
-    left: calc(
-      -1 * (var(--run-lead, 0px) + ${SELECTION_GUTTER}px) + ${(SELECTION_GUTTER - 22) / 2}px
-    );
-    width: 22px;
-    height: 22px;
-    margin: 0;
-    translate: 0 -50%;
-    appearance: none;
-    border: 2px solid ${token.colorTextQuaternary};
-    border-radius: 50%;
-    background: transparent no-repeat center / 14px;
-    cursor: pointer;
-    transition:
-      background-color 0.15s ease,
-      border-color 0.15s ease;
-
-    &:checked {
-      border-color: ${token.colorPrimary};
-      background-color: ${token.colorPrimary};
-      background-image: ${CHECK_MARK};
-    }
-
-    &:focus-visible {
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: 2px;
-    }
-  `,
-}));
 
 const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
 
@@ -122,7 +27,6 @@ export const MessageRow = memo(function MessageRow({
   delivery,
   pendingAttachments,
 }: MessageRowProps) {
-  const { styles, cx } = useStyles();
   const { viewer } = useTimelineActions();
   const authorName = item.author.displayName ?? 'Ім’я недоступне';
   const isOwnMessage = item.message.authorMemberId === viewer.memberId;
@@ -161,13 +65,10 @@ export const MessageRow = memo(function MessageRow({
           'data-selected': isSelected || undefined,
           'data-failed': delivery === 'failed' || undefined,
           'data-mentions-me': highlighted || undefined,
+          'data-sending': delivery === 'sending' || delivery === 'uploading' || undefined,
           tabIndex: delivery ? -1 : 0,
           'aria-label': `Повідомлення від ${authorName}, ${timeFormat.format(new Date(item.message.createdAt))}`,
-          className: cx(
-            styles.row,
-            isSelected && styles.selected,
-            (delivery === 'sending' || delivery === 'uploading') && styles.sending,
-          ),
+          className: styles.row,
           onClick: (event) => {
             if (!hasSelection || window.getSelection()?.toString()) return;
             if ((event.target as Element).closest('button, a, input, textarea')) return;

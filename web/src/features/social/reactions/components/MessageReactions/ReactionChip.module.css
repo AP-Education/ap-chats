@@ -1,0 +1,65 @@
+/* A quiet fill of the theme; your own reaction is a soft tint of the primary colour with a thin
+   outline of it, the way Discord marks it, never a solid block. */
+.chip {
+  --chip-bg: var(--ant-color-fill-secondary);
+  --chip-mine-bg: color-mix(in srgb, var(--chip-accent) 16%, transparent);
+  --chip-accent: var(--bubble-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px 0 8px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: var(--chip-bg);
+  color: var(--bubble-text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out,
+    transform 100ms ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The bubble's accent is its primary tone, white on own bubbles, which then need a deeper wash. */
+[data-side='own'] .chip {
+  --chip-bg: rgba(255, 255, 255, 0.14);
+  --chip-mine-bg: rgba(255, 255, 255, 0.24);
+}
+
+/* Large emoji and a lone GIF sit on the wallpaper without a bubble, in the page's own colours. */
+[data-variant='bare'] .chip {
+  --chip-accent: var(--ant-color-primary-text-active);
+  color: var(--ant-color-text);
+}
+
+.chip[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--chip-accent) 55%, transparent);
+  background: var(--chip-mine-bg);
+  color: var(--chip-accent);
+}
+
+.chip[aria-disabled] {
+  cursor: default;
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--bubble-accent);
+  outline-offset: 1px;
+}
+
+.chip:active:not([aria-disabled]) {
+  transform: scale(0.96);
+}
+
+/* Opaque text colour: Chromium fades colour emoji by its alpha. */
+.emoji {
+  color: var(--ant-color-text-base);
+  font-size: 20px;
+  line-height: 1;
+}
