@@ -18,14 +18,20 @@ import { MessagesService } from '@/components/social/messages';
 import { DrizzleMessagesRepository } from '@/components/social/messages/repository/drizzle-messages.repository';
 import { PinsService } from '@/components/social/pins';
 import { DrizzlePinsRepository } from '@/components/social/pins/repository/drizzle-pins.repository';
+import { MessageComposer, SendMessageService } from '@/components/social/posting';
 import { DeleteMessagesService } from '@/components/social/posting/delete-messages.service';
 import { EditMessageService } from '@/components/social/posting/edit-message.service';
-import { MessageComposer } from '@/components/social/posting/message-composer';
-import { SendMessageService } from '@/components/social/posting/send-message.service';
 import { ReactionsService } from '@/components/social/reactions/reactions.service';
 import { DrizzleReactionsRepository } from '@/components/social/reactions/repository/drizzle-reactions.repository';
 import { ReadStateService } from '@/components/social/read-state';
 import { DrizzleReadStateRepository } from '@/components/social/read-state/repository/drizzle-read-state.repository';
+import {
+  ScheduledMessagesService,
+  ScheduleMessageService,
+  SendScheduledMessageService,
+} from '@/components/social/scheduling';
+import { DrizzleScheduledMessagesRepository } from '@/components/social/scheduling/repository';
+import { DrizzleWorkspaceMembersRepository } from '@/components/workspaces/members/repository';
 import { DrizzleRolesRepository } from '@/components/workspaces/roles/repository';
 import { RolesFacade } from '@/components/workspaces/roles/roles.facade';
 import { AppConfigService } from '@/globals/config';
@@ -80,6 +86,9 @@ export function socialServices(
     new UploadPolicy(config),
   );
   const pins = new PinsService(access, messages, new DrizzlePinsRepository(txHost), events);
+  const composer = new MessageComposer(markdown, messages, uploads);
+  const sending = new SendMessageService(access, composer, messages, events);
+  const scheduled = new DrizzleScheduledMessagesRepository(txHost);
   const readState = new ReadStateService(access, new DrizzleReadStateRepository(txHost), events);
 
   return {
@@ -89,12 +98,7 @@ export function socialServices(
     pins,
     readState,
     history: new HistoryService(access, new DrizzleHistoryRepository(txHost), readState),
-    sending: new SendMessageService(
-      access,
-      new MessageComposer(markdown, messages, uploads),
-      messages,
-      events,
-    ),
+    sending,
     editing: new EditMessageService(access, markdown, messages, events),
     deleting: new DeleteMessagesService(access, messages, pins, events),
     reactions: new ReactionsService(
@@ -107,6 +111,15 @@ export function socialServices(
       access,
       directMessageServices(host, access).conversations,
       messages,
+      events,
+    ),
+    scheduledMessages: scheduled,
+    scheduling: new ScheduleMessageService(access, composer, scheduled, events),
+    schedule: new ScheduledMessagesService(access, markdown, scheduled, events),
+    scheduledSending: new SendScheduledMessageService(
+      scheduled,
+      new DrizzleWorkspaceMembersRepository(txHost),
+      sending,
       events,
     ),
   };

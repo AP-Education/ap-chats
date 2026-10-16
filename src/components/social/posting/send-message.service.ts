@@ -44,6 +44,11 @@ export class SendMessageService {
     return message;
   }
 
+  /** Joins the caller's transaction, so its own change commits with the message; it announces after. */
+  async sendWithin(author: WorkspaceMember, channelId: string, request: SendMessageDto) {
+    return this.post(author, author, channelId, await this.composer.draft(request));
+  }
+
   // A retry of a request that already went through gets the same message back, announced once.
   @Transactional()
   private async post(

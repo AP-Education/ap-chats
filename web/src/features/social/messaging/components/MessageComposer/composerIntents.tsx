@@ -30,6 +30,8 @@ interface ComposerIntentBehaviour<T> {
   cancelLabel: string;
   /** The intent says enough to send without words of the person's own. */
   speaksForItself: boolean;
+  /** The intent still means the same if the message goes out later. */
+  canWait: boolean;
   /** The message the composer sends for the person's words under this intent. */
   compose: (intent: T, draft: ComposerDraft) => IntentMessage;
 }
@@ -45,6 +47,7 @@ const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>>
     ),
     cancelLabel: 'Скасувати відповідь',
     speaksForItself: false,
+    canWait: true,
     compose: (intent, { markdown, labels }) => ({
       markdown,
       labels,
@@ -56,6 +59,8 @@ const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>>
     Excerpt: ({ intent }) => <AskExcerpt member={intent.member} count={intent.messageIds.length} />,
     cancelLabel: 'Скасувати запит',
     speaksForItself: true,
+    // StarMe hears a question only as it goes out, so the question cannot be put off.
+    canWait: false,
     compose: (intent, draft) => addressedTo(intent.member, draft),
   },
 };
