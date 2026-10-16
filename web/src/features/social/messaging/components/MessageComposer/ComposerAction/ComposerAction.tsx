@@ -56,7 +56,7 @@ const useStyles = createStyles(({ token, css }) => ({
 interface ComposerActionProps {
   hasContent: boolean;
   onSend: () => void;
-  /** Offered on a long press or a right click, as Telegram offers its send options. */
+  /** A long press opens it straight away; a right click offers it among the send options. */
   onSchedule?: () => void;
   canSchedule?: boolean;
 }
@@ -73,14 +73,16 @@ export function ComposerAction({
   const pressedLong = useRef(false);
   const hasOptions = Boolean(onSchedule) && hasContent;
 
-  // A mouse has its right click; a finger holds the button instead.
+  // A mouse has its right click; a finger holds the button instead. Held with files attached,
+  // it opens the options, which say why those cannot be scheduled yet.
   function startPress(event: PointerEvent<HTMLButtonElement>) {
     pressedLong.current = false;
     if (!hasOptions || event.pointerType === 'mouse') return;
 
     pressTimer.current = window.setTimeout(() => {
       pressedLong.current = true;
-      setMenuOpen(true);
+      if (canSchedule) onSchedule?.();
+      else setMenuOpen(true);
     }, LONG_PRESS_MS);
   }
 
