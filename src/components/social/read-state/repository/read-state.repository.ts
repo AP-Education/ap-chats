@@ -9,4 +9,5 @@ export abstract class ReadStateRepository {
   abstract lastReadSeq(channelId: string, memberId: string): Promise<bigint | null>;
   abstract entryExists(channelId: string, seq: bigint): Promise<boolean>;
   abstract advance(channelId: string, memberId: string, seq: bigint): Promise<void>;
+  abstract rewind(channelId: string, memberId: string, seq: bigint): Promise<void>;
 }

@@ -14,3 +14,17 @@ export function markRead(
     jsonInit('PUT', { seq }),
   );
 }
+
+/** Unread again from the entry at `seq` on. */
+export function markUnread(
+  token: string,
+  workspaceId: string,
+  channelId: string,
+  seq: string,
+): Promise<ReadState> {
+  return apiRequest(
+    `/api/workspaces/${workspaceId}/channels/${channelId}/read-state/unread`,
+    token,
+    jsonInit('PUT', { seq }),
+  );
+}

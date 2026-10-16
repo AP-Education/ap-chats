@@ -26,6 +26,24 @@ export function applyOptimisticReadState(
   writeReadState(queryClient, identity, workspaceId, channelId, state, false);
 }
 
+// A cursor gone back replaces what the caches hold rather than losing to it; history is fetched
+// again so its unread stretch opens where it now starts.
+export function applyRewoundReadState(
+  queryClient: QueryClient,
+  identity: string | undefined,
+  workspaceId: string,
+  channelId: string,
+  state: ReadState,
+): void {
+  queryClient.setQueryData<ChannelUnread[]>(workspaceUnreadKey(identity, workspaceId), (current) =>
+    current?.map((entry) => (entry.channelId === channelId ? { ...entry, ...state } : entry)),
+  );
+  void queryClient.invalidateQueries({ queryKey: unreadDirectMessagesKey(identity), exact: true });
+  void queryClient.invalidateQueries({
+    queryKey: messagingQueryKeys.histories(identity, workspaceId, channelId),
+  });
+}
+
 function writeReadState(
   queryClient: QueryClient,
   identity: string | undefined,

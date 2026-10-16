@@ -21,12 +21,15 @@ import { isMessageItem } from '@/features/social/messaging/types';
 import { pinActions } from '@/features/social/pins/actions';
 import { usePinActions } from '@/features/social/pins/hooks/usePins';
 import { reactionActions } from '@/features/social/reactions/actions';
+import { readStateActions } from '@/features/social/read-state/actions';
+import { useMarkUnread } from '@/features/social/read-state/hooks/useMarkUnread';
 
 const builtInActions = [
   ...messagingActions,
   ...forwardingActions,
   ...pinActions,
   ...reactionActions,
+  ...readStateActions,
 ];
 
 interface UseConversationActionsInput {
@@ -43,6 +46,7 @@ export function useConversationActions({
   const { workspaceId, channelId, permissions } = useConversationScope();
   const { canPost, canReact, canManage, canPin } = permissions;
   const pins = usePinActions(workspaceId, channelId);
+  const markUnread = useMarkUnread(workspaceId, channelId);
   const [forwardItems, setForwardItems] = useState<MessageHistoryItem[]>([]);
   const [reactionsMessageId, setReactionsMessageId] = useState<string | null>(null);
   const selectedIds = useConversation((state) => state.selectedIds);
@@ -113,6 +117,11 @@ export function useConversationActions({
       void pins
         .update(item.message.id, active)
         .catch(() => toast.error('Не вдалося змінити закріплення.'));
+    },
+    markUnread: (item) => {
+      markUnread.mutate(item.seq, {
+        onError: () => toast.error('Не вдалося позначити непрочитаним.'),
+      });
     },
     showReactions: (item) => setReactionsMessageId(item.message.id),
     ask: (member, targetItems) => {

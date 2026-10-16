@@ -12,6 +12,7 @@ import {
   READ_STATE_ADVANCED_EVENT,
   ReadStateAdvancedEvent,
 } from './events/read-state-advanced.event';
+import { READ_STATE_REWOUND_EVENT, ReadStateRewoundEvent } from './events/read-state-rewound.event';
 import { sharesReadReceipts } from './read-receipts.rules';
 import { ReadStateRepository } from './repository/read-state.repository';
 import type { ChannelReadState, ReadPosition, WorkspaceChannelUnread } from './types';
@@ -53,6 +54,51 @@ export class ReadStateService {
     announce();
 
     return state;
+  }
+
+  async markUnread(
+    member: WorkspaceMember,
+    channelId: string,
+    seqText: string,
+  ): Promise<ChannelReadState> {
+    const { state, announce } = await this.rewind(member, channelId, BigInt(seqText));
+    announce();
+
+    return state;
+  }
+
+  // Unread from an entry on: the cursor goes back to just before it; an entry already unread stays so.
+  @Transactional()
+  private async rewind(
+    member: WorkspaceMember,
+    channelId: string,
+    seq: bigint,
+  ): Promise<{ state: ChannelReadState; announce: Announce }> {
+    const channel = await this.access.requireMembership(member, channelId);
+    if (seq > channel.lastEntrySeq)
+      throw new BadRequestException('Sequence exceeds channel history');
+
+    const isEntry = await this.repository.entryExists(channelId, seq);
+    if (!isEntry) throw new BadRequestException('Sequence is not an entry');
+
+    const current = await this.repository.lastReadSeq(channelId, member.id);
+    if (current === null) throw new ForbiddenException('Join this channel first');
+
+    const cursor = seq - 1n;
+    const isBehind = cursor < current;
+    if (isBehind) await this.repository.rewind(channelId, member.id, cursor);
+
+    const state = await this.state(channel, member.id);
+    if (!state) throw new ForbiddenException('Join this channel first');
+    if (!isBehind) return { state, announce: nothingToAnnounce };
+
+    const rewound = new ReadStateRewoundEvent(
+      member.profile.oidcUserId,
+      member.workspaceId,
+      channel.id,
+      state,
+    );
+    return { state, announce: await this.events.record(READ_STATE_REWOUND_EVENT, rewound) };
   }
 
   // Reading only moves forward: an older position leaves the cursor where it is, unannounced.

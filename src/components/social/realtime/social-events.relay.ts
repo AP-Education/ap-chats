@@ -35,6 +35,10 @@ import {
   ReadStateAdvancedEvent,
 } from '../read-state/events/read-state-advanced.event';
 import {
+  READ_STATE_REWOUND_EVENT,
+  ReadStateRewoundEvent,
+} from '../read-state/events/read-state-rewound.event';
+import {
   SCHEDULED_MESSAGES_CHANGED_EVENT,
   ScheduledMessagesChangedEvent,
 } from '../scheduling/events/scheduled-messages-changed.event';
@@ -96,6 +100,14 @@ export class SocialEventsRelay {
   onReadStateAdvanced(event: ReadStateAdvancedEvent) {
     const { workspaceId, channelId, state } = event;
     this.realtime.toUser(event.userId, 'social:read-state', { workspaceId, channelId, ...state });
+  }
+
+  // A cursor gone back is not a late echo of an older read, so it has its own socket event.
+  @OnEvent(READ_STATE_REWOUND_EVENT)
+  onReadStateRewound(event: ReadStateRewoundEvent) {
+    const { workspaceId, channelId, state } = event;
+    const payload = { workspaceId, channelId, ...state };
+    this.realtime.toUser(event.userId, 'social:read-state-rewound', payload);
   }
 
   @OnEvent(READ_RECEIPT_EVENT)

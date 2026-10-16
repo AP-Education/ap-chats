@@ -7,9 +7,10 @@ import { useConnection } from '@/features/realtime/stores/realtime-context';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { apiRequest } from '@/shared/api/http';
 
-import { applyReadState } from '../applyReadState';
+import { applyReadState, applyRewoundReadState } from '../applyReadState';
 import { applyUnreadMutation } from '../applyUnreadMutation';
 import { unreadDirectMessagesKey, workspaceUnreadKey } from '../queryKeys';
+import type { ReadStateServerToClientEvents } from '../types';
 
 export interface ChannelUnread {
   channelId: string;
@@ -88,6 +89,11 @@ export function useWorkspaceUnread(workspaceId: string) {
   useSocketEvent('social:read-state', (event) => {
     if (event.workspaceId !== workspaceId) return;
     applyReadState(queryClient, identity, workspaceId, event.channelId, event);
+  });
+
+  useSocketEvent<ReadStateServerToClientEvents>('social:read-state-rewound', (event) => {
+    if (event.workspaceId !== workspaceId) return;
+    applyRewoundReadState(queryClient, identity, workspaceId, event.channelId, event);
   });
 
   return query;

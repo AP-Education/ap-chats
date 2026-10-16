@@ -170,4 +170,15 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
         and(eq(channelMemberships.channelId, channelId), eq(channelMemberships.memberId, memberId)),
       );
   }
+
+  async rewind(channelId: string, memberId: string, seq: bigint): Promise<void> {
+    await this.txHost.tx
+      .update(channelMemberships)
+      .set({
+        lastReadEntrySeq: sql`least(${channelMemberships.lastReadEntrySeq}, ${seq})`,
+      })
+      .where(
+        and(eq(channelMemberships.channelId, channelId), eq(channelMemberships.memberId, memberId)),
+      );
+  }
 }
