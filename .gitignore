@@ -15,7 +15,6 @@ web/playwright-report/
 .env.*
 !.env.example
 !.env.production.example
-!mobile/.env.production
 *.log
 .DS_Store
 mobile/android/
