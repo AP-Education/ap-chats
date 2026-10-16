@@ -18,12 +18,30 @@ function fixture(redirectUri = 'apchats://auth/callback') {
     url: `${redirectUri}${redirectUri.includes('?') ? '&' : '?'}state=logout-state`,
   };
   const prompts: { url: URL; redirectUri: string; options: unknown }[] = [];
+  const signInRequests: Record<string, unknown>[] = [];
   const dependencies: Record<string, unknown> = {
     'expo-auth-session': {
       fetchDiscoveryAsync: async (issuer: string) => {
         assert.equal(issuer, 'https://accounts.example/oidc');
         return { endSessionEndpoint: endpoint };
       },
+      ResponseType: { Code: 'code' },
+      Prompt: { Consent: 'consent' },
+      AuthRequest: class {
+        codeVerifier = 'verifier';
+        constructor(config: Record<string, unknown>) {
+          signInRequests.push(config);
+        }
+        async promptAsync() {
+          return { type: 'success', params: { code: 'code' } };
+        }
+      },
+      exchangeCodeAsync: async () => ({
+        accessToken: 'access',
+        refreshToken: 'refresh',
+        issuedAt: 0,
+        expiresIn: 3600,
+      }),
     },
     'expo-crypto': { randomUUID: () => 'logout-state' },
     '../types': { SessionExpiredError: class SessionExpiredError extends Error {} },
@@ -64,6 +82,7 @@ function fixture(redirectUri = 'apchats://auth/callback') {
   return {
     session,
     prompts,
+    signInRequests,
     setEndpoint: (value: string | undefined) => {
       endpoint = value;
     },
@@ -143,4 +162,15 @@ test('Expo Go redirects retain their path and registered query parameters', asyn
     url: 'exp://192.168.1.10:8081/--/auth/callback?state=logout-state',
   });
   await assert.rejects(f.session.signOut(tokens.idToken), /Invalid sign-out callback/);
+});
+
+test('sign-in asks for offline_access with consent, the only way Accounts issues a refresh token', async () => {
+  const f = fixture();
+
+  const signedIn = await f.session.signIn();
+
+  const [request] = f.signInRequests;
+  assert.ok((request?.scopes as string[]).includes('offline_access'));
+  assert.equal(request?.prompt, 'consent');
+  assert.equal(signedIn.refreshToken, 'refresh');
 });
