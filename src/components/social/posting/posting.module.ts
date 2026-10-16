@@ -26,6 +26,6 @@ import { SendMessageService } from './send-message.service';
   ],
   controllers: [MessagesController],
   providers: [MessageComposer, SendMessageService, EditMessageService, DeleteMessagesService],
-  exports: [SendMessageService],
+  exports: [MessageComposer, SendMessageService],
 })
 export class PostingModule {}

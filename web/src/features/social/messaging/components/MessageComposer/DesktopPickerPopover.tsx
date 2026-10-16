@@ -23,7 +23,7 @@ interface DesktopPickerPopoverProps {
   onPickGif: (gif: Gif) => void;
   onClose: () => void;
   className: string;
-  /** The buttons that open the panel; a press on them switches tabs rather than closing it. */
+  /** The toolbar the panel opens from; its picker button toggles the panel, not a press outside. */
   children: ReactNode;
 }
 

@@ -1,13 +1,6 @@
 import { isNativeShell } from '@ap-education/shell-sdk';
 import { IconButton, useIsMobile } from '@ap-education/ui';
-import {
-  GifIcon,
-  KeyboardIcon,
-  PaperclipIcon,
-  SmileyIcon,
-  StickerIcon,
-  XIcon,
-} from '@phosphor-icons/react';
+import { KeyboardIcon, PaperclipIcon, SmileyIcon, XIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import {
@@ -22,6 +15,10 @@ import {
 } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import {
+  type ComposerCommands,
+  useConversationExtensions,
+} from '@/features/social/conversation-scope/extensions';
 import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
 import { MessageEditorSlotProvider } from '@/features/social/mentions/MessageEditorSlot';
 import type {
@@ -224,13 +221,12 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
+type ComposedMessage = Omit<SendMessageCommand, 'clientNonce' | 'attachments'>;
+
 interface MessageComposerProps {
   replyAuthor?: string;
   replyPreview?: ReplyPreview;
-  onSend: (
-    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
-    pending?: PendingAttachmentCommit,
-  ) => void;
+  onSend: (input: ComposedMessage, pending?: PendingAttachmentCommit) => void;
   /** The text-input to compose with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
   children: ReactNode;
 }
@@ -247,6 +243,11 @@ export function MessageComposer({
   const draftKey = `ap-chats:draft:${identity}:${workspaceId}:${channelId}`;
   const intent = useConversation((state) => state.intent);
   const setIntent = useConversation((state) => state.setIntent);
+  const extensions = useConversationExtensions();
+  const sendOptions = useMemo(
+    () => extensions.flatMap((extension) => extension.sendOptions ?? []),
+    [extensions],
+  );
   const blurComposerToken = useConversation((state) => state.blurComposerToken);
   const isMobile = useIsMobile();
   const hasCoarsePointer = useHasCoarsePointer();
@@ -307,11 +308,21 @@ export function MessageComposer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blurComposerToken]);
 
-  const handleSend = useCallback(() => {
+  const readMessage = useCallback((): ComposedMessage => {
     const draft = editableRef.current?.draft();
-    if (!canSend) return;
     const composed = { markdown: draft?.markdown.trim() ?? '', labels: draft?.labels ?? {} };
-    const input = intent ? composerIntent(intent.kind).compose(intent, composed) : composed;
+    return intent ? composerIntent(intent.kind).compose(intent, composed) : composed;
+  }, [intent]);
+
+  const clearSent = useCallback(() => {
+    editableRef.current?.clear();
+    clearDraft();
+    setIntent(null);
+  }, [clearDraft, setIntent]);
+
+  const handleSend = useCallback(() => {
+    if (!canSend) return;
+    const input = readMessage();
     const nonce = randomId();
     const drafts = uploads.commit(nonce);
     const pending = drafts.length
@@ -328,12 +339,10 @@ export function MessageComposer({
       onSend({ ...input, ...(blocks ? { blocks } : {}) }, pending);
     });
 
-    editableRef.current?.clear();
-    clearDraft();
-    setIntent(null);
+    clearSent();
     // Sending keeps the active input surface, including an open emoji panel.
     if (!activeTab) editableRef.current?.focus();
-  }, [canSend, uploads, onSend, intent, clearDraft, setIntent, activeTab, linkedGif]);
+  }, [canSend, readMessage, uploads, onSend, clearSent, activeTab, linkedGif]);
 
   const handleDraftChange = useCallback(
     (draft: ComposerDraft) => {
@@ -342,6 +351,16 @@ export function MessageComposer({
     },
     [syncHasContent, linkedGif],
   );
+
+  // Other ways to send take the draft over through these, and decide its fate themselves.
+  const commands = useMemo<ComposerCommands>(
+    () => ({ read: readMessage, clear: clearSent }),
+    [readMessage, clearSent],
+  );
+  const draftState = {
+    hasAttachments: uploads.drafts.length > 0,
+    canWait: !intent || composerIntent(intent.kind).canWait,
+  };
 
   function insertEmoji(emoji: string) {
     editableRef.current?.insertText(emoji);
@@ -379,12 +398,8 @@ export function MessageComposer({
 
   // Desktop only — there's no software keyboard to fight with here, so plain click
   // semantics (and the normal focus-shift that comes with them) are fine.
-  function openPicker(tab: PickerTab) {
-    setActiveTab((current) => {
-      const next = current === tab ? null : tab;
-      if (next) persistLastTab(next);
-      return next;
-    });
+  function togglePicker() {
+    setActiveTab((current) => (current ? null : lastActiveTab));
   }
 
   function closePicker() {
@@ -439,42 +454,30 @@ export function MessageComposer({
     editableRef.current?.suspendInput();
   }
 
+  const accessories = extensions.map(
+    ({ id, ComposerAccessory }) => ComposerAccessory && <ComposerAccessory key={id} />,
+  );
+
+  // One entry point that reopens whatever tab was used last; the panel's own tabs switch.
   const pickerButtons = (
     <>
+      {accessories}
       <IconButton
         size={toolbarActionSize}
-        className={cx(styles.toolbarButton, activeTab === 'emoji' && styles.toolbarButtonActive)}
-        aria-label="Емодзі"
-        aria-pressed={activeTab === 'emoji'}
-        onClick={() => openPicker('emoji')}
+        className={cx(styles.toolbarButton, activeTab !== null && styles.toolbarButtonActive)}
+        aria-label="Емодзі, GIF і стікери"
+        aria-pressed={activeTab !== null}
+        onClick={togglePicker}
       >
-        <SmileyIcon size={22} weight={activeTab === 'emoji' ? 'duotone' : 'regular'} />
-      </IconButton>
-      <IconButton
-        size={toolbarActionSize}
-        className={cx(styles.toolbarButton, activeTab === 'gif' && styles.toolbarButtonActive)}
-        aria-label="GIF"
-        aria-pressed={activeTab === 'gif'}
-        onClick={() => openPicker('gif')}
-      >
-        <GifIcon size={22} weight={activeTab === 'gif' ? 'duotone' : 'regular'} />
-      </IconButton>
-      <IconButton
-        size={toolbarActionSize}
-        className={cx(styles.toolbarButton, activeTab === 'sticker' && styles.toolbarButtonActive)}
-        aria-label="Стікери"
-        aria-pressed={activeTab === 'sticker'}
-        onClick={() => openPicker('sticker')}
-      >
-        <StickerIcon size={22} weight={activeTab === 'sticker' ? 'duotone' : 'regular'} />
+        <SmileyIcon size={22} weight={activeTab !== null ? 'duotone' : 'regular'} />
       </IconButton>
     </>
   );
 
-  // Compact (phone/tablet): one entry point that reopens whatever tab was used last,
-  // instead of three icons competing for a narrow toolbar.
+  // Compact (phone/tablet): the same entry point, which turns into the way back to the keyboard.
   const compactToolbarButton = (
     <div className={styles.toolbarRight}>
+      {accessories}
       <IconButton
         size={toolbarActionSize}
         className={cx(styles.toolbarButton, activeTab !== null && styles.toolbarButtonActive)}
@@ -615,7 +618,13 @@ export function MessageComposer({
             <MessageEditorSlotProvider slot={slot}>{children}</MessageEditorSlotProvider>
           </div>
         </MessageInputSurface>
-        <ComposerAction hasContent={canSend} onSend={handleSend} />
+        <ComposerAction
+          hasContent={canSend}
+          onSend={handleSend}
+          options={sendOptions}
+          draft={draftState}
+          composer={commands}
+        />
       </div>
       {isCompact && activeTab && !isNativeShell() && (
         <div className={styles.mobileSheet} style={{ height: keyboardHeight }}>

@@ -23,6 +23,7 @@ import { ChannelMembersPanel } from '@/features/communities/memberships/componen
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
 import { ConversationProvider } from '@/features/social/conversation-scope/store';
 import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
+import { schedulingExtension } from '@/features/social/scheduling/extension';
 import { useStarMeExtension } from '@/features/star-me/hooks/useStarMeExtension';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
@@ -74,7 +75,10 @@ export default function ChannelContent() {
   const query = useChannel(workspaceId, channelId);
   const unavailable = useTrackConversation('channels', workspaceId, channelId, query, '/channels');
   const starMe = useStarMeExtension(workspaceId);
-  const extensions = useMemo(() => (starMe ? [starMe] : []), [starMe]);
+  const extensions = useMemo(
+    () => (starMe ? [starMe, schedulingExtension] : [schedulingExtension]),
+    [starMe],
+  );
 
   if (!channelId) return <NoChannelSelected />;
   if (query.isPending) return <Page />;
