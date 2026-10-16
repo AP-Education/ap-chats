@@ -9,11 +9,9 @@ import {
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
-import { mediaKey } from '@/features/social/media-viewer/media-list';
-import { useMediaViewer } from '@/features/social/media-viewer/stores/media-viewer-context';
-
 import { fileExtension, formatFileSize } from '../../attachments/file-presentation';
 import type { Attachment } from '../../attachments/types';
+import { mediaKey, useMediaViewer } from '../../media-viewer-context';
 import { AttachmentPlayer } from './AttachmentPlayer';
 import { useAttachmentDownload } from './useAttachmentAccess';
 

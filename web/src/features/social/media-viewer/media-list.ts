@@ -1,11 +1,8 @@
 import { isLoneGifLink } from '../messaging/gifs/gif-links';
+import { mediaKey } from '../messaging/media-viewer-context';
 import type { HistoryItem } from '../messaging/types';
 import { isMessageItem } from '../messaging/types';
 import type { MediaSource, ViewerMedia } from './types';
-
-export function mediaKey(messageId: string, part: string): string {
-  return `${messageId}:${part}`;
-}
 
 /** Every photo, video and GIF in the loaded history, oldest first: what the viewer swipes through. */
 export function conversationMedia(items: HistoryItem[]): ViewerMedia[] {

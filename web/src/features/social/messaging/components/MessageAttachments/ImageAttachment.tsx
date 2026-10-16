@@ -1,10 +1,8 @@
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
-import { mediaKey } from '@/features/social/media-viewer/media-list';
-import { useMediaViewer } from '@/features/social/media-viewer/stores/media-viewer-context';
-
 import type { Attachment } from '../../attachments/types';
+import { mediaKey, useMediaViewer } from '../../media-viewer-context';
 import { MediaFrame } from '../MediaFrame/MediaFrame';
 import { attachmentSize } from './attachment-size';
 import { ImageStatus } from './ImageStatus';

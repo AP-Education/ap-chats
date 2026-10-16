@@ -1,9 +1,9 @@
 import { type PropsWithChildren, useMemo } from 'react';
 
+import { type MediaViewer, MediaViewerContext } from '../../messaging/media-viewer-context';
 import type { HistoryItem } from '../../messaging/types';
 import { MediaViewer as MediaViewerScreen } from '../components/MediaViewer/MediaViewer';
 import { useMediaGallery } from '../hooks/useMediaGallery';
-import { type MediaViewer, MediaViewerContext } from '../stores/media-viewer-context';
 import type { ViewerActions } from '../types';
 
 interface MediaViewerProviderProps extends PropsWithChildren {

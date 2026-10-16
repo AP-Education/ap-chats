@@ -1,10 +1,8 @@
 import { createStyles } from 'antd-style';
 
-import { mediaKey } from '@/features/social/media-viewer/media-list';
-import { useMediaViewer } from '@/features/social/media-viewer/stores/media-viewer-context';
-
 import type { Attachment } from '../../attachments/types';
 import type { Album, Tile } from '../../media/album-layout';
+import { mediaKey, useMediaViewer } from '../../media-viewer-context';
 import { ImageStatus } from './ImageStatus';
 import { useAttachmentImage } from './useAttachmentAccess';
 
