@@ -42,6 +42,8 @@ export type NativeToWebMessage =
   | { type: 'navigation/back' };
 
 export type WebToNativeMessage =
+  /** A new document started: what the previous one announced (tabs, back, readiness) is gone. */
+  | { type: 'page/started' }
   | { type: 'auth/sign-out' }
   | { type: 'auth/refresh-request' }
   | { type: 'calls/connect'; payload: NativeCallConnectPayload }

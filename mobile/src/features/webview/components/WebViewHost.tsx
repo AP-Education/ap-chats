@@ -167,6 +167,15 @@ export function WebViewHost() {
     );
   }
 
+  // Android reports the page's own history steps as loads too, so the page says when it starts.
+  function startPage() {
+    input.close();
+    // Hidden rather than dropped: the page lives inside a tab's host until it reloads.
+    setTabBar((current) => current && { ...current, visible: false });
+    pageTakesBack.current = false;
+    useNotificationStore.getState().setWebReady(false);
+  }
+
   function sendBackToPage(): boolean {
     if (!pageTakesBack.current) return false;
 
@@ -183,6 +192,8 @@ export function WebViewHost() {
     }
     if (isComposerInputRequest(message)) {
       input.request(message);
+    } else if (message.type === 'page/started') {
+      startPage();
     } else if (message.type === 'notifications/ready') {
       useNotificationStore.getState().setWebReady(true);
     } else if (message.type === 'notifications/ack') {
@@ -312,14 +323,7 @@ export function WebViewHost() {
                 contentInsetAdjustmentBehavior="never"
                 scrollEnabled={false}
                 bounces={false}
-                onLoadStart={() => {
-                  clearPageInsets();
-                  input.close();
-                  // Hidden rather than dropped: the page lives inside a tab's host until it reloads.
-                  setTabBar((current) => current && { ...current, visible: false });
-                  pageTakesBack.current = false;
-                  useNotificationStore.getState().setWebReady(false);
-                }}
+                onLoadStart={clearPageInsets}
                 applicationNameForUserAgent={APP_SHELL_USER_AGENT}
                 onNavigationStateChange={(event) => rememberLocation(event.url, webUrl)}
                 onMessage={handleMessage}
