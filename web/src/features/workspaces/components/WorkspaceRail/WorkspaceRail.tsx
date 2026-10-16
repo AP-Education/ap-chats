@@ -1,14 +1,13 @@
 import { useIsAppActive, useOpenApp } from '@ap-education/shell-sdk';
-import { NavAddTile, NavTile, useIsMobile } from '@ap-education/ui';
+import { NavAddTile, NavTile } from '@ap-education/ui';
 import { ArrowClockwiseIcon } from '@phosphor-icons/react';
 import { Skeleton } from 'antd';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { Avatar } from '@/shared/ui/Avatar';
-
 import { useActiveWorkspace } from '../../hooks/useActiveWorkspace';
 import { WorkspaceFormModal } from '../WorkspaceFormModal';
+import { WorkspaceTile } from './WorkspaceTile';
 
 interface WorkspaceRailProps {
   /** Whether the page is the team's; from direct messages or calls a workspace leads to its channels. */
@@ -24,7 +23,6 @@ export function WorkspaceRail({ onTeam }: WorkspaceRailProps) {
   const openApp = useOpenApp();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const isMobile = useIsMobile();
   const [creating, setCreating] = useState(false);
 
   function handleSelect(workspaceId: string) {
@@ -63,20 +61,12 @@ export function WorkspaceRail({ onTeam }: WorkspaceRailProps) {
   return (
     <>
       {(workspaces ?? []).map((item) => (
-        <NavTile
+        <WorkspaceTile
           key={item.id}
-          label={item.name}
+          workspace={item}
           active={chatsActive && onTeam && item.id === workspace?.id}
-          onClick={() => handleSelect(item.id)}
-        >
-          <Avatar
-            path={item.avatarPath}
-            alt={item.name}
-            size={isMobile ? 44 : 40}
-            shape="square"
-            lazy={false}
-          />
-        </NavTile>
+          onSelect={() => handleSelect(item.id)}
+        />
       ))}
       <NavAddTile label="Створити робочий простір" onClick={() => setCreating(true)} />
       <WorkspaceFormModal open={creating} onClose={() => setCreating(false)} />
