@@ -1,6 +1,7 @@
+import { useMobileMenu } from '@ap-education/shell-sdk';
 import { Drawer } from 'antd';
 import { createStyles, cx } from 'antd-style';
-import type { PropsWithChildren } from 'react';
+import { type PropsWithChildren, useEffect, useEffectEvent } from 'react';
 
 const insetTop = 'var(--app-inset-top, env(safe-area-inset-top, 0px))';
 const insetBottom = 'var(--app-inset-bottom, env(safe-area-inset-bottom, 0px))';
@@ -45,6 +46,15 @@ interface BottomSheetProps extends PropsWithChildren {
 /** A sheet of actions rising from the bottom of a phone screen. */
 export function BottomSheet({ open, onClose, height, children, ...rest }: BottomSheetProps) {
   const { styles } = useStyles();
+  const { isOpen: menuOpen } = useMobileMenu();
+  const closeForMenu = useEffectEvent(() => {
+    if (open) onClose();
+  });
+
+  // The app's menu slides in over the page, so a sheet left open would float above it.
+  useEffect(() => {
+    if (menuOpen) closeForMenu();
+  }, [menuOpen]);
 
   // Grows by the keyboard so as much stays in view above it, short of the top of the screen.
   const size = height
