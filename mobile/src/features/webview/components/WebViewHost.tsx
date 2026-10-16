@@ -2,7 +2,7 @@ import { selectionAsync } from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Linking, Platform, StyleSheet, View } from 'react-native';
+import { AppState, BackHandler, Linking, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Portal } from 'react-native-teleport';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
@@ -26,6 +26,7 @@ import {
 } from '../../composer';
 import { NativeTabs } from '../../navigation/components/NativeTabs';
 import { OverlayTabs } from '../../navigation/components/OverlayTabs';
+import { SystemBack } from '../../navigation/components/SystemBack';
 import type { TabBarModel } from '../../navigation/types';
 import { changePushPermission } from '../../push/api/change-push-permission';
 import { dismissPresentedNotifications } from '../../push/api/presented-notifications';
@@ -116,6 +117,8 @@ export function WebViewHost() {
   }, []);
   const reservedInset = edgeToEdge ? 0 : insets.bottom;
   const input = useComposerInput(sendInputState, handleRoom, { reservedInset, containerHeight });
+  // The page says whether it takes Android's back; a new document starts without it.
+  const pageTakesBack = useRef(false);
   // Opens on the page the person left; unset until the stored one is read, a moment at launch.
   const [startUrl, setStartUrl] = useState<string>();
 
@@ -164,6 +167,13 @@ export function WebViewHost() {
     );
   }
 
+  function sendBackToPage(): boolean {
+    if (!pageTakesBack.current) return false;
+
+    webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'navigation/back' }));
+    return true;
+  }
+
   function handleMessage(event: WebViewMessageEvent) {
     let message: WebToNativeMessage;
     try {
@@ -207,6 +217,11 @@ export function WebViewHost() {
       useAppearanceStore.getState().setPalette(message.payload);
     } else if (message.type === 'navigation/tabs') {
       setTabBar(message.payload);
+    } else if (message.type === 'navigation/handles-back') {
+      pageTakesBack.current = message.handles;
+    } else if (message.type === 'navigation/back-unhandled') {
+      // The system's own back: Android 12+ and MainActivity send the app to the background.
+      BackHandler.exitApp();
     } else if (message.type === 'haptics/selection') {
       void selectionAsync().catch(() => undefined);
     } else if (message.type === 'notifications/message-sound') {
@@ -273,6 +288,7 @@ export function WebViewHost() {
       }}
     >
       <MessageNotificationSound request={messageSoundRequest} />
+      <SystemBack onBack={() => input.back() || sendBackToPage()} />
       <View style={[styles.webviewWrapper, { paddingBottom: reservedInset }]}>
         {startUrl && (
           <Portal
@@ -301,6 +317,7 @@ export function WebViewHost() {
                   input.close();
                   // Hidden rather than dropped: the page lives inside a tab's host until it reloads.
                   setTabBar((current) => current && { ...current, visible: false });
+                  pageTakesBack.current = false;
                   useNotificationStore.getState().setWebReady(false);
                 }}
                 applicationNameForUserAgent={APP_SHELL_USER_AGENT}
