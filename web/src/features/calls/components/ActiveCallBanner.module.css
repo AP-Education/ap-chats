@@ -1,0 +1,85 @@
+/* The header's translucent panel material, frosted, the same as the pinned strip above it. */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-padding-sm);
+  flex-shrink: 0;
+  min-height: 56px;
+  padding: 0 12px 0 20px;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  background: var(--glass, rgba(255, 255, 255, 0.86));
+  backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
+}
+
+@media (max-width: 768px) {
+  .banner {
+    gap: 10px;
+    padding-inline: 12px 8px;
+  }
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--call-accept);
+  color: var(--ant-color-text-light-solid);
+  animation: ripple 1.8s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon {
+    animation: none;
+  }
+}
+
+.info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 18px;
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ant-color-text);
+  font-size: var(--ant-font-size-sm);
+  font-weight: 600;
+}
+
+.duration {
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Doubled to outweigh antd's own primary button colours. */
+.join.join:not(:disabled) {
+  background: var(--call-accept);
+  color: var(--ant-color-text-light-solid);
+}
+
+.join.join:not(:disabled):hover {
+  background: var(--call-accept-hover);
+}
+
+.dismiss {
+  color: var(--ant-color-text-secondary);
+}
+
+@keyframes ripple {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--call-accept) 45%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}

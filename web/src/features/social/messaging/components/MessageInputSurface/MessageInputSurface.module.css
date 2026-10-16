@@ -1,0 +1,66 @@
+/* Frosted over the chat wallpaper and the messages scrolling beneath it. */
+.surface {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--composer-radius, var(--ant-border-radius-lg));
+  background: var(--glass, rgba(255, 255, 255, 0.86));
+  backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
+  box-shadow:
+    0 1px 2px rgba(23, 46, 42, 0.12),
+    0 6px 20px rgba(23, 46, 42, 0.06);
+  transition: box-shadow 0.15s ease;
+}
+
+/* Focus lifts the surface instead of outlining it: a ring around the rounded corners reads as a
+   stray border, and the caret already shows where typing goes. */
+.surface:focus-within {
+  box-shadow:
+    0 1px 2px rgba(23, 46, 42, 0.14),
+    0 8px 24px rgba(23, 46, 42, 0.12);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .surface {
+    background: var(--ant-color-bg-container);
+  }
+}
+
+.surface[data-compact] {
+  border: 1px solid var(--ant-color-border);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-bg-container);
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.surface[data-compact]:focus-within {
+  border-color: var(--ant-color-primary-border);
+  box-shadow: none;
+}
+
+.context {
+  padding: 10px 12px 0;
+}
+
+.line {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 8px;
+}
+
+@media (max-width: 768px) {
+  .line {
+    padding: var(--ant-padding-xxs) var(--ant-padding-xxs) var(--ant-padding-xxs) var(--ant-padding);
+  }
+}
+
+.surface[data-compact] .line {
+  padding: 4px 6px 4px 10px;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}

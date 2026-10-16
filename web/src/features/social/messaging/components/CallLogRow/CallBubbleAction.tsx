@@ -1,18 +1,11 @@
-import type { CSSProperties } from 'react';
-
 import { callActionLabel } from '@/features/calls/callActionLabel';
 import { CallIcon } from '@/features/calls/callIcons';
-import { CALL_PALETTE } from '@/features/calls/callTheme';
+import { CALL_ACCEPT_COLOURS } from '@/features/calls/callTheme';
 import { useKnownCallAction } from '@/features/calls/hooks/useKnownCallAction';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import type { CallHistoryItem } from '../../types';
 import styles from './CallBubbleAction.module.css';
-
-const ACCEPT_COLOURS = {
-  '--call-accept': CALL_PALETTE.accept,
-  '--call-accept-hover': CALL_PALETTE.acceptHover,
-} as CSSProperties;
 
 /** Telegram's trailing call button: joins a call that still runs, otherwise calls back. */
 export function CallBubbleAction({ call }: { call: CallHistoryItem['call'] }) {
@@ -24,7 +17,7 @@ export function CallBubbleAction({ call }: { call: CallHistoryItem['call'] }) {
     <button
       type="button"
       className={styles.action}
-      style={ACCEPT_COLOURS}
+      style={CALL_ACCEPT_COLOURS}
       data-live={action.joinable || undefined}
       aria-label={label}
       disabled={action.busy || action.pending}
