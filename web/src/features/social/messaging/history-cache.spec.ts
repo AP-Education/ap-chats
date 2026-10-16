@@ -53,6 +53,7 @@ function page(items: MessageHistoryItem[], hasNewer = false): HistoryPage {
     hasNewer,
     newerCursor: null,
     readState: null,
+    peerReadSeq: null,
   };
 }
 

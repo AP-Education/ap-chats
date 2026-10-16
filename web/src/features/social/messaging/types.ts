@@ -95,6 +95,8 @@ export interface HistoryPage {
   hasNewer: boolean;
   newerCursor: string | null;
   readState: ReadState | null;
+  /** How far the others have read; null where the conversation shares no read receipts. */
+  peerReadSeq: string | null;
 }
 
 // The command this feature works with: full attachment objects, since the

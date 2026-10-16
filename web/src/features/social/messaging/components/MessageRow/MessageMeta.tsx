@@ -1,5 +1,13 @@
-import { CheckIcon, ClockIcon, PushPinIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import {
+  CheckIcon,
+  ChecksIcon,
+  ClockIcon,
+  PushPinIcon,
+  WarningCircleIcon,
+} from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+
+import { useIsReadByPeer } from '@/features/social/read-receipts/stores/peer-read-context';
 
 import type { DeliveryStatus } from '../../types';
 import { useMessageActionScope } from './MessageActionScope';
@@ -112,15 +120,16 @@ export function MessageMeta({ placement }: { placement: MessageMetaPlacement }) 
       <time dateTime={item.message.createdAt} title={fullFormat.format(createdAt)}>
         {timeFormat.format(createdAt)}
       </time>
-      {isOwn && <DeliveryMark delivery={delivery} />}
+      {isOwn && <DeliveryMark delivery={delivery} seq={item.seq} />}
     </span>
   );
 }
 
 // One glyph of one size on every own message: settling a send swaps the glyph in place,
 // so neither the time nor the bubble moves.
-function DeliveryMark({ delivery }: { delivery: DeliveryStatus | undefined }) {
+function DeliveryMark({ delivery, seq }: { delivery: DeliveryStatus | undefined; seq: string }) {
   const { styles } = useStyles();
+  const isRead = useIsReadByPeer(seq);
 
   if (delivery === 'failed')
     return (
@@ -132,5 +141,6 @@ function DeliveryMark({ delivery }: { delivery: DeliveryStatus | undefined }) {
       />
     );
   if (delivery) return <ClockIcon size={14} aria-label="Надсилається" />;
+  if (isRead) return <ChecksIcon size={14} aria-label="Прочитано" />;
   return <CheckIcon size={14} aria-label="Надіслано" />;
 }
