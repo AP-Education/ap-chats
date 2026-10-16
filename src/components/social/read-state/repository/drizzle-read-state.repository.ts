@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, count, eq, gt, isNotNull, isNull, lte, ne, or, sql } from 'drizzle-orm';
+import { and, count, eq, gt, isNotNull, isNull, lte, max, min, ne, or, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import {
@@ -11,13 +12,27 @@ import {
   chatMessages,
 } from '@/database/drizzle/schema';
 
-import type { WorkspaceChannelUnread } from '../types';
+import type { ReadPosition, ReadPositionQuery, WorkspaceChannelUnread } from '../types';
 import { ReadStateRepository } from './read-state.repository';
 
 // A badge never needs the exact count past this: capping what gets scanned keeps
 // a channel someone hasn't opened in months from turning every unread check into
 // a full range scan.
 const UNREAD_COUNT_CAP = 100;
+
+// A channel_entries row is either a message or a call, never both: a call someone else
+// started counts as unread the same way a message from someone else does, so a missed
+// call badges the channel instead of vanishing silently.
+function unreadFor(memberId: string) {
+  return or(
+    and(
+      isNotNull(channelEntries.messageId),
+      ne(chatMessages.authorMemberId, memberId),
+      isNull(chatMessages.deletedAt),
+    ),
+    and(isNotNull(channelEntries.callId), ne(calls.startedByMemberId, memberId)),
+  );
+}
 
 @Injectable()
 export class DrizzleReadStateRepository extends ReadStateRepository {
@@ -37,18 +52,7 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
         and(
           eq(channelEntries.channelId, channelMemberships.channelId),
           gt(channelEntries.seq, channelMemberships.lastReadEntrySeq),
-          // A channel_entries row is either a message or a call, never both —
-          // a call someone else started counts as unread the same way a
-          // message from someone else does, so a missed call badges the
-          // channel instead of vanishing silently.
-          or(
-            and(
-              isNotNull(channelEntries.messageId),
-              ne(chatMessages.authorMemberId, memberId),
-              isNull(chatMessages.deletedAt),
-            ),
-            and(isNotNull(channelEntries.callId), ne(calls.startedByMemberId, memberId)),
-          ),
+          unreadFor(memberId),
         ),
       )
       .orderBy(channelEntries.seq)
@@ -81,6 +85,63 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
     }));
   }
 
+  async position({
+    channelId,
+    memberId,
+    ceiling,
+    withPeerRead,
+  }: ReadPositionQuery): Promise<ReadPosition> {
+    // One capped scan both counts what is unread and finds where it starts.
+    const unread = this.txHost.tx
+      .select({ seq: channelEntries.seq })
+      .from(channelEntries)
+      .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .leftJoin(calls, eq(calls.id, channelEntries.callId))
+      .where(
+        and(
+          eq(channelEntries.channelId, channelId),
+          gt(channelEntries.seq, channelMemberships.lastReadEntrySeq),
+          lte(channelEntries.seq, ceiling),
+          unreadFor(memberId),
+        ),
+      )
+      .orderBy(channelEntries.seq)
+      .limit(UNREAD_COUNT_CAP)
+      .as('unread');
+
+    const peers = alias(channelMemberships, 'peers');
+    const peerRead = this.txHost.tx
+      .select({ seq: max(peers.lastReadEntrySeq).as('peer_read_seq') })
+      .from(peers)
+      .where(
+        and(
+          eq(peers.channelId, channelId),
+          ne(peers.memberId, memberId),
+          withPeerRead ? undefined : sql`false`,
+        ),
+      )
+      .as('peer_read');
+
+    const [row] = await this.txHost.tx
+      .select({
+        lastReadSeq: channelMemberships.lastReadEntrySeq,
+        unreadCount: count(unread.seq),
+        firstUnreadSeq: min(unread.seq),
+        peerReadSeq: peerRead.seq,
+      })
+      .from(channelMemberships)
+      .leftJoinLateral(unread, sql`true`)
+      .leftJoin(peerRead, sql`true`)
+      .where(
+        and(eq(channelMemberships.channelId, channelId), eq(channelMemberships.memberId, memberId)),
+      )
+      .groupBy(channelMemberships.lastReadEntrySeq, peerRead.seq);
+    if (!row) return { state: null, firstUnreadSeq: null, peerReadSeq: null };
+
+    const state = { lastReadEntrySeq: row.lastReadSeq.toString(), unreadCount: row.unreadCount };
+    return { state, firstUnreadSeq: row.firstUnreadSeq, peerReadSeq: row.peerReadSeq };
+  }
+
   async lastReadSeq(channelId: string, memberId: string): Promise<bigint | null> {
     const [row] = await this.txHost.tx
       .select({ seq: channelMemberships.lastReadEntrySeq })
@@ -108,48 +169,5 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
       .where(
         and(eq(channelMemberships.channelId, channelId), eq(channelMemberships.memberId, memberId)),
       );
-  }
-
-  async unreadCount(
-    channelId: string,
-    memberId: string,
-    after: bigint,
-    ceiling: bigint,
-  ): Promise<number> {
-    return this.cappedUnreadCount(channelId, memberId, after, ceiling);
-  }
-
-  /** Counts unread entries up to `UNREAD_COUNT_CAP`, stopping the scan there rather than at the end of the range. */
-  private async cappedUnreadCount(
-    channelId: string,
-    memberId: string,
-    after: bigint,
-    ceiling?: bigint,
-  ): Promise<number> {
-    const capped = this.txHost.tx
-      .select({ seq: channelEntries.seq })
-      .from(channelEntries)
-      .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
-      .leftJoin(calls, eq(calls.id, channelEntries.callId))
-      .where(
-        and(
-          eq(channelEntries.channelId, channelId),
-          gt(channelEntries.seq, after),
-          ceiling === undefined ? undefined : lte(channelEntries.seq, ceiling),
-          or(
-            and(
-              isNotNull(channelEntries.messageId),
-              ne(chatMessages.authorMemberId, memberId),
-              isNull(chatMessages.deletedAt),
-            ),
-            and(isNotNull(channelEntries.callId), ne(calls.startedByMemberId, memberId)),
-          ),
-        ),
-      )
-      .orderBy(channelEntries.seq)
-      .limit(UNREAD_COUNT_CAP)
-      .as('capped');
-    const [row] = await this.txHost.tx.select({ count: count() }).from(capped);
-    return row?.count ?? 0;
   }
 }

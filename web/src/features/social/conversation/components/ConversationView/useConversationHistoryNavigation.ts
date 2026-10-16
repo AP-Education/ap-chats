@@ -5,7 +5,7 @@ import { useConversation, useConversationScope } from '@/features/social/convers
 import { flashMessage } from '@/features/social/messaging/flashMessage';
 import { useChannelRealtime } from '@/features/social/messaging/hooks/useChannelRealtime';
 import { useMessageHistory } from '@/features/social/messaging/hooks/useMessageHistory';
-import type { HistoryPage } from '@/features/social/messaging/types';
+import type { HistoryPage, HistoryWindow } from '@/features/social/messaging/types';
 import { useActiveConversationReadState } from '@/features/social/read-state/hooks/useActiveConversationReadState';
 
 const emptyPages: HistoryPage[] = [];
@@ -19,6 +19,20 @@ export function useConversationHistoryNavigation() {
   const history = useMessageHistory(workspaceId, channelId, historyTargetId);
   const pages = history.data?.pages ?? emptyPages;
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
+  const historyWindow: HistoryWindow = {
+    pages,
+    targetMessageId,
+    older: {
+      available: history.hasPreviousPage,
+      loading: history.isFetchingPreviousPage,
+      load: () => history.fetchPreviousPage(),
+    },
+    newer: {
+      available: history.hasNextPage,
+      loading: history.isFetchingNextPage,
+      load: () => history.fetchNextPage(),
+    },
+  };
 
   useActiveConversationReadState(workspaceId, channelId, history.data?.pages[0]);
   useChannelRealtime(workspaceId, channelId, historyTargetId);
@@ -39,5 +53,5 @@ export function useConversationHistoryNavigation() {
     [clearSelection, setParams, targetMessageId],
   );
 
-  return { history, pages, items, historyTargetId, targetMessageId, onJump };
+  return { history, historyWindow, items, historyTargetId, onJump };
 }

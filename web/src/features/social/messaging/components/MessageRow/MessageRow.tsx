@@ -4,7 +4,7 @@ import { memo, useLayoutEffect, useRef } from 'react';
 import { useConversation } from '@/features/social/conversation-scope/store';
 
 import type { AttachmentDraft } from '../../attachments/types';
-import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
+import { useTimelineActions } from '../../timeline-actions-context';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';
 import { Bubble } from '../Bubble/Bubble';
 import { SELECTION_GUTTER } from '../HistoryRun/HistoryRun';
@@ -113,30 +113,21 @@ const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '
 
 interface MessageRowProps {
   item: MessageHistoryItem;
-  actionContext: ActionContext;
-  actions: ConversationAction[];
-  onAction: (action: ConversationAction, target: ActionTarget) => void;
-  onJump: (messageId: string) => void;
-  onEdit: (item: MessageHistoryItem, markdown: string, overwrite?: boolean) => Promise<void>;
   delivery?: DeliveryStatus;
   pendingAttachments?: AttachmentDraft[];
 }
 
 export const MessageRow = memo(function MessageRow({
   item,
-  actionContext,
-  actions,
-  onAction,
-  onJump,
-  onEdit,
   delivery,
   pendingAttachments,
 }: MessageRowProps) {
   const { styles, cx } = useStyles();
+  const { viewer } = useTimelineActions();
   const authorName = item.author.displayName ?? 'Ім’я недоступне';
-  const isOwnMessage = item.message.authorMemberId === actionContext.memberId;
+  const isOwnMessage = item.message.authorMemberId === viewer.memberId;
   const mentionsMe = !isOwnMessage && Boolean(item.mentionsMe);
-  const isReplyToMe = !isOwnMessage && item.reply?.authorMemberId === actionContext.memberId;
+  const isReplyToMe = !isOwnMessage && item.reply?.authorMemberId === viewer.memberId;
   const highlighted = mentionsMe || isReplyToMe;
   const isSelected = useConversation((state) => state.selectedIds.includes(item.message.id));
   const hasSelection = useConversation((state) => state.selectedIds.length > 0);
@@ -157,9 +148,6 @@ export const MessageRow = memo(function MessageRow({
       value={{
         item,
         author: authorName,
-        context: actionContext,
-        actions,
-        onAction,
         editing,
         delivery,
         pendingAttachments,
@@ -214,12 +202,11 @@ export const MessageRow = memo(function MessageRow({
           />
         )}
         <Bubble own={isOwnMessage} variant={layout.variant} tone={tone} wide={editing}>
-          <MessageHeader onJump={onJump} />
+          <MessageHeader />
           <MessageBody
             layout={layout}
             contentRef={contentRef}
             minHeight={contentHeight.current}
-            onEdit={onEdit}
             onCloseEdit={() => setEditingId(null)}
           />
           {delivery === 'failed' && <UnsentNotice rowId={item.id} />}

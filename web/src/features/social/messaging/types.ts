@@ -95,6 +95,23 @@ export interface HistoryPage {
   hasNewer: boolean;
   newerCursor: string | null;
   readState: ReadState | null;
+  /** How far the others have read; null where the conversation shares no read receipts. */
+  peerReadSeq: string | null;
+}
+
+/** One end of the loaded history: whether more lies past it, and how to bring it in. */
+export interface HistoryEdge {
+  available: boolean;
+  loading: boolean;
+  load: () => Promise<unknown>;
+}
+
+/** The stretch of history a timeline shows, opened at a linked message or where reading stopped. */
+export interface HistoryWindow {
+  pages: HistoryPage[];
+  targetMessageId?: string;
+  older: HistoryEdge;
+  newer: HistoryEdge;
 }
 
 // The command this feature works with: full attachment objects, since the
