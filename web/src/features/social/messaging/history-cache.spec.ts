@@ -29,7 +29,13 @@ function item(id: string, seq: string): MessageHistoryItem {
       editedAt: null,
       deletedAt: null,
     },
-    author: { memberId: 'member', displayName: 'Member', avatarPath: null, roleColor: null },
+    author: {
+      memberId: 'member',
+      displayName: 'Member',
+      avatarPath: null,
+      isBot: false,
+      roleColor: null,
+    },
     reply: null,
     forwardedFrom: null,
     pin: null,
@@ -47,6 +53,7 @@ function page(items: MessageHistoryItem[], hasNewer = false): HistoryPage {
     hasNewer,
     newerCursor: null,
     readState: null,
+    peerReadSeq: null,
   };
 }
 

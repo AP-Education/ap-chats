@@ -6,10 +6,11 @@ import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import type { MemberSummary } from '@/features/workspaces/types';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
 import { Avatar } from '@/shared/ui/Avatar';
 
-import { type PersonResult, searchPeople } from '../../api/direct-messages-api';
+import { searchPeople } from '../../api/direct-messages-api';
 import { useOpenDirectMessage } from '../../hooks/useOpenDirectMessage';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -71,7 +72,7 @@ export function FindPersonDialog({
   const results = people.data ?? [];
   const showEmpty = hasQuery && !searching && !people.isError && results.length === 0;
 
-  async function choose(person: PersonResult) {
+  async function choose(person: MemberSummary) {
     try {
       await openConversation(person.memberId);
       onClose();

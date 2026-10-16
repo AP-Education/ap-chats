@@ -6,6 +6,7 @@ export interface MemberProfile {
   memberId: string;
   displayName: string | null;
   avatarPath: string | null;
+  isBot: boolean;
   accessLevel: WorkspaceAccessLevel;
   roles: RoleBadge[];
   isSelf: boolean;

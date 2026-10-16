@@ -1,5 +1,5 @@
 {
-  "id": "0534d6a8-1841-4d5c-af85-d74d6e5051f1",
+  "id": "7732de65-c48d-4a04-9934-69cd5271563e",
   "prevId": "65f7c527-de4f-4313-bca4-8286e0cb22a9",
   "version": "7",
   "dialect": "postgresql",
@@ -1966,17 +1966,10 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.scheduled_messages": {
-      "name": "scheduled_messages",
+    "public.star_me_question_messages": {
+      "name": "star_me_question_messages",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
         "workspace_id": {
           "name": "workspace_id",
           "type": "uuid",
@@ -1989,165 +1982,49 @@
           "primaryKey": false,
           "notNull": true
         },
-        "author_member_id": {
-          "name": "author_member_id",
+        "question_id": {
+          "name": "question_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "content_markdown": {
-          "name": "content_markdown",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reply_to_message_id": {
-          "name": "reply_to_message_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "quote_text": {
-          "name": "quote_text",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "send_at": {
-          "name": "send_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "revision": {
-          "name": "revision",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "request_digest": {
-          "name": "request_digest",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "client_nonce": {
-          "name": "client_nonce",
+        "message_id": {
+          "name": "message_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
-        },
-        "failure": {
-          "name": "failure",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
         }
       },
-      "indexes": {
-        "scheduled_messages_author_idx": {
-          "name": "scheduled_messages_author_idx",
-          "columns": [
-            {
-              "expression": "channel_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "author_member_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "send_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "scheduled_messages_due_idx": {
-          "name": "scheduled_messages_due_idx",
-          "columns": [
-            {
-              "expression": "send_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"scheduled_messages\".\"failure\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
-        "scheduled_messages_channel_workspace_fk": {
-          "name": "scheduled_messages_channel_workspace_fk",
-          "tableFrom": "scheduled_messages",
-          "tableTo": "channels",
-          "columnsFrom": ["workspace_id", "channel_id"],
-          "columnsTo": ["workspace_id", "id"],
+        "star_me_question_messages_question_fk": {
+          "name": "star_me_question_messages_question_fk",
+          "tableFrom": "star_me_question_messages",
+          "tableTo": "chat_messages",
+          "columnsFrom": ["workspace_id", "channel_id", "question_id"],
+          "columnsTo": ["workspace_id", "channel_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "scheduled_messages_author_workspace_fk": {
-          "name": "scheduled_messages_author_workspace_fk",
-          "tableFrom": "scheduled_messages",
-          "tableTo": "workspace_members",
-          "columnsFrom": ["workspace_id", "author_member_id"],
-          "columnsTo": ["workspace_id", "id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "scheduled_messages_reply_channel_fk": {
-          "name": "scheduled_messages_reply_channel_fk",
-          "tableFrom": "scheduled_messages",
+        "star_me_question_messages_message_fk": {
+          "name": "star_me_question_messages_message_fk",
+          "tableFrom": "star_me_question_messages",
           "tableTo": "chat_messages",
-          "columnsFrom": ["workspace_id", "channel_id", "reply_to_message_id"],
+          "columnsFrom": ["workspace_id", "channel_id", "message_id"],
           "columnsTo": ["workspace_id", "channel_id", "id"],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "scheduled_messages_channel_author_nonce_key": {
-          "name": "scheduled_messages_channel_author_nonce_key",
-          "nullsNotDistinct": false,
-          "columns": ["channel_id", "author_member_id", "client_nonce"]
+      "compositePrimaryKeys": {
+        "star_me_question_messages_question_id_message_id_pk": {
+          "name": "star_me_question_messages_question_id_message_id_pk",
+          "columns": ["question_id", "message_id"]
         }
       },
+      "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "scheduled_messages_revision_check": {
-          "name": "scheduled_messages_revision_check",
-          "value": "\"scheduled_messages\".\"revision\" >= 1"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.user_profiles": {
@@ -2178,6 +2055,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "is_bot": {
+          "name": "is_bot",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "synced_at": {
           "name": "synced_at",

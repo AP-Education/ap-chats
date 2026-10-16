@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 
+import { DrizzleWorkspaceMembersRepository } from '@/components/workspaces/members/repository/drizzle-workspace-members.repository';
 import * as schema from '@/database/drizzle/schema';
 import { seedConversations } from '@/testing/conversations';
 import { directMessageServices } from '@/testing/direct-messages';
@@ -152,5 +153,27 @@ test('direct messages across workspaces on PostgreSQL', async (t) => {
 
     const unmuted = await conversations.mute(annAtOffice, channelId, 'unmute');
     assert.equal(unmuted.notification.isMuted, false, 'unmuting brings the sound back');
+  });
+
+  await t.test('a bot takes no direct messages and is no one to talk to', async () => {
+    const ann = await seed.person('Ann');
+    const bob = await seed.person('Bob');
+    const starMe = await seed.person('StarMe', { isBot: true });
+    const office = await seed.workspace();
+    const annAtOffice = await seed.join(office, ann);
+    await seed.join(office, bob);
+    const starMeAtOffice = await seed.join(office, starMe);
+    const people = new DrizzleWorkspaceMembersRepository(transactionHost(db) as never);
+
+    await assert.rejects(
+      conversations.findOrCreate(annAtOffice, starMeAtOffice.id),
+      ForbiddenException,
+    );
+
+    const found = await people.search(office, annAtOffice.id, '');
+    assert.deepEqual(
+      found.map(({ displayName }) => displayName),
+      ['Bob'],
+    );
   });
 });

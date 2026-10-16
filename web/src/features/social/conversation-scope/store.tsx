@@ -2,7 +2,15 @@ import { createContext, type PropsWithChildren, useContext, useState } from 'rea
 import { createStore, type StoreApi } from 'zustand';
 import { useStore } from 'zustand/react';
 
-export type ComposerIntent = { kind: 'reply'; messageId: string; quoteText?: string } | null;
+import type { MemberSummary } from '@/features/workspaces/types';
+
+import { type ConversationExtension, ConversationExtensionsContext } from './extensions';
+
+export type ComposerIntent =
+  | { kind: 'reply'; messageId: string; quoteText?: string }
+  /** Asks a member, such as an assistant, about the picked messages: the message mentions them. */
+  | { kind: 'ask'; member: MemberSummary; messageIds: string[] }
+  | null;
 
 interface ConversationState {
   selectedIds: string[];
@@ -67,14 +75,25 @@ function createConversationStore() {
   }));
 }
 
+const NO_EXTENSIONS: readonly ConversationExtension[] = [];
+
+interface ConversationProviderProps {
+  scope: ConversationScope;
+  /** What features add to this conversation; keep the list stable across renders. */
+  extensions?: readonly ConversationExtension[];
+}
+
 export function ConversationProvider({
   children,
   scope,
-}: PropsWithChildren<{ scope: ConversationScope }>) {
+  extensions = NO_EXTENSIONS,
+}: PropsWithChildren<ConversationProviderProps>) {
   const [store] = useState(createConversationStore);
   return (
     <ConversationScopeContext.Provider value={scope}>
-      <ConversationContext.Provider value={store}>{children}</ConversationContext.Provider>
+      <ConversationExtensionsContext.Provider value={extensions}>
+        <ConversationContext.Provider value={store}>{children}</ConversationContext.Provider>
+      </ConversationExtensionsContext.Provider>
     </ConversationScopeContext.Provider>
   );
 }

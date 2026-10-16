@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
 import { NotificationSettingsService } from '@/components/notifications/preferences';
@@ -30,8 +35,9 @@ export class DirectConversationsService {
     if (member.id === targetMemberId)
       throw new ConflictException('Choose another workspace member');
 
-    const isTargetActive = await this.repository.isActiveMember(member.workspaceId, targetMemberId);
-    if (!isTargetActive) throw new NotFoundException('Workspace member not found');
+    const target = await this.repository.findActiveMember(member.workspaceId, targetMemberId);
+    if (!target) throw new NotFoundException('Workspace member not found');
+    if (target.isBot) throw new ForbiddenException('A bot takes no direct messages');
 
     const pair = this.pairOf(member, targetMemberId);
     await this.repository.lockPair(pair);

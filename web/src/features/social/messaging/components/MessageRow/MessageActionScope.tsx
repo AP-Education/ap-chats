@@ -2,21 +2,22 @@ import { useIsMobile } from '@ap-education/ui';
 import { createContext, type PropsWithChildren, type RefObject, useContext, useState } from 'react';
 
 import type { AttachmentDraft } from '../../attachments/types';
+import { useTimelineActions } from '../../timeline-actions-context';
 import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';
 
 interface MessageActionInput {
   item: MessageHistoryItem;
   author: string;
-  context: ActionContext;
-  actions: ConversationAction[];
-  onAction: (action: ConversationAction, target: ActionTarget) => void;
   editing: boolean;
   delivery?: DeliveryStatus;
   pendingAttachments?: AttachmentDraft[];
 }
 
 interface MessageActionScope extends MessageActionInput {
+  context: ActionContext;
+  actions: ConversationAction[];
+  onAction: (action: ConversationAction, target: ActionTarget) => void;
   isMobile: boolean;
   isOwn: boolean;
   canReact: boolean;
@@ -39,6 +40,7 @@ export function MessageActionProvider({
   contentRef: RefObject<HTMLDivElement | null>;
 }>) {
   const isMobile = useIsMobile();
+  const { viewer, actions, run } = useTimelineActions();
   const [selectedText, setSelectedText] = useState('');
   const messageTarget: ActionTarget = { kind: 'message', items: [value.item] };
   const textTarget: ActionTarget = {
@@ -57,20 +59,23 @@ export function MessageActionProvider({
 
   function available(target: ActionTarget) {
     if (value.delivery) return [];
-    return value.actions.filter((action) => action.available(target, value.context));
+    return actions.filter((action) => action.available(target, viewer));
   }
 
   function action(id: string) {
-    return value.actions.find((entry) => entry.id === id);
+    return actions.find((entry) => entry.id === id);
   }
 
   return (
     <MessageActionContext.Provider
       value={{
         ...value,
+        context: viewer,
+        actions,
+        onAction: run,
         isMobile,
-        isOwn: value.item.message.authorMemberId === value.context.memberId,
-        canReact: !value.delivery && value.context.canReact,
+        isOwn: value.item.message.authorMemberId === viewer.memberId,
+        canReact: !value.delivery && viewer.canReact,
         messageTarget,
         textTarget,
         selectedText,

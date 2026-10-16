@@ -33,6 +33,7 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
         memberId: workspaceMembers.id,
         displayName: userProfiles.displayName,
         avatarPath: userProfiles.avatarPath,
+        isBot: userProfiles.isBot,
       })
       .from(workspaceMembers)
       .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
@@ -41,6 +42,7 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
           eq(workspaceMembers.workspaceId, workspaceId),
           eq(workspaceMembers.status, 'active'),
           ne(workspaceMembers.id, viewerId),
+          eq(userProfiles.isBot, false),
           ilike(userProfiles.displayName, `%${escaped}%`),
         ),
       )
@@ -163,6 +165,7 @@ export class DrizzleWorkspaceMembersRepository extends WorkspaceMembersRepositor
         oidcUserId: profile.oidcUserId,
         displayName: profile.displayName,
         avatarPath: profile.avatarPath,
+        isBot: profile.isBot,
       },
       accessLevel: row.accessLevel,
       status: row.status,

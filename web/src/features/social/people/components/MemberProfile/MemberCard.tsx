@@ -82,7 +82,10 @@ export function MemberCard({ member, onConversationOpen }: MemberCardProps) {
         ) : (
           <>
             <MemberRoleSection onManageRoles={() => dispatch({ type: 'manageRoles' })} />
-            {!isSelf && <MemberCardActions onConversationOpen={onConversationOpen} />}
+            {/* A bot takes no direct messages or calls. */}
+            {!isSelf && !profile.data?.isBot && (
+              <MemberCardActions onConversationOpen={onConversationOpen} />
+            )}
           </>
         )}
       </MemberCardFrame>

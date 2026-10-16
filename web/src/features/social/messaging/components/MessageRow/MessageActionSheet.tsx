@@ -1,6 +1,7 @@
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
+import { AssistedActionLabel } from '@/features/social/conversation/components/AssistedActionLabel/AssistedActionLabel';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
 
 import type { ActionTarget, ConversationAction } from '../../types';
@@ -32,6 +33,19 @@ const useStyles = createStyles(({ token, css }) => ({
       color: ${token.colorError};
     }
   `,
+  assisted: css`
+    padding: 0;
+  `,
+  sky: css`
+    && {
+      justify-content: flex-start;
+      gap: 14px;
+      width: 100%;
+      min-height: 48px;
+      padding: 8px 12px;
+      border-radius: 10px;
+    }
+  `,
 }));
 
 interface MessageActionSheetProps {
@@ -51,7 +65,7 @@ export function MessageActionSheet({
   groups,
   onAction,
 }: MessageActionSheetProps) {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
   return (
     <BottomSheet open={open} onClose={onClose} aria-label="Дії з повідомленням">
       {header}
@@ -61,15 +75,21 @@ export function MessageActionSheet({
             <button
               type="button"
               key={action.id}
-              className={styles.action}
-              data-danger={action.id === 'delete' || undefined}
+              className={cx(styles.action, action.accent === 'ai' && styles.assisted)}
+              data-danger={action.accent === 'danger' || undefined}
               onClick={() => {
                 onClose();
                 onAction(action, target);
               }}
             >
-              {action.icon}
-              {action.label(target)}
+              {action.accent === 'ai' ? (
+                <AssistedActionLabel action={action} target={target} className={styles.sky} />
+              ) : (
+                <>
+                  {action.icon}
+                  {action.label(target)}
+                </>
+              )}
             </button>
           ))}
         </div>

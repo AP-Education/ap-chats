@@ -8,6 +8,7 @@ import { keyboardGlidePart } from '@/features/social/messaging/keyboard-glide-pa
 import { PinnedMessageBar } from '@/features/social/pins/components/PinnedMessageBar/PinnedMessageBar';
 import { ReactorsDialog } from '@/features/social/reactions/components/ReactorsDialog/ReactorsDialog';
 import { useReactionEvents } from '@/features/social/reactions/hooks/useReactionEvents';
+import { useReadReceiptEvents } from '@/features/social/read-receipts/hooks/useReadReceiptEvents';
 import type { WorkspaceMember } from '@/features/workspaces/types';
 
 import { ConversationFooter } from './ConversationFooter';
@@ -58,6 +59,7 @@ export function ConversationView({ currentMember, readOnlyFooter }: Conversation
       memberId: currentMember?.id ?? '',
       displayName: currentMember?.profile.displayName ?? null,
       avatarPath: currentMember?.profile.avatarPath ?? null,
+      isBot: false,
       // Unsent rows are the viewer's own, which never show a name to colour.
       roleColor: null,
     }),
@@ -65,6 +67,7 @@ export function ConversationView({ currentMember, readOnlyFooter }: Conversation
   );
   const operations = useMessageOperations(workspaceId, channelId, author, navigation.items);
   useReactionEvents(currentMember?.id);
+  useReadReceiptEvents(currentMember?.id);
   const interaction = useConversationActions({
     items: navigation.items,
     memberId: currentMember?.id,

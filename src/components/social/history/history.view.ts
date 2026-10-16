@@ -1,15 +1,19 @@
 import { messageView } from '../messages/message-view';
-import type { ChannelReadState } from '../read-state/types';
+import type { ReadPosition } from '../read-state/types';
 import type { CallHistoryRow, HistoryRow, MessageHistoryRow } from './types/history.types';
 
-type Profile = { displayName: string | null; avatarPath: string | null; roleColor: string | null };
+type Profile = {
+  displayName: string | null;
+  avatarPath: string | null;
+  isBot: boolean;
+  roleColor: string | null;
+};
 
 interface HistoryPageInput {
   rows: HistoryRow[];
   viewerMemberId: string;
   snapshotSeq: bigint;
-  readState: ChannelReadState | null;
-  firstUnreadSeq: bigint | null;
+  position: ReadPosition;
   hasOlder: boolean;
   hasNewer: boolean;
 }
@@ -18,12 +22,12 @@ export function historyPageView({
   rows,
   viewerMemberId,
   snapshotSeq,
-  readState,
-  firstUnreadSeq,
+  position,
   hasOlder,
   hasNewer,
 }: HistoryPageInput) {
   const items = rows.map((row) => historyItemView(row, viewerMemberId));
+  const { state: readState, firstUnreadSeq, peerReadSeq } = position;
 
   return {
     items,
@@ -35,6 +39,7 @@ export function historyPageView({
     hasNewer,
     newerCursor: hasNewer ? (items.at(-1)?.seq ?? null) : null,
     readState,
+    peerReadSeq: peerReadSeq?.toString() ?? null,
   };
 }
 
@@ -89,6 +94,6 @@ function messageItemView(row: MessageHistoryRow, viewerMemberId: string) {
   };
 }
 
-function personView(memberId: string, { displayName, avatarPath, roleColor }: Profile) {
-  return { memberId, displayName, avatarPath, roleColor };
+function personView(memberId: string, { displayName, avatarPath, isBot, roleColor }: Profile) {
+  return { memberId, displayName, avatarPath, isBot, roleColor };
 }

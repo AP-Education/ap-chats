@@ -1,20 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { flashMessage } from '../../flashMessage';
-import type { DisplayItem, HistoryItem, HistoryPage } from '../../types';
+import type { DisplayItem, HistoryItem, HistoryWindow } from '../../types';
 
 interface UseScrollAnchoringInput {
-  pages: HistoryPage[];
+  history: HistoryWindow;
   items: HistoryItem[];
   displayItems: DisplayItem[];
   firstUnreadSeq: string | null;
-  targetMessageId?: string;
-  hasOlder: boolean;
-  loadingOlder: boolean;
-  hasNewer: boolean;
-  loadingNewer: boolean;
-  loadOlder: () => Promise<unknown>;
-  loadNewer: () => Promise<unknown>;
 }
 
 /**
@@ -25,18 +18,12 @@ interface UseScrollAnchoringInput {
  * flashes a jumped-to message once it's actually in the DOM.
  */
 export function useScrollAnchoring({
-  pages,
+  history,
   items,
   displayItems,
   firstUnreadSeq,
-  targetMessageId,
-  hasOlder,
-  loadingOlder,
-  hasNewer,
-  loadingNewer,
-  loadOlder,
-  loadNewer,
 }: UseScrollAnchoringInput) {
+  const { pages, targetMessageId, older, newer } = history;
   const scrollRef = useRef<HTMLDivElement>(null);
   const prepend = useRef<{ height: number; top: number } | null>(null);
   const didPosition = useRef(false);
@@ -132,12 +119,12 @@ export function useScrollAnchoring({
     flashMessage(targetMessageId);
   }, [displayItems, targetMessageId]);
 
-  async function older() {
+  async function loadOlder() {
     const container = scrollRef.current;
-    if (!container || loadingOlder || prepend.current) return;
+    if (!container || older.loading || prepend.current) return;
     prepend.current = { height: container.scrollHeight, top: container.scrollTop };
     try {
-      await loadOlder();
+      await older.load();
     } catch {
       prepend.current = null;
     }
@@ -152,20 +139,20 @@ export function useScrollAnchoring({
     setAwayFromBottom(!nearBottom);
     if (
       container.scrollTop < 90 &&
-      hasOlder &&
-      !loadingOlder &&
+      older.available &&
+      !older.loading &&
       Date.now() > suppressOlderUntil.current
     )
-      void older();
-    if (nearBottom && hasNewer && !loadingNewer) void loadNewer();
+      void loadOlder();
+    if (nearBottom && newer.available && !newer.loading) void newer.load();
   }
 
   function goDown() {
-    if (hasNewer) {
+    if (newer.available) {
       jumpAfterNext.current = true;
-      void loadNewer();
+      void newer.load();
     } else scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }
 
-  return { scrollRef, awayFromBottom, onScroll, older, goDown };
+  return { scrollRef, awayFromBottom, onScroll, loadOlder, goDown };
 }

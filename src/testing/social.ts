@@ -10,6 +10,8 @@ import { MessageMarkdownService } from '@/components/social/content';
 import { EntriesFacade } from '@/components/social/entries';
 import { DrizzleEntriesRepository } from '@/components/social/entries/repository/drizzle-entries.repository';
 import { ForwardingService } from '@/components/social/forwarding/forwarding.service';
+import { HistoryService } from '@/components/social/history/history.service';
+import { DrizzleHistoryRepository } from '@/components/social/history/repository/drizzle-history.repository';
 import { MentionsService } from '@/components/social/mentions';
 import { DrizzleMentionsRepository } from '@/components/social/mentions/repository/drizzle-mentions.repository';
 import { MessagesService } from '@/components/social/messages';
@@ -21,6 +23,8 @@ import { DeleteMessagesService } from '@/components/social/posting/delete-messag
 import { EditMessageService } from '@/components/social/posting/edit-message.service';
 import { ReactionsService } from '@/components/social/reactions/reactions.service';
 import { DrizzleReactionsRepository } from '@/components/social/reactions/repository/drizzle-reactions.repository';
+import { ReadStateService } from '@/components/social/read-state';
+import { DrizzleReadStateRepository } from '@/components/social/read-state/repository/drizzle-read-state.repository';
 import {
   ScheduledMessagesService,
   ScheduleMessageService,
@@ -85,12 +89,15 @@ export function socialServices(
   const composer = new MessageComposer(markdown, messages, uploads);
   const sending = new SendMessageService(access, composer, messages, events);
   const scheduled = new DrizzleScheduledMessagesRepository(txHost);
+  const readState = new ReadStateService(access, new DrizzleReadStateRepository(txHost), events);
 
   return {
     published,
     events,
     messages,
     pins,
+    readState,
+    history: new HistoryService(access, new DrizzleHistoryRepository(txHost), readState),
     sending,
     editing: new EditMessageService(access, markdown, messages, events),
     deleting: new DeleteMessagesService(access, messages, pins, events),

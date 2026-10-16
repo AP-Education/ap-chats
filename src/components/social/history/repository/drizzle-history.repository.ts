@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, asc, desc, eq, gt, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import {
@@ -54,37 +54,6 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     return row?.seq ?? null;
   }
 
-  async firstUnreadSeq(
-    channelId: string,
-    memberId: string,
-    after: bigint,
-    ceiling: bigint,
-  ): Promise<bigint | null> {
-    const [row] = await this.txHost.tx
-      .select({ seq: channelEntries.seq })
-      .from(channelEntries)
-      .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
-      .leftJoin(calls, eq(calls.id, channelEntries.callId))
-      .where(
-        and(
-          eq(channelEntries.channelId, channelId),
-          gt(channelEntries.seq, after),
-          lte(channelEntries.seq, ceiling),
-          or(
-            and(
-              isNotNull(channelEntries.messageId),
-              ne(chatMessages.authorMemberId, memberId),
-              isNull(chatMessages.deletedAt),
-            ),
-            and(isNotNull(channelEntries.callId), ne(calls.startedByMemberId, memberId)),
-          ),
-        ),
-      )
-      .orderBy(asc(channelEntries.seq))
-      .limit(1);
-    return row?.seq ?? null;
-  }
-
   // The row shape below is inferred from this query, not hand-duplicated:
   // `Row` in toHistoryRow() is `Awaited<ReturnType<typeof this.rowsQuery>>[number]`.
   private rowsQuery({
@@ -124,6 +93,8 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         authorProfile: {
           displayName: authors.displayName,
           avatarPath: authors.avatarPath,
+          // Joined beside the role colour, so a missing person reads as no bot.
+          isBot: sql<boolean>`coalesce(${authors.isBot}, false)`,
           roleColor: authorRoles.roleColor,
         },
         reply: {
@@ -135,11 +106,13 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         replyAuthorProfile: {
           displayName: replyAuthors.displayName,
           avatarPath: replyAuthors.avatarPath,
+          isBot: sql<boolean>`coalesce(${replyAuthors.isBot}, false)`,
           roleColor: replyAuthorRoles.roleColor,
         },
         forwardAuthorProfile: {
           displayName: forwardAuthors.displayName,
           avatarPath: forwardAuthors.avatarPath,
+          isBot: sql<boolean>`coalesce(${forwardAuthors.isBot}, false)`,
           roleColor: forwardAuthorRoles.roleColor,
         },
         pin: messagePins,
@@ -151,6 +124,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         startedByProfile: {
           displayName: startedByProfiles.displayName,
           avatarPath: startedByProfiles.avatarPath,
+          isBot: sql<boolean>`coalesce(${startedByProfiles.isBot}, false)`,
           roleColor: startedByRoles.roleColor,
         },
       })
@@ -206,7 +180,8 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     const mention = sql`json_build_object(
       'memberId', ${workspaceMembers.id},
       'displayName', ${userProfiles.displayName},
-      'avatarPath', ${userProfiles.avatarPath}
+      'avatarPath', ${userProfiles.avatarPath},
+      'isBot', ${userProfiles.isBot}
     )`;
 
     return (

@@ -29,6 +29,7 @@ import {
   REACTION_CHANGED_EVENT,
   ReactionChangedEvent,
 } from '../reactions/events/reaction-changed.event';
+import { READ_RECEIPT_EVENT, ReadReceiptEvent } from '../read-state/events/read-receipt.event';
 import {
   READ_STATE_ADVANCED_EVENT,
   ReadStateAdvancedEvent,
@@ -95,6 +96,13 @@ export class SocialEventsRelay {
   onReadStateAdvanced(event: ReadStateAdvancedEvent) {
     const { workspaceId, channelId, state } = event;
     this.realtime.toUser(event.userId, 'social:read-state', { workspaceId, channelId, ...state });
+  }
+
+  @OnEvent(READ_RECEIPT_EVENT)
+  onReadReceipt(event: ReadReceiptEvent) {
+    const { workspaceId, channelId, memberId, seq } = event;
+    const payload = { workspaceId, channelId, memberId, seq };
+    return this.channels.send(event, 'social:read-receipt', payload);
   }
 
   // A schedule is its author's alone, so only their devices learn to fetch it again.

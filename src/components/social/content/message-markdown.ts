@@ -2,30 +2,33 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 
 import type { MentionTargets } from '../mentions/types';
 
+// The parts of an mdast node chat reads; every mdast node fits it as it is.
 type MarkdownNode = {
   type: string;
-  value?: string;
-  url?: string;
-  name?: string;
-  attributes?: Record<string, string | null>;
-  children?: MarkdownNode[];
+  value?: string | undefined;
+  url?: string | undefined;
+  alt?: string | null | undefined;
+  name?: string | undefined;
+  attributes?: Record<string, string | null | undefined> | null | undefined;
+  children?: MarkdownNode[] | undefined;
+  position?:
+    { start: { offset?: number | undefined }; end: { offset?: number | undefined } } | undefined;
 };
 
-const allowedTypes = new Set([
-  'root',
+const KEPT_TYPES = new Set([
   'paragraph',
   'text',
   'strong',
   'emphasis',
   'inlineCode',
   'code',
-  'link',
   'blockquote',
   'list',
   'listItem',
   'break',
-  'textDirective',
 ]);
+const BLOCK_CONTAINERS = new Set(['root', 'blockquote', 'listItem']);
+const LINK_PROTOCOLS = new Set(['https:', 'http:', 'mailto:']);
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export interface NormalizedMessageContent {
@@ -40,104 +43,167 @@ interface CollectedMentions {
   everyone: boolean;
 }
 
+interface Reference {
+  /** Whether the value names something the reference can point at. */
+  accepts: (value: string) => boolean;
+  /** Records what it mentions and gives how it reads as plain text. */
+  read: (value: string, mentions: CollectedMentions) => string;
+}
+
 const noMentions = (): CollectedMentions => ({
   memberIds: new Set(),
   roleIds: new Set(),
   everyone: false,
 });
 
-type ReadReference = (value: string, mentions: CollectedMentions) => string;
-
-function requireId(value: string, message = 'Invalid mention') {
-  if (!uuidPattern.test(value)) throw new BadRequestException(message);
-}
+const isId = (value: string) => uuidPattern.test(value);
 
 // Each inline reference: what it mentions and how it reads as plain text. The client keeps the
 // same grammar in web/src/features/social/mentions/mention-tokens.ts.
-const references = new Map<string, ReadReference>([
+const references = new Map<string, Reference>([
   [
     'mention',
-    (value, mentions) => {
-      if (value !== 'everyone') throw new BadRequestException('Invalid mention');
-      mentions.everyone = true;
-      return '@everyone';
+    {
+      accepts: (value) => value === 'everyone',
+      read: (_, mentions) => {
+        mentions.everyone = true;
+        return '@everyone';
+      },
     },
   ],
   [
     'member',
-    (value, mentions) => {
-      requireId(value);
-      mentions.memberIds.add(value);
-      return `@${value}`;
+    {
+      accepts: isId,
+      read: (value, mentions) => {
+        mentions.memberIds.add(value);
+        return `@${value}`;
+      },
     },
   ],
   [
     'role',
-    (value, mentions) => {
-      requireId(value);
-      mentions.roleIds.add(value);
-      return `@${value}`;
+    {
+      accepts: isId,
+      read: (value, mentions) => {
+        mentions.roleIds.add(value);
+        return `@${value}`;
+      },
     },
   ],
   // A channel is only linked to, so it mentions no one.
-  [
-    'channel',
-    (value) => {
-      requireId(value, 'Invalid channel link');
-      return `#${value}`;
-    },
-  ],
+  ['channel', { accepts: isId, read: (value) => `#${value}` }],
 ]);
 
-function readDirective(node: MarkdownNode, mentions: CollectedMentions, plain: string[]): void {
-  if (Object.keys(node.attributes ?? {}).length)
-    throw new BadRequestException('Unsupported Markdown directive');
-  const [label, ...rest] = node.children ?? [];
-  if (!label || rest.length || label.type !== 'text')
-    throw new BadRequestException('Invalid mention');
-  const value = label.value?.toLowerCase() ?? '';
-  label.value = value;
+/**
+ * Chat keeps a few kinds of formatting; anything beyond them loses the formatting, not the
+ * content. A heading becomes a paragraph, an image a link, a rule disappears, an unsafe link
+ * keeps its label, and HTML or an unknown directive reads as the text it was typed as.
+ */
+function reshape(node: MarkdownNode, parent: MarkdownNode, source: string): MarkdownNode[] {
+  const reference = referenceOf(node);
+  if (reference) return [{ ...node, children: [{ type: 'text', value: reference.value }] }];
+  if (node.type === 'heading') return [{ type: 'paragraph', children: reshapeAll(node, source) }];
+  if (node.type === 'thematicBreak') return [];
+  if (node.type === 'image') {
+    return linkOrLabel(node.url, [{ type: 'text', value: node.alt || node.url || '' }]);
+  }
+  if (node.type === 'link') return linkOrLabel(node.url, reshapeAll(node, source));
+  if (KEPT_TYPES.has(node.type)) {
+    return [node.children ? { ...node, children: reshapeAll(node, source) } : node];
+  }
 
-  const read = node.name ? references.get(node.name) : undefined;
-  if (!read) throw new BadRequestException('Unsupported Markdown directive');
-  plain.push(read(value, mentions));
+  const text: MarkdownNode = { type: 'text', value: sourceOf(node, source) };
+  return [BLOCK_CONTAINERS.has(parent.type) ? { type: 'paragraph', children: [text] } : text];
 }
 
-function validateTree(node: MarkdownNode, mentions: CollectedMentions, plain: string[]): void {
-  if (!allowedTypes.has(node.type)) throw new BadRequestException('Unsupported Markdown syntax');
-  if (node.type === 'link') {
-    if (!node.url || node.url.length > 2_048) throw new BadRequestException('Invalid link');
-    try {
-      const url = new URL(node.url);
-      if (!['https:', 'http:', 'mailto:'].includes(url.protocol))
-        throw new BadRequestException('Unsupported link protocol');
-    } catch {
-      throw new BadRequestException('Invalid link');
-    }
+function reshapeAll(node: MarkdownNode, source: string): MarkdownNode[] {
+  return (node.children ?? []).flatMap((child) => reshape(child, node, source));
+}
+
+/** What a directive such as `:member[id]` refers to, its value lower-cased; nothing for any other node. */
+function referenceOf(node: MarkdownNode): { value: string; read: Reference['read'] } | undefined {
+  if (node.type !== 'textDirective' || !node.name) return undefined;
+  if (Object.keys(node.attributes ?? {}).length) return undefined;
+
+  const reference = references.get(node.name);
+  const [label, ...rest] = node.children ?? [];
+  const value = label?.type === 'text' ? (label.value?.toLowerCase() ?? '') : '';
+  if (!reference || rest.length || !reference.accepts(value)) return undefined;
+
+  return { value, read: reference.read };
+}
+
+function linkOrLabel(url: string | undefined, label: MarkdownNode[]): MarkdownNode[] {
+  return url && isSafeLink(url) ? [{ type: 'link', url, children: label }] : label;
+}
+
+function isSafeLink(url: string): boolean {
+  if (url.length > 2_048) return false;
+  try {
+    return LINK_PROTOCOLS.has(new URL(url).protocol);
+  } catch {
+    return false;
   }
-  if (node.type === 'textDirective') {
-    readDirective(node, mentions, plain);
+}
+
+function sourceOf(node: MarkdownNode, source: string): string {
+  const start = node.position?.start.offset;
+  const end = node.position?.end.offset;
+  if (start === undefined || end === undefined) return node.value ?? '';
+  return source.slice(start, end);
+}
+
+// After reshape every node is one chat keeps, so this only reads the text and the mentions.
+function collect(node: MarkdownNode, mentions: CollectedMentions, plain: string[]): void {
+  const reference = referenceOf(node);
+  if (reference) {
+    plain.push(reference.read(reference.value, mentions));
     return;
   }
   if (node.type === 'text' || node.type === 'inlineCode' || node.type === 'code') {
     plain.push(node.value ?? '');
   }
-  for (const child of node.children ?? []) validateTree(child, mentions, plain);
+  for (const child of node.children ?? []) collect(child, mentions, plain);
   if (['paragraph', 'blockquote', 'listItem'].includes(node.type)) plain.push('\n');
 }
 
+/** The one parser and printer chat markdown goes through, so what it prints parses back the same. */
 async function markdownProcessor() {
   const [{ remark }, { default: remarkDirective }] = await Promise.all([
     import('remark'),
     import('remark-directive'),
   ]);
-  return remark().use(remarkDirective);
+  return remark().use(remarkDirective).use(escapeDirectiveColons);
+}
+
+// remark-directive escapes a colon only before an ASCII letter, yet `10:30` parses as a directive too.
+function escapeDirectiveColons(this: { data(): { toMarkdownExtensions?: object[] } }) {
+  const data = this.data();
+  data.toMarkdownExtensions ??= [];
+  data.toMarkdownExtensions.push({
+    unsafe: [
+      {
+        character: ':',
+        after: '[^\\s:]',
+        inConstruct: 'phrasing',
+        notInConstruct: ['destinationLiteral', 'destinationRaw', 'titleQuote', 'titleApostrophe'],
+      },
+    ],
+  });
+}
+
+async function chatTree(source: string) {
+  const processor = await markdownProcessor();
+  const tree: MarkdownNode = processor.parse(source);
+  tree.children = reshapeAll(tree, source);
+  return { processor, tree };
 }
 
 export async function messagePlainText(markdown: string): Promise<string> {
-  const processor = await markdownProcessor();
+  const { tree } = await chatTree(markdown);
   const plain: string[] = [];
-  validateTree(processor.parse(markdown) as MarkdownNode, noMentions(), plain);
+  collect(tree, noMentions(), plain);
   return plain.join('');
 }
 
@@ -151,12 +217,11 @@ export class MessageMarkdownService {
     if (/[\u0000-\u0008\u000B-\u001F\u007F]/u.test(normalizedSource))
       throw new BadRequestException('Message contains control characters');
 
-    const processor = await markdownProcessor();
-    const tree = processor.parse(normalizedSource);
+    const { processor, tree } = await chatTree(normalizedSource);
     const mentions = noMentions();
     const plain: string[] = [];
-    validateTree(tree as MarkdownNode, mentions, plain);
-    const markdown = processor.stringify(tree).trim();
+    collect(tree, mentions, plain);
+    const markdown = processor.stringify(tree as never).trim();
     if (!allowBlank && !plain.join('').trim())
       throw new BadRequestException('Message cannot be blank');
     if (Buffer.byteLength(markdown, 'utf8') > 32_768)

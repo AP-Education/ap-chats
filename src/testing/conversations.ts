@@ -13,6 +13,7 @@ interface Person {
   id: string;
   oidcUserId: string;
   displayName: string;
+  isBot: boolean;
 }
 
 interface Conversation {
@@ -27,11 +28,12 @@ export function seedConversations(db: TestDatabase) {
   const tick = () => new Date((clock += 1000));
 
   return {
-    async person(displayName: string): Promise<Person> {
+    async person(displayName: string, { isBot = false } = {}): Promise<Person> {
       const person = {
         id: randomUUID(),
         oidcUserId: `${displayName}-${randomUUID()}`,
         displayName,
+        isBot,
       };
       await db.insert(schema.userProfiles).values(person);
       return person;
@@ -59,6 +61,7 @@ export function seedConversations(db: TestDatabase) {
           oidcUserId: person.oidcUserId,
           displayName: person.displayName,
           avatarPath: null,
+          isBot: person.isBot,
         },
       };
     },

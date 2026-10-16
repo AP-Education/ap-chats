@@ -5,7 +5,6 @@ import { ChannelAccessPolicy } from '@/components/communities/channel-access/cha
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { ReadStateService } from '../read-state';
-import type { ChannelReadState } from '../read-state/types';
 import type { HistoryQueryDto, HistoryWindowQueryDto } from './dto/history-query.dto';
 import { historyItemView, historyPageView } from './history.view';
 import { HistoryRepository } from './repository/history.repository';
@@ -47,14 +46,13 @@ export class HistoryService {
   async window(member: WorkspaceMember, channelId: string, query: HistoryWindowQueryDto) {
     const channel = await this.access.requireViewAccess(member, channelId);
     const snapshotSeq = channel.lastEntrySeq;
-    const readState = await this.readState.state(channelId, member.id, snapshotSeq);
-    const firstUnreadSeq = await this.firstUnreadSeq(channelId, member.id, readState, snapshotSeq);
+    const position = await this.readState.position(channel, member.id, snapshotSeq);
 
     const target = query.messageId
       ? await this.requireMessageSeq(channelId, query.messageId)
-      : firstUnreadSeq;
+      : position.firstUnreadSeq;
     const snapshot = { channelId, viewerMemberId: member.id, ceiling: snapshotSeq };
-    const view = { viewerMemberId: member.id, snapshotSeq, readState, firstUnreadSeq };
+    const view = { viewerMemberId: member.id, snapshotSeq, position };
 
     if (target === null) {
       const latest = await this.history.page({
@@ -109,33 +107,17 @@ export class HistoryService {
       limit: query.limit ?? PAGE_SIZE,
     });
 
-    const readState = await this.readState.state(channelId, member.id, ceiling);
-    const firstUnreadSeq = await this.firstUnreadSeq(channelId, member.id, readState, ceiling);
+    const position = await this.readState.position(channel, member.id, ceiling);
     const startsMidHistory = Boolean(cursor);
 
     return historyPageView({
       rows: page.rows,
       viewerMemberId: member.id,
       snapshotSeq: ceiling,
-      readState,
-      firstUnreadSeq,
+      position,
       hasOlder: direction === 'before' ? page.hasMore : startsMidHistory,
       hasNewer: direction === 'after' ? page.hasMore : startsMidHistory,
     });
-  }
-
-  private async firstUnreadSeq(
-    channelId: string,
-    memberId: string,
-    readState: ChannelReadState | null,
-    ceiling: bigint,
-  ): Promise<bigint | null> {
-    if (!readState) return null;
-
-    const lastReadSeq = BigInt(readState.lastReadEntrySeq);
-    if (lastReadSeq >= ceiling) return null;
-
-    return this.history.firstUnreadSeq(channelId, memberId, lastReadSeq, ceiling);
   }
 
   private async requireMessageSeq(channelId: string, messageId: string): Promise<bigint> {

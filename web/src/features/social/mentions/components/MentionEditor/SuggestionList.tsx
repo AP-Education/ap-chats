@@ -3,6 +3,7 @@ import { createStyles, keyframes } from 'antd-style';
 import { useLayoutEffect, useRef } from 'react';
 
 import { RoleDot } from '@/features/roles/components/RoleDot';
+import { BotBadge } from '@/features/social/people/components/BotBadge/BotBadge';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { Suggestion, SuggestionGroup } from './suggestions';
@@ -70,6 +71,13 @@ const useStyles = createStyles(({ token, css }) => ({
       min-height: 52px;
       font-size: 16px;
     }
+  `,
+  // The name and its badge stay together, closer than the avatar keeps to them.
+  identity: css`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
   `,
   name: css`
     overflow: hidden;
@@ -182,8 +190,11 @@ function SuggestionOption({
       onClick={() => onPick(suggestion)}
     >
       <SuggestionVisual suggestion={suggestion} />
-      <span className={styles.name}>
-        <MatchedName name={suggestion.label} query={query} matchClassName={styles.match} />
+      <span className={styles.identity}>
+        <span className={styles.name}>
+          <MatchedName name={suggestion.label} query={query} matchClassName={styles.match} />
+        </span>
+        {suggestion.isBot && <BotBadge />}
       </span>
       {suggestion.hint && <span className={styles.hint}>{suggestion.hint}</span>}
     </button>

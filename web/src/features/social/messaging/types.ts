@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import type { MemberSummary } from '@/features/workspaces/types';
+
 import type { MessageReaction } from '../reactions/types';
 import type { Attachment, AttachmentDraft } from './attachments/types';
 
@@ -36,7 +38,7 @@ export interface MessageHistoryItem {
   } | null;
   forwardedFrom: MessageAuthor | null;
   pin: { pinnedAt: string; pinnedByMemberId: string } | null;
-  mentions?: { memberId: string; displayName: string | null; avatarPath: string | null }[];
+  mentions?: MemberSummary[];
   /** Whether the message reached the viewer, by name, through a role or through @everyone. */
   mentionsMe?: boolean;
   /** The roles through which it reached the viewer. */
@@ -73,10 +75,7 @@ export function isMessageItem(item: HistoryItem): item is MessageHistoryItem {
   return item.type === 'MESSAGE';
 }
 
-export interface MessageAuthor {
-  memberId: string;
-  displayName: string | null;
-  avatarPath: string | null;
+export interface MessageAuthor extends MemberSummary {
   /** Their top coloured role's colour, which their name takes, as on Discord. */
   roleColor: string | null;
 }
@@ -96,6 +95,23 @@ export interface HistoryPage {
   hasNewer: boolean;
   newerCursor: string | null;
   readState: ReadState | null;
+  /** How far the others have read; null where the conversation shares no read receipts. */
+  peerReadSeq: string | null;
+}
+
+/** One end of the loaded history: whether more lies past it, and how to bring it in. */
+export interface HistoryEdge {
+  available: boolean;
+  loading: boolean;
+  load: () => Promise<unknown>;
+}
+
+/** The stretch of history a timeline shows, opened at a linked message or where reading stopped. */
+export interface HistoryWindow {
+  pages: HistoryPage[];
+  targetMessageId?: string;
+  older: HistoryEdge;
+  newer: HistoryEdge;
 }
 
 // The command this feature works with: full attachment objects, since the
@@ -157,11 +173,17 @@ export interface ActionCommands {
   forward: (items: MessageHistoryItem[]) => void;
   pin: (item: MessageHistoryItem, active: boolean) => void;
   showReactions: (item: MessageHistoryItem) => void;
+  /** Asks a member, such as an assistant, about the messages: the composer addresses them. */
+  ask: (member: MemberSummary, items: MessageHistoryItem[]) => void;
 }
+
+/** How an action stands out: a destructive one warns, an assistant's leads on its own sky. */
+export type ActionAccent = 'danger' | 'ai';
 
 export interface ConversationAction {
   id: string;
   icon: ReactNode;
+  accent?: ActionAccent;
   label: (target: ActionTarget) => string;
   available: (target: ActionTarget, context: ActionContext) => boolean;
   execute: (target: ActionTarget, commands: ActionCommands) => void;

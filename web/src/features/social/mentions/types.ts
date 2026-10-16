@@ -5,6 +5,7 @@ export interface MentionLabel {
   memberId: string;
   displayName: string | null;
   avatarPath?: string | null;
+  isBot?: boolean;
 }
 
 // A message's text as the editor holds it: markdown plus the names of the references it shows as chips.
