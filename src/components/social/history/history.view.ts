@@ -1,5 +1,5 @@
 import { messageView } from '../messages/message-view';
-import type { ChannelReadState } from '../read-state/types';
+import type { ReadPosition } from '../read-state/types';
 import type { CallHistoryRow, HistoryRow, MessageHistoryRow } from './types/history.types';
 
 type Profile = {
@@ -13,9 +13,7 @@ interface HistoryPageInput {
   rows: HistoryRow[];
   viewerMemberId: string;
   snapshotSeq: bigint;
-  readState: ChannelReadState | null;
-  firstUnreadSeq: bigint | null;
-  peerReadSeq: bigint | null;
+  position: ReadPosition;
   hasOlder: boolean;
   hasNewer: boolean;
 }
@@ -24,13 +22,12 @@ export function historyPageView({
   rows,
   viewerMemberId,
   snapshotSeq,
-  readState,
-  firstUnreadSeq,
-  peerReadSeq,
+  position,
   hasOlder,
   hasNewer,
 }: HistoryPageInput) {
   const items = rows.map((row) => historyItemView(row, viewerMemberId));
+  const { state: readState, firstUnreadSeq, peerReadSeq } = position;
 
   return {
     items,

@@ -14,7 +14,7 @@ import {
 } from './events/read-state-advanced.event';
 import { sharesReadReceipts } from './read-receipts.rules';
 import { ReadStateRepository } from './repository/read-state.repository';
-import type { ChannelReadState, WorkspaceChannelUnread } from './types';
+import type { ChannelReadState, ReadPosition, WorkspaceChannelUnread } from './types';
 
 @Injectable()
 export class ReadStateService {
@@ -32,26 +32,16 @@ export class ReadStateService {
   @Transactional()
   async getState(member: WorkspaceMember, channelId: string): Promise<ChannelReadState | null> {
     const channel = await this.access.requireViewAccess(member, channelId);
-    return this.state(channelId, member.id, channel.lastEntrySeq);
+    return this.state(channel, member.id);
   }
 
-  async state(
-    channelId: string,
+  position(
+    channel: ChannelAccessSnapshot,
     memberId: string,
     ceiling: bigint,
-  ): Promise<ChannelReadState | null> {
-    const seq = await this.repository.lastReadSeq(channelId, memberId);
-    if (seq === null) return null;
-    const unreadCount =
-      seq < ceiling ? await this.repository.unreadCount(channelId, memberId, seq, ceiling) : 0;
-    return { lastReadEntrySeq: seq.toString(), unreadCount };
-  }
-
-  /** How far the others in the channel have read, where read receipts are shared. */
-  async peerReadSeq(channel: ChannelAccessSnapshot, memberId: string): Promise<bigint | null> {
-    if (!sharesReadReceipts(channel.kind)) return null;
-
-    return this.repository.furthestReadByOthers(channel.id, memberId);
+  ): Promise<ReadPosition> {
+    const withPeerRead = sharesReadReceipts(channel.kind);
+    return this.repository.position({ channelId: channel.id, memberId, ceiling, withPeerRead });
   }
 
   async markRead(
@@ -85,11 +75,26 @@ export class ReadStateService {
     const isAhead = seq > current;
     if (isAhead) await this.repository.advance(channelId, member.id, seq);
 
-    const state = await this.state(channelId, member.id, channel.lastEntrySeq);
+    const state = await this.state(channel, member.id);
     if (!state) throw new ForbiddenException('Join this channel first');
     if (!isAhead) return { state, announce: nothingToAnnounce };
 
     return { state, announce: await this.announceAdvance(member, channel, state) };
+  }
+
+  private async state(
+    channel: ChannelAccessSnapshot,
+    memberId: string,
+  ): Promise<ChannelReadState | null> {
+    const ceiling = channel.lastEntrySeq;
+    const position = await this.repository.position({
+      channelId: channel.id,
+      memberId,
+      ceiling,
+      withPeerRead: false,
+    });
+
+    return position.state;
   }
 
   // The reader's own devices always follow; the others only where read receipts are shared.

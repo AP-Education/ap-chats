@@ -7,7 +7,7 @@ import { socialServices } from '@/testing/social';
 
 import { READ_RECEIPT_EVENT, ReadReceiptEvent } from './events/read-receipt.event';
 
-test('read receipts on PostgreSQL', async (t) => {
+test('read state on PostgreSQL', async (t) => {
   const { pg, db } = await migratedDatabase();
   t.after(() => pg.close());
 
@@ -27,6 +27,24 @@ test('read receipts on PostgreSQL', async (t) => {
 
     return { ann, rob, services, receipts };
   }
+
+  await t.test('history opens at the first entry someone else wrote past the cursor', async () => {
+    const { ann, rob, services } = await people();
+    const chat = await seed.conversation(ann, rob);
+    await seed.post(chat, ann);
+    await seed.post(chat, rob);
+    await seed.post(chat, ann);
+
+    await services.readState.markRead(rob, chat.channelId, '1');
+    const behind = await services.history.window(rob, chat.channelId, {});
+    assert.deepEqual(behind.readState, { lastReadEntrySeq: '1', unreadCount: 1 });
+    assert.equal(behind.firstUnreadSeq, '3', 'their own message is never unread');
+
+    await services.readState.markRead(rob, chat.channelId, '3');
+    const caughtUp = await services.history.window(rob, chat.channelId, {});
+    assert.deepEqual(caughtUp.readState, { lastReadEntrySeq: '3', unreadCount: 0 });
+    assert.equal(caughtUp.firstUnreadSeq, null);
+  });
 
   await t.test('each side of a direct conversation sees how far the other has read', async () => {
     const { ann, rob, services, receipts } = await people();

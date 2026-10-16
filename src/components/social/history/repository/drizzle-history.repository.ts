@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, asc, desc, eq, gt, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import {
@@ -51,37 +51,6 @@ export class DrizzleHistoryRepository extends HistoryRepository {
           or(eq(channelEntries.messageId, entryId), eq(channelEntries.callId, entryId)),
         ),
       );
-    return row?.seq ?? null;
-  }
-
-  async firstUnreadSeq(
-    channelId: string,
-    memberId: string,
-    after: bigint,
-    ceiling: bigint,
-  ): Promise<bigint | null> {
-    const [row] = await this.txHost.tx
-      .select({ seq: channelEntries.seq })
-      .from(channelEntries)
-      .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
-      .leftJoin(calls, eq(calls.id, channelEntries.callId))
-      .where(
-        and(
-          eq(channelEntries.channelId, channelId),
-          gt(channelEntries.seq, after),
-          lte(channelEntries.seq, ceiling),
-          or(
-            and(
-              isNotNull(channelEntries.messageId),
-              ne(chatMessages.authorMemberId, memberId),
-              isNull(chatMessages.deletedAt),
-            ),
-            and(isNotNull(channelEntries.callId), ne(calls.startedByMemberId, memberId)),
-          ),
-        ),
-      )
-      .orderBy(asc(channelEntries.seq))
-      .limit(1);
     return row?.seq ?? null;
   }
 
