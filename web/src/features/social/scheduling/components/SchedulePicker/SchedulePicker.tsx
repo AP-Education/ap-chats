@@ -1,75 +1,34 @@
 import { useIsMobile } from '@ap-education/ui';
-import { Button, Input, Modal } from 'antd';
+import { Button } from 'antd';
 import { createStyles } from 'antd-style';
-import { useState } from 'react';
 
+import { AdaptiveModal } from '@/shared/ui/AdaptiveModal';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
 
-import {
-  fromLocalInputValue,
-  isSendTimeAllowed,
-  latestSendTime,
-  localInputValue,
-  sendTimeLabel,
-  sendTimeOptions,
-} from '../../send-times';
-
-const dayFormat = new Intl.DateTimeFormat('uk-UA', {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-});
+import { useSendTimePick } from '../../hooks/useSendTimePick';
+import { sendTimeLabel } from '../../send-times';
+import { SendTimeFields } from './SendTimeFields';
 
 const useStyles = createStyles(({ token, css }) => ({
   title: css`
-    margin: 0 0 8px;
+    margin: 0;
     font-size: ${token.fontSizeLG}px;
     font-weight: 600;
   `,
-  options: css`
-    display: flex;
-    flex-direction: column;
-    padding-bottom: 8px;
-    border-bottom: 1px solid ${token.colorBorderSecondary};
-  `,
-  option: css`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    min-height: 44px;
-    padding: 8px 12px;
-    border: 0;
-    border-radius: 10px;
-    background: transparent;
-    color: ${token.colorText};
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-
-    &:hover,
-    &:active {
-      background: ${token.colorFillTertiary};
-    }
-
-    &:disabled {
-      color: ${token.colorTextDisabled};
-      cursor: default;
-    }
-  `,
-  day: css`
-    color: ${token.colorTextTertiary};
-    font-size: ${token.fontSizeSM}px;
-  `,
-  custom: css`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px 12px 4px;
-  `,
-  customLabel: css`
+  summary: css`
+    margin: 2px 0 12px;
     color: ${token.colorTextSecondary};
-    font-size: ${token.fontSizeSM}px;
+  `,
+  // As the dialog's own footer lays out its buttons on a phone.
+  actions: css`
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+
+    & .ant-btn {
+      flex: 1;
+      min-height: 44px;
+    }
   `,
 }));
 
@@ -81,70 +40,54 @@ interface SchedulePickerProps {
   onClose: () => void;
 }
 
-/** When a message goes out: a few quick picks, or any minute within a year. */
+/** When a message goes out: a sheet on a phone, a dialog elsewhere, the same choice in both. */
 export function SchedulePicker({ title, initial, pending, onPick, onClose }: SchedulePickerProps) {
   const { styles } = useStyles();
   const isMobile = useIsMobile();
-  const [now] = useState(() => new Date());
-  const options = sendTimeOptions(now);
-  const [custom, setCustom] = useState(() => localInputValue(initial ?? options[0]!.sendAt));
+  const pick = useSendTimePick(initial);
+  const { sendAt } = pick;
+  const summary = sendAt
+    ? `Надійде ${sendTimeLabel(sendAt, pick.now)}`
+    : 'Оберіть час, що ще не настав, у межах року';
 
-  const customTime = fromLocalInputValue(custom);
-  const isCustomAllowed = customTime !== null && isSendTimeAllowed(customTime, new Date());
+  function submit() {
+    if (sendAt) onPick(sendAt);
+  }
 
-  const content = (
-    <>
-      <div className={styles.options}>
-        {options.map((option) => (
-          <button
-            key={option.label}
-            type="button"
-            className={styles.option}
-            disabled={pending}
-            onClick={() => onPick(option.sendAt)}
-          >
-            <span>{option.label}</span>
-            <span className={styles.day}>{dayFormat.format(option.sendAt)}</span>
-          </button>
-        ))}
-      </div>
-      <div className={styles.custom}>
-        <label className={styles.customLabel} htmlFor="schedule-picker-time">
-          Свій час
-        </label>
-        <Input
-          id="schedule-picker-time"
-          type="datetime-local"
-          value={custom}
-          min={localInputValue(now)}
-          max={localInputValue(latestSendTime(now))}
-          onChange={(event) => setCustom(event.target.value)}
-        />
-        <Button
-          type="primary"
-          block
-          loading={pending}
-          disabled={!isCustomAllowed}
-          onClick={() => customTime && onPick(customTime)}
-        >
-          {isCustomAllowed ? `Надіслати ${sendTimeLabel(customTime, now)}` : 'Оберіть інший час'}
-        </Button>
-      </div>
-    </>
-  );
+  const fields = <SendTimeFields pick={pick} />;
 
   if (isMobile) {
     return (
       <BottomSheet open onClose={onClose} aria-label={title}>
         <h2 className={styles.title}>{title}</h2>
-        {content}
+        <p className={styles.summary}>{summary}</p>
+        {fields}
+        <div className={styles.actions}>
+          <Button onClick={onClose}>Скасувати</Button>
+          <Button type="primary" loading={pending} disabled={!sendAt} onClick={submit}>
+            Запланувати
+          </Button>
+        </div>
       </BottomSheet>
     );
   }
 
   return (
-    <Modal open onCancel={onClose} footer={null} width={380} title={title}>
-      {content}
-    </Modal>
+    <AdaptiveModal
+      open
+      centered
+      destroyOnHidden
+      width={400}
+      title={title}
+      description={summary}
+      okText="Запланувати"
+      cancelText="Скасувати"
+      okButtonProps={{ disabled: !sendAt }}
+      confirmLoading={pending}
+      onOk={submit}
+      onCancel={onClose}
+    >
+      {fields}
+    </AdaptiveModal>
   );
 }
