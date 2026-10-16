@@ -122,10 +122,15 @@ export function createGestureFixture() {
     new URL('./hooks/useTouchGesture.js', import.meta.resolve('@ap-education/ui')).href,
     { react },
   );
+  const drawerSettle = load<typeof GestureModule>(
+    new URL('./hooks/drawer-settle.js', import.meta.resolve('@ap-education/ui')).href,
+    {},
+  );
   const { useSwipeDrawer } = load<typeof GestureModule>(
     new URL('./hooks/useSwipeDrawer.js', import.meta.resolve('@ap-education/ui')).href,
     {
       react,
+      './drawer-settle': drawerSettle,
       './useTouchGesture': { useTouchGesture },
     },
   );
@@ -219,11 +224,8 @@ export function createGestureFixture() {
     enabled: true,
     open,
     locationKey,
-    onOpen: () => {
-      open = true;
-    },
-    onClose: () => {
-      open = false;
+    onSettle: (settle: { open: boolean }) => {
+      open = settle.open;
     },
     getWidth: () => 400,
     onDrag: (progress: number | null) => {

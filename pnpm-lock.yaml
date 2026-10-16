@@ -343,8 +343,8 @@ importers:
         specifier: ^0.1.1-beta.3
         version: 0.1.1-beta.3(react@19.2.8)
       '@ap-education/ui':
-        specifier: ^0.1.1-beta.11
-        version: 0.1.1-beta.11(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+        specifier: ^0.2.0-beta.12
+        version: 0.2.0-beta.12(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@emoji-mart/data':
         specifier: ^1.2.1
         version: 1.2.1
@@ -506,8 +506,8 @@ packages:
     peerDependencies:
       react: ^19.0.0
 
-  '@ap-education/ui@0.1.1-beta.11':
-    resolution: {integrity: sha512-7nIOoC6d/wzNySwLXmQ/tl0pndyysembHR6JtwapivVAtfVWdp4wrWLKkFPCGQhmXWCgwUUHUJQUjhqhYkDGlw==, tarball: https://npm.pkg.github.com/download/@ap-education/ui/0.1.1-beta.11/a9eb0ff0ee30748887967a4b843bd09708805963}
+  '@ap-education/ui@0.2.0-beta.12':
+    resolution: {integrity: sha512-DEMUCwszbcdF9VS+ueEuTz7DV+AsPQgysjdF4YgfTbJB1wQx7UO/R/3Tl6hQ2BTwbVnPKBNRh3iZ7QNsuNJwIg==, tarball: https://npm.pkg.github.com/download/@ap-education/ui/0.2.0-beta.12/f63b370b819a01080923e3b9655da3961fb7bc87}
     peerDependencies:
       '@phosphor-icons/react': ^2.1.10
       antd: ^6.5.4
@@ -7563,7 +7563,7 @@ snapshots:
     dependencies:
       react: 19.2.8
 
-  '@ap-education/ui@0.1.1-beta.11(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
+  '@ap-education/ui@0.2.0-beta.12(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@phosphor-icons/react': 2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@radix-ui/react-slot': 1.4.0(@types/react@19.2.18)(react@19.2.8)

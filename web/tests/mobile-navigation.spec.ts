@@ -20,19 +20,19 @@ test('open and close swipes settle and remove fractional progress', () => {
   const f = fixture();
   f.nav.value.openGesture.onTouchStartCapture(f.touch());
   f.advance(150);
-  f.emit('touchmove', 250);
+  f.emit('touchmove', 370);
   f.advance(16);
-  assert.equal(f.drag(), 0.25);
-  f.emit('touchend', 250);
+  assert.equal(f.drag(), 0.55);
+  f.emit('touchend', 370);
   assert.equal(f.isOpen(), true);
   assert.equal(f.drag(), null);
   f.render();
   f.nav.value.closeGesture.onTouchStartCapture(f.touch(250));
   f.advance(150);
-  f.emit('touchmove', 150);
+  f.emit('touchmove', 10);
   f.advance(16);
-  assert.equal(f.drag(), 0.75);
-  f.emit('touchend', 150);
+  assert.equal(f.drag(), 0.4);
+  f.emit('touchend', 10);
   assert.equal(f.isOpen(), false);
   assert.equal(f.drag(), null);
 });
@@ -49,7 +49,7 @@ for (const type of ['touchcancel', 'blur', 'pagehide', 'resize']) {
     assert.equal(f.isOpen(), false);
     f.nav.value.openGesture.onTouchStartCapture(f.touch());
     f.advance(150);
-    f.emit('touchend', 250);
+    f.emit('touchend', 370);
     assert.equal(f.isOpen(), true);
   });
 }
@@ -177,7 +177,7 @@ test('swiping over a button suppresses its click, while a tap stays usable', () 
   assert.equal(prevented, 0);
   f.nav.value.openGesture.onTouchStartCapture(f.touch());
   f.advance(150);
-  f.emit('touchend', 250);
+  f.emit('touchend', 370);
   f.nav.value.openGesture.onClickCapture(f.click(click));
   assert.equal(prevented, 1);
 });
