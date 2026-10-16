@@ -175,6 +175,8 @@ export interface ActionCommands {
   showReactions: (item: MessageHistoryItem) => void;
   /** Asks a member, such as an assistant, about the messages: the composer addresses them. */
   ask: (member: MemberSummary, items: MessageHistoryItem[]) => void;
+  /** Unread again from this message on. */
+  markUnread: (item: MessageHistoryItem) => void;
 }
 
 /** How an action stands out: a destructive one warns, an assistant's leads on its own sky. */

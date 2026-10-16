@@ -10,6 +10,7 @@ import type { HistoryPage } from '../../messaging/types';
 import { markRead } from '../api/read-state-api';
 import { applyOptimisticReadState, applyReadState } from '../applyReadState';
 import { workspaceUnreadKey } from '../queryKeys';
+import { useReadingHold } from '../stores/reading-hold-store';
 import type { ChannelUnread } from './useWorkspaceUnread';
 
 export function useActiveConversationReadState(
@@ -20,6 +21,8 @@ export function useActiveConversationReadState(
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
   const attending = useIsAttending();
+  const isHeld = useReadingHold((state) => state.heldChannelId === channelId);
+  const release = useReadingHold((state) => state.release);
   const requested = useRef(0n);
   const latestEventSeq = useRef(0n);
   const snapshotSeq = page?.snapshotSeq;
@@ -40,7 +43,8 @@ export function useActiveConversationReadState(
 
   const consume = useCallback(
     (seq: bigint) => {
-      if (!token || !readCursor || !isAttending() || seq <= requested.current || seq === 0n) return;
+      if (isHeld || !token || !readCursor || !isAttending()) return;
+      if (seq <= requested.current || seq === 0n) return;
       const summaryCursor = queryClient
         .getQueryData<ChannelUnread[]>(workspaceUnreadKey(identity, workspaceId))
         ?.find((entry) => entry.channelId === channelId)?.lastReadEntrySeq;
@@ -52,8 +56,11 @@ export function useActiveConversationReadState(
       });
       debouncedMarkRead(seq.toString());
     },
-    [token, readCursor, identity, workspaceId, channelId, queryClient, debouncedMarkRead],
+    [isHeld, token, readCursor, identity, workspaceId, channelId, queryClient, debouncedMarkRead],
   );
+
+  // Marked unread, the conversation reads again only once the person comes back to it.
+  useEffect(() => () => release(channelId), [release, channelId]);
 
   useSocketEvent('social:unread', (event) => {
     if (
