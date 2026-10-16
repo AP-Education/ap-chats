@@ -1,11 +1,10 @@
 import { useMemo } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import TabView from 'react-native-bottom-tabs';
 import { useKeyboardState } from 'react-native-keyboard-controller';
 
 import { useShellPalette } from '../../appearance';
 import type { NativeTab, TabBarModel } from '../types';
-import { FloatingTabBar, useFloatingTabBarSpace } from './FloatingTabBar';
 import { TabScene } from './TabScene';
 
 interface TabRoute {
@@ -23,15 +22,13 @@ interface NativeTabsProps {
 }
 
 /**
- * The tab bar for the page's tabs: UIKit's, with Liquid Glass on iOS 26, and a capsule of the same
- * shape drawn here on Android. Each tab holds a host the page is teleported into.
+ * iOS's tabs: UIKit's bar, with Liquid Glass on iOS 26. Each tab holds a host the page is
+ * teleported into, since the system bar lives only inside its own tab controller.
  */
 export function NativeTabs({ model, onSelect, onInset }: NativeTabsProps) {
   const palette = useShellPalette();
   const keyboardShown = useKeyboardState((state) => state.isVisible);
   const barHidden = !model.visible || keyboardShown;
-  const floatingBarSpace = useFloatingTabBarSpace();
-  const drawsOwnBar = Platform.OS === 'android';
   const routes = useMemo(() => model.items.map(toRoute), [model.items]);
   const index = Math.max(
     0,
@@ -47,7 +44,6 @@ export function NativeTabs({ model, onSelect, onInset }: NativeTabsProps) {
             id={route.key}
             active={route.key === model.activeId}
             barHidden={barHidden}
-            ownBarSpace={drawsOwnBar ? floatingBarSpace : undefined}
             onInset={onInset}
           />
         )}
@@ -62,11 +58,10 @@ export function NativeTabs({ model, onSelect, onInset }: NativeTabsProps) {
         }
         // A picture keeps its own colours instead of the bar's tint.
         getIconRenderingMode={({ route }) => (route.picture ? 'original' : 'automatic')}
-        tabBarHidden={drawsOwnBar || barHidden}
+        tabBarHidden={barHidden}
         tabBarActiveTintColor={palette.primary}
         getSceneStyle={() => ({ backgroundColor: palette.surface })}
       />
-      {drawsOwnBar && !barHidden && <FloatingTabBar model={model} onSelect={onSelect} />}
     </View>
   );
 }

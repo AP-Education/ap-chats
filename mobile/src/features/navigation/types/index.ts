@@ -15,4 +15,6 @@ export interface TabBarModel {
   activeId: string;
   /** Over the lists only; a conversation takes the whole screen. */
   visible: boolean;
+  /** How long the drawer takes to reach `visible`, so the bar moves with it. */
+  duration?: number;
 }

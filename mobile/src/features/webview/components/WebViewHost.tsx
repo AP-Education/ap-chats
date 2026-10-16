@@ -25,6 +25,7 @@ import {
   useComposerInput,
 } from '../../composer';
 import { NativeTabs } from '../../navigation/components/NativeTabs';
+import { OverlayTabs } from '../../navigation/components/OverlayTabs';
 import type { TabBarModel } from '../../navigation/types';
 import { changePushPermission } from '../../push/api/change-push-permission';
 import { dismissPresentedNotifications } from '../../push/api/presented-notifications';
@@ -67,6 +68,9 @@ export function WebViewHost() {
   // surfaces under the status bar and home indicator. Android's WebView reports them only in newer
   // versions, so native keeps the page clear of the system bars there and the WebView out of it.
   const edgeToEdge = Platform.OS === 'ios';
+  // iOS's system bar lives inside its tab controller, so the page moves into the active tab there;
+  // on Android the app's own bar floats over a page that never moves.
+  const pageMovesBetweenTabs = Platform.OS === 'ios';
   const [containerHeight, setContainerHeight] = useState(0);
   const sendInputState = useCallback((state: ComposerInputState) => {
     webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'composer/state', ...state }));
@@ -271,7 +275,10 @@ export function WebViewHost() {
       <MessageNotificationSound request={messageSoundRequest} />
       <View style={[styles.webviewWrapper, { paddingBottom: reservedInset }]}>
         {startUrl && (
-          <Portal hostName={tabBar?.activeId} style={styles.page}>
+          <Portal
+            hostName={pageMovesBetweenTabs ? tabBar?.activeId : undefined}
+            style={styles.page}
+          >
             <View ref={pageRef} style={styles.page} onLayout={measurePage} collapsable={false}>
               <WebView<object>
                 ref={webViewRef}
@@ -332,9 +339,12 @@ export function WebViewHost() {
             </View>
           </Portal>
         )}
-        {tabBar && (
-          <NativeTabs model={tabBar} onSelect={handleSelectTab} onInset={handleTabBarInset} />
-        )}
+        {tabBar &&
+          (pageMovesBetweenTabs ? (
+            <NativeTabs model={tabBar} onSelect={handleSelectTab} onInset={handleTabBarInset} />
+          ) : (
+            <OverlayTabs model={tabBar} onSelect={handleSelectTab} onInset={handleTabBarInset} />
+          ))}
       </View>
       <EmojiKeyboardPanel
         mode={input.mode}
