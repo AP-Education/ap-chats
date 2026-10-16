@@ -1,7 +1,6 @@
 import { message as toast } from 'antd';
 
 import { useScheduling } from '../../hooks/useScheduling';
-import { sendTimeLabel } from '../../send-times';
 import type { ScheduleRequest } from '../../types';
 import { SchedulePicker } from '../SchedulePicker/SchedulePicker';
 
@@ -20,7 +19,6 @@ export function ScheduleMessageDialog({ request, onClose }: ScheduleMessageDialo
       {
         onSuccess: () => {
           request.onScheduled();
-          toast.success(`Заплановано на ${sendTimeLabel(sendAt, new Date())}`);
           onClose();
         },
         onError: () => toast.error('Не вдалося запланувати повідомлення.'),
