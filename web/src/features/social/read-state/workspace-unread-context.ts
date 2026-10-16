@@ -27,6 +27,14 @@ export function createWorkspaceUnreadStore(
   return { unreadByChannel, channelTotal, directTotal };
 }
 
+/** Unread messages in a workspace's channels; its direct messages count towards the person's own. */
+export function channelUnreadTotal(channels: ChannelUnread[]): number {
+  return channels.reduce(
+    (total, channel) => (channel.kind === 'channel' ? total + channel.unreadCount : total),
+    0,
+  );
+}
+
 export const WorkspaceUnreadContext = createContext<WorkspaceUnreadStore | null>(null);
 
 export function useWorkspaceUnreadStore(): WorkspaceUnreadStore {
