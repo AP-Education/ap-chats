@@ -1,0 +1,20 @@
+.builtIn {
+  display: inline-flex;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: var(--ant-border-radius);
+}
+
+.builtIn[data-shape='circle'] {
+  border-radius: 50%;
+}
+
+.builtIn[data-shape='rounded'] {
+  border-radius: var(--ant-border-radius-lg);
+}
+
+.sky {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}

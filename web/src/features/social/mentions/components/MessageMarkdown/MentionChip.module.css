@@ -1,0 +1,62 @@
+/* One line whatever the name, and the same box whichever element carries it: a button never
+   flows like text, so a long name would otherwise grow into a block mid-sentence. */
+.mention {
+  display: inline-flex;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 1px 4px;
+  border: 0;
+  border-radius: var(--ant-border-radius-sm);
+  background-color: var(--mention-bg, var(--ant-color-primary-bg));
+  color: var(--mention-color, var(--ant-color-primary-text-active));
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  vertical-align: baseline;
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A mention of you reads as Discord's amber "this is about you" tag, the same accent as the row
+   highlight rather than antd's warning tokens, which clash with the teal palette. Own bubbles
+   override it with their usual mention ink: amber on the accent fill reads as mud. */
+.mention[data-me] {
+  background-color: var(--mention-me-bg, rgba(250, 173, 20, 0.18));
+  color: var(--mention-me-color, #874d00);
+}
+
+html[data-theme='dark'] .mention[data-me] {
+  background-color: var(--mention-me-bg, rgba(250, 173, 20, 0.22));
+  color: var(--mention-me-color, #ffd591);
+}
+
+/* A role reads in its own color, as on Discord; own bubbles keep their mention ink instead. */
+.mention[data-role] {
+  background-color: var(--mention-role-bg, color-mix(in srgb, var(--role-color) 18%, transparent));
+  color: var(--mention-role-color, var(--role-color));
+}
+
+/* A bot here is an assistant: a faint indigo-to-violet wash over the fill, hover included. The
+   spark's teal end is left out, since it would vanish into the teal accent. */
+.mention[data-assistant] {
+  background-image: linear-gradient(100deg, rgb(84 104 245 / 0.38), rgb(168 85 247 / 0.38));
+}
+
+button.mention {
+  cursor: pointer;
+}
+
+button.mention:hover,
+button.mention:focus-visible {
+  background-color: var(--mention-bg-hover, var(--ant-color-primary-bg-hover));
+}
+
+button.mention[data-me]:hover,
+button.mention[data-me]:focus-visible {
+  background-color: var(--mention-me-bg-hover, rgba(250, 173, 20, 0.28));
+}

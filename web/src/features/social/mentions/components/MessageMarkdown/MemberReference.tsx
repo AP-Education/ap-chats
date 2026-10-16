@@ -3,7 +3,8 @@ import { MemberProfileTrigger } from '@/features/social/people/components/Member
 
 import { tokenText } from '../../mention-tokens';
 import type { MentionLabel } from '../../types';
-import { MentionChipText, useMentionChipStyles } from './MentionChip';
+import { MentionChipText } from './MentionChip';
+import styles from './MentionChip.module.css';
 
 interface MemberReferenceProps {
   memberId: string;
@@ -14,18 +15,13 @@ interface MemberReferenceProps {
 
 /** A person named in a message: opens their profile, or plain where it cannot. */
 export function MemberReference({ memberId, person, inline, mine }: MemberReferenceProps) {
-  const { styles, cx } = useMentionChipStyles();
   const { workspaceId } = useConversationScope();
   const text = tokenText({ kind: 'member', id: memberId }, person?.displayName ?? undefined);
-  const mentionClass = cx(
-    styles.mention,
-    mine && styles.mentionMe,
-    person?.isBot && styles.mentionAssistant,
-  );
+  const variant = { 'data-me': mine || undefined, 'data-assistant': person?.isBot || undefined };
 
   if (inline || !person)
     return (
-      <span className={mentionClass}>
+      <span className={styles.mention} {...variant}>
         <MentionChipText>{text}</MentionChipText>
       </span>
     );
@@ -41,7 +37,8 @@ export function MemberReference({ memberId, person, inline, mine }: MemberRefere
     >
       <button
         type="button"
-        className={cx(mentionClass, styles.mentionTrigger, mine && styles.mentionMeTrigger)}
+        className={styles.mention}
+        {...variant}
         onPointerDown={(event) => event.stopPropagation()}
         onContextMenu={(event) => event.stopPropagation()}
       >

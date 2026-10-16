@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useChannels } from '@/features/communities/channels/hooks/useChannels';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 
-import { MentionChipText, useMentionChipStyles } from './MentionChip';
+import { MentionChipText } from './MentionChip';
+import styles from './MentionChip.module.css';
 
 interface ChannelReferenceProps {
   channelId: string;
@@ -12,7 +13,6 @@ interface ChannelReferenceProps {
 
 /** A channel named in a message: opens it for anyone who can see it, plain text otherwise. */
 export function ChannelReference({ channelId, inline }: ChannelReferenceProps) {
-  const { styles, cx } = useMentionChipStyles();
   const navigate = useNavigate();
   const { workspaceId } = useConversationScope();
   const channels = useChannels(workspaceId);
@@ -30,7 +30,7 @@ export function ChannelReference({ channelId, inline }: ChannelReferenceProps) {
   return (
     <button
       type="button"
-      className={cx(styles.mention, styles.mentionTrigger)}
+      className={styles.mention}
       onClick={() => navigate(`/channels/${channel.id}`)}
       onPointerDown={(event) => event.stopPropagation()}
       onContextMenu={(event) => event.stopPropagation()}

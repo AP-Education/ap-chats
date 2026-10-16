@@ -4,7 +4,8 @@ import { useRoles } from '@/features/roles/hooks/useRoles';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import { tokenText } from '../../mention-tokens';
-import { MentionChipText, useMentionChipStyles } from './MentionChip';
+import { MentionChipText } from './MentionChip';
+import styles from './MentionChip.module.css';
 
 interface RoleReferenceProps {
   roleId: string;
@@ -13,7 +14,6 @@ interface RoleReferenceProps {
 
 /** A role named in a message, in its own color unless it reached the viewer. */
 export function RoleReference({ roleId, mine }: RoleReferenceProps) {
-  const { styles, cx } = useMentionChipStyles();
   const { workspaceId } = useConversationScope();
   const { query } = useRoles(workspaceId);
   const role = query.data?.find((item) => item.id === roleId);
@@ -22,7 +22,9 @@ export function RoleReference({ roleId, mine }: RoleReferenceProps) {
 
   return (
     <span
-      className={cx(styles.mention, mine && styles.mentionMe, Boolean(color) && styles.mentionRole)}
+      className={styles.mention}
+      data-me={mine || undefined}
+      data-role={color ? true : undefined}
       style={color ? ({ '--role-color': color } as CSSProperties) : undefined}
     >
       <MentionChipText>{tokenText({ kind: 'role', id: roleId }, name)}</MentionChipText>
