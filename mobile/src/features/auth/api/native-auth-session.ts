@@ -19,8 +19,10 @@ export class NativeAuthSession implements AuthSessionProvider {
       clientId: this.config.clientId,
       redirectUri: this.config.redirectUri,
       responseType: AuthSession.ResponseType.Code,
-      // offline_access is what earns a refresh token, so the session outlives the access token.
+      // Accounts issues a refresh token only for offline_access asked together with
+      // prompt=consent, and silently drops the scope otherwise. Its consent step has no screen.
       scopes: ['openid', 'profile', 'offline_access'],
+      prompt: AuthSession.Prompt.Consent,
       usePKCE: true,
       extraParams: { resource: this.config.audience },
     });

@@ -1,7 +1,7 @@
-import { CheckIcon, ClockIcon, PushPinIcon, WarningCircleIcon } from '@phosphor-icons/react';
+import { PushPinIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 
-import type { DeliveryStatus } from '../../types';
+import { DeliveryMark } from './DeliveryMark';
 import { useMessageActionScope } from './MessageActionScope';
 
 const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
@@ -85,9 +85,6 @@ const useStyles = createStyles(({ token, css }) => ({
     line-height: 1.55;
     letter-spacing: 0.01em;
   `,
-  failed: css`
-    color: var(--bubble-accent);
-  `,
 }));
 
 export type MessageMetaPlacement = 'inline' | 'block' | 'overlay' | 'emoji' | 'reactions';
@@ -114,25 +111,7 @@ export function MessageMeta({ placement }: { placement: MessageMetaPlacement }) 
       <time dateTime={item.message.createdAt} title={fullFormat.format(createdAt)}>
         {timeFormat.format(createdAt)}
       </time>
-      {isOwn && <DeliveryMark delivery={delivery} />}
+      {isOwn && <DeliveryMark delivery={delivery} seq={item.seq} />}
     </span>
   );
-}
-
-// One glyph of one size on every own message: settling a send swaps the glyph in place,
-// so neither the time nor the bubble moves.
-function DeliveryMark({ delivery }: { delivery: DeliveryStatus | undefined }) {
-  const { styles } = useStyles();
-
-  if (delivery === 'failed')
-    return (
-      <WarningCircleIcon
-        size={14}
-        weight="fill"
-        className={styles.failed}
-        aria-label="Не надіслано"
-      />
-    );
-  if (delivery) return <ClockIcon size={14} aria-label="Надсилається" />;
-  return <CheckIcon size={14} aria-label="Надіслано" />;
 }

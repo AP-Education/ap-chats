@@ -3,7 +3,7 @@ import type { RefObject } from 'react';
 import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { MessageReactions } from '@/features/social/reactions/components/MessageReactions/MessageReactions';
 
-import type { EditMessage } from '../../types';
+import { useTimelineActions } from '../../timeline-actions-context';
 import { MessageAttachments } from '../MessageAttachments/MessageAttachments';
 import { PendingAttachments } from '../MessageAttachments/PendingAttachments';
 import { MessageBlocks } from '../MessageBlocks/MessageBlocks';
@@ -17,21 +17,15 @@ interface MessageBodyProps {
   layout: BubbleLayout;
   contentRef: RefObject<HTMLDivElement | null>;
   minHeight: number;
-  onEdit: EditMessage;
   onCloseEdit: () => void;
 }
 
 // Attachments come first and the caption after them, so the time can close its last line; blocks
 // like a GIF go under the text, as on Discord.
-export function MessageBody({
-  layout,
-  contentRef,
-  minHeight,
-  onEdit,
-  onCloseEdit,
-}: MessageBodyProps) {
+export function MessageBody({ layout, contentRef, minHeight, onCloseEdit }: MessageBodyProps) {
   const { editing, item, delivery, pendingAttachments, canReact, context } =
     useMessageActionScope();
+  const { saveEdit } = useTimelineActions();
   const textMeta = (layout.meta === 'inline' || layout.meta === 'emoji') && (
     <MessageMeta placement={layout.meta} />
   );
@@ -53,7 +47,7 @@ export function MessageBody({
         />
       )}
       {editing && (
-        <MessageEditor item={item} minHeight={minHeight} onEdit={onEdit} onClose={onCloseEdit}>
+        <MessageEditor item={item} minHeight={minHeight} onEdit={saveEdit} onClose={onCloseEdit}>
           <MentionEditor />
         </MessageEditor>
       )}
