@@ -17,7 +17,7 @@ import { ConversationForwarding } from './ConversationForwarding';
 import { ConversationHistoryContent } from './ConversationHistoryContent';
 import { ConversationSelectionBar } from './ConversationSelectionBar';
 import { KeyboardGlideSurface } from './KeyboardGlideSurface';
-import { conversationActions, useConversationActions } from './useConversationActions';
+import { useConversationActions } from './useConversationActions';
 import { useConversationHistoryNavigation } from './useConversationHistoryNavigation';
 import { useOverlayInsets } from './useOverlayInsets';
 
@@ -90,7 +90,7 @@ export function ConversationView({ currentMember, readOnlyFooter }: Conversation
       <MediaViewerProvider
         items={navigation.items}
         actions={{
-          actions: conversationActions,
+          actions: interaction.actions,
           context: interaction.actionContext,
           run: interaction.onAction,
           showInChat: navigation.onJump,

@@ -1,4 +1,4 @@
-import { isLoneGifLink } from '../messaging/gifs/gif-links';
+import { isLoneGif } from '../messaging/gifs/gif-links';
 import { mediaKey } from '../messaging/media-viewer-context';
 import type { HistoryItem } from '../messaging/types';
 import { isMessageItem } from '../messaging/types';
@@ -21,8 +21,7 @@ export function conversationMedia(items: HistoryItem[]): ViewerMedia[] {
     ]);
     const sources = [...files, ...gifs];
     // A GIF sent as a bare link says nothing besides the GIF itself.
-    const caption =
-      message.markdown.trim() && !isLoneGifLink(message.markdown) ? message.markdown : null;
+    const caption = message.markdown.trim() && !isLoneGif(message) ? message.markdown : null;
 
     return sources.map(([part, source], index) => ({
       key: mediaKey(message.id, part),
