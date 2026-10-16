@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
 import {
@@ -15,9 +15,6 @@ import type {
   SendMessageCommand,
 } from '@/features/social/messaging/types';
 import { isMessageItem } from '@/features/social/messaging/types';
-import { ScheduledMessagesEntry } from '@/features/social/scheduling/components/ScheduledMessagesEntry/ScheduledMessagesEntry';
-import { ScheduleMessageDialog } from '@/features/social/scheduling/components/ScheduleMessageDialog/ScheduleMessageDialog';
-import type { ScheduleRequest } from '@/features/social/scheduling/types';
 
 interface ConversationFooterProps {
   readOnlyFooter?: ReactNode;
@@ -39,7 +36,6 @@ function WritableConversationFooter({
   const { channelId } = useConversationScope();
   const intent = useConversation((state) => state.intent);
   const extensions = useConversationExtensions();
-  const [scheduling, setScheduling] = useState<ScheduleRequest | null>(null);
   const replyTarget =
     intent?.kind === 'reply'
       ? items.filter(isMessageItem).find((item) => item.message.id === intent.messageId)
@@ -60,19 +56,12 @@ function WritableConversationFooter({
   }
 
   return (
-    <>
-      <MessageComposer
-        replyAuthor={replyTarget?.author.displayName ?? undefined}
-        replyPreview={replyTarget?.message.markdown ?? undefined}
-        onSend={onSend}
-        onSchedule={(input, onScheduled) => setScheduling({ input, onScheduled })}
-        accessory={<ScheduledMessagesEntry />}
-      >
-        <MentionEditor />
-      </MessageComposer>
-      {scheduling && (
-        <ScheduleMessageDialog request={scheduling} onClose={() => setScheduling(null)} />
-      )}
-    </>
+    <MessageComposer
+      replyAuthor={replyTarget?.author.displayName ?? undefined}
+      replyPreview={replyTarget?.message.markdown ?? undefined}
+      onSend={onSend}
+    >
+      <MentionEditor />
+    </MessageComposer>
   );
 }

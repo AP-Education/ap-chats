@@ -24,11 +24,14 @@ import { DirectMessageActions } from '@/features/social/direct-messages/componen
 import { DirectProfilePanel } from '@/features/social/direct-messages/components/DirectProfilePanel/DirectProfilePanel';
 import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDirectMessages';
 import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
+import { schedulingExtension } from '@/features/social/scheduling/extension';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 import { Avatar } from '@/shared/ui/Avatar';
 import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
+
+const directExtensions = [schedulingExtension];
 
 const useStyles = createStyles(({ css }) => ({
   name: css`
@@ -116,6 +119,7 @@ export default function DirectMessagePage() {
     <Page>
       <ConversationProvider
         key={`${workspaceId}:${channelId}`}
+        extensions={directExtensions}
         scope={{
           workspaceId,
           channelId,

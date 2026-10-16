@@ -19,12 +19,6 @@ export interface ScheduleMessageCommand {
   quoteText?: string;
 }
 
-/** What the composer hands over to be sent later, and how it learns the hand-over is done. */
-export interface ScheduleRequest {
-  input: ScheduleMessageCommand;
-  onScheduled: () => void;
-}
-
 // Mirrors SocialEventsRelay on the API: only the author's own devices hear of their schedule.
 export type SchedulingServerToClientEvents = {
   'social:scheduled': (payload: { workspaceId: string; channelId: string }) => void;

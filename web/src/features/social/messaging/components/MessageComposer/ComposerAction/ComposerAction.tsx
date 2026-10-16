@@ -1,7 +1,13 @@
-import { CalendarDotsIcon, PaperPlaneRightIcon } from '@phosphor-icons/react';
+import { PaperPlaneRightIcon } from '@phosphor-icons/react';
 import { Dropdown, type MenuProps } from 'antd';
 import { createStyles } from 'antd-style';
 import { type PointerEvent, useRef, useState } from 'react';
+
+import type {
+  ComposerCommands,
+  ComposerDraftState,
+  SendOption,
+} from '@/features/social/conversation-scope/extensions';
 
 const LONG_PRESS_MS = 400;
 
@@ -56,32 +62,38 @@ const useStyles = createStyles(({ token, css }) => ({
 interface ComposerActionProps {
   hasContent: boolean;
   onSend: () => void;
-  /** A long press opens it straight away; a right click offers it among the send options. */
-  onSchedule?: () => void;
-  canSchedule?: boolean;
+  /** Other ways to send, from the features extending the conversation. */
+  options: SendOption[];
+  draft: ComposerDraftState;
+  composer: ComposerCommands;
 }
 
+/** Sends on a click; a right click lists the other ways to send, a long press takes the only one. */
 export function ComposerAction({
   hasContent,
   onSend,
-  onSchedule,
-  canSchedule = false,
+  options,
+  draft,
+  composer,
 }: ComposerActionProps) {
   const { styles, cx } = useStyles();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [chosen, setChosen] = useState<SendOption | null>(null);
   const pressTimer = useRef<number | undefined>(undefined);
   const pressedLong = useRef(false);
-  const hasOptions = Boolean(onSchedule) && hasContent;
+  const hasOptions = options.length > 0 && hasContent;
 
-  // A mouse has its right click; a finger holds the button instead. Held with files attached,
-  // it opens the options, which say why those cannot be scheduled yet.
+  // A mouse has its right click; a finger holds the button instead. With several options, or
+  // one that cannot take this draft, the menu opens to say which do and why the others don't.
   function startPress(event: PointerEvent<HTMLButtonElement>) {
     pressedLong.current = false;
     if (!hasOptions || event.pointerType === 'mouse') return;
 
     pressTimer.current = window.setTimeout(() => {
       pressedLong.current = true;
-      if (canSchedule) onSchedule?.();
+      const [only] = options;
+      const takesDraft = options.length === 1 && only && !only.unavailable?.(draft);
+      if (takesDraft) setChosen(only);
       else setMenuOpen(true);
     }, LONG_PRESS_MS);
   }
@@ -96,17 +108,18 @@ export function ComposerAction({
   }
 
   const menu: MenuProps = {
-    items: [
-      {
-        key: 'schedule',
-        icon: <CalendarDotsIcon size={18} />,
-        label: canSchedule ? 'Запланувати повідомлення' : 'Файли поки не можна запланувати',
-        disabled: !canSchedule,
-      },
-    ],
-    onClick: () => {
+    items: options.map((option) => {
+      const reason = option.unavailable?.(draft);
+      return {
+        key: option.id,
+        icon: option.icon,
+        label: reason ?? option.label,
+        disabled: !!reason,
+      };
+    }),
+    onClick: ({ key }) => {
       setMenuOpen(false);
-      onSchedule?.();
+      setChosen(options.find((option) => option.id === key) ?? null);
     },
   };
 
@@ -126,17 +139,22 @@ export function ComposerAction({
     </button>
   );
 
-  if (!onSchedule) return button;
+  if (!options.length) return button;
+
+  const Dialog = chosen?.Dialog;
 
   return (
-    <Dropdown
-      trigger={['contextMenu']}
-      menu={menu}
-      open={menuOpen && hasOptions}
-      onOpenChange={setMenuOpen}
-      placement="topRight"
-    >
-      {button}
-    </Dropdown>
+    <>
+      <Dropdown
+        trigger={['contextMenu']}
+        menu={menu}
+        open={menuOpen && hasOptions}
+        onOpenChange={setMenuOpen}
+        placement="topRight"
+      >
+        {button}
+      </Dropdown>
+      {Dialog && <Dialog composer={composer} onClose={() => setChosen(null)} />}
+    </>
   );
 }

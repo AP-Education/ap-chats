@@ -1,24 +1,20 @@
 import { message as toast } from 'antd';
 
+import type { SendOptionDialogProps } from '@/features/social/conversation-scope/extensions';
+
 import { useScheduling } from '../../hooks/useScheduling';
-import type { ScheduleRequest } from '../../types';
 import { SchedulePicker } from '../SchedulePicker/SchedulePicker';
 
-interface ScheduleMessageDialogProps {
-  request: ScheduleRequest;
-  onClose: () => void;
-}
-
 /** Takes the composer's message once its time is picked; a failure leaves it in the composer. */
-export function ScheduleMessageDialog({ request, onClose }: ScheduleMessageDialogProps) {
+export function ScheduleMessageDialog({ composer, onClose }: SendOptionDialogProps) {
   const { schedule } = useScheduling();
 
   function pick(sendAt: Date) {
     schedule.mutate(
-      { input: request.input, sendAt },
+      { input: composer.read(), sendAt },
       {
         onSuccess: () => {
-          request.onScheduled();
+          composer.clear();
           onClose();
         },
         onError: () => toast.error('Не вдалося запланувати повідомлення.'),

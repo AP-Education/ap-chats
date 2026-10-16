@@ -15,6 +15,10 @@ import {
 } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+import {
+  type ComposerCommands,
+  useConversationExtensions,
+} from '@/features/social/conversation-scope/extensions';
 import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
 import { MessageEditorSlotProvider } from '@/features/social/mentions/MessageEditorSlot';
 import type { ComposerEditorApi, ComposerEditorSlotProps } from '@/features/social/mentions/types';
@@ -221,10 +225,6 @@ interface MessageComposerProps {
   replyAuthor?: string;
   replyPreview?: string;
   onSend: (input: ComposedMessage, pending?: PendingAttachmentCommit) => void;
-  /** Hands the message over to be sent later; the composer clears once `onScheduled` runs. */
-  onSchedule?: (input: ComposedMessage, onScheduled: () => void) => void;
-  /** Beside the input's own buttons, e.g. a way into what is scheduled. */
-  accessory?: ReactNode;
   /** The text-input to compose with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
   children: ReactNode;
 }
@@ -233,8 +233,6 @@ export function MessageComposer({
   replyAuthor,
   replyPreview,
   onSend,
-  onSchedule,
-  accessory,
   children,
 }: MessageComposerProps) {
   const { styles, cx } = useStyles();
@@ -243,6 +241,11 @@ export function MessageComposer({
   const draftKey = `ap-chats:draft:${identity}:${workspaceId}:${channelId}`;
   const intent = useConversation((state) => state.intent);
   const setIntent = useConversation((state) => state.setIntent);
+  const extensions = useConversationExtensions();
+  const sendOptions = useMemo(
+    () => extensions.flatMap((extension) => extension.sendOptions ?? []),
+    [extensions],
+  );
   const blurComposerToken = useConversation((state) => state.blurComposerToken);
   const isMobile = useIsMobile();
   const hasCoarsePointer = useHasCoarsePointer();
@@ -301,9 +304,6 @@ export function MessageComposer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blurComposerToken]);
 
-  // Files go only with a message sent now; the server keeps no uploads for later.
-  const canSchedule = hasContent && uploads.drafts.length === 0;
-
   const readMessage = useCallback((): ComposedMessage => {
     const draft = editableRef.current?.draft();
     const composed = { markdown: draft?.markdown.trim() ?? '', labels: draft?.labels ?? {} };
@@ -337,9 +337,15 @@ export function MessageComposer({
     if (!activeTab) editableRef.current?.focus();
   }, [canSend, readMessage, uploads, onSend, clearSent, activeTab]);
 
-  // StarMe hears a question only as it goes out, so asking it is never put off for later.
-  const handleSchedule =
-    onSchedule && intent?.kind !== 'ask' ? () => onSchedule(readMessage(), clearSent) : undefined;
+  // Other ways to send take the draft over through these, and decide its fate themselves.
+  const commands = useMemo<ComposerCommands>(
+    () => ({ read: readMessage, clear: clearSent }),
+    [readMessage, clearSent],
+  );
+  const draftState = {
+    hasAttachments: uploads.drafts.length > 0,
+    canWait: !intent || composerIntent(intent.kind).canWait,
+  };
 
   function insertEmoji(emoji: string) {
     editableRef.current?.insertText(emoji);
@@ -420,10 +426,14 @@ export function MessageComposer({
     editableRef.current?.suspendInput();
   }
 
+  const accessories = extensions.map(
+    ({ id, ComposerAccessory }) => ComposerAccessory && <ComposerAccessory key={id} />,
+  );
+
   // One entry point that reopens whatever tab was used last; the panel's own tabs switch.
   const toolbarButtons = (
     <div className={styles.toolbarRight}>
-      {accessory}
+      {accessories}
       <IconButton
         size={toolbarActionSize}
         className={cx(styles.toolbarButton, activeTab !== null && styles.toolbarButtonActive)}
@@ -439,7 +449,7 @@ export function MessageComposer({
   // Compact (phone/tablet): the same entry point, which turns into the way back to the keyboard.
   const compactToolbarButton = (
     <div className={styles.toolbarRight}>
-      {accessory}
+      {accessories}
       <IconButton
         size={toolbarActionSize}
         className={cx(styles.toolbarButton, activeTab !== null && styles.toolbarButtonActive)}
@@ -591,8 +601,9 @@ export function MessageComposer({
         <ComposerAction
           hasContent={canSend}
           onSend={handleSend}
-          onSchedule={handleSchedule}
-          canSchedule={canSchedule}
+          options={sendOptions}
+          draft={draftState}
+          composer={commands}
         />
       </div>
       {isCompact && activeTab && !isNativeShell() && (
