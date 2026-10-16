@@ -19,11 +19,12 @@ interface MediaViewerProps {
 export function MediaViewer({ gallery, actions }: MediaViewerProps) {
   const { accent } = useShellAppearance();
   const isMobile = useIsMobile();
-  const { current, mounted, zoomable, zoomedIn } = useSyncExternalStore(
-    gallery.subscribe,
-    gallery.getView,
-  );
-  const media = current?.kind === 'media' ? current.media : undefined;
+  const {
+    current: media,
+    mounted,
+    zoomable,
+    zoomedIn,
+  } = useSyncExternalStore(gallery.subscribe, gallery.getView);
   // Tools sit by the close button on a wide screen, as on Discord, and under the thumb on a phone.
   const toolsEdge = isMobile ? 'bottom' : 'top';
   const zoom = !isMobile && zoomable ? { zoomedIn, toggle: () => gallery.toggleZoom() } : undefined;
@@ -54,8 +55,8 @@ export function MediaViewer({ gallery, actions }: MediaViewerProps) {
           />
         </>
       )}
-      {mounted.map(({ id, element, slide }) =>
-        createPortal(<SlideContent slide={slide} current={media} />, element, String(id)),
+      {mounted.map(({ id, element, media: slideMedia }) =>
+        createPortal(<SlideContent media={slideMedia} current={media} />, element, String(id)),
       )}
     </AppearanceScope>,
     gallery.element,

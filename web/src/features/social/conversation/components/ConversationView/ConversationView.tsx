@@ -89,7 +89,6 @@ export function ConversationView({ currentMember, readOnlyFooter }: Conversation
     >
       <MediaViewerProvider
         items={navigation.items}
-        history={navigation.history}
         actions={{
           actions: conversationActions,
           context: interaction.actionContext,

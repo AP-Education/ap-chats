@@ -1,18 +1,14 @@
-import type { GallerySlide, ViewerMedia } from '../../types';
-import { LoadingSlide } from './LoadingSlide';
+import type { ViewerMedia } from '../../types';
 import { VideoSlide } from './VideoSlide';
 
-/** What React draws inside a slide PhotoSwipe leaves to it: a video, or the wait for history. */
+/** What React draws inside a slide PhotoSwipe leaves to it: a video. */
 export function SlideContent({
-  slide,
+  media,
   current,
 }: {
-  slide: GallerySlide;
+  media: ViewerMedia;
   current: ViewerMedia | undefined;
 }) {
-  if (slide.kind === 'loading') return <LoadingSlide />;
-
-  const { media } = slide;
   if (media.source.kind !== 'video') return null;
 
   return (

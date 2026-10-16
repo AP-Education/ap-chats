@@ -1,51 +1,30 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { attachmentUrlQuery } from '@/features/social/messaging/components/MessageAttachments/useAttachmentAccess';
 import type { HistoryItem } from '@/features/social/messaging/types';
 
-import { gallerySlides, slideIndexOf } from '../gallery';
 import type { MediaGallery, MediaUrls, UrlVariant } from '../media-gallery';
 import { conversationMedia } from '../media-list';
-import type { HistoryEdge, PagedHistory } from '../types';
-
-function loadEdge(history: PagedHistory, edge: HistoryEdge) {
-  if (edge === 'older' && history.hasPreviousPage && !history.isFetchingPreviousPage) {
-    void history.fetchPreviousPage();
-  }
-  if (edge === 'newer' && history.hasNextPage && !history.isFetchingNextPage) {
-    void history.fetchNextPage();
-  }
-}
 
 /**
- * The open gallery, if any, kept in step with the conversation's history. It opens from the tap
- * itself, so PhotoSwipe's zoom starts from the bubble the person touched.
+ * The open gallery, if any, over the media the chat has loaded. It opens from the tap itself, so
+ * PhotoSwipe's zoom starts from the bubble the person touched.
  */
-export function useMediaGallery(items: HistoryItem[], history: PagedHistory) {
+export function useMediaGallery(items: HistoryItem[]) {
   const queryClient = useQueryClient();
   const auth = useQueryAuth();
   const scope = useConversationScope();
   const [gallery, setGallery] = useState<MediaGallery | null>(null);
   const opening = useRef(false);
 
-  const { hasPreviousPage: older, hasNextPage: newer } = history;
-  const slides = useMemo(
-    () => gallerySlides(conversationMedia(items), { older, newer }),
-    [items, older, newer],
-  );
-
-  // Read by PhotoSwipe's callbacks long after the render that opened it.
-  const latest = useRef({ slides, history, auth, scope });
+  // Read by the tap and PhotoSwipe's callbacks long after the render that set them up.
+  const latest = useRef({ items, auth, scope });
   useLayoutEffect(() => {
-    latest.current = { slides, history, auth, scope };
+    latest.current = { items, auth, scope };
   });
-
-  useEffect(() => {
-    gallery?.update(slides);
-  }, [gallery, slides]);
 
   useEffect(() => () => gallery?.dispose(), [gallery]);
 
@@ -65,15 +44,11 @@ export function useMediaGallery(items: HistoryItem[], history: PagedHistory) {
 
       try {
         const { MediaGallery } = await import('../media-gallery');
-        const { slides: openedSlides } = latest.current;
-        const index = slideIndexOf(openedSlides, key);
+        const media = conversationMedia(latest.current.items);
+        const index = media.findIndex((entry) => entry.key === key);
         if (index < 0) return;
 
-        const opened = new MediaGallery(openedSlides, index, urls, {
-          onNearEdge: (edge) => loadEdge(latest.current.history, edge),
-          onClosed: () => setGallery(null),
-        });
-        setGallery(opened);
+        setGallery(new MediaGallery(media, index, urls, { onClosed: () => setGallery(null) }));
       } finally {
         opening.current = false;
       }

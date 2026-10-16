@@ -8,8 +8,7 @@ import photoswipeStyles from 'photoswipe/style.css?inline';
 import type { Attachment } from '../messaging/attachments/types';
 import type { MediaSize } from '../messaging/media/media-fit';
 import { placeholderImage } from '../messaging/media/placeholder';
-import { appliesNow, carriedIndex, edgeToLoad } from './gallery';
-import type { GallerySlide, HistoryEdge } from './types';
+import type { ViewerMedia } from './types';
 
 type Content = AugmentedEvent<'contentLoad'>['content'];
 
@@ -21,23 +20,22 @@ export interface MediaUrls {
   fetch: (messageId: string, attachmentId: string, variant: UrlVariant) => Promise<string>;
 }
 
-/** A slide PhotoSwipe leaves to React to fill: a video, or the wait at an edge. */
+/** A slide PhotoSwipe leaves to React to fill: a video. */
 export interface MountedSlide {
   id: number;
   element: HTMLElement;
-  slide: GallerySlide;
+  media: ViewerMedia;
 }
 
 /** What React renders over the gallery. */
 export interface GalleryView {
-  current: GallerySlide | undefined;
+  current: ViewerMedia | undefined;
   mounted: MountedSlide[];
   zoomable: boolean;
   zoomedIn: boolean;
 }
 
 export interface MediaGalleryEvents {
-  onNearEdge: (edge: HistoryEdge) => void;
   onClosed: () => void;
 }
 
@@ -114,27 +112,22 @@ async function decoded(url: string): Promise<void> {
   await image.decode();
 }
 
-const slideKey = (slide: GallerySlide | undefined) =>
-  slide?.kind === 'media' ? slide.media.key : slide?.edge;
-
 /**
- * PhotoSwipe paging through a conversation's media: photos zoom and sharpen to their originals,
- * videos and the waits at the edges are left to React, and newly loaded history slots in without
- * moving what is on screen.
+ * PhotoSwipe paging through the media the chat has loaded, as they were when it opened: photos
+ * zoom and sharpen to their originals, and videos are left to React.
  */
 export class MediaGallery {
   private readonly pswp: PhotoSwipe;
   private readonly urls: MediaUrls;
   private readonly events: MediaGalleryEvents;
-  private slides: GallerySlide[];
-  private waiting: GallerySlide[] | null = null;
+  private readonly slides: ViewerMedia[];
   private view: GalleryView = { current: undefined, mounted: [], zoomable: false, zoomedIn: false };
   private readonly listeners = new Set<() => void>();
   private readonly mounted = new Map<Content, MountedSlide>();
   private mountedCount = 0;
   private closed = false;
 
-  constructor(slides: GallerySlide[], index: number, urls: MediaUrls, events: MediaGalleryEvents) {
+  constructor(slides: ViewerMedia[], index: number, urls: MediaUrls, events: MediaGalleryEvents) {
     this.slides = slides;
     this.urls = urls;
     this.events = events;
@@ -160,17 +153,6 @@ export class MediaGallery {
 
   getView = () => this.view;
 
-  update(next: GallerySlide[]) {
-    const index = this.pswp.currIndex;
-    if (!appliesNow(this.slides, index, next)) {
-      this.waiting = next;
-      return;
-    }
-
-    this.waiting = null;
-    this.apply(next, carriedIndex(this.slides, index, next));
-  }
-
   close() {
     this.pswp.close();
   }
@@ -191,7 +173,7 @@ export class MediaGallery {
     const { pswp } = this;
 
     pswp.addFilter('numItems', () => this.slides.length);
-    pswp.addFilter('itemData', (_, index) => this.slideData(this.slides[index]));
+    pswp.addFilter('itemData', (_, index) => this.slideData(this.slides[index]!));
     pswp.addFilter(
       'thumbEl',
       (_, data) => (data.key ? thumbnailOf(data.key) : null) as HTMLElement,
@@ -227,16 +209,13 @@ export class MediaGallery {
     this.publish({ zoomable, zoomedIn });
   }
 
-  private slideData(slide: GallerySlide | undefined): SlideData {
-    if (slide?.kind !== 'media') return { type: 'loading', slide };
-
-    const { media } = slide;
+  private slideData(media: ViewerMedia): SlideData {
     const { source } = media;
     const alt =
       source.kind === 'gif'
         ? source.block.title || 'GIF'
         : source.attachment.description || source.attachment.name;
-    const base = { slide, key: media.key, alt, thumbCropped: true };
+    const base = { media, key: media.key, alt, thumbCropped: true };
 
     if (source.kind === 'gif') {
       const { url, placeholder } = source.block.media;
@@ -284,7 +263,7 @@ export class MediaGallery {
     this.mounted.set(content, {
       id: this.mountedCount,
       element,
-      slide: content.data.slide as GallerySlide,
+      media: content.data.media as ViewerMedia,
     });
     this.publish({ mounted: [...this.mounted.values()] });
   }
@@ -296,14 +275,14 @@ export class MediaGallery {
 
   /** Swaps a photo for a sharper copy once that has decoded, so it never blanks in between. */
   private async sharpen(content: Content, quality: Exclude<Quality, 'stand-in'>) {
-    const slide = content.data.slide as GallerySlide | undefined;
-    if (slide?.kind !== 'media' || slide.media.source.kind !== 'image') return;
+    const media = content.data.media as ViewerMedia;
+    if (media.source.kind !== 'image') return;
 
     const sharper = () => QUALITY.indexOf(quality) > QUALITY.indexOf(content.data.quality);
     if (!sharper()) return;
 
-    const messageId = slide.media.item.message.id;
-    const attachmentId = slide.media.source.attachment.id;
+    const messageId = media.item.message.id;
+    const attachmentId = media.source.attachment.id;
     let url: string;
     try {
       url = await this.urls.fetch(messageId, attachmentId, quality);
@@ -332,72 +311,13 @@ export class MediaGallery {
     if (clientY > controlsTop) event.preventDefault();
   }
 
-  /** After each move: take in history that was waiting, then report where the viewer stands. */
+  /** After each move: report where the viewer stands and sharpen the photo it shows. */
   private settle() {
-    const index = this.pswp.currIndex;
-    if (this.waiting && appliesNow(this.slides, index, this.waiting)) {
-      this.update(this.waiting);
-      return;
-    }
-
-    const current = this.slides[index];
+    const current = this.slides[this.pswp.currIndex];
     if (current !== this.view.current) this.publish({ current });
     this.publishZoom();
 
-    const edge = edgeToLoad(this.slides, index);
-    if (edge) this.events.onNearEdge(edge);
-
     const content = this.pswp.currSlide?.content;
     if (content) void this.sharpen(content, 'preview');
-  }
-
-  private apply(next: GallerySlide[], index: number) {
-    const previous = this.slides;
-    this.slides = next;
-
-    if (index === this.pswp.currIndex) this.refreshChanged(previous);
-    else this.rebase(index);
-
-    this.settle();
-  }
-
-  /** Same place, different neighbours: only the slides whose media changed are rebuilt. */
-  private refreshChanged(previous: GallerySlide[]) {
-    const { pswp } = this;
-    const length = Math.max(previous.length, this.slides.length);
-    const holders = new Set([pswp.currIndex - 1, pswp.currIndex, pswp.currIndex + 1]);
-
-    for (let index = 0; index < length; index += 1) {
-      if (slideKey(previous[index]) === slideKey(this.slides[index])) continue;
-
-      pswp.contentLoader.getContentByIndex(index)?.destroy();
-      if (holders.has(index)) pswp.refreshSlideContent(index);
-      else pswp.contentLoader.removeByIndex(index);
-    }
-  }
-
-  /**
-   * Older media went in before the current slide, so every index moved. PhotoSwipe cannot page
-   * below 0, so it starts over at the new index with nothing cached; this only happens on a wait
-   * slide, where there is nothing to lose.
-   */
-  private rebase(index: number) {
-    const { pswp } = this;
-    const holders = pswp.mainScroll.itemHolders;
-
-    holders.forEach((holder) => {
-      holder.slide?.destroy();
-      holder.slide = undefined;
-    });
-    pswp.contentLoader.destroy();
-
-    pswp.currIndex = index;
-    pswp.potentialIndex = index;
-    holders.forEach((holder, position) => pswp.setContent(holder, index - 1 + position));
-
-    pswp.currSlide = holders[1]?.slide;
-    pswp.currSlide?.setIsActive(true);
-    pswp.contentLoader.updateLazy();
-    pswp.dispatch('change');
   }
 }
