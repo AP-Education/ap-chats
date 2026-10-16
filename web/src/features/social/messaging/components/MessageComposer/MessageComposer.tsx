@@ -42,7 +42,7 @@ import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface'
 import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
 import { useAttachmentDrop } from './AttachmentDropZone';
 import { ComposerAction } from './ComposerAction';
-import { composerIntent, IntentExcerpt } from './composerIntents';
+import { composerIntent, IntentExcerpt, type ReplyPreview } from './composerIntents';
 import { DesktopPickerPopover } from './DesktopPickerPopover';
 import { PickerPanel, type PickerTab } from './picker';
 import { useBrowserKeyboardHeight } from './useBrowserKeyboardHeight';
@@ -226,7 +226,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
 interface MessageComposerProps {
   replyAuthor?: string;
-  replyPreview?: string;
+  replyPreview?: ReplyPreview;
   onSend: (
     input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
     pending?: PendingAttachmentCommit,

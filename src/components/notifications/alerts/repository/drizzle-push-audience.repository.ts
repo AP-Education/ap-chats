@@ -69,6 +69,7 @@ export class DrizzlePushAudienceRepository extends PushAudienceRepository {
     const [row] = await this.txHost.tx
       .select({
         contentMarkdown: chatMessages.contentMarkdown,
+        gif: chatMessages.gif,
         actorName: userProfiles.displayName,
       })
       .from(channelEntries)

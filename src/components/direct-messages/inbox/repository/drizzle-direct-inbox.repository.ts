@@ -175,6 +175,7 @@ export class DrizzleDirectInboxRepository extends DirectInboxRepository {
         lastMessage: {
           id: chatMessages.id,
           markdown: chatMessages.contentMarkdown,
+          gif: chatMessages.gif,
           deletedAt: chatMessages.deletedAt,
           authorMemberId: chatMessages.authorMemberId,
           createdAt: chatMessages.createdAt,

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { GIF_MEDIA, isGifLink, isLoneGifLink } from './gif-links';
+import { GIF_MEDIA, isGifLink } from './gif-links';
 
 test('GIF pages and GIF files on the services CDNs are GIF links', () => {
   assert.equal(isGifLink('https://klipy.com/gifs/angry-dan-levy'), true);
@@ -19,9 +19,4 @@ test('GIF pages and GIF files on the services CDNs are GIF links', () => {
 test('a GIF loads only from the services CDNs', () => {
   assert.equal(GIF_MEDIA.test('https://static.klipy.com/ii/hello.webp'), true);
   assert.equal(GIF_MEDIA.test('https://evil.test/hello.webp'), false);
-});
-
-test('only a message that is nothing but the link reads as a GIF', () => {
-  assert.equal(isLoneGifLink(' https://klipy.com/gifs/angry-dan-levy\n'), true);
-  assert.equal(isLoneGifLink('lol https://klipy.com/gifs/angry-dan-levy'), false);
 });

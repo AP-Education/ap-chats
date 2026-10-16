@@ -5,7 +5,6 @@ import type { MessageModel } from './types/message.types';
 export type MessageBlock = { type: 'gif' } & MessageGif;
 
 /** Gathered from wherever each kind is kept, so the API reads one list whatever the storage. */
-export function messageBlocks(message: MessageModel): MessageBlock[] {
-  if (message.deletedAt || !message.gif) return [];
-  return [{ type: 'gif', ...message.gif }];
+export function messageBlocks({ gif }: Pick<MessageModel, 'gif'>): MessageBlock[] {
+  return gif ? [{ type: 'gif', ...gif }] : [];
 }

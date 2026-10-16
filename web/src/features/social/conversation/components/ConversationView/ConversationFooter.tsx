@@ -58,7 +58,7 @@ function WritableConversationFooter({
   return (
     <MessageComposer
       replyAuthor={replyTarget?.author.displayName ?? undefined}
-      replyPreview={replyTarget?.message.markdown ?? undefined}
+      replyPreview={replyTarget?.message}
       onSend={onSend}
     >
       <MentionEditor />

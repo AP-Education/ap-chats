@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { keptGif, linkedGif, type MessageGif } from './message-gif';
+import { isLoneGif, keptGif, linkedGif, type MessageGif } from './message-gif';
 
 const link = 'https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif';
 const gif: MessageGif = {
@@ -26,4 +26,11 @@ test('an edit keeps the GIF while its link stays, and drops it with the link', (
   assert.equal(keptGif(gif, [link]), gif);
   assert.equal(keptGif(gif, []), null);
   assert.equal(keptGif(null, [link]), null);
+});
+
+test('only a message that is nothing but its GIF link reads as a GIF', () => {
+  assert.equal(isLoneGif(` ${link}\n`, gif), true);
+  assert.equal(isLoneGif(`lol ${link}`, gif), false);
+  // A GIF link the composer found no GIF for stays a link.
+  assert.equal(isLoneGif(link, null), false);
 });

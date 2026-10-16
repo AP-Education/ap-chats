@@ -50,6 +50,7 @@ export interface MessageHistoryItem {
     authorMemberId: string;
     author: MessageAuthor | null;
     markdown: string | null;
+    blocks?: MessageBlock[];
   } | null;
   forwardedFrom: MessageAuthor | null;
   pin: { pinnedAt: string; pinnedByMemberId: string } | null;

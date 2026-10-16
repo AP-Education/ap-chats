@@ -101,6 +101,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
           id: replyMessages.id,
           authorMemberId: replyMessages.authorMemberId,
           contentMarkdown: replyMessages.contentMarkdown,
+          gif: replyMessages.gif,
           deletedAt: replyMessages.deletedAt,
         },
         replyAuthorProfile: {

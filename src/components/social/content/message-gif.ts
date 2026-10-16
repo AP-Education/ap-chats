@@ -32,6 +32,11 @@ export function linkedGif(gif: MessageGif | undefined, links: string[]): Message
   return gif && isLinked(gif, links) ? gif : null;
 }
 
+/** Nothing but its GIF's link: the GIF shows alone, and a preview reads "GIF", as in Telegram. */
+export function isLoneGif(markdown: string, gif: MessageGif | null): boolean {
+  return gif !== null && markdown.trim() === gif.link;
+}
+
 /** An edit that brings no GIF keeps the current one while its link stays. */
 export function keptGif(current: MessageGif | null, links: string[]): MessageGif | null {
   return current && isLinked(current, links) ? current : null;

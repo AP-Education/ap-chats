@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { firstGifLink, isLoneGifLink, readGifLink } from './gif-links.ts';
+import type { GifBlock } from '../types.ts';
+import { firstGifLink, isLoneGif, readGifLink } from './gif-links.ts';
 
 test('a KLIPY page is looked up by its slug', () => {
   assert.deepEqual(readGifLink('https://klipy.com/gifs/angry-dan-levy'), {
@@ -45,8 +46,21 @@ test('links in code, in angle brackets, or to other sites show no GIF', () => {
   assert.equal(firstGifLink('docs at https://example.com/guide'), null);
 });
 
-test('only a message that is nothing but the link reads as a GIF', () => {
-  assert.equal(isLoneGifLink(' https://klipy.com/gifs/angry-dan-levy\n'), true);
-  assert.equal(isLoneGifLink('lol https://klipy.com/gifs/angry-dan-levy'), false);
-  assert.equal(isLoneGifLink(null), false);
+test('only a message that is nothing but its GIF link reads as a GIF', () => {
+  const link = 'https://klipy.com/gifs/angry-dan-levy';
+  const blocks: GifBlock[] = [
+    {
+      type: 'gif',
+      provider: 'klipy',
+      link,
+      title: 'GIF',
+      media: { url: 'https://static.klipy.com/ii/a.webp', width: 1, height: 1 },
+    },
+  ];
+
+  assert.equal(isLoneGif({ markdown: ` ${link}\n`, blocks }), true);
+  assert.equal(isLoneGif({ markdown: `lol ${link}`, blocks }), false);
+  // A GIF link the composer found no GIF for stays a link.
+  assert.equal(isLoneGif({ markdown: link, blocks: [] }), false);
+  assert.equal(isLoneGif({ markdown: null, blocks }), false);
 });

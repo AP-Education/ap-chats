@@ -1,4 +1,5 @@
 import type { AttachmentDraft } from '../../attachments/types';
+import { isLoneGif } from '../../gifs/gif-links';
 import type { MessageHistoryItem } from '../../types';
 import type { BubbleVariant } from '../Bubble/Bubble';
 import type { MessageMetaPlacement } from './MessageMeta';
@@ -74,7 +75,7 @@ function bubbleContent(
   const gif = item.message.blocks?.find((block) => block.type === 'gif');
   const hasGif = Boolean(gif);
   // A lone GIF link says nothing the GIF itself does not, so only the GIF shows, as on Discord.
-  const isOnlyGifLink = gif !== undefined && markdown?.trim() === gif.link;
+  const isOnlyGifLink = isLoneGif(item.message);
 
   return {
     hasText: Boolean(markdown?.trim()) && !isOnlyGifLink,

@@ -1,3 +1,4 @@
+import { messageBlocks } from '../messages/message-blocks';
 import { messageView } from '../messages/message-view';
 import type { ReadPosition } from '../read-state/types';
 import type { CallHistoryRow, HistoryRow, MessageHistoryRow } from './types/history.types';
@@ -81,6 +82,7 @@ function messageItemView(row: MessageHistoryRow, viewerMemberId: string) {
       authorMemberId: reply.authorMemberId,
       author: row.replyAuthorProfile && personView(reply.authorMemberId, row.replyAuthorProfile),
       markdown: reply.deletedAt ? null : reply.contentMarkdown,
+      blocks: reply.deletedAt ? [] : messageBlocks(reply),
     },
     forwardedFrom:
       forwardedFromMemberId && row.forwardAuthorProfile

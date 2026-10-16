@@ -1,4 +1,4 @@
-import type { GifBlock } from '../types';
+import type { GifBlock, Message } from '../types';
 
 // The links a message shows as a GIF. The server reads the same ones in
 // src/components/social/content/gif-links.ts.
@@ -64,7 +64,8 @@ export function firstGifLink(markdown: string): string | null {
   return null;
 }
 
-/** Nothing but a GIF link: the GIF shows alone, and a preview reads "GIF", as in Telegram. */
-export function isLoneGifLink(markdown: string | null): boolean {
-  return markdown !== null && readGifLink(markdown) !== null;
+/** Nothing but its GIF's link: the GIF shows alone, and a preview reads "GIF", as in Telegram. */
+export function isLoneGif({ markdown, blocks }: Pick<Message, 'markdown' | 'blocks'>): boolean {
+  const gif = blocks?.find((block) => block.type === 'gif');
+  return gif !== undefined && markdown?.trim() === gif.link;
 }

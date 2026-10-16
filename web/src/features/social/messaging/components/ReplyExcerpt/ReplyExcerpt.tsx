@@ -1,6 +1,8 @@
 import { LinkIcon, PaperclipIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 
+import { isLoneGif } from '../../gifs/gif-links';
+import type { MessageBlock } from '../../types';
 import { MessagePreview } from '../MessagePreview/MessagePreview';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -53,15 +55,18 @@ const useStyles = createStyles(({ token, css }) => ({
 export function ReplyExcerpt({
   title,
   markdown,
+  blocks,
   quoteText,
 }: {
   title: string;
   markdown: string | null;
+  blocks?: MessageBlock[];
   quoteText?: string | null;
 }) {
   const { styles } = useStyles();
   const image = /!\[[^\]]*\]\([^)]+\)/.test(markdown ?? '');
-  const link = /\[[^\]]+\]\([^)]+\)|https?:\/\/\S+/.test(markdown ?? '');
+  const link =
+    !isLoneGif({ markdown, blocks }) && /\[[^\]]+\]\([^)]+\)|https?:\/\/\S+/.test(markdown ?? '');
 
   return (
     <div className={styles.body}>
@@ -73,7 +78,9 @@ export function ReplyExcerpt({
         {!quoteText && !image && link && (
           <LinkIcon size={14} className={styles.icon} aria-label="Посилання" />
         )}
-        <span className={styles.text}>{quoteText ?? <MessagePreview markdown={markdown} />}</span>
+        <span className={styles.text}>
+          {quoteText ?? <MessagePreview markdown={markdown} blocks={blocks} />}
+        </span>
       </div>
     </div>
   );

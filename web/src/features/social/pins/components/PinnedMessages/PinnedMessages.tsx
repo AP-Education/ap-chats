@@ -91,7 +91,7 @@ export function PinnedMessages({ onJump }: PinnedMessagesProps) {
         >
           <span className={styles.author}>{pin.author.displayName ?? 'Ім’я недоступне'}</span>
           <span className={styles.excerpt}>
-            <MessagePreview markdown={pin.markdown} />
+            <MessagePreview markdown={pin.markdown} blocks={pin.blocks} />
           </span>
         </button>
       ))}

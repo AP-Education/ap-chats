@@ -28,8 +28,3 @@ export function isGifLink(link: string): boolean {
 
   return GIF_HOST.test(host) && GIF_FILE.test(url.pathname);
 }
-
-/** A message that is nothing but a GIF link, which an alert reads as "GIF". */
-export function isLoneGifLink(text: string): boolean {
-  return isGifLink(text);
-}

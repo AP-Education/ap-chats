@@ -5,7 +5,7 @@ import { writeToken } from '@/features/social/mentions/mention-tokens';
 import type { ComposerDraft } from '@/features/social/mentions/types';
 import type { MemberSummary } from '@/features/workspaces/types';
 
-import type { SendMessageCommand } from '../../types';
+import type { Message, SendMessageCommand } from '../../types';
 import { AskExcerpt } from '../AskExcerpt/AskExcerpt';
 import { ReplyExcerpt } from '../ReplyExcerpt/ReplyExcerpt';
 
@@ -22,8 +22,10 @@ export interface IntentExcerptProps<T> {
   intent: T;
   /** What the composer knows of the message a reply answers. */
   replyAuthor?: string;
-  replyPreview?: string;
+  replyPreview?: ReplyPreview;
 }
+
+export type ReplyPreview = Pick<Message, 'markdown' | 'blocks'>;
 
 interface ComposerIntentBehaviour<T> {
   Excerpt: ComponentType<IntentExcerptProps<T>>;
@@ -39,7 +41,8 @@ const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>>
     Excerpt: ({ intent, replyAuthor, replyPreview }) => (
       <ReplyExcerpt
         title={intent.quoteText ? 'Цитата' : `Відповідь для ${replyAuthor ?? 'учасника'}`}
-        markdown={replyPreview ?? 'Повідомлення'}
+        markdown={replyPreview?.markdown ?? 'Повідомлення'}
+        blocks={replyPreview?.blocks}
         quoteText={intent.quoteText}
       />
     ),

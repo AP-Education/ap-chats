@@ -1,3 +1,3 @@
 export * from './content.module';
-export { isLoneGifLink } from './gif-links';
+export { isLoneGif, type MessageGif } from './message-gif';
 export { MessageMarkdownService, messagePlainText } from './message-markdown';
