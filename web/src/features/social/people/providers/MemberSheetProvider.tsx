@@ -35,7 +35,6 @@ export function MemberSheetProvider({ children }: PropsWithChildren) {
           onClose={close}
           aria-label={memberProfileLabel(member)}
           height={MEMBER_SHEET_HEIGHT}
-          destroyOnHidden
         >
           <MemberCard member={member} onConversationOpen={close} />
         </BottomSheet>
