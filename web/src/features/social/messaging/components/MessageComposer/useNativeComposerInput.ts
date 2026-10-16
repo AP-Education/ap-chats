@@ -12,7 +12,7 @@ import {
 import type { ComposerEditorApi } from '@/features/social/mentions/types';
 
 import { gifPageUrl } from '../../gifs/gif-links';
-import type { GifBlock } from '../../types';
+import type { PickedGif } from '../../gifs/types';
 import { createComposerSessionId, type NativeInputMode, readComposerMessage } from './native-input';
 import type { PickerTab } from './picker';
 
@@ -21,7 +21,7 @@ interface NativeComposerInputProps {
   editorRef: RefObject<ComposerEditorApi | null>;
   onInsert: (text: string) => void;
   /** A GIF picked in the shell's own panel, with what KLIPY returned for it. */
-  onGif: (block: GifBlock) => void;
+  onGif: (gif: PickedGif) => void;
   onTab: (tab: PickerTab) => void;
 }
 
@@ -67,14 +67,13 @@ export function useNativeComposerInput({
       } else if (requestedMode.current === 'picker') {
         if (message.type === 'composer/insert') receiveInsert(message.text);
         else {
-          const { slug, title, media } = message;
+          const { slug, title, media, placeholder } = message;
           const { url, width, height } = media;
           receiveGif({
-            type: 'gif',
-            provider: 'klipy',
-            link: gifPageUrl(slug),
+            pageUrl: gifPageUrl(slug),
             title,
-            media: { url, width, height },
+            image: { url, width, height },
+            placeholder: placeholder ?? null,
           });
         }
       }

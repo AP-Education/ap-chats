@@ -29,6 +29,8 @@ export interface GifResult {
   preview: GifImage;
   /** What the message shows: the page renders it, in WebKit or Chromium, not React Native. */
   media: GifImage;
+  /** KLIPY's blurred stand-in, a data URL the page reads the GIF's ThumbHash from. */
+  placeholder: string | null;
 }
 
 export interface GifPage {

@@ -1,6 +1,6 @@
 import type { GifBlock } from '../types';
 import { gifPageUrl } from './gif-links';
-import type { Gif, GifImage } from './types';
+import type { Gif, GifImage, PickedGif } from './types';
 
 type KlipySize = 'hd' | 'md' | 'sm' | 'xs';
 type KlipyFormat = 'gif' | 'webp' | 'mp4' | 'jpg';
@@ -34,6 +34,6 @@ function animated(item: KlipyItem, size: KlipySize): GifImage {
 }
 
 /** A GIF as a message carries it: KLIPY's media URL exactly as returned, never a copy. */
-export function gifBlock({ pageUrl, title, image }: Gif): GifBlock {
+export function gifBlock({ pageUrl, title, image }: PickedGif): GifBlock {
   return { type: 'gif', provider: 'klipy', link: pageUrl, title, media: image };
 }

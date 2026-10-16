@@ -18,6 +18,9 @@ export interface Gif {
   placeholder: string | null;
 }
 
+/** What a message needs of a GIF picked in either picker, the page's or the shell's own. */
+export type PickedGif = Pick<Gif, 'pageUrl' | 'title' | 'image' | 'placeholder'>;
+
 export interface GifPage {
   gifs: Gif[];
   nextPage: number | null;

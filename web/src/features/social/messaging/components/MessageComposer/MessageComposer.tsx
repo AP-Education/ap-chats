@@ -35,7 +35,7 @@ import { randomId } from '@/shared/lib/random-id';
 import { useAttachments } from '../../attachments/useAttachments';
 import { gifBlock } from '../../gifs/klipy-items';
 import { withPlaceholder } from '../../gifs/linked-gif';
-import type { Gif } from '../../gifs/types';
+import type { PickedGif } from '../../gifs/types';
 import { useLinkedGif } from '../../gifs/useLinkedGif';
 import type { GifBlock, PendingAttachmentCommit, SendMessageCommand } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
@@ -276,7 +276,7 @@ export function MessageComposer({
     draftKey,
     editorRef: editableRef,
     onInsert: insertEmoji,
-    onGif: (block) => sendGif(() => withPlaceholder(block)),
+    onGif: pickGif,
     onTab: persistLastTab,
   });
   const activeTab = isNativeShell() ? nativeInput.activeTab : webActiveTab;
@@ -347,7 +347,7 @@ export function MessageComposer({
     editableRef.current?.insertText(emoji);
   }
 
-  function pickGif(gif: Gif) {
+  function pickGif(gif: PickedGif) {
     sendGif(() => withPlaceholder(gifBlock(gif), gif.placeholder ?? undefined));
   }
 

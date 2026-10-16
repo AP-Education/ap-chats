@@ -26,6 +26,7 @@ export type NativeToWebMessage =
       slug: string;
       title: string;
       media: { url: string; width: number; height: number };
+      placeholder: string | null;
     }
   /**
    * The native input now covers `inset` px of the page's bottom beyond its own safe area, reached

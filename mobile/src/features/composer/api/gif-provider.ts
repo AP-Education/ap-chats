@@ -9,7 +9,12 @@ type KlipyFormats = Partial<Record<'gif' | 'webp', GifImage>>;
 
 interface KlipyResponse {
   data: {
-    data: { slug: string; title: string; file: { sm: KlipyFormats; md: KlipyFormats } }[];
+    data: {
+      slug: string;
+      title: string;
+      blur_preview?: string;
+      file: { sm: KlipyFormats; md: KlipyFormats };
+    }[];
     has_next?: boolean;
   };
 }
@@ -41,10 +46,20 @@ export async function searchGifs(query: string, page: number, signal?: AbortSign
   const payload = (await response.json()) as KlipyResponse;
 
   // The tile is a GIF, which React Native animates on Android out of the box, unlike WebP.
-  const gifs = payload.data.data.flatMap(({ slug, title, file }): GifResult[] => {
+  const gifs = payload.data.data.flatMap(({ slug, title, blur_preview, file }): GifResult[] => {
     const preview = file.sm.gif;
     const media = file.md.webp ?? file.md.gif;
-    return preview && media ? [{ slug, title, preview: image(preview), media: image(media) }] : [];
+    if (!preview || !media) return [];
+
+    return [
+      {
+        slug,
+        title,
+        preview: image(preview),
+        media: image(media),
+        placeholder: blur_preview ?? null,
+      },
+    ];
   });
 
   return { gifs, nextPage: payload.data.has_next ? page + 1 : null } satisfies GifPage;

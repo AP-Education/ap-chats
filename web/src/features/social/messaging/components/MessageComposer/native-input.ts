@@ -32,6 +32,8 @@ export type NativeComposerMessage =
       slug: string;
       title: string;
       media: GifBlock['media'];
+      /** Missing from shells built before it was sent. */
+      placeholder?: string | null;
     };
 
 function isGifMedia(value: unknown): value is GifBlock['media'] {
@@ -64,7 +66,8 @@ export function readComposerMessage(
     message.type === 'composer/gif' &&
     typeof message.slug === 'string' &&
     typeof message.title === 'string' &&
-    isGifMedia(message.media)
+    isGifMedia(message.media) &&
+    (message.placeholder == null || typeof message.placeholder === 'string')
   )
     return message as NativeComposerMessage;
   return null;
