@@ -58,7 +58,7 @@
         {
           "sounds": ["./assets/sounds/ringtone.wav", "./assets/sounds/ringback.wav"],
           "defaultRingtoneIos": "ringtone.wav",
-          "defaultRingtoneAndroid": "ringtone.wav",
+          "defaultRingtoneAndroid": "default",
           "defaultDialtone": "ringback.wav"
         }
       ],
