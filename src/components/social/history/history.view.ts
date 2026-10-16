@@ -15,6 +15,7 @@ interface HistoryPageInput {
   snapshotSeq: bigint;
   readState: ChannelReadState | null;
   firstUnreadSeq: bigint | null;
+  peerReadSeq: bigint | null;
   hasOlder: boolean;
   hasNewer: boolean;
 }
@@ -25,6 +26,7 @@ export function historyPageView({
   snapshotSeq,
   readState,
   firstUnreadSeq,
+  peerReadSeq,
   hasOlder,
   hasNewer,
 }: HistoryPageInput) {
@@ -40,6 +42,7 @@ export function historyPageView({
     hasNewer,
     newerCursor: hasNewer ? (items.at(-1)?.seq ?? null) : null,
     readState,
+    peerReadSeq: peerReadSeq?.toString() ?? null,
   };
 }
 

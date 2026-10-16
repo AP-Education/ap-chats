@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, count, eq, gt, isNotNull, isNull, lte, ne, or, sql } from 'drizzle-orm';
+import { and, count, eq, gt, isNotNull, isNull, lte, max, ne, or, sql } from 'drizzle-orm';
 
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import {
@@ -87,6 +87,16 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
       .from(channelMemberships)
       .where(
         and(eq(channelMemberships.channelId, channelId), eq(channelMemberships.memberId, memberId)),
+      );
+    return row?.seq ?? null;
+  }
+
+  async furthestReadByOthers(channelId: string, memberId: string): Promise<bigint | null> {
+    const [row] = await this.txHost.tx
+      .select({ seq: max(channelMemberships.lastReadEntrySeq) })
+      .from(channelMemberships)
+      .where(
+        and(eq(channelMemberships.channelId, channelId), ne(channelMemberships.memberId, memberId)),
       );
     return row?.seq ?? null;
   }

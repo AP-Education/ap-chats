@@ -10,6 +10,8 @@ import { MessageMarkdownService } from '@/components/social/content';
 import { EntriesFacade } from '@/components/social/entries';
 import { DrizzleEntriesRepository } from '@/components/social/entries/repository/drizzle-entries.repository';
 import { ForwardingService } from '@/components/social/forwarding/forwarding.service';
+import { HistoryService } from '@/components/social/history/history.service';
+import { DrizzleHistoryRepository } from '@/components/social/history/repository/drizzle-history.repository';
 import { MentionsService } from '@/components/social/mentions';
 import { DrizzleMentionsRepository } from '@/components/social/mentions/repository/drizzle-mentions.repository';
 import { MessagesService } from '@/components/social/messages';
@@ -22,6 +24,8 @@ import { MessageComposer } from '@/components/social/posting/message-composer';
 import { SendMessageService } from '@/components/social/posting/send-message.service';
 import { ReactionsService } from '@/components/social/reactions/reactions.service';
 import { DrizzleReactionsRepository } from '@/components/social/reactions/repository/drizzle-reactions.repository';
+import { ReadStateService } from '@/components/social/read-state';
+import { DrizzleReadStateRepository } from '@/components/social/read-state/repository/drizzle-read-state.repository';
 import { DrizzleRolesRepository } from '@/components/workspaces/roles/repository';
 import { RolesFacade } from '@/components/workspaces/roles/roles.facade';
 import { AppConfigService } from '@/globals/config';
@@ -76,12 +80,15 @@ export function socialServices(
     new UploadPolicy(config),
   );
   const pins = new PinsService(access, messages, new DrizzlePinsRepository(txHost), events);
+  const readState = new ReadStateService(access, new DrizzleReadStateRepository(txHost), events);
 
   return {
     published,
     events,
     messages,
     pins,
+    readState,
+    history: new HistoryService(access, new DrizzleHistoryRepository(txHost), readState),
     sending: new SendMessageService(
       access,
       new MessageComposer(markdown, messages, uploads),

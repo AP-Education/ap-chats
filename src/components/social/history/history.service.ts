@@ -49,12 +49,19 @@ export class HistoryService {
     const snapshotSeq = channel.lastEntrySeq;
     const readState = await this.readState.state(channelId, member.id, snapshotSeq);
     const firstUnreadSeq = await this.firstUnreadSeq(channelId, member.id, readState, snapshotSeq);
+    const peerReadSeq = await this.readState.peerReadSeq(channel, member.id);
 
     const target = query.messageId
       ? await this.requireMessageSeq(channelId, query.messageId)
       : firstUnreadSeq;
     const snapshot = { channelId, viewerMemberId: member.id, ceiling: snapshotSeq };
-    const view = { viewerMemberId: member.id, snapshotSeq, readState, firstUnreadSeq };
+    const view = {
+      viewerMemberId: member.id,
+      snapshotSeq,
+      readState,
+      firstUnreadSeq,
+      peerReadSeq,
+    };
 
     if (target === null) {
       const latest = await this.history.page({
@@ -111,6 +118,7 @@ export class HistoryService {
 
     const readState = await this.readState.state(channelId, member.id, ceiling);
     const firstUnreadSeq = await this.firstUnreadSeq(channelId, member.id, readState, ceiling);
+    const peerReadSeq = await this.readState.peerReadSeq(channel, member.id);
     const startsMidHistory = Boolean(cursor);
 
     return historyPageView({
@@ -119,6 +127,7 @@ export class HistoryService {
       snapshotSeq: ceiling,
       readState,
       firstUnreadSeq,
+      peerReadSeq,
       hasOlder: direction === 'before' ? page.hasMore : startsMidHistory,
       hasNewer: direction === 'after' ? page.hasMore : startsMidHistory,
     });
