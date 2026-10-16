@@ -3,6 +3,8 @@ import { GearSixIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { Link } from 'react-router-dom';
 
+import { usePrefetchHistory } from '@/features/social/messaging/hooks';
+
 import { PrivateChannelIcon, PublicChannelIcon } from '../../channels/channelIcons';
 import { useChannelDialogs } from '../../channels/stores/channel-dialogs-context';
 import type { Channel } from '../../channels/types';
@@ -236,6 +238,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
     draggingChannel,
   } = useChannelsSidebarStore();
   const dialogs = useChannelDialogs();
+  const prefetchHistory = usePrefetchHistory();
   const isActive = channel.id === selectedChannelId;
   const canManage = channel.canManage;
   const unreadCount = channel.id === openChannelId ? 0 : (unreadByChannel.get(channel.id) ?? 0);
@@ -258,7 +261,14 @@ export function ChannelRow({ channel }: ChannelRowProps) {
       }}
       onDragEnd={() => setDraggingChannel(null)}
     >
-      <Link to={`/channels/${channel.id}`} onClick={onNavigate} className={styles.link}>
+      <Link
+        to={`/channels/${channel.id}`}
+        onClick={() => {
+          prefetchHistory(workspaceId, channel.id);
+          onNavigate?.();
+        }}
+        className={styles.link}
+      >
         {channel.isOpen ? (
           <PublicChannelIcon size={18} className={styles.icon} />
         ) : (

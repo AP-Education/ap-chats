@@ -5,6 +5,7 @@ import { Link, useMatch } from 'react-router-dom';
 
 import { previewText } from '@/features/social/mentions/mention-tokens';
 import { isLoneGif } from '@/features/social/messaging/gifs/gif-links';
+import { usePrefetchHistory } from '@/features/social/messaging/hooks';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
@@ -171,6 +172,7 @@ export function DirectMessageRow({
 }) {
   const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
+  const prefetchHistory = usePrefetchHistory();
   // The panel renders outside the route tree, so the open conversation comes from the URL.
   const isActive = useMatch('/direct/:channelId')?.params.channelId === item.id;
   const visibleUnreadCount = isActive ? 0 : unreadCount;
@@ -179,7 +181,10 @@ export function DirectMessageRow({
   return (
     <Link
       to={`/direct/${item.id}`}
-      onClick={onNavigate}
+      onClick={() => {
+        prefetchHistory(item.workspaceId, item.id);
+        onNavigate?.();
+      }}
       className={cx(styles.row, isActive && styles.active)}
     >
       <Avatar

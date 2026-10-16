@@ -6,6 +6,7 @@ import { callActionLabel } from '@/features/calls/callActionLabel';
 import { CallIcon } from '@/features/calls/callIcons';
 import { getCallStatusIcon } from '@/features/calls/callStatusIcon';
 import { useKnownCallAction } from '@/features/calls/hooks/useKnownCallAction';
+import { usePrefetchHistory } from '@/features/social/messaging/hooks';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import { callEntryStatus, formatCallDate } from './callHistoryLabels';
@@ -206,6 +207,7 @@ export function CallHistoryRow({ entry, active, onNavigate }: CallHistoryRowProp
   const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
   const { latest, count, outgoing } = entry;
+  const prefetchHistory = usePrefetchHistory();
   const name = latest.participant.displayName ?? 'Колега';
   const { Icon, live, missed } = getCallStatusIcon(latest.status, outgoing);
   const call = useKnownCallAction(
@@ -223,7 +225,10 @@ export function CallHistoryRow({ entry, active, onNavigate }: CallHistoryRowProp
       <Link
         to={`/calls/${latest.channelId}`}
         state={{ callEntry: entry.key } satisfies CallEntryLinkState}
-        onClick={onNavigate}
+        onClick={() => {
+          prefetchHistory(latest.workspaceId, latest.channelId);
+          onNavigate?.();
+        }}
         className={styles.link}
         aria-current={active ? 'page' : undefined}
       >

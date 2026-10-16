@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { infiniteQueryOptions, useInfiniteQuery } from '@tanstack/react-query';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
@@ -9,10 +9,14 @@ export type PageCursor =
   | { mode: 'window'; messageId?: string }
   | { mode: 'before' | 'after'; cursor: string; snapshot: string };
 
-export function useMessageHistory(workspaceId: string, channelId: string, messageId?: string) {
-  const { token, identity } = useQueryAuth();
-
-  return useInfiniteQuery({
+export function historyQuery(
+  identity: string | undefined,
+  token: string | undefined,
+  workspaceId: string,
+  channelId: string,
+  messageId?: string,
+) {
+  return infiniteQueryOptions({
     queryKey: messagingQueryKeys.history(identity, workspaceId, channelId, messageId),
     initialPageParam: { mode: 'window', messageId } as PageCursor,
     queryFn: ({ pageParam }) => {
@@ -41,4 +45,9 @@ export function useMessageHistory(workspaceId: string, channelId: string, messag
     staleTime: Infinity,
     refetchOnWindowFocus: false,
   });
+}
+
+export function useMessageHistory(workspaceId: string, channelId: string, messageId?: string) {
+  const { token, identity } = useQueryAuth();
+  return useInfiniteQuery(historyQuery(identity, token, workspaceId, channelId, messageId));
 }
