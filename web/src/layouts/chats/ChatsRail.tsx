@@ -1,5 +1,5 @@
 import { type AppTab, useIsAppActive, useOpenApp } from '@ap-education/shell-sdk';
-import { NavTile, useIsMobile } from '@ap-education/ui';
+import { NavTile } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 import { useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -22,12 +22,8 @@ const useStyles = createStyles(({ token, css }) => ({
 export function ChatsRail() {
   const { styles } = useStyles();
   const { pathname } = useLocation();
-  const isMobile = useIsMobile();
   const directTotal = useContext(WorkspaceUnreadContext)?.directTotal ?? 0;
   const onTeam = sectionAt(pathname) === 'channels';
-
-  // On mobile the tab bar leads to them instead.
-  if (isMobile) return <WorkspaceRail onTeam={onTeam} />;
 
   return (
     <>
