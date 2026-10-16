@@ -65,9 +65,9 @@ export function WebViewHost() {
   const [messageSoundRequest, setMessageSoundRequest] = useState(0);
   const [tabBar, setTabBar] = useState<TabBarModel | null>(null);
   const insets = useSafeAreaInsets();
-  // WKWebView reports the safe areas to the page (viewport-fit=cover), so the page draws its own
-  // surfaces under the status bar and home indicator. Android's WebView reports them only in newer
-  // versions, so native keeps the page clear of the system bars there and the WebView out of it.
+  // The page runs down under the home indicator or the navigation bar on both platforms. At the top,
+  // WKWebView reports the status bar to the page (viewport-fit=cover); Android's WebView does only
+  // in newer versions, so native keeps the page below it there and the WebView out of the insets.
   const edgeToEdge = Platform.OS === 'ios';
   // iOS's system bar lives inside its tab controller, so the page moves into the active tab there;
   // on Android the app's own bar floats over a page that never moves.
@@ -82,16 +82,16 @@ export function WebViewHost() {
   const [pageGap, setPageGap] = useState(0);
   // The page's own safe area can't tell its bottom inside a tab: it grows under the tab bar and
   // empties under the keyboard. Native knows, and writes it into the page's CSS.
-  const insetBottom = insetBottomScript(pageBottom(pageGap, insets.bottom, edgeToEdge).safeArea);
+  const insetBottom = insetBottomScript(pageBottom(pageGap, insets.bottom).safeArea);
   const room = useRef(0);
   const sendInset = useCallback(
     ({ duration, easing }: InsetMotion) => {
-      const inset = pageKeyboardInset(room.current, pageBottom(pageGap, insets.bottom, edgeToEdge));
+      const inset = pageKeyboardInset(room.current, pageBottom(pageGap, insets.bottom));
       webViewRef.current?.injectJavaScript(
         buildBridgeScript({ type: 'keyboard/inset', inset, duration, easing }),
       );
     },
-    [edgeToEdge, insets.bottom, pageGap],
+    [insets.bottom, pageGap],
   );
   const handleRoom = useCallback(
     (next: number, motion: InsetMotion) => {
@@ -300,7 +300,7 @@ export function WebViewHost() {
     >
       <MessageNotificationSound request={messageSoundRequest} />
       <SystemBack onBack={() => input.back() || sendBackToPage()} />
-      <View style={[styles.webviewWrapper, { paddingBottom: reservedInset }]}>
+      <View style={styles.webviewWrapper}>
         {startUrl && (
           <Portal
             hostName={pageMovesBetweenTabs ? tabBar?.activeId : undefined}
