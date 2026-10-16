@@ -1,8 +1,9 @@
+import { useMobileMenu } from '@ap-education/shell-sdk';
 import { createStyles } from 'antd-style';
-import { type ReactNode, useMemo, useRef } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 
 import { ActiveCallBanner } from '@/features/calls/components/ActiveCallBanner';
-import { useConversationScope } from '@/features/social/conversation-scope/store';
+import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
 import { MediaViewerProvider } from '@/features/social/media-viewer/providers/MediaViewerProvider';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import { keyboardGlidePart } from '@/features/social/messaging/keyboard-glide-part';
@@ -69,6 +70,12 @@ export function ConversationView({ currentMember, readOnlyFooter }: Conversation
   const operations = useMessageOperations(workspaceId, channelId, author, navigation.items);
   useReactionEvents(currentMember?.id);
   useReadReceiptEvents(currentMember?.id);
+  const { isOpen: menuOpen } = useMobileMenu();
+  const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
+  // The menu takes the screen, so the composer puts its keyboard or picker away, as a swipe does.
+  useEffect(() => {
+    if (menuOpen) requestComposerBlur();
+  }, [menuOpen, requestComposerBlur]);
   const interaction = useConversationActions({
     items: navigation.items,
     memberId: currentMember?.id,
