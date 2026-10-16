@@ -1,12 +1,5 @@
 import { useMediaQuery } from '@ap-education/ui';
-import {
-  type CSSProperties,
-  type KeyboardEvent,
-  type Ref,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-} from 'react';
+import { type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useRef } from 'react';
 
 import {
   captureEditorSelection,
@@ -38,7 +31,6 @@ interface ComposerEditorProps {
   placeholder?: string;
   ariaLabel: string;
   className?: string;
-  editorStyle?: CSSProperties;
   autoFocus?: boolean;
   onMount?: (root: HTMLDivElement) => void;
   onChange?: () => void;
@@ -60,7 +52,6 @@ export function ComposerEditor({
   placeholder,
   ariaLabel,
   className,
-  editorStyle,
   autoFocus,
   onMount,
   onChange,
@@ -186,7 +177,6 @@ export function ComposerEditor({
         }
       }}
       className={className}
-      style={editorStyle}
       contentEditable
       role="textbox"
       aria-multiline="true"

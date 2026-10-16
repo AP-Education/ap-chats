@@ -55,12 +55,11 @@ interface MessageEditorProps {
   item: MessageHistoryItem;
   onEdit: EditMessage;
   onClose: () => void;
-  minHeight: number;
   /** The text-input to edit with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
   children: ReactNode;
 }
 
-export function MessageEditor({ item, onEdit, onClose, minHeight, children }: MessageEditorProps) {
+export function MessageEditor({ item, onEdit, onClose, children }: MessageEditorProps) {
   const { styles } = useStyles();
   const editor = useRef<ComposerEditorApi>(null);
   const [hasContent, setHasContent] = useState(Boolean(item.message.markdown?.trim()));
@@ -101,14 +100,13 @@ export function MessageEditor({ item, onEdit, onClose, minHeight, children }: Me
       editorRef: editor,
       initialDraft: { markdown: item.message.markdown ?? '', labels },
       className: styles.editor,
-      editorStyle: { minHeight: Math.max(40, minHeight) },
       autoFocus: true,
       ariaLabel: 'Редагувати повідомлення',
       onChange: ({ markdown }) => setHasContent(Boolean(markdown.trim())),
       onSubmit: () => void save(),
       onEscape: onClose,
     }),
-    [item, labels, styles.editor, minHeight, onClose, save],
+    [item, labels, styles.editor, onClose, save],
   );
 
   return (

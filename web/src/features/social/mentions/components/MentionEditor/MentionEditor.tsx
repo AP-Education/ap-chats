@@ -28,7 +28,6 @@ export function MentionEditor() {
     placeholder,
     ariaLabel,
     className,
-    editorStyle,
     autoFocus,
     onChange,
     onSubmit,
@@ -176,7 +175,6 @@ export function MentionEditor() {
           );
         }}
         className={[styles.editor, className].filter(Boolean).join(' ')}
-        editorStyle={editorStyle}
         ariaLabel={ariaLabel}
         placeholder={placeholder}
         autoFocus={autoFocus}

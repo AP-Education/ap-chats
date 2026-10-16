@@ -1,4 +1,4 @@
-import { memo, useLayoutEffect, useRef } from 'react';
+import { memo, useRef } from 'react';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
 
@@ -41,10 +41,6 @@ export const MessageRow = memo(function MessageRow({
   const layout = bubbleLayout(item, pendingAttachments, editing);
   const tone = delivery === 'failed' ? 'failed' : highlighted ? 'attention' : undefined;
   const contentRef = useRef<HTMLDivElement>(null);
-  const contentHeight = useRef(40);
-  useLayoutEffect(() => {
-    if (!editing && contentRef.current) contentHeight.current = contentRef.current.offsetHeight;
-  }, [editing, item.message.markdown]);
 
   return (
     <MessageActionProvider
@@ -107,7 +103,6 @@ export const MessageRow = memo(function MessageRow({
           <MessageBody
             layout={layout}
             contentRef={contentRef}
-            minHeight={contentHeight.current}
             onCloseEdit={() => setEditingId(null)}
           />
           {delivery === 'failed' && <UnsentNotice rowId={item.id} />}

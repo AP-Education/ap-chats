@@ -1,4 +1,4 @@
-import type { CSSProperties, Ref } from 'react';
+import type { Ref } from 'react';
 
 /** A person named in a message, as history returns them for their tag. */
 export interface MentionLabel {
@@ -38,7 +38,6 @@ export interface ComposerEditorSlotProps {
   /** Identifies the draft being edited, for an implementation that needs to remount when it changes (e.g. to re-run a mount-time restore). */
   draftKey?: string;
   className?: string;
-  editorStyle?: CSSProperties;
   ariaLabel: string;
   placeholder?: string;
   autoFocus?: boolean;

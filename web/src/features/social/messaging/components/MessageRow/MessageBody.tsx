@@ -16,13 +16,12 @@ import { MessageReadContent } from './MessageReadContent';
 interface MessageBodyProps {
   layout: BubbleLayout;
   contentRef: RefObject<HTMLDivElement | null>;
-  minHeight: number;
   onCloseEdit: () => void;
 }
 
 // Attachments come first and the caption after them, so the time can close its last line; blocks
 // like a GIF go under the text, as on Discord.
-export function MessageBody({ layout, contentRef, minHeight, onCloseEdit }: MessageBodyProps) {
+export function MessageBody({ layout, contentRef, onCloseEdit }: MessageBodyProps) {
   const { editing, item, delivery, pendingAttachments, canReact, context } =
     useMessageActionScope();
   const { saveEdit } = useTimelineActions();
@@ -47,7 +46,7 @@ export function MessageBody({ layout, contentRef, minHeight, onCloseEdit }: Mess
         />
       )}
       {editing && (
-        <MessageEditor item={item} minHeight={minHeight} onEdit={saveEdit} onClose={onCloseEdit}>
+        <MessageEditor item={item} onEdit={saveEdit} onClose={onCloseEdit}>
           <MentionEditor />
         </MessageEditor>
       )}
