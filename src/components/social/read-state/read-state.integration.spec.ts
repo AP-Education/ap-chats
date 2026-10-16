@@ -6,6 +6,7 @@ import { migratedDatabase, transactionHost } from '@/testing/pglite';
 import { socialServices } from '@/testing/social';
 
 import { READ_RECEIPT_EVENT, ReadReceiptEvent } from './events/read-receipt.event';
+import { READ_STATE_REWOUND_EVENT } from './events/read-state-rewound.event';
 
 test('read state on PostgreSQL', async (t) => {
   const { pg, db } = await migratedDatabase();
@@ -44,6 +45,39 @@ test('read state on PostgreSQL', async (t) => {
     const caughtUp = await services.history.window(rob, chat.channelId, {});
     assert.deepEqual(caughtUp.readState, { lastReadEntrySeq: '3', unreadCount: 0 });
     assert.equal(caughtUp.firstUnreadSeq, null);
+  });
+
+  await t.test('a message marked unread brings the cursor back to just before it', async () => {
+    const { ann, rob, services } = await people();
+    const chat = await seed.conversation(ann, rob);
+    await seed.post(chat, ann);
+    await seed.post(chat, ann);
+    await seed.post(chat, ann);
+    await services.readState.markRead(rob, chat.channelId, '3');
+
+    const state = await services.readState.markUnread(rob, chat.channelId, '2');
+
+    assert.deepEqual(state, { lastReadEntrySeq: '1', unreadCount: 2 });
+    const reopened = await services.history.window(rob, chat.channelId, {});
+    assert.equal(reopened.firstUnreadSeq, '2');
+    const rewinds = services.published.filter(({ name }) => name === READ_STATE_REWOUND_EVENT);
+    assert.equal(rewinds.length, 1);
+  });
+
+  await t.test('marking unread what is still unread leaves the cursor, unannounced', async () => {
+    const { ann, rob, services } = await people();
+    const chat = await seed.conversation(ann, rob);
+    await seed.post(chat, ann);
+    await seed.post(chat, ann);
+    await services.readState.markRead(rob, chat.channelId, '1');
+
+    const state = await services.readState.markUnread(rob, chat.channelId, '2');
+
+    assert.deepEqual(state, { lastReadEntrySeq: '1', unreadCount: 1 });
+    assert.ok(!services.published.some(({ name }) => name === READ_STATE_REWOUND_EVENT));
+    await assert.rejects(services.readState.markUnread(rob, chat.channelId, '9'), {
+      status: 400,
+    });
   });
 
   await t.test('each side of a direct conversation sees how far the other has read', async () => {

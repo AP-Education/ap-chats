@@ -6,6 +6,7 @@ import { WorkspaceMemberGuard } from '@/components/workspaces/members/guards';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { MarkReadDto } from './dto/mark-read.dto';
+import { MarkUnreadDto } from './dto/mark-unread.dto';
 import { ReadStateService } from './read-state.service';
 
 @Controller('workspaces/:workspaceId/channels/:channelId/read-state')
@@ -28,5 +29,14 @@ export class ReadStateController {
     @Body() dto: MarkReadDto,
   ) {
     return this.readState.markRead(member, channelId, dto.seq);
+  }
+
+  @Put('unread')
+  markUnread(
+    @CurrentWorkspaceMember() member: WorkspaceMember,
+    @Param('channelId', ParseUUIDPipe) channelId: string,
+    @Body() dto: MarkUnreadDto,
+  ) {
+    return this.readState.markUnread(member, channelId, dto.seq);
   }
 }
