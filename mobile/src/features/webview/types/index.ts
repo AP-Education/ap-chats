@@ -1,5 +1,5 @@
 import type { ShellPalette } from '../../appearance';
-import type { NativeCallConnectPayload } from '../../calls/types';
+import type { NativeCallConnectPayload, PhoneCheck, PhoneCheckId } from '../../calls/types';
 import type { ComposerInputRequest, ComposerInputState } from '../../composer';
 import type { TabBarModel } from '../../navigation/types';
 import type { PushPermission } from '../../push/types';
@@ -35,6 +35,8 @@ export type NativeToWebMessage =
   | { type: 'keyboard/inset'; inset: number; duration: number; easing: string }
   | { type: 'notifications/open'; payload: NotificationIntent }
   | { type: 'notifications/permission'; status: PushPermission }
+  /** What lets a call ring this phone; again on every return to the app once the page asked. */
+  | { type: 'calls/readiness'; checks: PhoneCheck[] }
   | { type: 'navigation/select'; id: string }
   /** How much of the page's bottom the native tab bar covers. */
   | { type: 'navigation/inset'; bottom: number }
@@ -47,6 +49,9 @@ export type WebToNativeMessage =
   | { type: 'auth/sign-out' }
   | { type: 'auth/refresh-request' }
   | { type: 'calls/connect'; payload: NativeCallConnectPayload }
+  | { type: 'calls/readiness-check' }
+  /** The person asked to set one up: native opens where it is changed. */
+  | { type: 'calls/readiness-fix'; id: PhoneCheckId }
   /** The theme the page resolved, for everything native draws around it. */
   | { type: 'appearance/changed'; payload: ShellPalette }
   /** The page's tab bar, which native draws over it. */
