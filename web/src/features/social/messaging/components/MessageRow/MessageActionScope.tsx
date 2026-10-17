@@ -5,6 +5,8 @@ import type { AttachmentDraft } from '../../attachments/types';
 import { useTimelineActions } from '../../timeline-actions-context';
 import type { ActionContext, ActionTarget, ConversationAction } from '../../types';
 import type { DeliveryStatus, MessageHistoryItem } from '../../types';
+import { unsentActions } from '../../unsent-actions';
+import { useUnsentMessages } from '../../unsent-messages-context';
 
 interface MessageActionInput {
   item: MessageHistoryItem;
@@ -41,6 +43,7 @@ export function MessageActionProvider({
 }>) {
   const isMobile = useIsMobile();
   const { viewer, actions, run } = useTimelineActions();
+  const unsent = useUnsentMessages();
   const [selectedText, setSelectedText] = useState('');
   const messageTarget: ActionTarget = { kind: 'message', items: [value.item] };
   const textTarget: ActionTarget = {
@@ -58,7 +61,9 @@ export function MessageActionProvider({
   }
 
   function available(target: ActionTarget) {
-    if (value.delivery) return [];
+    if (value.delivery) {
+      return target.kind === 'message' ? unsentActions(value.delivery, unsent) : [];
+    }
     return actions.filter((action) => action.available(target, viewer));
   }
 
