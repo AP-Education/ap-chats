@@ -1,6 +1,6 @@
 import { apiRequest, jsonInit } from '@/shared/api/http';
 
-import type { ChangeNotificationSettings, ChannelNotificationSettings } from '../types';
+import type { ChangeNotificationSettings, NotificationSettings } from '../types';
 
 function path(workspaceId: string, channelId: string): string {
   return `/api/workspaces/${workspaceId}/channels/${channelId}/notifications`;
@@ -10,7 +10,7 @@ export function getChannelNotificationSettings(
   token: string,
   workspaceId: string,
   channelId: string,
-): Promise<ChannelNotificationSettings> {
+): Promise<NotificationSettings> {
   return apiRequest(path(workspaceId, channelId), token);
 }
 
@@ -19,6 +19,6 @@ export function changeChannelNotificationSettings(
   workspaceId: string,
   channelId: string,
   change: ChangeNotificationSettings,
-): Promise<ChannelNotificationSettings> {
+): Promise<NotificationSettings> {
   return apiRequest(path(workspaceId, channelId), token, jsonInit('PATCH', change));
 }

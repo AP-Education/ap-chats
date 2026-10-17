@@ -12,11 +12,11 @@ const useStyles = createStyles(({ css }) => ({
   `,
 }));
 
-export function ChannelNotificationsMenuSkeleton() {
+export function NotificationsMenuSkeleton() {
   const { styles } = useStyles();
 
   return (
-    <div aria-label="Завантажуємо сповіщення каналу" role="status">
+    <div aria-label="Завантажуємо сповіщення" role="status">
       {[112, 136, 88, 120].map((width) => (
         <div key={width} className={styles.row}>
           <Skeleton.Input active size="small" style={{ width, minWidth: 0, height: 12 }} />
