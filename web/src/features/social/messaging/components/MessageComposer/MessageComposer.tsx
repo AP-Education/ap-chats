@@ -33,7 +33,7 @@ import { gifBlock } from '../../gifs/klipy-items';
 import { withPlaceholder } from '../../gifs/linked-gif';
 import type { PickedGif } from '../../gifs/types';
 import { useLinkedGif } from '../../gifs/useLinkedGif';
-import type { GifBlock, PendingAttachmentCommit, SendMessageCommand } from '../../types';
+import type { ComposedMessage, GifBlock } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
 import { useAttachmentDrop } from './AttachmentDropZone';
@@ -54,12 +54,11 @@ function readLastPickerTab(): PickerTab {
   return (PICKER_TABS as string[]).includes(stored ?? '') ? (stored as PickerTab) : 'emoji';
 }
 
-type ComposedMessage = Omit<SendMessageCommand, 'clientNonce' | 'attachments'>;
-
 interface MessageComposerProps {
   replyAuthor?: string;
   replyPreview?: ReplyPreview;
-  onSend: (input: ComposedMessage, pending?: PendingAttachmentCommit) => void;
+  /** `filesNonce` is the nonce the composer's files were committed under, when it had any. */
+  onSend: (input: ComposedMessage, filesNonce?: string) => void;
   /** The text-input to compose with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
   children: ReactNode;
 }
@@ -156,19 +155,10 @@ export function MessageComposer({
     if (!canSend) return;
     const input = readMessage();
     const nonce = randomId();
-    const drafts = uploads.commit(nonce);
-    const pending = drafts.length
-      ? {
-          nonce,
-          drafts,
-          watchCommitted: uploads.watchCommitted,
-          uncommit: uploads.uncommit,
-          releaseCommitted: uploads.releaseCommitted,
-        }
-      : undefined;
+    const filesNonce = uploads.commit(nonce).length ? nonce : undefined;
     sendQueue.current = sendQueue.current.then(async () => {
       const blocks = await linkedGif.blocksFor(input.markdown);
-      onSend({ ...input, ...(blocks ? { blocks } : {}) }, pending);
+      onSend({ ...input, ...(blocks ? { blocks } : {}) }, filesNonce);
     });
 
     clearSent();

@@ -1,13 +1,12 @@
-import type { SendMessageCommand } from './types';
-
-/** Where an unsent message stands: on its way, or stopped and waiting for a retry. */
-export type OutboxStatus = 'sending' | 'failed';
+import type { DeliveryStatus, SendMessageCommand } from '../types';
 
 /** A message this client wrote that history doesn't hold yet. */
 export interface OutboxEntry {
   input: SendMessageCommand;
   createdAt: string;
-  status: OutboxStatus;
+  status: DeliveryStatus;
+  /** Its files are still in the upload queue under its nonce, so `input` carries none yet. */
+  awaitsFiles?: boolean;
 }
 
 function nonceOf(entry: OutboxEntry): string {
@@ -19,14 +18,20 @@ export function enqueue(
   entries: readonly OutboxEntry[],
   input: SendMessageCommand,
   createdAt: string,
+  awaitsFiles = false,
 ): OutboxEntry[] {
-  return [...without(entries, input.clientNonce), { input, createdAt, status: 'sending' }];
+  const entry: OutboxEntry = awaitsFiles
+    ? { input, createdAt, status: 'uploading', awaitsFiles }
+    : { input, createdAt, status: 'sending' };
+  return [...without(entries, input.clientNonce), entry];
 }
 
-export function markFailed(entries: readonly OutboxEntry[], nonce: string): OutboxEntry[] {
-  return entries.map((entry) =>
-    nonceOf(entry) === nonce ? { ...entry, status: 'failed' } : entry,
-  );
+export function update(
+  entries: readonly OutboxEntry[],
+  nonce: string,
+  change: Partial<OutboxEntry>,
+): OutboxEntry[] {
+  return entries.map((entry) => (nonceOf(entry) === nonce ? { ...entry, ...change } : entry));
 }
 
 export function without(entries: readonly OutboxEntry[], nonce: string): OutboxEntry[] {
@@ -42,12 +47,20 @@ export function unsent(
   return entries.filter((entry) => !delivered.has(nonceOf(entry)));
 }
 
+/** What survives a reload: files live only in this page, so a message still waiting on them can't. */
+export function persistable(entries: readonly OutboxEntry[]): OutboxEntry[] {
+  return entries.filter((entry) => !entry.awaitsFiles);
+}
+
 /** Entries read back after a reload. A send still in flight then has an unknown outcome,
  * so it waits for a retry like a failure; the server dedupes by nonce if it did land. */
 export function restore(stored: unknown): OutboxEntry[] {
   if (!Array.isArray(stored)) return [];
 
-  return stored.filter(isStoredEntry).map((entry) => ({ ...entry, status: 'failed' }));
+  return persistable(stored.filter(isStoredEntry)).map((entry) => ({
+    ...entry,
+    status: 'failed',
+  }));
 }
 
 function isStoredEntry(value: unknown): value is OutboxEntry {

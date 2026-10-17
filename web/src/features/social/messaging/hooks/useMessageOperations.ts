@@ -1,36 +1,25 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { confirmDirectMessage } from '@/features/social/direct-messages/cache';
 import { randomId } from '@/shared/lib/random-id';
 
-import {
-  deleteMessages,
-  editMessage,
-  getMessage,
-  historyPage,
-  sendMessage,
-} from '../api/messages-api';
-import { catchUpHistory, mergeHistoryItem } from '../history-cache';
+import { deleteMessages, editMessage } from '../api/messages-api';
 import { messagingQueryKeys } from '../queryKeys';
+import { unsent } from '../sending/outbox';
+import { useConversationSending } from '../sending/outboxes-context';
 import type {
+  ComposedMessage,
   DisplayItem,
   HistoryItem,
   Message,
   MessageAuthor,
   MessageEdit,
   MessageHistoryItem,
-  PendingAttachmentCommit,
   SendMessageCommand,
 } from '../types';
 import { isMessageItem } from '../types';
-import { useOutbox } from './useOutbox';
-import { useUploadingSends } from './useUploadingSends';
-
-function outboxKey(identity: string | undefined, workspaceId: string, channelId: string) {
-  return `ap-chats:outbox:${identity}:${workspaceId}:${channelId}`;
-}
+import type { UnsentMessages } from '../unsent-messages-context';
 
 // An unsent row goes by its nonce until the server gives the message an id.
 function synthesize(
@@ -91,25 +80,11 @@ function byCreatedAt(a: DisplayItem, b: DisplayItem) {
   return a.item.createdAt.localeCompare(b.item.createdAt);
 }
 
-/** A sent message's arrival at the server, which a failed attempt only postpones. */
-interface Landing {
-  landed: Promise<Message>;
-  land: (message: Message) => void;
-}
-
-function expectLanding(): Landing {
-  let land: (message: Message) => void = () => {};
-  const landed = new Promise<Message>((resolve) => {
-    land = resolve;
-  });
-  return { landed, land };
-}
-
 /**
- * Owns sending. Every message the server hasn't acknowledged lives in the outbox (useOutbox)
- * and shows from there at once, as sending or failed; once history holds it, it is a
- * real message and the outbox lets it go. Sends with attachments still uploading show
- * live until they are ready to enter the outbox (useUploadingSends).
+ * The conversation's history merged with its unsent messages, and the ways to change both.
+ * Sending belongs to the conversation's outbox (ConversationOutbox), which outlives this
+ * screen: every message the server hasn't acknowledged shows from there at once, as
+ * uploading, sending or failed, and once history holds it, it is a real message.
  */
 export function useMessageOperations(
   workspaceId: string,
@@ -119,7 +94,8 @@ export function useMessageOperations(
 ) {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
-  const landings = useRef(new Map<string, Landing>());
+  const { outbox } = useConversationSending(workspaceId, channelId);
+  const unsentMessages = useSyncExternalStore(outbox.subscribe, outbox.getSnapshot);
 
   const messages = useMemo(() => items.filter(isMessageItem), [items]);
   const delivered = useMemo(
@@ -127,7 +103,7 @@ export function useMessageOperations(
       new Set(messages.map((item) => item.message.clientNonce).filter((nonce) => nonce !== null)),
     [messages],
   );
-  const outbox = useOutbox(outboxKey(identity, workspaceId, channelId), delivered);
+  useEffect(() => outbox.forget(delivered), [outbox, delivered]);
 
   function refreshHistory() {
     void queryClient.invalidateQueries({
@@ -135,97 +111,8 @@ export function useMessageOperations(
     });
   }
 
-  // Brings an acknowledged message into the loaded history, so its row turns from
-  // pending into the real message in place.
-  async function mergeSent(sessionToken: string, message: Message) {
-    const historyKey = messagingQueryKeys.history(identity, workspaceId, channelId);
-    try {
-      let item: MessageHistoryItem;
-      try {
-        item = await queryClient.fetchQuery({
-          queryKey: [
-            ...messagingQueryKeys.channel(identity, workspaceId, channelId),
-            'item',
-            message.id,
-          ],
-          queryFn: () => getMessage(sessionToken, workspaceId, channelId, message.id),
-          staleTime: 30_000,
-        });
-      } catch {
-        item = {
-          type: 'MESSAGE',
-          id: message.id,
-          seq: message.seq,
-          createdAt: message.createdAt,
-          message,
-          author,
-          reply: null,
-          forwardedFrom: null,
-          pin: null,
-        };
-      }
-      await catchUpHistory(
-        queryClient,
-        identity,
-        workspaceId,
-        channelId,
-        historyKey,
-        item.seq,
-        (cursor) => historyPage(sessionToken, workspaceId, channelId, 'after', cursor),
-      );
-      mergeHistoryItem(queryClient, identity, workspaceId, channelId, item);
-    } catch {
-      // Sent, just not locally merged: a full refetch brings it in instead.
-      void queryClient.invalidateQueries({ queryKey: historyKey, exact: true });
-    }
-  }
-
-  async function deliver(input: SendMessageCommand) {
-    if (!token) {
-      outbox.fail(input.clientNonce);
-      return;
-    }
-
-    let message: Message;
-    try {
-      message = await sendMessage(token, workspaceId, channelId, input);
-    } catch {
-      outbox.fail(input.clientNonce);
-      return;
-    }
-
-    landings.current.get(input.clientNonce)?.land(message);
-    landings.current.delete(input.clientNonce);
-    confirmDirectMessage(queryClient, identity, channelId, message);
-    await mergeSent(token, message);
-    outbox.settle(input.clientNonce);
-  }
-
-  function dispatch(input: SendMessageCommand, createdAt: string) {
-    outbox.enqueue(input, createdAt);
-    void deliver(input);
-  }
-
-  const { uploadingSends, start: startUploadingSend } = useUploadingSends(dispatch);
-
-  /** Sends the message; settles once the server has it, however many retries that takes. */
-  function send(
-    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
-    pending?: PendingAttachmentCommit,
-  ): Promise<Message> {
-    const clientNonce = pending?.nonce ?? randomId();
-    const landing = expectLanding();
-    landings.current.set(clientNonce, landing);
-
-    if (pending) startUploadingSend(input, pending);
-    else dispatch({ ...input, clientNonce }, new Date().toISOString());
-    return landing.landed;
-  }
-
-  function retry(rowId: string) {
-    const entry = outbox.unsent.find((candidate) => candidate.input.clientNonce === rowId);
-    if (!entry) return;
-    dispatch(entry.input, entry.createdAt);
+  function send(input: ComposedMessage, filesNonce?: string): Promise<Message> {
+    return outbox.send(input, author, filesNonce ?? randomId(), Boolean(filesNonce));
   }
 
   async function edit(messageId: string, change: MessageEdit, revision?: number) {
@@ -246,7 +133,8 @@ export function useMessageOperations(
 
   const displayItems = useMemo<DisplayItem[]>(() => {
     const history: DisplayItem[] = items.map((item) => ({ item, delivery: undefined }));
-    const queued: DisplayItem[] = outbox.unsent.map((entry) => ({
+    // History is the truth: an entry it already holds waits only for forget() to drop it.
+    const pending: DisplayItem[] = unsent(unsentMessages.entries, delivered).map((entry) => ({
       item: synthesize(
         entry.input,
         entry.createdAt,
@@ -254,20 +142,21 @@ export function useMessageOperations(
         findMessage(messages, entry.input.replyToMessageId),
       ),
       delivery: entry.status,
-    }));
-    const uploading: DisplayItem[] = [...uploadingSends.entries()].map(([nonce, entry]) => ({
-      item: synthesize(
-        { ...entry.input, clientNonce: nonce },
-        entry.createdAt,
-        author,
-        findMessage(messages, entry.input.replyToMessageId),
-      ),
-      delivery: 'uploading',
-      pendingAttachments: entry.drafts,
+      pendingAttachments: unsentMessages.files.get(entry.input.clientNonce),
     }));
     // Unsent rows sit below the history, in the order they were written.
-    return [...history, ...[...queued, ...uploading].sort(byCreatedAt)];
-  }, [items, outbox.unsent, uploadingSends, author, messages]);
+    return [...history, ...pending.sort(byCreatedAt)];
+  }, [items, unsentMessages, delivered, author, messages]);
 
-  return { displayItems, send, retry, discard: outbox.discard, edit, remove };
+  // Stable, so rows that read them from context skip renders their own entry didn't cause.
+  const unsentActions = useMemo<UnsentMessages>(
+    () => ({
+      retry: (nonce) => outbox.retry(nonce, author),
+      discard: (nonce) => outbox.cancel(nonce),
+      discardFile: (nonce, key) => outbox.cancelFile(nonce, key),
+    }),
+    [outbox, author],
+  );
+
+  return { displayItems, send, unsent: unsentActions, edit, remove };
 }

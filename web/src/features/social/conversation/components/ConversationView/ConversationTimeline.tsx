@@ -34,7 +34,7 @@ export function ConversationTimeline({
 
   return (
     <TimelineActionsContext.Provider value={timelineActions}>
-      <UnsentMessagesContext.Provider value={operations}>
+      <UnsentMessagesContext.Provider value={operations.unsent}>
         <PeerReadContext.Provider value={peerReadSeqOf(historyWindow.pages)}>
           <MessageTimeline
             key={historyTargetId ?? 'unread'}

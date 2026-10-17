@@ -18,20 +18,14 @@ export class UploadQueue {
   private readonly active = new Set<string>();
   private listeners = new Set<() => void>();
   private snapshot: AttachmentDraft[] = [];
-  private disposed = false;
-  private token: string | undefined;
 
+  private readonly token: () => string | undefined;
   private readonly uploader: MultipartUploader;
-  constructor(scope: UploadScope) {
+  constructor(scope: UploadScope, token: () => string | undefined) {
+    this.token = token;
     this.uploader = new MultipartUploader(() => this.tokenOrThrow(), scope);
   }
 
-  setToken(token: string | undefined): void {
-    this.token = token;
-  }
-  activate(): void {
-    this.disposed = false;
-  }
   getSnapshot = () => this.snapshot;
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
@@ -96,7 +90,7 @@ export class UploadQueue {
     this.jobs.delete(key);
     job.controller?.abort();
     if (job.draft.previewUrl) URL.revokeObjectURL(job.draft.previewUrl);
-    this.uploader.cancel(this.token, job.session);
+    this.uploader.cancel(this.token(), job.session);
     this.publish();
   }
 
@@ -144,7 +138,7 @@ export class UploadQueue {
       .map((job) => job.draft);
   }
 
-  /** The commit finished (sent) or failed upload: either way, stop tracking those jobs here. */
+  /** The commit's files are all uploaded and handed to its message: stop tracking them here. */
   releaseCommitted(clientNonce: string): void {
     for (const [key, job] of this.jobs) {
       if (job.committedTo !== clientNonce) continue;
@@ -154,21 +148,9 @@ export class UploadQueue {
     this.publish();
   }
 
-  /** An upload under this commit failed: hand every job in it back to the composer to retry or remove. */
-  uncommit(clientNonce: string): void {
-    for (const [key, job] of this.jobs) {
-      if (job.committedTo !== clientNonce) continue;
-      // With the composer gone there is no one to retry it, so the file and its preview go.
-      if (this.disposed) this.remove(key);
-      else job.committedTo = undefined;
-    }
-    this.publish();
-  }
-
-  /** Leaves committed jobs running — an in-flight send outlives the composer that started it (switching channels, say). */
+  /** Stops every upload, sent or not: the conversation's queue is going away, as on sign-out. */
   dispose(): void {
-    this.disposed = true;
-    for (const [key, job] of this.jobs) if (!job.committedTo) this.remove(key);
+    for (const key of [...this.jobs.keys()]) this.remove(key);
   }
 
   private publish(): void {
@@ -179,15 +161,13 @@ export class UploadQueue {
   }
 
   private tokenOrThrow(): string {
-    if (!this.token) throw new Error('Sign in to upload');
-    return this.token;
+    const token = this.token();
+    if (!token) throw new Error('Sign in to upload');
+    return token;
   }
 
   private pump(): void {
     for (const [key, job] of this.jobs) {
-      // Once disposed, only committed (already-sent) jobs may still start —
-      // everything else is being torn down by dispose() in the same tick.
-      if (this.disposed && !job.committedTo) continue;
       if (this.active.size >= 2) return;
       if (job.draft.status !== 'queued' || this.active.has(key)) continue;
       this.active.add(key);

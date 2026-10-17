@@ -7,6 +7,7 @@ import { ApiAuthSession } from '../features/auth/providers/ApiAuthSession';
 import { CommunitiesProvider } from '../features/communities/providers/CommunitiesProvider';
 import { NotificationsProvider } from '../features/notifications/providers/NotificationsProvider';
 import { RealtimeProvider } from '../features/realtime/providers/RealtimeProvider';
+import { OutboxesProvider } from '../features/social/messaging/sending/OutboxesProvider';
 import { PeopleProvider } from '../features/social/people/providers/PeopleProvider';
 import { WorkspaceUnreadContext } from '../features/social/read-state/workspace-unread-context';
 import { ActiveWorkspaceProvider } from '../features/workspaces/providers/ActiveWorkspaceProvider';
@@ -48,7 +49,9 @@ export function ChatsProviders({ children }: PropsWithChildren) {
               <UnreadBadges />
               <CommunitiesProvider>
                 <PeopleProvider>
-                  <NotificationsProvider>{children}</NotificationsProvider>
+                  <OutboxesProvider>
+                    <NotificationsProvider>{children}</NotificationsProvider>
+                  </OutboxesProvider>
                 </PeopleProvider>
               </CommunitiesProvider>
             </WorkspaceUnreadScope>
