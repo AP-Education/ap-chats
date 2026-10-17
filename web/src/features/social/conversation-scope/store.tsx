@@ -16,7 +16,7 @@ interface ConversationState {
   selectedIds: string[];
   intent: ComposerIntent;
   editingId: string | null;
-  /** Bumped by the timeline's closing swipe so the composer dismisses the on-screen keyboard;
+  /** Bumped when the history is dragged so the composer dismisses the on-screen keyboard;
    * a counter rather than a boolean since there's nothing to "unset". */
   blurComposerToken: number;
   toggleSelected: (id: string) => void;
