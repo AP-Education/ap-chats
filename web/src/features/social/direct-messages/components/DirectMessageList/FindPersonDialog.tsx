@@ -72,11 +72,16 @@ export function FindPersonDialog({
   const results = people.data ?? [];
   const showEmpty = hasQuery && !searching && !people.isError && results.length === 0;
 
+  // The dialog opens empty every time, however it was closed.
+  function close() {
+    setQuery('');
+    onClose();
+  }
+
   async function choose(person: MemberSummary) {
     try {
       await openConversation(person.memberId);
-      onClose();
-      setQuery('');
+      close();
       onNavigate?.();
     } catch {
       toast.error('Не вдалося відкрити розмову.');
@@ -84,7 +89,7 @@ export function FindPersonDialog({
   }
 
   return (
-    <Modal title="Написати колезі" open={open} onCancel={onClose} footer={null} destroyOnHidden>
+    <Modal title="Написати колезі" open={open} onCancel={close} footer={null} destroyOnHidden>
       <Input
         autoFocus
         placeholder="Ім’я колеги"

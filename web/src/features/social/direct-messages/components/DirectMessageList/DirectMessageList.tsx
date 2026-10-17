@@ -41,6 +41,12 @@ export function DirectMessageList({
   const [filter, setFilter] = useState('');
   const [composeOpen, setComposeOpen] = useState(false);
 
+  // Opening a conversation ends the search, as in Telegram: the list returns whole.
+  function navigated() {
+    setFilter('');
+    onNavigate?.();
+  }
+
   return (
     <div className={styles.root}>
       <PanelHeader>
@@ -59,8 +65,12 @@ export function DirectMessageList({
           prefix={<MagnifyingGlassIcon size={20} />}
           placeholder="Розмова або колега"
           aria-label="Знайти розмову або колегу"
+          allowClear
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setFilter('');
+          }}
         />
       </div>
       <div className={styles.list}>
@@ -68,14 +78,14 @@ export function DirectMessageList({
           workspaceId={workspaceId}
           filter={filter}
           onCompose={() => setComposeOpen(true)}
-          onNavigate={onNavigate}
+          onNavigate={navigated}
         />
       </div>
       <FindPersonDialog
         workspaceId={workspaceId}
         open={composeOpen}
         onClose={() => setComposeOpen(false)}
-        onNavigate={onNavigate}
+        onNavigate={navigated}
       />
     </div>
   );
