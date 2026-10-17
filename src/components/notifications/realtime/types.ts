@@ -16,6 +16,8 @@ export interface UnreadMutation {
   subject: 'message' | 'call';
   entries: UnreadEntryChange[];
   alert: boolean;
+  /** The appended messages mention the recipient; a removal never says, its mentions are gone. */
+  mentionsMe: boolean;
 }
 
 export interface NotificationSourceEvent {

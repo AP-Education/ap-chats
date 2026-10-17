@@ -38,6 +38,7 @@ export class RealtimeNotificationDeliveryService {
       for (const recipient of recipients) {
         const preference = settingsByMember.get(recipient.memberId);
         if (!preference) continue;
+        const mentionsMe = mentioned.has(recipient.memberId);
         const mutation: UnreadMutation = {
           workspaceId: event.workspaceId,
           channelId: event.channelId,
@@ -51,8 +52,9 @@ export class RealtimeNotificationDeliveryService {
             actorMemberId: event.actorMemberId,
             recipientMemberId: recipient.memberId,
             settings: preference,
-            mentioned: mentioned.has(recipient.memberId),
+            mentioned: mentionsMe,
           }),
+          mentionsMe,
         };
         this.realtime.toUser(recipient.userId, 'social:unread', mutation);
       }
