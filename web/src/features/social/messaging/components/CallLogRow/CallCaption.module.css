@@ -5,6 +5,7 @@
   color: var(--bubble-muted);
   font-size: var(--ant-font-size-sm);
   line-height: 1.4;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
