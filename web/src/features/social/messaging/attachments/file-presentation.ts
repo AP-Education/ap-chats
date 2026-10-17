@@ -13,3 +13,12 @@ export function formatFileSize(bytes: number): string {
 export function fileExtension(name: string): string {
   return name.includes('.') ? name.split('.').at(-1)!.slice(0, 8).toUpperCase() : 'ФАЙЛ';
 }
+
+/** A name in two parts for truncating in the middle: the head gives way, the tail with the
+ * extension stays, so `quarterly-report-final.pdf` reads as `quarterly-re…final.pdf`. */
+export function splitFileName(name: string): { head: string; tail: string } {
+  const dot = name.lastIndexOf('.');
+  const extension = dot > 0 && name.length - dot <= 9 ? name.length - dot : 0;
+  const cut = Math.max(0, name.length - extension - 5);
+  return { head: name.slice(0, cut), tail: name.slice(cut) };
+}
