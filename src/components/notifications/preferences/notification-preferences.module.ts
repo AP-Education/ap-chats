@@ -9,10 +9,11 @@ import { NotificationSettingsService } from './notification-settings.service';
 import { NotificationsController } from './notifications.controller';
 import { DrizzleNotificationSettingsRepository } from './repository/drizzle-notification-settings.repository';
 import { NotificationSettingsRepository } from './repository/notification-settings.repository';
+import { WorkspaceNotificationsController } from './workspace-notifications.controller';
 
 @Module({
   imports: [AuthModule, ChannelAccessPolicyModule, WorkspaceMembersModule, DrizzleModule],
-  controllers: [NotificationsController],
+  controllers: [NotificationsController, WorkspaceNotificationsController],
   providers: [
     NotificationSettingsService,
     { provide: NotificationSettingsRepository, useClass: DrizzleNotificationSettingsRepository },

@@ -8,7 +8,7 @@ import { ChannelAccessRepository } from '@/components/communities/channel-access
 import type { ChannelAccessSnapshot } from '@/components/communities/channel-access/channel-access/types';
 import { NotificationSettingsService } from '@/components/notifications/preferences';
 import { NotificationSettingsRepository } from '@/components/notifications/preferences/repository/notification-settings.repository';
-import type { StoredNotificationSettings } from '@/components/notifications/preferences/types';
+import type { MemberNotificationSettings } from '@/components/notifications/preferences/types';
 import { EntriesFacade } from '@/components/social/entries';
 import { EntriesRepository } from '@/components/social/entries/repository/entries.repository';
 import type { ChannelEntry } from '@/components/social/entries/types/entry.types';
@@ -245,7 +245,7 @@ class FakeCallsRepository extends CallsRepository {
 }
 
 class FakeNotificationSettingsRepository extends NotificationSettingsRepository {
-  readonly settings: StoredNotificationSettings[] = [];
+  readonly settings: MemberNotificationSettings[] = [];
 
   async forChannel() {
     return this.settings;
@@ -257,6 +257,18 @@ class FakeNotificationSettingsRepository extends NotificationSettingsRepository 
 
   async update() {
     return null;
+  }
+
+  async forWorkspaceMember() {
+    return null;
+  }
+
+  async updateWorkspaceMember() {
+    return null;
+  }
+
+  async conversationsOf() {
+    return [];
   }
 }
 
@@ -550,9 +562,9 @@ test('start: rings everyone in the channel except the caller', async () => {
 test('start: does not ring a member who muted the conversation', async () => {
   notificationSettings.settings.push({
     memberId: bystander.id,
-    level: 'default',
-    mutedUntil: null,
-    notificationsMuted: true,
+    kind: 'channel',
+    channel: { level: 'default', mutedUntil: null, notificationsMuted: true },
+    workspace: { level: 'default', mutedUntil: null, notificationsMuted: false },
   });
 
   await calls.start(starter, group.id, 'test-token');

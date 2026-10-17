@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
-import { isMuted } from '../preferences/notification-settings.rules';
-import type { StoredNotificationSettings } from '../preferences/types';
+import { conversationNotify } from '../preferences/notification-settings.rules';
+import type { ConversationNotificationSettings, ConversationNotify } from '../preferences/types';
 import type { NotificationDecision } from './types';
 
 @Injectable()
 export class NotificationPolicyService {
-  messageLevel(settings: StoredNotificationSettings): 'all' | 'mentions' | 'none' {
-    if (isMuted(settings)) return 'none';
-    return settings.level === 'mentions' ? 'mentions' : 'all';
+  messageLevel(settings: ConversationNotificationSettings): ConversationNotify {
+    return conversationNotify(settings);
   }
 
   shouldAlert(decision: NotificationDecision): boolean {
@@ -19,7 +18,7 @@ export class NotificationPolicyService {
   }
 
   /** For someone who already has unread messages from others; own messages are filtered upstream. */
-  wantsMessages(settings: StoredNotificationSettings, mentioned: boolean): boolean {
+  wantsMessages(settings: ConversationNotificationSettings, mentioned: boolean): boolean {
     const level = this.messageLevel(settings);
     return level === 'all' || (level === 'mentions' && mentioned);
   }

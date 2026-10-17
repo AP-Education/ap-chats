@@ -12,14 +12,14 @@ import type { ConversationAlert } from './types';
 
 const window = { workspaceId: 'workspace', channelId: 'channel', firstSeq: '10' };
 
-function fixture(level: 'default' | 'mentions' = 'mentions') {
+function fixture(level: 'all' | 'mentions' = 'mentions') {
   const createdAt = new Date();
   const page = Array.from({ length: 100 }, (_, index) => ({
     memberId: String(index).padStart(3, '0'),
     userId: `reader-${index}`,
-    level,
-    mutedUntil: null,
-    notificationsMuted: index === 10,
+    kind: 'channel',
+    channel: { level, mutedUntil: null, notificationsMuted: index === 10 },
+    workspace: { level: 'default', mutedUntil: null, notificationsMuted: false },
     mentioned: [7, 10].includes(index),
     lastReadEntrySeq: 0n,
   }));
@@ -97,8 +97,8 @@ test('a closed window covers every message up to the channel end and pins it for
   assert.deepEqual(f.continued, [{ lastSeq: '12', after: '099' }]);
 });
 
-test('default level alerts everyone with unread messages except muted members', async () => {
-  const f = fixture('default');
+test('all messages alerts everyone with unread messages except muted members', async () => {
+  const f = fixture('all');
   await f.scheduler.alertRecipients({ window });
 
   const recipients = f.batches[0]!.map((alert) => alert.data.memberId);

@@ -101,12 +101,21 @@ export class DrizzlePushAudienceRepository extends PushAudienceRepository {
         lastReadEntrySeq: channelMemberships.lastReadEntrySeq,
         memberId: workspaceMembers.id,
         userId: userProfiles.oidcUserId,
-        level: channelMemberships.notificationLevel,
-        notificationsMuted: channelMemberships.notificationsMuted,
-        mutedUntil: channelMemberships.mutedUntil,
+        kind: channels.kind,
+        channel: {
+          level: channelMemberships.notificationLevel,
+          notificationsMuted: channelMemberships.notificationsMuted,
+          mutedUntil: channelMemberships.mutedUntil,
+        },
+        workspace: {
+          level: workspaceMembers.notificationLevel,
+          notificationsMuted: workspaceMembers.notificationsMuted,
+          mutedUntil: workspaceMembers.mutedUntil,
+        },
         mentioned: unreadFromOthers(scope, { mentionsOnly: true }),
       })
       .from(channelMemberships)
+      .innerJoin(channels, eq(channels.id, channelMemberships.channelId))
       .innerJoin(workspaceMembers, eq(workspaceMembers.id, channelMemberships.memberId))
       .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
       .where(

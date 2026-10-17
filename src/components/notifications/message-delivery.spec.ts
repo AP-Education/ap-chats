@@ -31,9 +31,9 @@ function fixture(kind: 'web' | 'expo' = 'web') {
     memberId: 'reader-member',
     userId: 'reader',
     lastReadEntrySeq: 0n,
-    level: 'all',
-    notificationsMuted: false,
-    mutedUntil: null,
+    kind: 'channel',
+    channel: { level: 'all', notificationsMuted: false, mutedUntil: null },
+    workspace: { level: 'default', notificationsMuted: false, mutedUntil: null },
     mentioned: false,
   };
   const device = { id: 'device', userId: 'reader', pushToken: 'token' };
