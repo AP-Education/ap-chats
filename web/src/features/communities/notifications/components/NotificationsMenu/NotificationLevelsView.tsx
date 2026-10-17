@@ -2,13 +2,7 @@ import { CaretRightIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 
 import type { NotificationLevel } from '../../types';
-
-const levels: Array<{ value: NotificationLevel; title: string; description?: string }> = [
-  { value: 'default', title: 'За замовчуванням', description: 'Усі повідомлення' },
-  { value: 'all', title: 'Усі повідомлення' },
-  { value: 'mentions', title: 'Лише згадки' },
-  { value: 'none', title: 'Жодних' },
-];
+import type { NotificationsSubject } from './types';
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
@@ -76,6 +70,7 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 interface NotificationLevelsViewProps {
+  subject: NotificationsSubject;
   level: NotificationLevel;
   isMuted: boolean;
   onOpenMute: () => void;
@@ -84,6 +79,7 @@ interface NotificationLevelsViewProps {
 }
 
 export function NotificationLevelsView({
+  subject,
   level,
   isMuted,
   onOpenMute,
@@ -99,12 +95,12 @@ export function NotificationLevelsView({
         className={cx(styles.row, styles.mainAction)}
         onClick={isMuted ? onUnmute : onOpenMute}
       >
-        <span>{isMuted ? 'Увімкнути канал' : 'Вимкнути канал'}</span>
+        <span>{isMuted ? subject.unmute : subject.mute}</span>
         {!isMuted && <CaretRightIcon size={16} />}
       </button>
       <div className={styles.divider} />
-      <div role="radiogroup" aria-label="Сповіщення каналу">
-        {levels.map((option) => (
+      <div role="radiogroup" aria-label={subject.label}>
+        {subject.levels.map((option) => (
           <button
             key={option.value}
             type="button"

@@ -99,6 +99,7 @@ function fixture({
         subject: 'message',
         entries: [{ seq: '1', authorMemberId: 'author' }],
         alert: true,
+        mentionsMe: false,
         ...changes,
       });
     },

@@ -18,6 +18,8 @@ export const messageMentions = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.messageId, table.memberId] }),
+    // Unread mentions are counted per member and channel.
+    index('message_mentions_member_channel_idx').on(table.memberId, table.channelId),
     check('message_mentions_via_check', sql`${table.via} in ('direct', 'role', 'everyone')`),
     foreignKey({
       columns: [table.workspaceId, table.channelId, table.messageId],

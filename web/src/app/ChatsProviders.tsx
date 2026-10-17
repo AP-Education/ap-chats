@@ -23,13 +23,14 @@ const queryClient = new QueryClient({
 
 const forgetPersistedQueries = persistQueries(queryClient);
 
+// Every workspace counts: what is meant for the person anywhere reaches the app and its tabs.
 function UnreadBadges() {
   const unread = useContext(WorkspaceUnreadContext);
-  const channelTotal = unread?.channelTotal ?? 0;
-  const directTotal = unread?.directTotal ?? 0;
-  useAppBadge(channelTotal + directTotal);
-  useTabBadge(teamTab.id, channelTotal);
-  useTabBadge(personalTab.id, directTotal);
+  const team = (unread?.channels.badge ?? 0) + (unread?.channelsElsewhere.badge ?? 0);
+  const personal = unread?.direct.badge ?? 0;
+  useAppBadge(team + personal);
+  useTabBadge(teamTab.id, team);
+  useTabBadge(personalTab.id, personal);
   return null;
 }
 

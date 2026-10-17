@@ -223,7 +223,7 @@ test('mentions on PostgreSQL', async (t) => {
     const reader = await audience.memberRecipient(range, people.reader);
 
     assert.equal(reader?.mentioned, true);
-    assert.equal(reader?.level, 'mentions');
+    assert.equal(reader?.channel.level, 'mentions');
   });
 
   await t.test(

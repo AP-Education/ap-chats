@@ -3,11 +3,14 @@ export interface WorkspaceChannelUnread {
   kind: 'channel' | 'dm';
   lastReadEntrySeq: string;
   unreadCount: number;
+  /** Unread messages that mention the reader, @everyone and their roles included. */
+  mentionCount: number;
 }
 
 export interface ChannelReadState {
   lastReadEntrySeq: string;
   unreadCount: number;
+  mentionCount: number;
 }
 
 /** Where a viewer stands in a channel's history up to a snapshot. */

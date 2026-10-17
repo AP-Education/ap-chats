@@ -1,9 +1,11 @@
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 
-const muteDurations = [
-  { label: 'На 1 годину', milliseconds: 60 * 60 * 1000 },
-  { label: 'На 24 години', milliseconds: 24 * 60 * 60 * 1000 },
+import type { MuteDuration } from './types';
+
+const muteDurations: Array<{ label: string; duration: MuteDuration }> = [
+  { label: 'На 1 годину', duration: 'hour' },
+  { label: 'На 24 години', duration: 'day' },
 ];
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -56,12 +58,14 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 interface MuteDurationViewProps {
+  title: string;
   onBack: () => void;
-  onChooseMute: (milliseconds: number) => void;
+  onChooseMute: (duration: MuteDuration) => void;
   onMuteIndefinitely: () => void;
 }
 
 export function MuteDurationView({
+  title,
   onBack,
   onChooseMute,
   onMuteIndefinitely,
@@ -71,15 +75,15 @@ export function MuteDurationView({
   return (
     <>
       <button type="button" className={styles.back} onClick={onBack}>
-        <ArrowLeftIcon size={16} /> Вимкнути канал
+        <ArrowLeftIcon size={16} /> {title}
       </button>
       <div className={styles.divider} />
       {muteDurations.map((duration) => (
         <button
-          key={duration.label}
+          key={duration.duration}
           type="button"
           className={styles.row}
-          onClick={() => onChooseMute(duration.milliseconds)}
+          onClick={() => onChooseMute(duration.duration)}
         >
           {duration.label}
         </button>

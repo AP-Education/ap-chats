@@ -7,7 +7,7 @@ import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { ChangeNotificationSettingsDto } from './dto';
 import { NotificationSettingsService } from './notification-settings.service';
-import type { ChannelNotificationSettings } from './types';
+import type { NotificationSettingsView } from './types';
 
 @Controller('workspaces/:workspaceId/channels/:channelId/notifications')
 @UseAuthGuards(WorkspaceMemberGuard('param', 'workspaceId'))
@@ -18,7 +18,7 @@ export class NotificationsController {
   get(
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
-  ): Promise<ChannelNotificationSettings> {
+  ): Promise<NotificationSettingsView> {
     return this.settings.get(member, channelId);
   }
 
@@ -27,7 +27,7 @@ export class NotificationsController {
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
     @Body() command: ChangeNotificationSettingsDto,
-  ): Promise<ChannelNotificationSettings> {
+  ): Promise<NotificationSettingsView> {
     return this.settings.change(member, channelId, command);
   }
 }

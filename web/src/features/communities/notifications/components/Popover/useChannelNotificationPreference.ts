@@ -6,16 +6,18 @@ import {
   changeChannelNotificationSettings,
   getChannelNotificationSettings,
 } from '../../api/channel-notifications-api';
-import type {
-  ChangeNotificationSettings,
-  ChannelNotificationSettings,
-  NotificationLevel,
-} from '../../types';
+import { channelNotificationsKey, workspaceNotificationsKey } from '../../queryKeys';
+import type { ChangeNotificationSettings, NotificationSettings } from '../../types';
+import { preferenceStatus } from '../NotificationsMenu/preference-status';
+import type { NotificationPreference } from '../NotificationsMenu/types';
 
-export function useChannelNotificationPreference(workspaceId: string, channelId: string) {
+export function useChannelNotificationPreference(
+  workspaceId: string,
+  channelId: string,
+): NotificationPreference {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
-  const queryKey = ['notification-settings', identity, workspaceId, channelId] as const;
+  const queryKey = channelNotificationsKey(identity, workspaceId, channelId);
   const query = useQuery({
     queryKey,
     queryFn: () => getChannelNotificationSettings(token as string, workspaceId, channelId),
@@ -24,8 +26,14 @@ export function useChannelNotificationPreference(workspaceId: string, channelId:
   const change = useMutation({
     mutationFn: (command: ChangeNotificationSettings) =>
       changeChannelNotificationSettings(token as string, workspaceId, channelId, command),
-    onSuccess: (settings: ChannelNotificationSettings) =>
-      queryClient.setQueryData(queryKey, settings),
+    onSuccess: (settings: NotificationSettings) => {
+      queryClient.setQueryData(queryKey, settings);
+      // The channel's place in the sidebar and on the rail follows what it now tells.
+      void queryClient.invalidateQueries({
+        queryKey: workspaceNotificationsKey(identity, workspaceId),
+        exact: true,
+      });
+    },
   });
 
   return {
@@ -34,17 +42,8 @@ export function useChannelNotificationPreference(workspaceId: string, channelId:
     isMuted: query.data?.isMuted ?? false,
     changing: change.isPending,
     retry: () => void query.refetch(),
-    chooseLevel: (level: NotificationLevel) => change.mutateAsync({ type: 'level', level }),
-    chooseMute: (milliseconds: number) =>
-      change.mutateAsync({ type: 'mute', duration: milliseconds <= 3_600_000 ? 'hour' : 'day' }),
+    chooseLevel: (level) => change.mutateAsync({ type: 'level', level }),
+    chooseMute: (duration) => change.mutateAsync({ type: 'mute', duration }),
     unmute: () => change.mutateAsync({ type: 'unmute' }),
   };
-}
-
-export type ChannelNotificationPreference = ReturnType<typeof useChannelNotificationPreference>;
-
-function preferenceStatus(query: { isPending: boolean; isError: boolean }) {
-  if (query.isPending) return 'loading';
-  if (query.isError) return 'failed';
-  return 'ready';
 }

@@ -38,12 +38,16 @@ test('read state on PostgreSQL', async (t) => {
 
     await services.readState.markRead(rob, chat.channelId, '1');
     const behind = await services.history.window(rob, chat.channelId, {});
-    assert.deepEqual(behind.readState, { lastReadEntrySeq: '1', unreadCount: 1 });
+    assert.deepEqual(behind.readState, { lastReadEntrySeq: '1', unreadCount: 1, mentionCount: 0 });
     assert.equal(behind.firstUnreadSeq, '3', 'their own message is never unread');
 
     await services.readState.markRead(rob, chat.channelId, '3');
     const caughtUp = await services.history.window(rob, chat.channelId, {});
-    assert.deepEqual(caughtUp.readState, { lastReadEntrySeq: '3', unreadCount: 0 });
+    assert.deepEqual(caughtUp.readState, {
+      lastReadEntrySeq: '3',
+      unreadCount: 0,
+      mentionCount: 0,
+    });
     assert.equal(caughtUp.firstUnreadSeq, null);
   });
 
@@ -57,7 +61,7 @@ test('read state on PostgreSQL', async (t) => {
 
     const state = await services.readState.markUnread(rob, chat.channelId, '2');
 
-    assert.deepEqual(state, { lastReadEntrySeq: '1', unreadCount: 2 });
+    assert.deepEqual(state, { lastReadEntrySeq: '1', unreadCount: 2, mentionCount: 0 });
     const reopened = await services.history.window(rob, chat.channelId, {});
     assert.equal(reopened.firstUnreadSeq, '2');
     const rewinds = services.published.filter(({ name }) => name === READ_STATE_REWOUND_EVENT);
@@ -73,7 +77,7 @@ test('read state on PostgreSQL', async (t) => {
 
     const state = await services.readState.markUnread(rob, chat.channelId, '2');
 
-    assert.deepEqual(state, { lastReadEntrySeq: '1', unreadCount: 1 });
+    assert.deepEqual(state, { lastReadEntrySeq: '1', unreadCount: 1, mentionCount: 0 });
     assert.ok(!services.published.some(({ name }) => name === READ_STATE_REWOUND_EVENT));
     await assert.rejects(services.readState.markUnread(rob, chat.channelId, '9'), {
       status: 400,
@@ -122,5 +126,21 @@ test('read state on PostgreSQL', async (t) => {
     const page = await services.history.window(ann, channel.channelId, {});
     assert.equal(page.peerReadSeq, null);
     assert.deepEqual(receipts(), []);
+  });
+
+  await t.test('mentions of the reader count as unread until read past', async () => {
+    const { ann, rob, services } = await people();
+    const channel = await seed.channel(ann, 'public', [rob]);
+    await seed.post(channel, ann, { mentioning: [rob] });
+    await seed.post(channel, ann);
+    await seed.post(channel, ann, { mentioning: [rob] });
+
+    const summary = await services.readState.workspace(rob);
+    const unread = summary.find(({ channelId }) => channelId === channel.channelId);
+    assert.equal(unread?.unreadCount, 3);
+    assert.equal(unread?.mentionCount, 2);
+
+    const state = await services.readState.markRead(rob, channel.channelId, '2');
+    assert.deepEqual(state, { lastReadEntrySeq: '2', unreadCount: 1, mentionCount: 1 });
   });
 });

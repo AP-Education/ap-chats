@@ -135,7 +135,11 @@ export function seedConversations(db: TestDatabase) {
       return { workspaceId, channelId, seq: 0n };
     },
 
-    async post(conversation: Conversation, author: WorkspaceMember) {
+    async post(
+      conversation: Conversation,
+      author: WorkspaceMember,
+      { mentioning = [] }: { mentioning?: WorkspaceMember[] } = {},
+    ) {
       const { workspaceId, channelId } = conversation;
       const messageId = randomUUID();
       conversation.seq += 1n;
@@ -156,6 +160,13 @@ export function seedConversations(db: TestDatabase) {
         .update(schema.channels)
         .set({ lastEntrySeq: conversation.seq, updatedAt: tick() })
         .where(eq(schema.channels.id, channelId));
+      if (mentioning.length) {
+        await db
+          .insert(schema.messageMentions)
+          .values(
+            mentioning.map(({ id }) => ({ workspaceId, channelId, messageId, memberId: id })),
+          );
+      }
     },
 
     async call(conversation: Conversation, caller: WorkspaceMember, status: CallStatus) {

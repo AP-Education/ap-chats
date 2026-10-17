@@ -1,10 +1,15 @@
 import { IconButton } from '@ap-education/ui';
 import { BellIcon, BellSlashIcon } from '@phosphor-icons/react';
+import { useQuery } from '@tanstack/react-query';
 import { Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
-import { ChannelNotificationsMenu } from './ChannelNotificationsMenu';
+import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
+
+import { workspaceNotificationsQuery } from '../../hooks/useWorkspaceNotifications';
+import { NotificationsMenu } from '../NotificationsMenu/NotificationsMenu';
+import { channelSubject } from '../NotificationsMenu/subjects';
 import { useChannelNotificationPreference } from './useChannelNotificationPreference';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -32,7 +37,9 @@ export function ChannelNotificationsPopover({
   compact = false,
 }: ChannelNotificationsPopoverProps) {
   const { styles, cx } = useStyles();
+  const { token, identity } = useQueryAuth();
   const preference = useChannelNotificationPreference(workspaceId, channelId);
+  const { data: workspace } = useQuery(workspaceNotificationsQuery(identity, token, workspaceId));
   const [open, setOpen] = useState(false);
 
   return (
@@ -45,7 +52,11 @@ export function ChannelNotificationsPopover({
       destroyOnHidden
       content={
         <div className={styles.menu} role="dialog" aria-label="Сповіщення каналу">
-          <ChannelNotificationsMenu preference={preference} onDone={() => setOpen(false)} />
+          <NotificationsMenu
+            subject={channelSubject(workspace?.settings)}
+            preference={preference}
+            onDone={() => setOpen(false)}
+          />
         </div>
       }
     >

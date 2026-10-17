@@ -1,9 +1,10 @@
 import { PanelHeader } from '@ap-education/ui';
-import { FoldersIcon, UsersThreeIcon } from '@phosphor-icons/react';
+import { BellIcon, FoldersIcon, UsersThreeIcon } from '@phosphor-icons/react';
 import type { MenuProps } from 'antd';
 import { useState } from 'react';
 
 import { ChannelCategoriesModal } from '../../features/communities/channel-categories/components/ChannelCategoriesModal';
+import { WorkspaceNotificationsDialog } from '../../features/communities/notifications/components/WorkspaceNotifications/WorkspaceNotificationsDialog';
 import { PushSettings } from '../../features/notifications/components/PushSettings';
 import { RolesModal } from '../../features/roles/components/RolesModal';
 import { UnreadDirectMessages } from '../../features/social/direct-messages/components/UnreadDirectMessages/UnreadDirectMessages';
@@ -13,15 +14,26 @@ import { useWorkspaceMemberLabels } from '../../features/workspaces/hooks/useWor
 import { isWorkspaceAdministrator } from '../../features/workspaces/workspace-access';
 import { PanelHeaderActions } from '../../shared/ui/PanelHeaderActions';
 
-type Managing = 'roles' | 'categories' | null;
+type Managing = 'notifications' | 'roles' | 'categories' | null;
 
-/** The team's name with the workspace's menu, where managers also shape its roles and categories. */
+/**
+ * The team's name with the workspace's menu: everyone chooses what it tells them about, and
+ * managers also shape its roles and categories.
+ */
 export function TeamHeader() {
   const { workspace } = useActiveWorkspace();
   const { currentMember } = useWorkspaceMemberLabels(workspace?.id);
   const [managing, setManaging] = useState<Managing>(null);
 
   const isAdministrator = isWorkspaceAdministrator(currentMember);
+  const notifications: NonNullable<MenuProps['items']> = [
+    {
+      key: 'notifications',
+      icon: <BellIcon size={18} />,
+      label: 'Сповіщення',
+      onClick: () => setManaging('notifications'),
+    },
+  ];
   const administration: NonNullable<MenuProps['items']> = isAdministrator
     ? [
         {
@@ -43,12 +55,20 @@ export function TeamHeader() {
   return (
     <>
       <PanelHeader>
-        <WorkspaceHeader actions={administration} />
+        <WorkspaceHeader actions={[...notifications, ...administration]} />
         <PanelHeaderActions>
           <PushSettings />
         </PanelHeaderActions>
       </PanelHeader>
       {workspace && <UnreadDirectMessages />}
+      {workspace && (
+        <WorkspaceNotificationsDialog
+          key={`notifications-${workspace.id}`}
+          workspaceId={workspace.id}
+          open={managing === 'notifications'}
+          onClose={close}
+        />
+      )}
       {workspace && isAdministrator && (
         <>
           <RolesModal
