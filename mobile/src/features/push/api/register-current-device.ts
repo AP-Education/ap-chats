@@ -14,6 +14,7 @@ import { getExpoPushToken } from './push-token';
 let waiting: Promise<void> | null = null;
 // What the server last accepted for this phone; the same registration is not sent twice.
 let registered: string | null = null;
+let reachableByCalls = false;
 
 /** Any number of requests at once make one registration, and an unchanged one makes none. */
 export function registerCurrentDeviceForPush(devicePushToken?: DevicePushToken): Promise<void> {
@@ -50,6 +51,7 @@ export function registerCurrentDeviceForPush(devicePushToken?: DevicePushToken):
       await registerDevice(payload);
       registered = registration;
     }
+    reachableByCalls = Boolean(payload.voipToken);
     if (tokenResult.error) throw tokenResult.error;
   });
   return waiting;
@@ -58,4 +60,10 @@ export function registerCurrentDeviceForPush(devicePushToken?: DevicePushToken):
 /** The phone left the account, so whoever signs in next registers it afresh. */
 export function forgetCurrentDeviceRegistration(): void {
   registered = null;
+  reachableByCalls = false;
+}
+
+/** The server holds this phone's call push token, so a call can ring it. */
+export function isReachableByCalls(): boolean {
+  return reachableByCalls;
 }

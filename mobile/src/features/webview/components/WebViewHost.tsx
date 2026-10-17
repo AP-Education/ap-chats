@@ -16,6 +16,7 @@ import { clearPageInsets, measurePageBottomGap } from '../../../../modules/page-
 import { useAppearanceStore, useShellPalette } from '../../appearance';
 import { useAuthStore } from '../../auth/index';
 import { connectBridgedCall, useIsMiniCallBarVisible } from '../../calls';
+import { fixPhoneReadiness, readPhoneReadiness } from '../../calls/utils/phone-readiness';
 import {
   type ComposerInputState,
   EmojiKeyboardPanel,
@@ -151,13 +152,24 @@ export function WebViewHost() {
     sendInset(INSTANT);
   }, [insetBottom, loadCount, sendInset]);
 
+  // The page asked how calls reach this phone; it hears again whenever that may have changed.
+  const pageWatchesCalls = useRef(false);
+
   // Settings changes the permission outside the app, so it is re-read on every return.
   useEffect(() => {
     const appState = AppState.addEventListener('change', (state) => {
-      if (state === 'active') sendPushPermission();
+      if (state !== 'active') return;
+      sendPushPermission();
+      if (pageWatchesCalls.current) sendPhoneReadiness();
     });
     return () => appState.remove();
   }, []);
+
+  function sendPhoneReadiness() {
+    void readPhoneReadiness().then((checks) =>
+      webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'calls/readiness', checks })),
+    );
+  }
 
   function sendPushPermission() {
     void getPushPermissionStatus().then((status) =>
@@ -173,6 +185,7 @@ export function WebViewHost() {
     // Hidden rather than dropped: the page lives inside a tab's host until it reloads.
     setTabBar((current) => current && { ...current, visible: false });
     pageTakesBack.current = false;
+    pageWatchesCalls.current = false;
     useNotificationStore.getState().setWebReady(false);
   }
 
@@ -204,6 +217,14 @@ export function WebViewHost() {
       void dismissPresentedNotifications(message.collapseKey);
     } else if (message.type === 'notifications/context') {
       useNotificationStore.getState().setWebAttending(message.payload.attending);
+    } else if (message.type === 'calls/readiness-check') {
+      pageWatchesCalls.current = true;
+      sendPhoneReadiness();
+    } else if (message.type === 'calls/readiness-fix') {
+      // Settings answer once the person comes back; registering answers right away.
+      void fixPhoneReadiness(message.id)
+        .catch(() => undefined)
+        .then(sendPhoneReadiness);
     } else if (message.type === 'notifications/permission-check') {
       sendPushPermission();
     } else if (message.type === 'notifications/settings') {
