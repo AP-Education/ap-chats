@@ -14,6 +14,8 @@ export interface UnreadMutation {
   subject: 'message' | 'call';
   entries: { seq: string; authorMemberId: string }[];
   alert: boolean;
+  /** The appended messages mention the recipient; a removal never says, its mentions are gone. */
+  mentionsMe: boolean;
 }
 
 // Mirrors src/components/bootstrap/bootstrap.gateway.ts on the API, kept in sync by hand.
@@ -40,6 +42,7 @@ export type ServerToClientEvents = {
     channelId: string;
     lastReadEntrySeq: string;
     unreadCount: number;
+    mentionCount: number;
   }) => void;
 };
 

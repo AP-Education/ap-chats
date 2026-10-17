@@ -1,38 +1,62 @@
 import { createContext, useContext } from 'react';
 
+import type { ConversationNotify } from '@/features/communities/notifications/types';
+
+import {
+  type Attention,
+  combinedAttention,
+  conversationAttention,
+  notifyOf,
+} from './conversation-attention';
 import type { ChannelUnread } from './hooks/useWorkspaceUnread';
 
+/** A workspace's conversations with what each of them tells the person about. */
+export interface WorkspaceReadState {
+  conversations: ChannelUnread[] | undefined;
+  notifyByChannel: ReadonlyMap<string, ConversationNotify> | undefined;
+}
+
 export interface WorkspaceUnreadStore {
-  unreadByChannel: Map<string, number>;
-  channelTotal: number;
-  directTotal: number;
+  /** The active workspace's channels and every direct conversation, by channel. */
+  attentionByChannel: Map<string, Attention>;
+  /** The active workspace's channels. */
+  channels: Attention;
+  /** The other workspaces' channels. */
+  channelsElsewhere: Attention;
+  /** Every direct conversation, whichever workspace it lives in. */
+  direct: Attention;
 }
 
 export function createWorkspaceUnreadStore(
-  channels: ChannelUnread[] | undefined,
-  directElsewhere: ChannelUnread[] = [],
+  active: WorkspaceReadState,
+  elsewhere: WorkspaceReadState[],
 ): WorkspaceUnreadStore {
-  const unreadByChannel = new Map<string, number>();
-  let channelTotal = 0;
-  let directTotal = 0;
-  for (const channel of channels ?? []) {
-    unreadByChannel.set(channel.channelId, channel.unreadCount);
-    if (channel.kind === 'dm') directTotal += channel.unreadCount;
-    else channelTotal += channel.unreadCount;
-  }
-  for (const conversation of directElsewhere) {
-    unreadByChannel.set(conversation.channelId, conversation.unreadCount);
-    directTotal += conversation.unreadCount;
-  }
-  return { unreadByChannel, channelTotal, directTotal };
-}
+  const attentionByChannel = new Map<string, Attention>();
+  const channels: Attention[] = [];
+  const channelsElsewhere: Attention[] = [];
+  const direct: Attention[] = [];
 
-/** Unread messages in a workspace's channels; its direct messages count towards the person's own. */
-export function channelUnreadTotal(channels: ChannelUnread[]): number {
-  return channels.reduce(
-    (total, channel) => (channel.kind === 'channel' ? total + channel.unreadCount : total),
-    0,
-  );
+  for (const workspace of [active, ...elsewhere]) {
+    const isActive = workspace === active;
+    for (const conversation of workspace.conversations ?? []) {
+      const attention = conversationAttention(
+        conversation,
+        notifyOf(conversation, workspace.notifyByChannel),
+      );
+      if (conversation.kind === 'dm') direct.push(attention);
+      else (isActive ? channels : channelsElsewhere).push(attention);
+      if (isActive || conversation.kind === 'dm') {
+        attentionByChannel.set(conversation.channelId, attention);
+      }
+    }
+  }
+
+  return {
+    attentionByChannel,
+    channels: combinedAttention(channels),
+    channelsElsewhere: combinedAttention(channelsElsewhere),
+    direct: combinedAttention(direct),
+  };
 }
 
 export const WorkspaceUnreadContext = createContext<WorkspaceUnreadStore | null>(null);

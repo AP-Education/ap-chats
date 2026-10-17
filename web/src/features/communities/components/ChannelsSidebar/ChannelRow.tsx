@@ -4,6 +4,7 @@ import { createStyles } from 'antd-style';
 import { Link } from 'react-router-dom';
 
 import { usePrefetchHistory } from '@/features/social/messaging/hooks';
+import { QUIET } from '@/features/social/read-state/conversation-attention';
 
 import { PrivateChannelIcon, PublicChannelIcon } from '../../channels/channelIcons';
 import { useChannelDialogs } from '../../channels/stores/channel-dialogs-context';
@@ -65,6 +66,26 @@ const useStyles = createStyles(({ token, css }) => ({
         opacity: 1;
       }
     }
+  `,
+  // Discord's marker: a pill on the panel's edge, where the rows start 8px in.
+  rowUnread: css`
+    color: ${token.colorText};
+    font-weight: 600;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -8px;
+      width: 4px;
+      height: 8px;
+      border-radius: 0 4px 4px 0;
+      background: ${token.colorText};
+      transform: translateY(-50%);
+    }
+  `,
+  rowMuted: css`
+    color: ${token.colorTextQuaternary};
   `,
   rowActive: css`
     && {
@@ -232,7 +253,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
     workspaceId,
     selectedChannelId,
     openChannelId,
-    unreadByChannel,
+    attentionByChannel,
     onNavigate,
     setDraggingChannel,
     draggingChannel,
@@ -241,7 +262,10 @@ export function ChannelRow({ channel }: ChannelRowProps) {
   const prefetchHistory = usePrefetchHistory();
   const isActive = channel.id === selectedChannelId;
   const canManage = channel.canManage;
-  const unreadCount = channel.id === openChannelId ? 0 : (unreadByChannel.get(channel.id) ?? 0);
+  const attention = attentionByChannel.get(channel.id) ?? QUIET;
+  const isOpen = channel.id === openChannelId;
+  const isUnread = attention.unread && !isOpen;
+  const mentionCount = isOpen ? 0 : attention.badge;
   const hasActions = canManage;
   const openSettings = () => dialogs.openSettings(workspaceId, channel.id);
 
@@ -249,6 +273,8 @@ export function ChannelRow({ channel }: ChannelRowProps) {
     <div
       className={cx(
         styles.row,
+        isUnread && styles.rowUnread,
+        attention.muted && styles.rowMuted,
         isActive && styles.rowActive,
         hasActions && styles.rowWithActions,
         draggingChannel?.id === channel.id && styles.dragging,
@@ -276,15 +302,15 @@ export function ChannelRow({ channel }: ChannelRowProps) {
         )}
         <span className={styles.name}>{channel.name}</span>
       </Link>
-      {(unreadCount > 0 || hasActions) && (
+      {(mentionCount > 0 || hasActions) && (
         <div className={styles.trailing}>
-          {unreadCount > 0 && (
+          {mentionCount > 0 && (
             <span
               className={styles.unread}
               data-role="unread-badge"
-              aria-label={`${unreadCount} непрочитаних`}
+              aria-label={`${mentionCount} згадок`}
             >
-              {unreadCount > 99 ? '99+' : unreadCount}
+              {mentionCount > 99 ? '99+' : mentionCount}
             </span>
           )}
           {hasActions && (

@@ -6,6 +6,7 @@ import { Link, useMatch } from 'react-router-dom';
 import { previewText } from '@/features/social/mentions/mention-tokens';
 import { isLoneGif } from '@/features/social/messaging/gifs/gif-links';
 import { usePrefetchHistory } from '@/features/social/messaging/hooks';
+import type { Attention } from '@/features/social/read-state/conversation-attention';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
@@ -121,8 +122,8 @@ const useStyles = createStyles(({ token, css }) => ({
     place-items: center;
     padding: 0 5px;
     border-radius: 10px;
-    background: ${token.colorFillSecondary};
-    color: ${token.colorTextSecondary};
+    background: ${token.colorError};
+    color: ${token.colorWhite};
     font-size: 11px;
     font-weight: 700;
     line-height: 1;
@@ -163,11 +164,11 @@ const useStyles = createStyles(({ token, css }) => ({
 
 export function DirectMessageRow({
   item,
-  unreadCount,
+  attention,
   onNavigate,
 }: {
   item: DirectMessage;
-  unreadCount: number;
+  attention: Attention;
   onNavigate?: () => void;
 }) {
   const { styles, cx } = useStyles();
@@ -175,7 +176,8 @@ export function DirectMessageRow({
   const prefetchHistory = usePrefetchHistory();
   // The panel renders outside the route tree, so the open conversation comes from the URL.
   const isActive = useMatch('/direct/:channelId')?.params.channelId === item.id;
-  const visibleUnreadCount = isActive ? 0 : unreadCount;
+  const isUnread = attention.unread && !isActive;
+  const visibleUnreadCount = isActive ? 0 : attention.badge;
   const isMuted = item.notification.isMuted;
   const preview = item.lastMessage ? lastMessagePreview(item.lastMessage) : 'Нова розмова';
   return (
@@ -194,12 +196,10 @@ export function DirectMessageRow({
         shape="circle"
       />
       <span className={styles.body}>
-        <span className={cx(styles.name, visibleUnreadCount > 0 && styles.unreadName)}>
+        <span className={cx(styles.name, isUnread && styles.unreadName)}>
           {item.participant.displayName ?? 'Ім’я недоступне'}
         </span>
-        <span className={cx(styles.preview, visibleUnreadCount > 0 && styles.unreadPreview)}>
-          {preview}
-        </span>
+        <span className={cx(styles.preview, isUnread && styles.unreadPreview)}>{preview}</span>
       </span>
       {(item.lastMessage || isMuted || visibleUnreadCount > 0) && (
         <span className={styles.trailing}>

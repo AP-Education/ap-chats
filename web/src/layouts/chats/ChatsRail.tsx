@@ -4,6 +4,7 @@ import { createStyles } from 'antd-style';
 import { useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { type Attention, QUIET } from '../../features/social/read-state/conversation-attention';
 import { WorkspaceUnreadContext } from '../../features/social/read-state/workspace-unread-context';
 import { WorkspaceRail } from '../../features/workspaces/components/WorkspaceRail';
 import { personalTab, sectionAt } from './sections';
@@ -22,12 +23,12 @@ const useStyles = createStyles(({ token, css }) => ({
 export function ChatsRail() {
   const { styles } = useStyles();
   const { pathname } = useLocation();
-  const directTotal = useContext(WorkspaceUnreadContext)?.directTotal ?? 0;
+  const direct = useContext(WorkspaceUnreadContext)?.direct ?? QUIET;
   const onTeam = sectionAt(pathname) === 'channels';
 
   return (
     <>
-      <SectionTile tab={personalTab} pathname={pathname} badge={directTotal} />
+      <SectionTile tab={personalTab} pathname={pathname} attention={direct} />
       {/* Technical debt: calls have no desktop tile until the stakeholder settles where they
           belong there; /calls still opens from links and the mobile tab. */}
       <div className={styles.divider} role="separator" />
@@ -36,7 +37,15 @@ export function ChatsRail() {
   );
 }
 
-function SectionTile({ tab, pathname, badge }: { tab: AppTab; pathname: string; badge?: number }) {
+function SectionTile({
+  tab,
+  pathname,
+  attention,
+}: {
+  tab: AppTab;
+  pathname: string;
+  attention: Attention;
+}) {
   const chatsActive = useIsAppActive();
   const openApp = useOpenApp();
   const navigate = useNavigate();
@@ -48,7 +57,13 @@ function SectionTile({ tab, pathname, badge }: { tab: AppTab; pathname: string; 
   }
 
   return (
-    <NavTile label={tab.label} active={active} badge={badge} onClick={open}>
+    <NavTile
+      label={tab.label}
+      active={active}
+      unread={attention.unread}
+      badge={attention.badge}
+      onClick={open}
+    >
       <tab.icon size={22} weight={active ? 'fill' : 'regular'} />
     </NavTile>
   );

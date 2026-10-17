@@ -53,6 +53,7 @@ export function useActiveConversationReadState(
       applyOptimisticReadState(queryClient, identity, workspaceId, channelId, {
         lastReadEntrySeq: seq.toString(),
         unreadCount: 0,
+        mentionCount: 0,
       });
       debouncedMarkRead(seq.toString());
     },
