@@ -1,0 +1,92 @@
+/* The round control a file card opens with: download, play, or while it goes up, cancel. */
+.badge {
+  position: relative;
+  display: grid;
+  flex: 0 0 44px;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bubble-accent);
+  color: var(--bubble-on-accent, #fff);
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.badge:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.badge:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.badge:focus-visible {
+  outline: 2px solid var(--bubble-accent);
+  outline-offset: 2px;
+}
+
+/* A photo still going up shows through its own badge, dimmed so the ring and cross stay legible. */
+.preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.badge[data-preview] {
+  color: #fff;
+}
+
+.badge[data-preview]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.glyph {
+  position: relative;
+  z-index: 1;
+  display: grid;
+}
+
+/* The arc grows with the upload and keeps turning, so a stalled-looking transfer still reads as
+   alive, as on Telegram. */
+.ring {
+  position: absolute;
+  inset: 3px;
+  z-index: 1;
+  width: calc(100% - 6px);
+  height: calc(100% - 6px);
+  animation: turn 1.4s linear infinite;
+}
+
+.ring circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.2s ease;
+}
+
+@keyframes turn {
+  from {
+    rotate: 0deg;
+  }
+  to {
+    rotate: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation: none;
+    rotate: -90deg;
+  }
+}

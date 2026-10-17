@@ -145,6 +145,9 @@ export interface SendMessageCommand {
   labels?: Record<string, string>;
 }
 
+/** A message as the composer hands it over: sending gives it its nonce and files. */
+export type ComposedMessage = Omit<SendMessageCommand, 'clientNonce' | 'attachments'>;
+
 /** A message's new text, with a GIF found for a new link in it; the current GIF stays otherwise. */
 export interface MessageEdit {
   markdown: string;
@@ -157,26 +160,16 @@ export type EditMessage = (
   overwrite?: boolean,
 ) => Promise<void>;
 
-// 'uploading': attachments are still in flight — sending never waits on them
-// (matches Discord/Telegram/Slack/WhatsApp), so a message can sit here before
-// it's even been POSTed at all, not just awaiting server confirmation.
+// Where an unsent message stands. 'uploading': its files are still going up — sending
+// never waits on them (matches Discord/Telegram/Slack/WhatsApp), so a message can sit here
+// before it's even been POSTed at all; 'failed' waits for a retry.
 export type DeliveryStatus = 'uploading' | 'sending' | 'failed';
 
 export interface DisplayItem {
   item: HistoryItem;
   delivery: DeliveryStatus | undefined;
-  /** Only set while `delivery === 'uploading'`: live attachment progress to render instead of `item.message.attachments`. */
+  /** Set while the message waits on its files: their live progress, shown instead of `item.message.attachments`. */
   pendingAttachments?: AttachmentDraft[];
-}
-
-// What a composer hands useMessageOperations' send() when it has attachments
-// committed (from useAttachments' commit()) but not necessarily uploaded yet.
-export interface PendingAttachmentCommit {
-  nonce: string;
-  drafts: AttachmentDraft[];
-  watchCommitted: (nonce: string, onUpdate: (drafts: AttachmentDraft[]) => void) => () => void;
-  uncommit: (nonce: string) => void;
-  releaseCommitted: (nonce: string) => void;
 }
 
 // What any feature can offer on messages: the conversation gathers them, message rows show them.

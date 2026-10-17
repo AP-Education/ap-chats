@@ -1,0 +1,83 @@
+/* A file in a bubble, laid out as on Telegram: a round control, then the name over its size.
+   The name sets the width, up to the bubble's own limit, and past it gives way in its middle
+   rather than wrapping, so the extension stays readable. Nothing here wraps: WebKit can size
+   the bubble a fraction of a pixel short, which broke the size onto a second line. */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 180px;
+  max-width: 320px;
+  padding: 2px 0;
+}
+
+.details {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--bubble-text);
+  font: inherit;
+  font-size: var(--ant-font-size);
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+  white-space: nowrap;
+}
+
+button.name {
+  cursor: pointer;
+}
+
+button.name:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+button.name:disabled {
+  cursor: default;
+}
+
+.head {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tail {
+  flex-shrink: 0;
+}
+
+.meta {
+  overflow: hidden;
+  color: var(--bubble-meta);
+  font-size: 12px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.meta[data-tone='error'] {
+  color: var(--ant-color-error);
+}
+
+[data-side='own'] .meta[data-tone='error'] {
+  color: inherit;
+}
+
+.trailing {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  color: var(--bubble-muted);
+}

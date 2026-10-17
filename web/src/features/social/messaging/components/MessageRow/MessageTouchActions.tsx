@@ -28,7 +28,7 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
   const reply = available.find((action) => action.id === 'reply');
   const swipe = useMessageReplySwipe({
     messageId: scope.item.message.id,
-    enabled: !scope.delivery && !scope.editing && !sheetOpen && !picking,
+    enabled: !scope.editing && !sheetOpen && !picking,
     canReply: !!reply,
     onLongPress: () => setSheetOpen(true),
     onReply: () => {
@@ -46,7 +46,7 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
     const inEditableField = (event.target as Element).closest(
       'input, textarea, select, [contenteditable="true"]',
     );
-    if (scope.delivery || scope.editing || inEditableField) return;
+    if (scope.editing || inEditableField) return;
 
     event.preventDefault();
     setSheetOpen(true);

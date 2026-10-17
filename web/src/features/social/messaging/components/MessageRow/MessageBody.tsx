@@ -36,7 +36,7 @@ export function MessageBody({ layout, contentRef, onCloseEdit }: MessageBodyProp
   return (
     <>
       {pendingAttachments ? (
-        <PendingAttachments drafts={pendingAttachments} />
+        <PendingAttachments rowId={item.id} drafts={pendingAttachments} />
       ) : (
         <MessageAttachments
           attachments={item.message.attachments ?? []}
