@@ -1,7 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, count, eq, gt, isNotNull, isNull, lte, max, min, ne, or, sql } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
+import {
+  and,
+  count,
+  eq,
+  gt,
+  isNotNull,
+  isNull,
+  lte,
+  max,
+  min,
+  ne,
+  or,
+  sql,
+  type SQLWrapper,
+} from 'drizzle-orm';
+import { alias, type AnyPgColumn } from 'drizzle-orm/pg-core';
 
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import {
@@ -10,6 +24,7 @@ import {
   channelMemberships,
   channels,
   chatMessages,
+  messageMentions,
 } from '@/database/drizzle/schema';
 
 import type { ReadPosition, ReadPositionQuery, WorkspaceChannelUnread } from '../types';
@@ -34,6 +49,10 @@ function unreadFor(memberId: string) {
   );
 }
 
+function countOf(capped: { as: (alias: string) => SQLWrapper }) {
+  return sql<number>`(select count(*) from ${capped.as('capped')})`.mapWith(Number);
+}
+
 @Injectable()
 export class DrizzleReadStateRepository extends ReadStateRepository {
   constructor(private readonly txHost: TransactionHost<DrizzleTransactionAdapter>) {
@@ -41,8 +60,8 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
   }
 
   async workspaceSummary(workspaceId: string, memberId: string): Promise<WorkspaceChannelUnread[]> {
-    // Correlated per membership row via LATERAL: one query, and Postgres stops
-    // each channel's scan at UNREAD_COUNT_CAP instead of walking its full backlog.
+    // Correlated per membership row: one query, and Postgres stops each channel's scan at
+    // UNREAD_COUNT_CAP instead of walking its full backlog.
     const unread = this.txHost.tx
       .select({ seq: channelEntries.seq })
       .from(channelEntries)
@@ -55,34 +74,26 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
           unreadFor(memberId),
         ),
       )
-      .orderBy(channelEntries.seq)
-      .limit(UNREAD_COUNT_CAP)
-      .as('unread');
+      .limit(UNREAD_COUNT_CAP);
 
     const rows = await this.txHost.tx
       .select({
         channelId: channelMemberships.channelId,
         kind: channels.kind,
         lastReadEntrySeq: channelMemberships.lastReadEntrySeq,
-        unreadCount: sql<number>`count(${unread.seq})`.mapWith(Number),
+        unreadCount: countOf(unread),
+        mentionCount: countOf(this.unreadMentions(memberId, channelMemberships.channelId)),
       })
       .from(channelMemberships)
       .innerJoin(channels, eq(channels.id, channelMemberships.channelId))
-      .leftJoinLateral(unread, sql`true`)
       .where(
         and(
           eq(channelMemberships.workspaceId, workspaceId),
           eq(channelMemberships.memberId, memberId),
         ),
-      )
-      .groupBy(channelMemberships.channelId, channels.kind, channelMemberships.lastReadEntrySeq);
+      );
 
-    return rows.map((row) => ({
-      channelId: row.channelId,
-      kind: row.kind,
-      lastReadEntrySeq: row.lastReadEntrySeq.toString(),
-      unreadCount: row.unreadCount,
-    }));
+    return rows.map((row) => ({ ...row, lastReadEntrySeq: row.lastReadEntrySeq.toString() }));
   }
 
   async position({
@@ -126,6 +137,7 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
       .select({
         lastReadSeq: channelMemberships.lastReadEntrySeq,
         unreadCount: count(unread.seq),
+        mentionCount: countOf(this.unreadMentions(memberId, channelId, ceiling)),
         firstUnreadSeq: min(unread.seq),
         peerReadSeq: peerRead.seq,
       })
@@ -138,7 +150,11 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
       .groupBy(channelMemberships.lastReadEntrySeq, peerRead.seq);
     if (!row) return { state: null, firstUnreadSeq: null, peerReadSeq: null };
 
-    const state = { lastReadEntrySeq: row.lastReadSeq.toString(), unreadCount: row.unreadCount };
+    const state = {
+      lastReadEntrySeq: row.lastReadSeq.toString(),
+      unreadCount: row.unreadCount,
+      mentionCount: row.mentionCount,
+    };
     return { state, firstUnreadSeq: row.firstUnreadSeq, peerReadSeq: row.peerReadSeq };
   }
 
@@ -180,5 +196,24 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
       .where(
         and(eq(channelMemberships.channelId, channelId), eq(channelMemberships.memberId, memberId)),
       );
+  }
+
+  // Mentions of the member past their cursor in the membership row being read, capped like unread.
+  private unreadMentions(memberId: string, channelId: string | AnyPgColumn, ceiling?: bigint) {
+    return this.txHost.tx
+      .select({ seq: channelEntries.seq })
+      .from(messageMentions)
+      .innerJoin(channelEntries, eq(channelEntries.messageId, messageMentions.messageId))
+      .innerJoin(chatMessages, eq(chatMessages.id, messageMentions.messageId))
+      .where(
+        and(
+          eq(messageMentions.memberId, memberId),
+          eq(messageMentions.channelId, channelId),
+          gt(channelEntries.seq, channelMemberships.lastReadEntrySeq),
+          ceiling === undefined ? undefined : lte(channelEntries.seq, ceiling),
+          isNull(chatMessages.deletedAt),
+        ),
+      )
+      .limit(UNREAD_COUNT_CAP);
   }
 }
