@@ -1,3 +1,4 @@
+import { ShareIntentProvider } from 'expo-share-intent';
 import { View } from 'react-native';
 
 import { WindowBackground } from './features/appearance';
@@ -12,43 +13,50 @@ import { CallReadinessGate } from './features/calls/components/CallReadinessGate
 import { NotificationResponses } from './features/push/components/NotificationResponses';
 import { PushPrimingGate } from './features/push/components/PushPrimingGate';
 import { PushRegistration } from './features/push/components/PushRegistration';
+import { ShareIntake } from './features/share/components/ShareIntake';
 import { WebViewHost } from './features/webview';
 import { AppProviders } from './shell/AppProviders';
 import { ErrorBoundary } from './shell/ErrorBoundary';
 
 export default function App() {
   return (
-    <AppProviders>
-      <WindowBackground />
-      <ErrorBoundary label="notification-responses">
-        <NotificationResponses />
-      </ErrorBoundary>
-      <ErrorBoundary label="push-registration">
-        <PushRegistration />
-      </ErrorBoundary>
-      <CallRuntime />
-      {/* A normal flex column, not a Fragment: NativeMiniCallBar is a regular
+    // Ahead of every other provider, as expo-share-intent asks, to catch a share that opened the app.
+    <ShareIntentProvider>
+      <AppProviders>
+        <WindowBackground />
+        <ErrorBoundary label="share-intake">
+          <ShareIntake />
+        </ErrorBoundary>
+        <ErrorBoundary label="notification-responses">
+          <NotificationResponses />
+        </ErrorBoundary>
+        <ErrorBoundary label="push-registration">
+          <PushRegistration />
+        </ErrorBoundary>
+        <CallRuntime />
+        {/* A normal flex column, not a Fragment: NativeMiniCallBar is a regular
           sibling here (not an absolute overlay) so the WebView actually
           shrinks to make room for it instead of it covering the WebView's
           own top edge. */}
-      <View style={{ flex: 1 }}>
-        <ErrorBoundary label="native-mini-call-bar">
-          <NativeMiniCallBar />
+        <View style={{ flex: 1 }}>
+          <ErrorBoundary label="native-mini-call-bar">
+            <NativeMiniCallBar />
+          </ErrorBoundary>
+          <AuthGate>
+            <PushPrimingGate>
+              <CallReadinessGate>
+                <WebViewHost />
+              </CallReadinessGate>
+            </PushPrimingGate>
+          </AuthGate>
+        </View>
+        <ErrorBoundary label="native-incoming-call-screen">
+          <NativeIncomingCallScreen />
         </ErrorBoundary>
-        <AuthGate>
-          <PushPrimingGate>
-            <CallReadinessGate>
-              <WebViewHost />
-            </CallReadinessGate>
-          </PushPrimingGate>
-        </AuthGate>
-      </View>
-      <ErrorBoundary label="native-incoming-call-screen">
-        <NativeIncomingCallScreen />
-      </ErrorBoundary>
-      <ErrorBoundary label="native-in-call-screen">
-        <NativeInCallScreen />
-      </ErrorBoundary>
-    </AppProviders>
+        <ErrorBoundary label="native-in-call-screen">
+          <NativeInCallScreen />
+        </ErrorBoundary>
+      </AppProviders>
+    </ShareIntentProvider>
   );
 }
