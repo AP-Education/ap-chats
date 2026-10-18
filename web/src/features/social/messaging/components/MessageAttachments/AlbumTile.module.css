@@ -1,0 +1,24 @@
+.tile {
+  position: absolute;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: var(--ant-color-fill-secondary) center / cover no-repeat;
+  cursor: zoom-in;
+}
+
+.tile:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: -2px;
+}
+
+.tile:disabled {
+  cursor: default;
+}
+
+.tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

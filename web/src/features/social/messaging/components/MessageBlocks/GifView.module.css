@@ -1,0 +1,32 @@
+.open {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  cursor: zoom-in;
+}
+
+.open:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: -2px;
+}
+
+/* Tells a GIF from a photo at a glance, as Telegram and WhatsApp mark theirs, in the GIF's own
+   colours where it has them. */
+.label {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--media-badge-start, var(--chat-service-strong, rgba(0, 0, 0, 0.45)));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  user-select: none;
+}

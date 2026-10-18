@@ -1,0 +1,21 @@
+/* As wide as its bubble: when a caption is wider than the image, the frame grows with it and a
+   blurred copy of the image fills either side, as Telegram does. */
+.frame {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  overflow: hidden;
+  border-radius: calc(
+    var(--bubble-radius, calc(var(--ant-border-radius) * 2)) - var(--ant-padding-xxs)
+  );
+  background: var(--ant-color-fill-secondary) center / cover no-repeat;
+}
+
+.media {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+  background: center / cover no-repeat;
+}

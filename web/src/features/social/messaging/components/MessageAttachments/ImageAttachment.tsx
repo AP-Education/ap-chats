@@ -1,44 +1,12 @@
-import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
 import type { Attachment } from '../../attachments/types';
 import { mediaKey, useMediaViewer } from '../../media-viewer-context';
 import { MediaFrame } from '../MediaFrame/MediaFrame';
 import { attachmentSize } from './attachment-size';
+import styles from './ImageAttachment.module.css';
 import { ImageStatus } from './ImageStatus';
 import { useAttachmentImage } from './useAttachmentAccess';
-
-const useStyles = createStyles(({ token, css }) => ({
-  // The whole frame opens the photo; the time and badges over it stay outside the button.
-  open: css`
-    position: absolute;
-    inset: 0;
-    padding: 0;
-    border: 0;
-    border-radius: inherit;
-    background: none;
-    cursor: zoom-in;
-    &:focus-visible {
-      outline: 2px solid ${token.colorPrimary};
-      outline-offset: -2px;
-    }
-    &:disabled {
-      cursor: default;
-    }
-  `,
-  alt: css`
-    position: absolute;
-    bottom: 6px;
-    left: 6px;
-    padding: 2px ${token.paddingXXS}px;
-    border-radius: ${token.borderRadiusXS}px;
-    background: ${token.colorBgContainer};
-    color: ${token.colorText};
-    font-size: 10px;
-    font-weight: 600;
-    pointer-events: none;
-  `,
-}));
 
 interface ImageAttachmentProps {
   attachment: Attachment;
@@ -55,7 +23,6 @@ export function ImageAttachment({
   available,
   overlay,
 }: ImageAttachmentProps) {
-  const { styles } = useStyles();
   const viewer = useMediaViewer();
   const key = mediaKey(messageId, attachment.id);
   const { observeElement, src, broken, markBroken, retry } = useAttachmentImage(
