@@ -10,6 +10,16 @@
   transition: padding-left 0.18s ease;
 }
 
+/* A run paints inside its own box, with room for the bubbles' shadows, so the sticky avatar of one
+   run doesn't push every run after it onto a compositing layer of its own. Where the room can't be
+   given, nothing is clipped and runs paint as before. */
+@supports (overflow-clip-margin: 1px) {
+  .run {
+    contain: paint;
+    overflow-clip-margin: var(--ant-margin-xs);
+  }
+}
+
 .run + .run {
   margin-top: var(--ant-margin-xs);
 }
