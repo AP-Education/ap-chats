@@ -7,6 +7,7 @@ import { useConversationScope } from '@/features/social/conversation-scope/store
 
 import { getUploadPolicy } from './attachments-api';
 import type { AttachmentDraft } from './types';
+import { toUploadFile, type UploadFile } from './upload-file';
 import { UploadQueue } from './upload-queue';
 
 export function useAttachments() {
@@ -35,12 +36,12 @@ export function useAttachments() {
     return () => queue.dispose();
   }, [queue]);
 
-  function addFiles(files: File[]) {
+  function addFiles(files: readonly (File | UploadFile)[]) {
     if (!policy.data) {
       void message.error('Не вдалося отримати ліміти файлів. Спробуйте ще раз.');
       return;
     }
-    for (const error of queue.add(files, policy.data)) void message.error(error);
+    for (const error of queue.add(files.map(toUploadFile), policy.data)) void message.error(error);
   }
 
   /**
