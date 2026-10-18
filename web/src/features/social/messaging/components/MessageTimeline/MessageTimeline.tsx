@@ -8,7 +8,7 @@ import { isMessageItem } from '../../types';
 import { DaySection } from './DaySection';
 import { EmptyTimeline } from './EmptyTimeline';
 import { LoadMoreButton } from './LoadMoreButton';
-import { buildTimelineDays } from './timeline-days';
+import { buildTimelineDays, formatDayLabel } from './timeline-days';
 import { TimelineScroller } from './TimelineScroller';
 import { useScrollAnchoring } from './useScrollAnchoring';
 
@@ -46,7 +46,7 @@ export function MessageTimeline({ history, displayItems }: MessageTimelineProps)
       )}
       {!displayItems.length && <EmptyTimeline />}
       {days.map((day) => (
-        <DaySection key={day.key} day={day} />
+        <DaySection key={day.key} day={day} label={formatDayLabel(day.date)} />
       ))}
       {/* Only the live end: what happens next has no place after an older stretch. */}
       {!newer.available &&

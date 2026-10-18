@@ -1,10 +1,8 @@
 import { createStyles } from 'antd-style';
-import { Fragment } from 'react';
+import { memo } from 'react';
 
-import { useTimelineActions } from '../../timeline-actions-context';
-import { HistoryRun } from '../HistoryRun/HistoryRun';
-import { HistoryEntry } from './HistoryEntry';
-import { formatDayLabel, runAvatar, type TimelineDay } from './timeline-days';
+import { RunSection } from './RunSection';
+import { sameDay, type TimelineDay } from './timeline-days';
 
 const useStyles = createStyles(({ token, css }) => ({
   day: css`
@@ -31,40 +29,29 @@ const useStyles = createStyles(({ token, css }) => ({
     font-weight: 600;
     white-space: nowrap;
   `,
-  unread: css`
-    margin: ${token.marginXS}px 0 ${token.marginSM}px;
-    padding: ${token.paddingXXS}px 0;
-    background: var(--chat-service-bg, rgba(0, 0, 0, 0.32));
-    backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
-    color: ${token.colorWhite};
-    font-size: ${token.fontSizeSM}px;
-    line-height: ${token.lineHeight};
-    font-weight: 650;
-    text-align: center;
-  `,
 }));
 
-/** One calendar day under its sticky date, as runs of one author each. */
-export function DaySection({ day }: { day: TimelineDay }) {
-  const { styles } = useStyles();
-  const { viewer } = useTimelineActions();
-  const label = formatDayLabel(day.date);
-
-  return (
-    <section className={styles.day} aria-label={label}>
-      <div className={styles.dateBar}>
-        <span className={styles.pill}>{label}</span>
-      </div>
-      {day.runs.map((run) => (
-        <Fragment key={run.key}>
-          {run.unreadBefore && <div className={styles.unread}>Нові повідомлення</div>}
-          <HistoryRun avatar={runAvatar(run, viewer.memberId)}>
-            {run.entries.map(({ key, display }) => (
-              <HistoryEntry key={key} {...display} />
-            ))}
-          </HistoryRun>
-        </Fragment>
-      ))}
-    </section>
-  );
+interface DaySectionProps {
+  day: TimelineDay;
+  /** Given by the timeline, so a section that skips rendering still turns "Сьогодні" into "Вчора". */
+  label: string;
 }
+
+/** One calendar day under its sticky date, as runs of one author each. */
+export const DaySection = memo(
+  function DaySection({ day, label }: DaySectionProps) {
+    const { styles } = useStyles();
+
+    return (
+      <section className={styles.day} aria-label={label}>
+        <div className={styles.dateBar}>
+          <span className={styles.pill}>{label}</span>
+        </div>
+        {day.runs.map((run) => (
+          <RunSection key={run.key} run={run} />
+        ))}
+      </section>
+    );
+  },
+  (previous, next) => previous.label === next.label && sameDay(previous.day, next.day),
+);
