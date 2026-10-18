@@ -45,17 +45,3 @@ export interface CallAudioRoute {
   /** Where a "not speaker" choice lands; undefined until the OS has reported one. */
   private?: AudioOutput;
 }
-
-/** One thing a call needs from this phone; the host's profile says what each means. */
-export type PhoneCheckId =
-  | 'notifications'
-  | 'ringsAloud'
-  | 'fullScreen'
-  | 'unrestricted'
-  | 'backgroundAllowed'
-  | 'registered';
-
-export interface PhoneCheck {
-  id: PhoneCheckId;
-  ok: boolean;
-}

@@ -14,6 +14,15 @@ import expo.modules.kotlin.modules.ModuleDefinition
 // expo-callkit-telecom names its ringing channel after this, followed by the ringtone it plays.
 private const val INCOMING_CALLS_CHANNEL_PREFIX = "expo_callkit_telecom_incoming"
 
+/** What an incoming call needs from the phone to ring it, in the order a person sets it up. */
+private enum class CallCheck(val id: String) {
+  NOTIFICATIONS("notifications"),
+  RINGS_ALOUD("ringsAloud"),
+  FULL_SCREEN("fullScreen"),
+  UNRESTRICTED("unrestricted"),
+  BACKGROUND_ALLOWED("backgroundAllowed"),
+}
+
 class CallReadinessModule : Module() {
   private val context
     get() = requireNotNull(appContext.reactContext)
@@ -24,56 +33,48 @@ class CallReadinessModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("CallReadiness")
 
-    Function("notificationsAllowed") { notifications.areNotificationsEnabled() }
+    Function("checks") {
+      CallCheck.entries.map { check -> mapOf("id" to check.id, "ok" to isSet(check)) }
+    }
 
+    Function("fix") { id: String ->
+      settingsFor(CallCheck.entries.first { it.id == id })?.let(::open)
+    }
+  }
+
+  private fun isSet(check: CallCheck): Boolean = when (check) {
+    CallCheck.NOTIFICATIONS -> notifications.areNotificationsEnabled()
     // Turned down to silent, a call only shows up in the shade: no ring, no screen.
-    Function("callsRingAloud") {
-      val channel = incomingCallsChannel()
-      channel == null || channel.importance >= NotificationManager.IMPORTANCE_HIGH
-    }
-
+    CallCheck.RINGS_ALOUD ->
+      incomingCallsChannel()?.let { it.importance >= NotificationManager.IMPORTANCE_HIGH } ?: true
     // Without it Android 14+ shows an incoming call as a plain notification: it buzzes, the screen stays dark.
-    Function("canRingFullScreen") {
-      Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
-        notifications.canUseFullScreenIntent()
-    }
-
-    Function("runsUnrestricted") {
+    CallCheck.FULL_SCREEN ->
+      Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || notifications.canUseFullScreenIntent()
+    CallCheck.UNRESTRICTED ->
       context.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(context.packageName)
-    }
-
     // A restricted app gets no push at all while it is in the background.
-    Function("mayRunInBackground") {
+    CallCheck.BACKGROUND_ALLOWED ->
       Build.VERSION.SDK_INT < Build.VERSION_CODES.P ||
         !context.getSystemService(ActivityManager::class.java).isBackgroundRestricted
-    }
+  }
 
-    Function("openNotificationSettings") { open(appNotificationSettings()) }
-
+  private fun settingsFor(check: CallCheck): Intent? = when (check) {
+    CallCheck.NOTIFICATIONS -> appNotificationSettings()
     // Before the first call there is no channel yet, and the app's own notifications page stands in.
-    Function("openCallChannelSettings") {
-      val channel = incomingCallsChannel()
-      open(
-        if (channel == null) appNotificationSettings()
-        else appNotificationSettings(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
-          .putExtra(Settings.EXTRA_CHANNEL_ID, channel.id),
-      )
-    }
-
-    Function("openFullScreenSettings") {
+    CallCheck.RINGS_ALOUD ->
+      incomingCallsChannel()?.let { channel ->
+        appNotificationSettings(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+          .putExtra(Settings.EXTRA_CHANNEL_ID, channel.id)
+      } ?: appNotificationSettings()
+    CallCheck.FULL_SCREEN ->
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-        open(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, packageUri()))
+        Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, packageUri())
+      } else {
+        null
       }
-    }
-
-    Function("askToRunUnrestricted") {
-      open(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, packageUri()))
-    }
-
+    CallCheck.UNRESTRICTED -> Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, packageUri())
     // Background restriction lives on the app's own page, under its battery use.
-    Function("openAppSettings") {
-      open(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri()))
-    }
+    CallCheck.BACKGROUND_ALLOWED -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri())
   }
 
   private fun incomingCallsChannel(): NotificationChannel? =

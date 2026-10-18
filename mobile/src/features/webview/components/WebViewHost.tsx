@@ -12,11 +12,11 @@ import type {
   WebViewTerminatedEvent,
 } from 'react-native-webview/lib/WebViewTypes';
 
+import { fixCallCheck, readCallChecks } from '../../../../modules/call-readiness';
 import { clearPageInsets, measurePageBottomGap } from '../../../../modules/page-frame';
 import { useAppearanceStore, useShellPalette } from '../../appearance';
 import { useAuthStore } from '../../auth/index';
 import { connectBridgedCall, useIsMiniCallBarVisible } from '../../calls';
-import { fixPhoneReadiness, readPhoneReadiness } from '../../calls/utils/phone-readiness';
 import {
   type ComposerInputState,
   EmojiKeyboardPanel,
@@ -160,14 +160,14 @@ export function WebViewHost() {
     const appState = AppState.addEventListener('change', (state) => {
       if (state !== 'active') return;
       sendPushPermission();
-      if (pageWatchesCalls.current) sendPhoneReadiness();
+      if (pageWatchesCalls.current) sendCallChecks();
     });
     return () => appState.remove();
   }, []);
 
-  function sendPhoneReadiness() {
-    void readPhoneReadiness().then((checks) =>
-      webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'calls/readiness', checks })),
+  function sendCallChecks() {
+    webViewRef.current?.injectJavaScript(
+      buildBridgeScript({ type: 'calls/readiness', checks: readCallChecks() }),
     );
   }
 
@@ -219,12 +219,9 @@ export function WebViewHost() {
       useNotificationStore.getState().setWebAttending(message.payload.attending);
     } else if (message.type === 'calls/readiness-check') {
       pageWatchesCalls.current = true;
-      sendPhoneReadiness();
+      sendCallChecks();
     } else if (message.type === 'calls/readiness-fix') {
-      // Settings answer once the person comes back; registering answers right away.
-      void fixPhoneReadiness(message.id)
-        .catch(() => undefined)
-        .then(sendPhoneReadiness);
+      fixCallCheck(message.id);
     } else if (message.type === 'notifications/permission-check') {
       sendPushPermission();
     } else if (message.type === 'notifications/settings') {

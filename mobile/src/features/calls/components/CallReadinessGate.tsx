@@ -2,11 +2,7 @@ import type { PropsWithChildren } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 
-import {
-  askToRunUnrestricted,
-  openFullScreenCallSettings,
-  readCallReadiness,
-} from '../../../../modules/call-readiness';
+import { fixCallCheck, readCallChecks } from '../../../../modules/call-readiness';
 import { GateScreen } from '../../../components/GateScreen';
 import { hasPutOffCallReadiness, putOffCallReadiness } from '../api/readiness-prompt-state';
 import { nextReadinessStep, type ReadinessStep } from '../utils/readiness-step';
@@ -24,7 +20,7 @@ export function CallReadinessGate({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!isAndroid) return;
-    const check = () => setStep(nextReadinessStep(readCallReadiness(), putOff.current));
+    const check = () => setStep(nextReadinessStep(readCallChecks(), putOff.current));
 
     void hasPutOffCallReadiness().then((value) => {
       putOff.current = value;
@@ -50,20 +46,20 @@ export function CallReadinessGate({ children }: PropsWithChildren) {
         title="Щоб дзвінок вмикав екран"
         description="Android показує вхідний дзвінок на весь екран заблокованого телефона лише з дозволом на повноекранні сповіщення."
         actions={[
-          { label: 'Відкрити налаштування', onPress: openFullScreenCallSettings },
+          { label: 'Відкрити налаштування', onPress: () => fixCallCheck('fullScreen') },
           { label: 'Пізніше', onPress: () => void later(), variant: 'secondary' },
         ]}
       />
     );
   }
-  if (step === 'background') {
+  if (step === 'unrestricted') {
     return (
       <GateScreen
         icon="battery-charging"
         title="Щоб дзвінки приходили одразу"
         description="Дозволь AP App працювати у фоні без обмежень, інакше Android притримує дзвінки й повідомлення, поки телефон спить."
         actions={[
-          { label: 'Дозволити', onPress: askToRunUnrestricted },
+          { label: 'Дозволити', onPress: () => fixCallCheck('unrestricted') },
           { label: 'Пізніше', onPress: () => void later(), variant: 'secondary' },
         ]}
       />
