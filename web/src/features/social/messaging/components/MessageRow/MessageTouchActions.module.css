@@ -10,6 +10,30 @@
   transition: none;
 }
 
+/* Holding a message presses its bubble in, as on Telegram: after a beat, so a tap or a scroll
+   never flashes it, and fully just as the menu opens (the long press is 500ms). Letting go
+   springs it back. */
+.touchTarget > [data-side] {
+  transition: scale 200ms ease-out;
+}
+
+.gestureArea[data-pressed] > .touchTarget > [data-side] {
+  scale: 0.96;
+  transition: scale 380ms cubic-bezier(0.2, 0, 0, 1) 120ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .touchTarget > [data-side] {
+    transition: opacity 200ms ease-out;
+  }
+
+  .gestureArea[data-pressed] > .touchTarget > [data-side] {
+    scale: none;
+    opacity: 0.75;
+    transition: opacity 200ms ease-out 120ms;
+  }
+}
+
 /* The whole row follows the finger, as in Telegram. A 2D translate keeps the resting rows off
    their own compositing layers. */
 .touchTarget {

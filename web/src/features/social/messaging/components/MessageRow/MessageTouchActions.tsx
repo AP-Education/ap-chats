@@ -71,6 +71,7 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
         ref={areaRef}
         className={styles.gestureArea}
         data-swiping={swipe.dragging || undefined}
+        data-pressed={swipe.pressed || undefined}
         data-reply-ready={swipe.ready || undefined}
         style={swipeStyle}
       >
