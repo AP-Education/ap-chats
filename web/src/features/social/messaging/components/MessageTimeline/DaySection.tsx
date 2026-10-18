@@ -44,7 +44,7 @@ export const DaySection = memo(
 
     return (
       <section className={styles.day} aria-label={label}>
-        <div className={styles.dateBar}>
+        <div className={styles.dateBar} data-chat-inset>
           <span className={styles.pill}>{label}</span>
         </div>
         {day.runs.map((run) => (
