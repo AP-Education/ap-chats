@@ -1,7 +1,8 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { FileIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { useTranslation } from 'react-i18next';
+
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import { fileExtension, formatFileSize } from '../../attachments/file-presentation';
 import type { AttachmentDraft } from '../../attachments/types';
@@ -79,7 +80,7 @@ const useStyles = createStyles(({ token, css }) => ({
 export function PendingAttachments({ drafts }: { drafts: AttachmentDraft[] }) {
   const { styles } = useStyles();
   const { t } = useTranslation('messaging');
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   if (!drafts.length) return null;
 
   function statusLabel(draft: AttachmentDraft) {

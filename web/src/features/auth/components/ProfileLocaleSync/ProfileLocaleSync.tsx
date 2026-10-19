@@ -1,14 +1,16 @@
-import { type ShellLocale, useCurrentUser, useShellLocale } from '@ap-education/shell-sdk';
+import { useCurrentUser } from '@ap-education/shell-sdk';
 import { useEffect } from 'react';
 
 import { apiRequest, jsonInit } from '@/shared/api/http';
+import type { ChatsLanguage } from '@/shared/i18n/i18n';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 const synchronizedLocales = new Set<string>();
 
 /** Tells the server the person's language, so pushes reach them in it too. */
 export function ProfileLocaleSync() {
   const user = useCurrentUser();
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   if (user.status !== 'signed-in') return null;
 
   return (
@@ -27,7 +29,7 @@ function SignedInLocaleSync({
 }: {
   accessToken: string;
   identity: string;
-  locale: ShellLocale;
+  locale: ChatsLanguage;
 }) {
   useEffect(() => {
     const synchronized = `${identity}:${locale}`;

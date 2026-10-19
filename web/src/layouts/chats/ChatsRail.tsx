@@ -1,18 +1,14 @@
-import {
-  type AppTab,
-  localize,
-  useIsAppActive,
-  useOpenApp,
-  useShellLocale,
-} from '@ap-education/shell-sdk';
+import { useIsAppActive, useOpenApp } from '@ap-education/shell-sdk';
 import { NavTile } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 import { useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
+
 import { WorkspaceUnreadContext } from '../../features/social/read-state/workspace-unread-context';
 import { WorkspaceRail } from '../../features/workspaces/components/WorkspaceRail';
-import { personalTab, sectionAt } from './sections';
+import { type ChatsTab, personalTab, sectionAt } from './sections';
 
 const useStyles = createStyles(({ token, css }) => ({
   divider: css`
@@ -42,11 +38,19 @@ export function ChatsRail() {
   );
 }
 
-function SectionTile({ tab, pathname, badge }: { tab: AppTab; pathname: string; badge?: number }) {
+function SectionTile({
+  tab,
+  pathname,
+  badge,
+}: {
+  tab: ChatsTab;
+  pathname: string;
+  badge?: number;
+}) {
   const chatsActive = useIsAppActive();
   const openApp = useOpenApp();
   const navigate = useNavigate();
-  const locale = useShellLocale();
+  const language = useChatsLanguage();
   const active = chatsActive && tab.includes(pathname);
 
   function open() {
@@ -55,7 +59,7 @@ function SectionTile({ tab, pathname, badge }: { tab: AppTab; pathname: string; 
   }
 
   return (
-    <NavTile label={localize(tab.label, locale)} active={active} badge={badge} onClick={open}>
+    <NavTile label={tab.label[language]} active={active} badge={badge} onClick={open}>
       <tab.icon size={22} weight={active ? 'fill' : 'regular'} />
     </NavTile>
   );

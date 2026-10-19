@@ -1,4 +1,3 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { IconButton } from '@ap-education/ui';
 import {
   ArrowClockwiseIcon,
@@ -11,6 +10,8 @@ import { Button, Input, Modal, Progress } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import { fileExtension, formatFileSize } from '../../../attachments/file-presentation';
 import type { AttachmentDraft } from '../../../attachments/types';
@@ -150,7 +151,7 @@ function DraftAttachmentCard({
 }: Omit<AttachmentDraftsProps, 'drafts'> & { draft: AttachmentDraft }) {
   const { styles } = useStyles();
   const { t } = useTranslation(['messaging', 'common']);
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState(draft.description);
   const failed = draft.status === 'error';

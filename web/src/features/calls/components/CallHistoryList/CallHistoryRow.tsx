@@ -1,4 +1,3 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { IconButton, LoadingIcon, useIsMobile } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +8,7 @@ import { CallIcon } from '@/features/calls/callIcons';
 import { getCallStatusIcon } from '@/features/calls/callStatusIcon';
 import { useKnownCallAction } from '@/features/calls/hooks/useKnownCallAction';
 import { usePrefetchHistory } from '@/features/social/messaging/hooks';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import { callEntryStatus, formatCallDate } from './callHistoryLabels';
@@ -207,7 +207,7 @@ interface CallHistoryRowProps {
 
 export function CallHistoryRow({ entry, active, onNavigate }: CallHistoryRowProps) {
   const { t } = useTranslation('calls');
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
   const { latest, count, outgoing } = entry;

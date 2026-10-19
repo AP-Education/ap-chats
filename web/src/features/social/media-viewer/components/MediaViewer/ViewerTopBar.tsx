@@ -1,4 +1,3 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { IconButton } from '@ap-education/ui';
 import { XIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
@@ -7,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { formatDayLabel } from '@/features/social/messaging/components/MessageTimeline/timeline-days';
 import { dateTimeFormat } from '@/shared/i18n/format';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { ViewerMedia } from '../../types';
@@ -113,7 +113,7 @@ export function ViewerTopBar({ media, tools, onClose, onShowInChat }: ViewerTopB
   const { styles } = useStyles();
   const { t } = useTranslation(['mediaViewer', 'common']);
   const { t: messagingT } = useTranslation('messaging');
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const { author, createdAt } = media.item;
   const { index, total } = media.position;
   const name = author.displayName ?? t(($) => $.nameUnavailable);

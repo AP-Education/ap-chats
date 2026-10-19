@@ -1,9 +1,9 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { memo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
 import { dateTimeFormat } from '@/shared/i18n/format';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import type { AttachmentDraft } from '../../attachments/types';
 import { useTimelineActions } from '../../timeline-actions-context';
@@ -31,7 +31,7 @@ export const MessageRow = memo(function MessageRow({
   pendingAttachments,
 }: MessageRowProps) {
   const { t } = useTranslation('messaging');
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const { viewer } = useTimelineActions();
   const authorName = item.author.displayName ?? t(($) => $.message.nameUnavailable);
   const isOwnMessage = item.message.authorMemberId === viewer.memberId;

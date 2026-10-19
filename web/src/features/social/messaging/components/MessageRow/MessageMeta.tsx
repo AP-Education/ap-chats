@@ -1,8 +1,8 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { PushPinIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 
 import { dateTimeFormat } from '@/shared/i18n/format';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import { DeliveryMark } from './DeliveryMark';
 import { useMessageActionScope } from './MessageActionScope';
@@ -15,7 +15,7 @@ export type MessageMetaPlacement = 'inline' | 'block' | 'overlay' | 'emoji' | 'r
 
 export function MessageMeta({ placement }: { placement: MessageMetaPlacement }) {
   const { t } = useTranslation('messaging');
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const { item, delivery, isOwn } = useMessageActionScope();
   const createdAt = new Date(item.message.createdAt);
   const editedAt = item.message.editedAt ? new Date(item.message.editedAt) : null;

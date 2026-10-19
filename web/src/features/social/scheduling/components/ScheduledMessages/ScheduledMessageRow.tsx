@@ -1,10 +1,10 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { IconButton } from '@ap-education/ui';
 import { CalendarDotsIcon, PaperPlaneRightIcon, TrashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { useTranslation } from 'react-i18next';
 
 import { MessagePreview } from '@/features/social/messaging/components/MessagePreview/MessagePreview';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import { sendTimeHeading, sendTimeLabel } from '../../send-times';
 import type { ScheduledMessage } from '../../types';
@@ -68,7 +68,7 @@ export function ScheduledMessageRow({
 }: ScheduledMessageRowProps) {
   const { styles } = useStyles();
   const { t } = useTranslation(['scheduling', 'common']);
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const sendAt = new Date(message.sendAt);
   const when = message.failure
     ? t(($) => $.failedToSendAt, { when: sendTimeLabel(sendAt, now, t, locale) })

@@ -1,9 +1,9 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { ArrowDownIcon, ArrowUpIcon } from '@phosphor-icons/react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import type { DisplayItem, HistoryWindow } from '../../types';
 import { isMessageItem } from '../../types';
@@ -21,7 +21,7 @@ interface MessageTimelineProps {
 
 export function MessageTimeline({ history, displayItems }: MessageTimelineProps) {
   const { t } = useTranslation('messaging');
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const extensions = useConversationExtensions();
   const { pages, older, newer } = history;
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);

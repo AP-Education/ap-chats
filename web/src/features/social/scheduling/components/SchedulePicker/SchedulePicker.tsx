@@ -1,9 +1,9 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { useIsMobile } from '@ap-education/ui';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import { useTranslation } from 'react-i18next';
 
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 import { AdaptiveModal } from '@/shared/ui/AdaptiveModal';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
 
@@ -46,7 +46,7 @@ interface SchedulePickerProps {
 export function SchedulePicker({ title, initial, pending, onPick, onClose }: SchedulePickerProps) {
   const { styles } = useStyles();
   const { t } = useTranslation(['scheduling', 'common']);
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const isMobile = useIsMobile();
   const pick = useSendTimePick(initial);
   const { sendAt } = pick;

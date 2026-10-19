@@ -1,4 +1,3 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { IconButton } from '@ap-education/ui';
 import { CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
@@ -6,6 +5,7 @@ import type { CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { dateTimeFormat } from '@/shared/i18n/format';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import {
   addMonths,
@@ -116,7 +116,7 @@ export function MonthCalendar({
 }: MonthCalendarProps) {
   const { styles, cx } = useStyles();
   const { t } = useTranslation('scheduling');
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const canGoBack = month > startOfMonth(now);
   const canGoForward = month < startOfMonth(latestSendTime(now));
   const layout = { '--first-column': firstWeekColumn(month) } as CSSProperties;

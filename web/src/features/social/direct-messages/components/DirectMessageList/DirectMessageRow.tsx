@@ -1,4 +1,3 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { useIsMobile } from '@ap-education/ui';
 import { BellSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
@@ -10,6 +9,7 @@ import { previewText } from '@/features/social/mentions/mention-tokens';
 import { isLoneGif } from '@/features/social/messaging/gifs/gif-links';
 import { usePrefetchHistory } from '@/features/social/messaging/hooks';
 import { dateTimeFormat } from '@/shared/i18n/format';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
@@ -181,7 +181,7 @@ export function DirectMessageRow({
   const { styles, cx } = useStyles();
   const { t } = useTranslation('directMessages');
   const { t: mentionsT } = useTranslation('mentions');
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const isMobile = useIsMobile();
   const prefetchHistory = usePrefetchHistory();
   // The panel renders outside the route tree, so the open conversation comes from the URL.

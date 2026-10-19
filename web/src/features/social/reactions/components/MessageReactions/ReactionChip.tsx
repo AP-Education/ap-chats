@@ -1,7 +1,7 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { useTranslation } from 'react-i18next';
 
 import type { WorkspaceMember } from '@/features/workspaces/types';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import { chipCount, chipLabel } from '../../reaction-display';
 import type { MessageReaction } from '../../types';
@@ -18,7 +18,7 @@ interface ReactionChipProps {
 
 export function ReactionChip({ reaction, faces, disabled, onToggle }: ReactionChipProps) {
   const { t } = useTranslation('reactions');
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
 
   return (
     <button

@@ -1,4 +1,3 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { useQuery } from '@tanstack/react-query';
 import { message } from 'antd';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
@@ -6,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import { getUploadPolicy } from './attachments-api';
 import type { AttachmentDraft } from './types';
@@ -13,7 +13,7 @@ import { UploadQueue } from './upload-queue';
 
 export function useAttachments() {
   const { t } = useTranslation('messaging');
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const { workspaceId, channelId } = useConversationScope();
   const { token, identity } = useQueryAuth();
   // Recreated per channel rather than reused across a scope change: an

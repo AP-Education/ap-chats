@@ -1,4 +1,3 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { IconButton, LoadingIcon } from '@ap-education/ui';
 import {
   DownloadSimpleIcon,
@@ -9,6 +8,8 @@ import {
 } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import { fileExtension, formatFileSize } from '../../attachments/file-presentation';
 import type { Attachment } from '../../attachments/types';
@@ -27,7 +28,7 @@ export function FileAttachment({
   available: boolean;
 }) {
   const { t } = useTranslation('messaging');
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const viewer = useMediaViewer();
   const [playing, setPlaying] = useState(false);
   const download = useAttachmentDownload(messageId, attachment);

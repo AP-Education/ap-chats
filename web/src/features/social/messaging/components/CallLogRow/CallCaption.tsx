@@ -1,9 +1,9 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { ArrowDownLeftIcon, ArrowUpRightIcon } from '@phosphor-icons/react';
 
 import { getCallStatusIcon } from '@/features/calls/callStatusIcon';
 import { formatCallDuration } from '@/features/calls/formatCallDuration';
 import { dateTimeFormat } from '@/shared/i18n/format';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import type { CallHistoryItem } from '../../types';
 import styles from './CallCaption.module.css';
@@ -23,7 +23,7 @@ interface CallCaptionProps {
 /** Telegram's line under a call: which way it went (red when it never connected), how
  * long it lasted, and when. */
 export function CallCaption({ item, outgoing }: CallCaptionProps) {
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const { missed } = getCallStatusIcon(item.call.status, outgoing);
   const DirectionIcon = outgoing ? ArrowUpRightIcon : ArrowDownLeftIcon;
   const duration = endedDuration(item.call);

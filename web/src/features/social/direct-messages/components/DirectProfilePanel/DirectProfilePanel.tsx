@@ -1,4 +1,3 @@
-import { useShellLocale } from '@ap-education/shell-sdk';
 import { PageAsideClose, PageHeader, PageTitle } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +6,7 @@ import type { DirectMessage } from '@/features/social/direct-messages/api/direct
 import { MemberIdentity } from '@/features/social/people/components/MemberIdentity';
 import type { WorkspaceMember } from '@/features/workspaces/types';
 import { dateTimeFormat } from '@/shared/i18n/format';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 const joinedFormat = dateTimeFormat({
   day: 'numeric',
@@ -39,7 +39,7 @@ interface DirectProfilePanelProps {
 export function DirectProfilePanel({ participant, member }: DirectProfilePanelProps) {
   const { styles } = useStyles();
   const { t } = useTranslation(['directMessages', 'workspaces']);
-  const locale = useShellLocale();
+  const locale = useChatsLanguage();
   const name =
     member?.profile.displayName ?? participant.displayName ?? t(($) => $.nameUnavailable);
   const avatarPath = member?.profile.avatarPath ?? participant.avatarPath;
