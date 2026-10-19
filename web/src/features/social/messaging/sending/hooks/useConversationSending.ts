@@ -1,12 +1,10 @@
-import { createContext, useContext } from 'react';
+import { useContext } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
-import type { ConversationSending, Outboxes } from './outboxes';
+import type { ConversationSending } from '../stores/outboxes';
+import { OutboxesContext } from '../stores/outboxes-context';
 
-export const OutboxesContext = createContext<Outboxes | null>(null);
-
-/** The conversation's outgoing side, which carries on after its screen closes. */
 export function useConversationSending(
   workspaceId: string,
   channelId: string,

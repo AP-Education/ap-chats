@@ -2,7 +2,7 @@ import { XIcon } from '@phosphor-icons/react';
 
 import { fileExtension, formatFileSize } from '../../attachments/file-presentation';
 import type { AttachmentDraft } from '../../attachments/types';
-import { useUnsentMessages } from '../../unsent-messages-context';
+import { useUnsentMessages } from '../../sending/stores/unsent-messages-context';
 import { FileBadge } from './FileBadge';
 import { FileCard } from './FileCard';
 
@@ -21,9 +21,7 @@ function uploadProgress(draft: AttachmentDraft): number | undefined {
   return draft.progress;
 }
 
-// Rendered in place of MessageAttachments while the message waits on its files: it is already
-// in the timeline (sending never waits on uploads), so this shows them going up, live, and each
-// one's badge takes it out of the message, as on Telegram.
+// Stands in for MessageAttachments while the message waits on its files; a badge takes one out.
 export function PendingAttachments({
   rowId,
   drafts,

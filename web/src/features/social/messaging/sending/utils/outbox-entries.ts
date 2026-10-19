@@ -1,13 +1,5 @@
-import type { DeliveryStatus, SendMessageCommand } from '../types';
-
-/** A message this client wrote that history doesn't hold yet. */
-export interface OutboxEntry {
-  input: SendMessageCommand;
-  createdAt: string;
-  status: DeliveryStatus;
-  /** Its files are still in the upload queue under its nonce, so `input` carries none yet. */
-  awaitsFiles?: boolean;
-}
+import type { SendMessageCommand } from '../../types';
+import type { OutboxEntry } from '../types';
 
 function nonceOf(entry: OutboxEntry): string {
   return entry.input.clientNonce;

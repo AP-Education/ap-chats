@@ -17,8 +17,7 @@ interface FileCardProps {
   children?: ReactNode;
 }
 
-/** A file in a bubble, delivered or still going up: the same frame, so a row doesn't jump
- * when its upload turns into the message. */
+// One frame for delivered and uploading files, so a row doesn't jump when its upload lands.
 export function FileCard({
   name,
   meta,

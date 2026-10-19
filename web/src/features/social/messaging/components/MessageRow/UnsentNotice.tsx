@@ -1,6 +1,6 @@
 import { createStyles } from 'antd-style';
 
-import { useUnsentMessages } from '../../unsent-messages-context';
+import { useUnsentMessages } from '../../sending/stores/unsent-messages-context';
 
 const useStyles = createStyles(({ token, css }) => ({
   notice: css`

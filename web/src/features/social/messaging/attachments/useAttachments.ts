@@ -5,11 +5,10 @@ import { useSyncExternalStore } from 'react';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 
-import { useConversationSending } from '../sending/outboxes-context';
+import { useConversationSending } from '../sending/hooks/useConversationSending';
 import { getUploadPolicy } from './attachments-api';
 
-/** The composer's files. They belong to the conversation rather than its screen, so they wait
- * for the viewer in this chat, and keep uploading, while another chat is open. */
+// The files belong to the conversation, so they wait here and keep uploading in another chat.
 export function useAttachments() {
   const { workspaceId, channelId } = useConversationScope();
   const { token, identity } = useQueryAuth();
@@ -39,8 +38,7 @@ export function useAttachments() {
     remove: (key: string) => uploads.remove(key),
     retry: (key: string) => uploads.retry(key),
     describe: (key: string, text: string) => uploads.describe(key, text),
-    // Sending never waits on uploads: this hands the current files to the message under
-    // `nonce`, and they keep uploading for it in the background.
+    // Sending never waits on uploads: the files keep going up for the message under `nonce`.
     commit: (nonce: string) => uploads.commit(nonce),
   };
 }

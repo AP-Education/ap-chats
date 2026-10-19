@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { enqueue, restore, unsent, update, without } from './outbox.ts';
+import { enqueue, restore, unsent, update, without } from './outbox-entries.ts';
 
 const input = (clientNonce: string) => ({ markdown: clientNonce, clientNonce });
 const at = '2026-10-08T10:00:00.000Z';

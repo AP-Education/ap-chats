@@ -1,10 +1,9 @@
 import { ArrowClockwiseIcon, TrashIcon, XCircleIcon } from '@phosphor-icons/react';
 
-import type { ConversationAction, DeliveryStatus } from './types';
-import type { UnsentMessages } from './unsent-messages-context';
+import type { ConversationAction, DeliveryStatus } from '../types';
+import type { UnsentMessages } from './types';
 
-/** What an unsent message offers in place of the usual actions: withdrawing it while it is
- * on its way, as on Telegram, or once it failed, another try. */
+/** An unsent message's actions in place of the usual ones: withdraw it, or retry once it failed. */
 export function unsentActions(
   delivery: DeliveryStatus,
   unsent: UnsentMessages,

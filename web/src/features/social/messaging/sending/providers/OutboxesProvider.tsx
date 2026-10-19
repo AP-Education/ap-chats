@@ -3,15 +3,14 @@ import { type PropsWithChildren, useEffect, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
-import { Outboxes } from './outboxes';
-import { OutboxesContext } from './outboxes-context';
+import { createOutboxes } from '../stores/outboxes';
+import { OutboxesContext } from '../stores/outboxes-context';
 
-/** Keeps every conversation's sends and files going while Chats runs, whichever chat is open.
- * Signing out stops them; closing Chats lets messages already on their way finish. */
+/** Signing out stops every conversation's sends; closing Chats lets those on their way finish. */
 export function OutboxesProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
   const { identity, token } = useQueryAuth();
-  const [outboxes] = useState(() => new Outboxes(queryClient));
+  const [outboxes] = useState(() => createOutboxes(queryClient));
 
   useEffect(() => {
     outboxes.setSession(identity, token);
