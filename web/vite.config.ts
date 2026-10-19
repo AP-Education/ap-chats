@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { sharedSingletons } from '@ap-education/federation';
+import { sharedDependencies } from '@ap-education/federation';
 import { federation } from '@module-federation/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
@@ -18,7 +18,7 @@ export default defineConfig({
       name: 'chats',
       filename: 'remoteEntry.js',
       exposes: { './module': './src/module.tsx' },
-      shared: sharedSingletons(pkg),
+      shared: sharedDependencies(pkg),
       dts: false,
     }),
   ],
