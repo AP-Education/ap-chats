@@ -1,3 +1,4 @@
+import { useAppBadge, useTabBadge } from '@ap-education/shell-sdk';
 import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
 import { useUnreadDirectMessages } from '../../features/social/direct-messages/hooks/useUnreadDirectMessages';
@@ -11,6 +12,7 @@ import {
   WorkspaceUnreadContext,
 } from '../../features/social/read-state/workspace-unread-context';
 import { WorkspaceUnreadSync } from '../../features/social/read-state/WorkspaceUnreadSync';
+import { personalTab, teamTab } from './sections';
 
 export function ActiveWorkspaceUnreadScope({
   workspaceId,
@@ -35,6 +37,11 @@ export function ActiveWorkspaceUnreadScope({
     () => createWorkspaceUnreadStore(channelsUnread.data, directUnreadElsewhere),
     [channelsUnread.data, directUnreadElsewhere],
   );
+  const { channelTotal, directTotal } = channelsStore;
+
+  useAppBadge(channelTotal + directTotal);
+  useTabBadge(teamTab.id, channelTotal);
+  useTabBadge(personalTab.id, directTotal);
 
   return (
     <WorkspaceChannelContext.Provider value={registration}>
