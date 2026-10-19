@@ -29,9 +29,6 @@ export abstract class StarMeRepository {
   /** The listed live messages of the channel, oldest first. */
   abstract selected(channelId: string, messageIds: string[]): Promise<ConversationMessage[]>;
 
-  /** Remembers the earlier messages of its channel the person picked for the question. */
-  abstract pick(question: Question, messageIds: string[]): Promise<void>;
-
-  /** The live messages the person picked for the question, oldest first. */
-  abstract picked(channelId: string, questionId: string): Promise<ConversationMessage[]>;
+  /** The live messages the question is about, oldest first. */
+  abstract context(channelId: string, questionId: string): Promise<ConversationMessage[]>;
 }

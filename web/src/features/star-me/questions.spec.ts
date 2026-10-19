@@ -3,7 +3,7 @@ import { test } from 'node:test';
 
 import type { SentMessage } from '@/features/social/conversation-scope/extensions';
 
-import { askRequest, asksStarMe, lastFailure, withStatus } from './questions.ts';
+import { asksStarMe, lastFailure, withStatus } from './questions.ts';
 import type { QuestionStatus } from './types';
 
 const starMe = 'b0b0b0b0-0000-4000-8000-000000000001';
@@ -47,15 +47,6 @@ test('a message asks StarMe by mentioning it or replying to it', () => {
   assert.equal(asksStarMe(sent(`:member[${starMe}] підсумуй`), starMe), true);
   assert.equal(asksStarMe(sent('а детальніше?', { replyToAuthorId: starMe }), starMe), true);
   assert.equal(asksStarMe(sent('просто повідомлення'), starMe), false);
-});
-
-test('picked messages go along with the question', () => {
-  assert.deepEqual(askRequest(sent('', { picked: ['m1', 'm2'] }), 'q1'), {
-    channelId: 'channel',
-    questionId: 'q1',
-    contextMessageIds: ['m1', 'm2'],
-  });
-  assert.deepEqual(askRequest(sent(''), 'q1'), { channelId: 'channel', questionId: 'q1' });
 });
 
 test('a reported status replaces the question it is about, and an answer closes it', () => {

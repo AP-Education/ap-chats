@@ -67,7 +67,7 @@ function callItemView({ seq, createdAt, call, startedByProfile }: CallHistoryRow
 }
 
 function messageItemView(row: MessageHistoryRow, viewerMemberId: string) {
-  const { seq, createdAt, message, reply, pin } = row;
+  const { seq, createdAt, message, reply, context, pin } = row;
   const forwardedFromMemberId = message.forwardedFromMemberId;
 
   return {
@@ -83,6 +83,16 @@ function messageItemView(row: MessageHistoryRow, viewerMemberId: string) {
       author: row.replyAuthorProfile && personView(reply.authorMemberId, row.replyAuthorProfile),
       markdown: reply.deletedAt ? null : reply.contentMarkdown,
       blocks: reply.deletedAt ? [] : messageBlocks(reply),
+    },
+    context: context && {
+      count: context.count,
+      first: {
+        id: context.first.id,
+        authorMemberId: context.first.authorMemberId,
+        author: personView(context.first.authorMemberId, context.first.author),
+        markdown: context.first.contentMarkdown,
+        blocks: messageBlocks(context.first),
+      },
     },
     forwardedFrom:
       forwardedFromMemberId && row.forwardAuthorProfile

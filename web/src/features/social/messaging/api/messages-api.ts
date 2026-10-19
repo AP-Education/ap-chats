@@ -49,6 +49,7 @@ export function sendMessage(
     clientNonce: input.clientNonce,
     replyToMessageId: input.replyToMessageId,
     quoteText: input.quoteText,
+    contextMessageIds: input.contextMessageIds,
     attachments: input.attachments?.map((attachment) => ({
       id: attachment.id,
       description: attachment.description ?? undefined,

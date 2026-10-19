@@ -10,11 +10,7 @@ export function asksStarMe(message: SentMessage, starMeId: string): boolean {
 }
 
 export function askRequest(message: SentMessage, questionId: string): AskRequest {
-  return {
-    channelId: message.channelId,
-    questionId,
-    ...(message.picked ? { contextMessageIds: message.picked } : {}),
-  };
+  return { channelId: message.channelId, questionId };
 }
 
 /** The channel's open questions with the status StarMe just reported; an answered one leaves. */

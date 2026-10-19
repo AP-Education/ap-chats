@@ -104,6 +104,7 @@ function item(
     },
     author: { memberId: 'member', displayName: 'Олена Коваль', avatarPath: null },
     reply: null,
+    context: null,
     forwardedFrom: null,
     pin: null,
   };

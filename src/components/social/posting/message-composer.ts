@@ -28,12 +28,14 @@ export class MessageComposer {
     const gif = linkedGif(requestedGif(request.blocks), content.links);
     const replyToMessageId = request.replyToMessageId ?? null;
     const quoteText = request.quoteText?.trim() || null;
+    const contextMessageIds = request.contextMessageIds ?? [];
     const requestDigest = digest({
       markdown: content.markdown,
       reply: replyToMessageId,
       quote: quoteText,
       attachments: hasAttachments ? request.attachments : undefined,
       gif: gif ?? undefined,
+      context: contextMessageIds.length ? contextMessageIds : undefined,
     });
 
     return {
@@ -42,6 +44,7 @@ export class MessageComposer {
       gif,
       replyToMessageId,
       quoteText,
+      contextMessageIds,
       clientNonce: request.clientNonce,
       requestDigest,
     };
@@ -62,6 +65,7 @@ export class MessageComposer {
       gif: draft.gif,
       replyToMessageId,
       quoteText,
+      contextMessageIds: draft.contextMessageIds,
       clientNonce: draft.clientNonce,
       requestDigest: draft.requestDigest,
     };
