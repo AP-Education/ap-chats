@@ -9,9 +9,11 @@ export interface EmojiItem {
   keywords: string;
 }
 
+export type EmojiCategoryId =
+  'people' | 'nature' | 'foods' | 'activity' | 'places' | 'objects' | 'symbols' | 'flags';
+
 export interface EmojiCategory {
-  id: string;
-  label: string;
+  id: EmojiCategoryId;
   icon: Icon;
   items: EmojiItem[];
 }

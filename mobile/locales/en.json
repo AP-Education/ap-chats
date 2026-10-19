@@ -1,0 +1,6 @@
+{
+  "ios": {
+    "NSMicrophoneUsageDescription": "AP App uses the microphone for calls.",
+    "NSCameraUsageDescription": "AP App uses the camera for video calls."
+  }
+}

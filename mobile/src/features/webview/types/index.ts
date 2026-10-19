@@ -2,6 +2,7 @@ import type { CallCheck, CallCheckId } from '../../../../modules/call-readiness'
 import type { ShellPalette } from '../../appearance';
 import type { NativeCallConnectPayload } from '../../calls/types';
 import type { ComposerInputRequest, ComposerInputState } from '../../composer';
+import type { Locale } from '../../locale';
 import type { TabBarModel } from '../../navigation/types';
 import type { PushPermission } from '../../push/types';
 import type { NotificationIntent } from '../../push/utils/notification-intent';
@@ -55,6 +56,8 @@ export type WebToNativeMessage =
   | { type: 'calls/readiness-fix'; id: CallCheckId }
   /** The theme the page resolved, for everything native draws around it. */
   | { type: 'appearance/changed'; payload: ShellPalette }
+  /** The language the person picked in the page, for the screens native draws without it. */
+  | { type: 'locale/changed'; payload: { locale: Locale } }
   /** The page's tab bar, which native draws over it. */
   | { type: 'navigation/tabs'; payload: TabBarModel }
   /** Whether the page takes Android's back; while it doesn't, the system's own back applies. */

@@ -5,6 +5,7 @@ import {
   PhoneX,
   VideoCameraSlash,
 } from 'phosphor-react-native';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { CALL_GLASS } from '../callTheme';
@@ -12,16 +13,10 @@ import { useNativeCallStore } from '../store/native-call-store';
 import { withCallKit } from '../utils/callkit-module';
 import { CallControlButton, type CallControlTone } from './CallControlButton';
 
-interface ControlState {
-  icon: Icon;
-  tone: CallControlTone;
-  accessibilityLabel: string;
-}
-
-const MICROPHONE: Record<'live' | 'muted', ControlState> = {
-  live: { icon: Microphone, tone: 'glass', accessibilityLabel: 'Вимкнути мікрофон' },
-  muted: { icon: MicrophoneSlash, tone: 'pressed', accessibilityLabel: 'Увімкнути мікрофон' },
-};
+const MICROPHONE = {
+  live: { icon: Microphone, tone: 'glass' },
+  muted: { icon: MicrophoneSlash, tone: 'pressed' },
+} as const satisfies Record<'live' | 'muted', { icon: Icon; tone: CallControlTone }>;
 
 interface ControlProps {
   size: number;
@@ -42,17 +37,30 @@ function toggleMute() {
 }
 
 export function MuteControl(props: ControlProps) {
-  const state = useMuted() ? MICROPHONE.muted : MICROPHONE.live;
-  return <CallControlButton {...state} {...props} onPress={toggleMute} />;
+  const { t } = useTranslation('calls');
+  const muted = useMuted();
+  const state = muted ? MICROPHONE.muted : MICROPHONE.live;
+  const accessibilityLabel = muted ? t(($) => $.unmute) : t(($) => $.mute);
+
+  return (
+    <CallControlButton
+      {...state}
+      accessibilityLabel={accessibilityLabel}
+      {...props}
+      onPress={toggleMute}
+    />
+  );
 }
 
 /** No video in the native layer yet: shown disabled rather than omitted, so the
  * control row keeps its shape the day video lands. */
 export function CameraPlaceholderControl(props: ControlProps) {
+  const { t } = useTranslation('calls');
+
   return (
     <CallControlButton
       icon={VideoCameraSlash}
-      accessibilityLabel="Камера недоступна"
+      accessibilityLabel={t(($) => $.cameraUnavailable)}
       disabled
       {...props}
     />
@@ -60,6 +68,8 @@ export function CameraPlaceholderControl(props: ControlProps) {
 }
 
 export function EndCallControl({ wide, ...props }: ControlProps & { wide?: boolean }) {
+  const { t } = useTranslation('calls');
+
   function endCall() {
     const call = useNativeCallStore.getState().call;
     if (!call) return;
@@ -71,7 +81,7 @@ export function EndCallControl({ wide, ...props }: ControlProps & { wide?: boole
       icon={PhoneX}
       iconWeight="fill"
       tone="danger"
-      accessibilityLabel="Завершити дзвінок"
+      accessibilityLabel={t(($) => $.endCall)}
       wide={wide}
       {...props}
       onPress={endCall}
@@ -81,6 +91,7 @@ export function EndCallControl({ wide, ...props }: ControlProps & { wide?: boole
 
 /** Always laid out, only shown when muted: toggling the mic never moves the stage. */
 export function MutedMicrophoneHint() {
+  const { t } = useTranslation('calls');
   const muted = useMuted();
 
   return (
@@ -90,11 +101,11 @@ export function MutedMicrophoneHint() {
       accessibilityElementsHidden={!muted}
       importantForAccessibility={muted ? 'auto' : 'no-hide-descendants'}
       accessibilityRole="button"
-      accessibilityLabel="Увімкнути мікрофон"
+      accessibilityLabel={t(($) => $.unmute)}
       onPress={toggleMute}
     >
       <MicrophoneSlash size={14} color="#fff" weight="fill" />
-      <Text style={styles.hintText}>Ваш мікрофон вимкнено</Text>
+      <Text style={styles.hintText}>{t(($) => $.micMuted)}</Text>
     </Pressable>
   );
 }

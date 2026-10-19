@@ -25,6 +25,7 @@ import {
   isComposerInputRequest,
   useComposerInput,
 } from '../../composer';
+import { isLocale, useLocaleStore } from '../../locale';
 import { NativeTabs } from '../../navigation/components/NativeTabs';
 import { OverlayTabs } from '../../navigation/components/OverlayTabs';
 import { SystemBack } from '../../navigation/components/SystemBack';
@@ -244,6 +245,10 @@ export function WebViewHost() {
       void connectBridgedCall(message.payload);
     } else if (message.type === 'appearance/changed') {
       useAppearanceStore.getState().setPalette(message.payload);
+    } else if (message.type === 'locale/changed') {
+      if (isLocale(message.payload.locale)) {
+        useLocaleStore.getState().setLocale(message.payload.locale);
+      }
     } else if (message.type === 'navigation/tabs') {
       setTabBar(message.payload);
     } else if (message.type === 'navigation/handles-back') {

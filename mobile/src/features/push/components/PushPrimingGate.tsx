@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { GateScreen } from '../../../components/GateScreen';
 import { hasShownPushPriming, markPushPrimingShown } from '../api/priming-state';
@@ -13,6 +14,7 @@ import { registerCurrentDeviceForPush } from '../api/register-current-device';
  * (from a previous priming or an OS-level change) skips straight through.
  */
 export function PushPrimingGate({ children }: PropsWithChildren) {
+  const { t } = useTranslation('push');
   const [visible, setVisible] = useState<'checking' | boolean>('checking');
 
   useEffect(() => {
@@ -34,18 +36,18 @@ export function PushPrimingGate({ children }: PropsWithChildren) {
   }
 
   if (visible === 'checking') {
-    return <GateScreen icon="notifications" title="Перевіряємо" loading />;
+    return <GateScreen icon="notifications" title={t(($) => $.checking)} loading />;
   }
   if (!visible) return <>{children}</>;
 
   return (
     <GateScreen
       icon="notifications"
-      title="Не пропускай дзвінки та повідомлення"
-      description="Дізнавайся про нове одразу, навіть коли застосунок закритий."
+      title={t(($) => $.priming.title)}
+      description={t(($) => $.priming.description)}
       actions={[
-        { label: 'Увімкнути сповіщення', onPress: () => void enable() },
-        { label: 'Пропустити', onPress: () => void dismiss(), variant: 'secondary' },
+        { label: t(($) => $.priming.enable), onPress: () => void enable() },
+        { label: t(($) => $.priming.skip), onPress: () => void dismiss(), variant: 'secondary' },
       ]}
     />
   );

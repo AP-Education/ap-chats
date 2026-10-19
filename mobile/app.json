@@ -16,6 +16,9 @@
       "icon": "./assets/AppIcon.icon",
       "config": {
         "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true
       }
     },
     "android": {
@@ -30,6 +33,10 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "locales": {
+      "uk": "./locales/uk.json",
+      "en": "./locales/en.json"
     },
     "plugins": [
       [
