@@ -22,7 +22,6 @@ import { useChannel } from '@/features/communities/channels/hooks/useChannels';
 import { ChannelMembersPanel } from '@/features/communities/memberships/components/ChannelMembersPanel';
 import { useTrackConversation } from '@/features/social/conversation/useTrackConversation';
 import { ConversationProvider } from '@/features/social/conversation-scope/store';
-import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
 import { schedulingExtension } from '@/features/social/scheduling/extension';
 import { useStarMeExtension } from '@/features/star-me/hooks/useStarMeExtension';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
@@ -124,7 +123,6 @@ export default function ChannelContent() {
           },
         }}
       >
-        <WorkspaceChannelPresence channelId={channel.id} />
         <ChannelDetail workspaceId={workspaceId} channel={channel} leading={<MobileMenuButton />} />
       </ConversationProvider>
       <PageAside>

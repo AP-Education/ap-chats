@@ -1,15 +1,22 @@
-import { isNativeShell } from '@ap-education/shell-sdk';
+import { isNativeShell, useIsAppActive } from '@ap-education/shell-sdk';
 import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
-import { usePush } from '@/features/notifications/hooks/usePush';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { getSharedAudioContext } from '@/shared/audio/audio-context';
 import { isAttending } from '@/shared/hooks/useIsAttending';
 
+import { usePush } from '../hooks/usePush';
+import { openConversationAt } from '../open-conversation';
 import { playMessageBloop } from '../sound/messageBloop';
 
-export function useMessageNotificationSound(openChannelId: string | undefined): void {
+/** The app's own sound for a message from any workspace, quiet for the conversation on screen. */
+export function MessageNotificationSound() {
   const push = usePush();
+  const { pathname } = useLocation();
+  // While another application is in front, the router keeps the last Chats path.
+  const openChannelId = useIsAppActive() ? openConversationAt(pathname) : undefined;
+
   useEffect(() => {
     if (!isNativeShell()) getSharedAudioContext();
   }, []);
@@ -25,4 +32,6 @@ export function useMessageNotificationSound(openChannelId: string | undefined): 
 
     playMessageBloop();
   });
+
+  return null;
 }
