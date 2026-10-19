@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import PhotoSwipe, {
   type AugmentedEvent,
   type PhotoSwipeOptions,
@@ -73,7 +74,6 @@ const OPTIONS: PhotoSwipeOptions = {
   close: false,
   zoom: false,
   counter: false,
-  errorMsg: 'Не вдалося відкрити зображення',
 };
 
 // Not in PhotoSwipe's option types, though its UI reads it like the buttons above.
@@ -127,15 +127,29 @@ export class MediaGallery {
   private mountedCount = 0;
   private closed = false;
 
-  constructor(slides: ViewerMedia[], index: number, urls: MediaUrls, events: MediaGalleryEvents) {
+  constructor(
+    slides: ViewerMedia[],
+    index: number,
+    urls: MediaUrls,
+    events: MediaGalleryEvents,
+    t: TFunction<'mediaViewer'>,
+  ) {
     this.slides = slides;
     this.urls = urls;
     this.events = events;
     ensureStyles();
-    this.pswp = new PhotoSwipe({ ...OPTIONS, ...WITHOUT_SPINNER, index });
+    this.pswp = new PhotoSwipe({
+      ...OPTIONS,
+      ...WITHOUT_SPINNER,
+      errorMsg: t(($) => $.imageFailed),
+      index,
+    });
     this.bind();
     this.pswp.init();
-    this.element.setAttribute('aria-label', 'Перегляд медіа');
+    this.element.setAttribute(
+      'aria-label',
+      t(($) => $.label),
+    );
     this.element.setAttribute('aria-modal', 'true');
   }
 

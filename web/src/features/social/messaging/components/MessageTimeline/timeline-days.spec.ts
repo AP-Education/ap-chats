@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import { i18n, i18nReady } from '../../../../../shared/i18n/i18n.ts';
 import type { CallHistoryItem, DisplayItem, MessageHistoryItem } from '../../types';
 import { buildTimelineDays, formatDayLabel, runAvatar, sameDay, sameRun } from './timeline-days.ts';
+
+await i18nReady('uk');
 
 function message(seq: string, author: string, createdAt: string): DisplayItem {
   const item: MessageHistoryItem = {
@@ -169,13 +172,25 @@ test('only incoming runs show an avatar', () => {
   assert.equal(runAvatar(day!.runs[1]!, 'me'), null);
 });
 
-test('day labels read as today, yesterday, or a date with the year only when it differs', () => {
+test('day labels read as today, yesterday, or a date with the year only when it differs', async () => {
   const now = new Date('2026-10-07T12:00:00');
 
-  assert.equal(formatDayLabel(new Date('2026-10-07T08:00:00'), now), 'Сьогодні');
-  assert.equal(formatDayLabel(new Date('2026-10-06T23:00:00'), now), 'Вчора');
-  assert.equal(formatDayLabel(new Date('2026-09-14T10:00:00'), now), '14 вересня');
-  assert.equal(formatDayLabel(new Date('2025-12-31T10:00:00'), now), '31 грудня 2025 р.');
+  const t = i18n.getFixedT('uk', 'messaging');
+  const today = new Date('2026-10-07T08:00:00');
+  const yesterday = new Date('2026-10-06T23:00:00');
+  const thisYear = new Date('2026-09-14T10:00:00');
+  const earlier = new Date('2025-12-31T10:00:00');
+
+  assert.equal(formatDayLabel(today, t, 'uk', now), 'Сьогодні');
+  assert.equal(formatDayLabel(yesterday, t, 'uk', now), 'Вчора');
+  assert.equal(formatDayLabel(thisYear, t, 'uk', now), '14 вересня');
+  assert.equal(formatDayLabel(earlier, t, 'uk', now), '31 грудня 2025 р.');
+
+  await i18n.loadLanguages('en');
+  const english = i18n.getFixedT('en', 'messaging');
+
+  assert.equal(formatDayLabel(yesterday, english, 'en', now), 'Yesterday');
+  assert.equal(formatDayLabel(earlier, english, 'en', now), 'December 31, 2025');
 });
 
 test('a day rebuilt from the same entries draws the same', () => {

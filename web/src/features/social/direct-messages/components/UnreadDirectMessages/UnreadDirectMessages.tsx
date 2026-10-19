@@ -1,5 +1,6 @@
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 import { useMatch } from 'react-router-dom';
 
 import { useUnreadDirectMessagesStore } from '../../unread-direct-messages-context';
@@ -28,6 +29,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
 export function UnreadDirectMessages({ onNavigate }: { onNavigate?: () => void }) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['directMessages', 'common']);
   const unread = useUnreadDirectMessagesStore();
   const activeId = useMatch('/direct/:channelId')?.params.channelId;
 
@@ -35,9 +37,9 @@ export function UnreadDirectMessages({ onNavigate }: { onNavigate?: () => void }
   if (unread.isError && !unread.data) {
     return (
       <div role="alert" className={styles.error}>
-        Не вдалося завантажити непрочитані.{' '}
+        {t(($) => $.unread.loadFailed)}{' '}
         <Button type="link" size="small" onClick={() => void unread.refetch()}>
-          Повторити
+          {t(($) => $.common.actions.retry)}
         </Button>
       </div>
     );
@@ -46,8 +48,8 @@ export function UnreadDirectMessages({ onNavigate }: { onNavigate?: () => void }
   if (!items.length) return null;
 
   return (
-    <section className={styles.section} aria-label="Непрочитані особисті розмови">
-      <div className={styles.heading}>Непрочитані</div>
+    <section className={styles.section} aria-label={t(($) => $.unread.sectionLabel)}>
+      <div className={styles.heading}>{t(($) => $.unread.title)}</div>
       {items.map((item) => (
         <DirectMessageRow
           key={item.id}

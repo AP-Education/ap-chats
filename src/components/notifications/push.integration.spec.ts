@@ -250,6 +250,13 @@ test('push persistence on PostgreSQL', async (t) => {
       .set({ contentMarkdown: '', attachments: [attachment()] })
       .where(eq(schema.chatMessages.id, mention));
     assert.equal((await content.render(alert))?.body, 'Нове вкладення');
+
+    await db.update(schema.userProfiles).set({ locale: 'en' });
+    assert.equal(
+      (await content.render(alert))?.body,
+      'New attachment',
+      "in the recipient's language",
+    );
   });
 
   await t.test('a message read during the window does not hide the next one', async () => {

@@ -1,6 +1,7 @@
 import { Segmented } from 'antd';
 import { createStyles } from 'antd-style';
 import { lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { Gif } from '../../../gifs/types';
 import { EmojiTabSkeleton } from './EmojiTabSkeleton';
@@ -12,12 +13,6 @@ import { StickerTab } from './StickerTab';
 const EmojiTab = lazy(() => import('./EmojiTab').then((module) => ({ default: module.EmojiTab })));
 
 export type PickerTab = 'gif' | 'sticker' | 'emoji';
-
-const TAB_OPTIONS: { label: string; value: PickerTab }[] = [
-  { label: 'GIF', value: 'gif' },
-  { label: 'Стікери', value: 'sticker' },
-  { label: 'Емодзі', value: 'emoji' },
-];
 
 const useStyles = createStyles(({ css }) => ({
   panel: css`
@@ -51,13 +46,19 @@ interface PickerPanelProps {
 // height and no drift between tabs when switching.
 export function PickerPanel({ activeTab, onTabChange, onPickEmoji, onPickGif }: PickerPanelProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('messaging');
+  const tabOptions: { label: string; value: PickerTab }[] = [
+    { label: t(($) => $.picker.tabs.gif), value: 'gif' },
+    { label: t(($) => $.picker.tabs.stickers), value: 'sticker' },
+    { label: t(($) => $.picker.tabs.emoji), value: 'emoji' },
+  ];
 
   return (
     <div className={styles.panel}>
       <Segmented
         block
         className={styles.tabs}
-        options={TAB_OPTIONS}
+        options={tabOptions}
         value={activeTab}
         onChange={(value) => onTabChange(value as PickerTab)}
       />

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,6 +16,7 @@ import { EndCallControl, MuteControl } from './NativeCallControls';
  * too, to stop reserving its own top safe-area padding underneath this one.
  */
 export function NativeMiniCallBar() {
+  const { t } = useTranslation('calls');
   const visible = useIsMiniCallBarVisible();
   const call = useNativeCallStore((state) => state.call);
   const restore = useNativeCallStore((state) => state.restore);
@@ -22,7 +24,7 @@ export function NativeMiniCallBar() {
 
   if (!visible || !call) return null;
 
-  const title = call.caller.displayName ?? 'Дзвінок';
+  const title = call.caller.displayName ?? t(($) => $.call);
 
   return (
     <View style={styles.wrapper}>
@@ -32,7 +34,7 @@ export function NativeMiniCallBar() {
           <Pressable
             style={styles.info}
             accessibilityRole="button"
-            accessibilityLabel={`Повернутися до дзвінка: ${title}`}
+            accessibilityLabel={t(($) => $.returnToCall, { title })}
             onPress={restore}
           >
             <Text style={styles.title} numberOfLines={1}>

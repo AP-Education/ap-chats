@@ -1,10 +1,4 @@
-import type { WorkspaceAccessLevel, WorkspaceMember } from './types';
-
-export const accessLevelLabels: Record<WorkspaceAccessLevel, string> = {
-  owner: 'Адміністратор',
-  manager: 'Менеджер',
-  member: 'Учасник',
-};
+import type { WorkspaceMember } from './types';
 
 // Runs the structure (channels, roles, people); reading a channel still needs its lists.
 export function isWorkspaceAdministrator(member: WorkspaceMember | undefined): boolean {

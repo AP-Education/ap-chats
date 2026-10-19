@@ -1,5 +1,6 @@
 import { Form, type FormInstance, Select } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { ChannelAccessEditor } from '../../../channel-access/components/ChannelAccessEditor';
 import { toPermissionsInput } from '../../../channel-access/principals';
@@ -47,6 +48,7 @@ export function ChannelSettingsForm({
   section,
   onFinish,
 }: ChannelSettingsFormProps) {
+  const { t } = useTranslation('communities');
   const { styles } = useStyles();
   const { query: categories } = useChannelCategories(channel.workspaceId);
   const { isDeleting } = settings;
@@ -75,11 +77,11 @@ export function ChannelSettingsForm({
           onEdit={settings.clearNameError}
           disabled={isDeleting}
         />
-        <Form.Item label="Категорія" name="categoryId">
+        <Form.Item label={t(($) => $.channels.category)} name="categoryId">
           <Select
             allowClear
             disabled={isDeleting}
-            placeholder="Без категорії"
+            placeholder={t(($) => $.channels.noCategory)}
             options={categoryOptions}
           />
         </Form.Item>

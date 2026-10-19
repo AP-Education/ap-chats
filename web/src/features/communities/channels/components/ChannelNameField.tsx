@@ -1,6 +1,7 @@
 import { HashIcon } from '@phosphor-icons/react';
 import { Form, Input } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   input: css`
@@ -20,23 +21,24 @@ interface ChannelNameFieldProps {
 }
 
 export function ChannelNameField({ error, onEdit, autoFocus, disabled }: ChannelNameFieldProps) {
+  const { t } = useTranslation('communities');
   const { styles } = useStyles();
 
   return (
     <Form.Item
-      label="Назва каналу"
+      label={t(($) => $.channels.name.label)}
       name="name"
       validateStatus={error ? 'error' : undefined}
       help={error}
       rules={[
-        { required: true, message: 'Введіть назву' },
-        { max: 80, message: 'Максимум 80 символів' },
+        { required: true, message: t(($) => $.channels.name.required) },
+        { max: 80, message: t(($) => $.channels.name.tooLong) },
       ]}
     >
       <Input
         className={styles.input}
         prefix={<HashIcon size={16} />}
-        placeholder="загальне"
+        placeholder={t(($) => $.channels.name.placeholder)}
         autoFocus={autoFocus}
         disabled={disabled}
         onChange={onEdit}

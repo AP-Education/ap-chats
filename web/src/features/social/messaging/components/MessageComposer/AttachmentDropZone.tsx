@@ -2,6 +2,7 @@ import { PaperclipIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { useCallback, useEffect, useEffectEvent, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   overlay: css`
@@ -84,10 +85,12 @@ export function useAttachmentDrop(onFiles: (files: File[]) => void) {
 
 function AttachmentDropZone() {
   const { styles } = useStyles();
+  const { t } = useTranslation('messaging');
+
   return (
     <div className={styles.overlay}>
       <PaperclipIcon size={36} aria-hidden />
-      <span>Перетягніть файли, щоб додати до повідомлення</span>
+      <span>{t(($) => $.composer.dropFiles)}</span>
     </div>
   );
 }

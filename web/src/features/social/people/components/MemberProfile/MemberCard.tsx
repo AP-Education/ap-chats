@@ -2,6 +2,7 @@ import { useIsMobile } from '@ap-education/ui';
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { useReducer } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { isWorkspaceAdministrator, isWorkspaceOwner } from '@/features/workspaces/workspace-access';
@@ -34,6 +35,7 @@ interface MemberCardProps {
 
 export function MemberCard({ member, onConversationOpen }: MemberCardProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('people');
   const isMobile = useIsMobile();
   const { workspaceId } = member;
   const profile = useMemberProfile(workspaceId, member.memberId);
@@ -42,8 +44,8 @@ export function MemberCard({ member, onConversationOpen }: MemberCardProps) {
   const [view, dispatch] = useReducer(memberCardView, 'profile');
 
   const name = profile.data
-    ? (profile.data.displayName ?? 'Ім’я недоступне')
-    : (member.displayName ?? 'Ім’я недоступне');
+    ? (profile.data.displayName ?? t(($) => $.nameUnavailable))
+    : (member.displayName ?? t(($) => $.nameUnavailable));
   const avatarPath = profile.data ? profile.data.avatarPath : member.avatarPath;
   const isSelf = profile.data?.isSelf ?? false;
   const unavailable =
@@ -76,7 +78,7 @@ export function MemberCard({ member, onConversationOpen }: MemberCardProps) {
         avatarSize={isMobile ? SHEET_AVATAR_SIZE : undefined}
       >
         {profile.isPending ? (
-          <div className={styles.loading} aria-label="Завантажуємо профіль" role="status">
+          <div className={styles.loading} aria-label={t(($) => $.loadingProfile)} role="status">
             <Skeleton.Button active block size="small" />
           </div>
         ) : (

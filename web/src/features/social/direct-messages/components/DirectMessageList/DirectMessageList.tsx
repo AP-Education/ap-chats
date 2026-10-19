@@ -3,6 +3,7 @@ import { MagnifyingGlassIcon, NotePencilIcon } from '@phosphor-icons/react';
 import { Button, Input } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { PanelHeaderActions } from '@/shared/ui/PanelHeaderActions';
 
@@ -38,17 +39,18 @@ export function DirectMessageList({
   onNavigate?: () => void;
 }) {
   const { styles } = useStyles();
+  const { t } = useTranslation('directMessages');
   const [filter, setFilter] = useState('');
   const [composeOpen, setComposeOpen] = useState(false);
 
   return (
     <div className={styles.root}>
       <PanelHeader>
-        <PanelTitle>Розмови</PanelTitle>
+        <PanelTitle>{t(($) => $.list.title)}</PanelTitle>
         <PanelHeaderActions>
           <Button
             type="text"
-            aria-label="Написати колезі"
+            aria-label={t(($) => $.list.compose)}
             icon={<NotePencilIcon size={22} />}
             onClick={() => setComposeOpen(true)}
           />
@@ -57,8 +59,8 @@ export function DirectMessageList({
       <div className={styles.search}>
         <Input
           prefix={<MagnifyingGlassIcon size={20} />}
-          placeholder="Розмова або колега"
-          aria-label="Знайти розмову або колегу"
+          placeholder={t(($) => $.list.searchPlaceholder)}
+          aria-label={t(($) => $.list.searchLabel)}
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
         />

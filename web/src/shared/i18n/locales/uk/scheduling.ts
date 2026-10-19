@@ -1,0 +1,36 @@
+export const scheduling = {
+  extension: {
+    label: 'Запланувати повідомлення',
+    noAttachments: 'Файли поки не можна запланувати',
+    immediateOnly: 'Цей запит надсилається лише одразу',
+  },
+  scheduleMessage: 'Запланувати повідомлення',
+  schedule: 'Запланувати',
+  listTitle: 'Заплановані повідомлення',
+  changeTime: 'Змінити час',
+  sendNow: 'Надіслати зараз',
+  failedToSendAt: 'Не вдалося надіслати {{when}}',
+  arrivesAt: 'Надійде {{when}}',
+  pickPrompt: 'Оберіть час, що ще не настав, у межах року',
+  quickPicks: 'Швидкий вибір',
+  time: 'Час',
+  previousMonth: 'Попередній місяць',
+  nextMonth: 'Наступний місяць',
+  quickTimes: {
+    inAnHour: 'Через годину',
+    todayEvening: 'Сьогодні о 18:00',
+    tomorrowMorning: 'Завтра о 09:00',
+    mondayMorning: 'У понеділок о 09:00',
+  },
+  sendTime: {
+    today: 'сьогодні о {{clock}}',
+    tomorrow: 'завтра о {{clock}}',
+    onDate: '{{date}} о {{clock}}',
+  },
+  errors: {
+    schedule: 'Не вдалося запланувати повідомлення.',
+    reschedule: 'Не вдалося змінити час.',
+    sendNow: 'Не вдалося надіслати повідомлення.',
+    cancel: 'Не вдалося скасувати повідомлення.',
+  },
+} as const;

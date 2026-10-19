@@ -1,6 +1,7 @@
 import { useIsMobile } from '@ap-education/ui';
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
@@ -25,11 +26,12 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 export function CallHistoryListSkeleton({ rows = 5 }: { rows?: number }) {
+  const { t } = useTranslation('calls');
   const { styles } = useStyles();
   const isMobile = useIsMobile();
 
   return (
-    <div aria-label="Завантажуємо дзвінки" role="status">
+    <div aria-label={t(($) => $.loading)} role="status">
       {Array.from({ length: rows }, (_, row) => (
         <div key={row} className={styles.row}>
           <Skeleton.Avatar active size={isMobile ? 44 : 36} shape="circle" />

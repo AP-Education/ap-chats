@@ -1,6 +1,8 @@
+import { useShellLocale } from '@ap-education/shell-sdk';
 import { IconButton } from '@ap-education/ui';
 import { CalendarDotsIcon, PaperPlaneRightIcon, TrashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { MessagePreview } from '@/features/social/messaging/components/MessagePreview/MessagePreview';
 
@@ -65,10 +67,12 @@ export function ScheduledMessageRow({
   onCancel,
 }: ScheduledMessageRowProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['scheduling', 'common']);
+  const locale = useShellLocale();
   const sendAt = new Date(message.sendAt);
   const when = message.failure
-    ? `Не вдалося надіслати ${sendTimeLabel(sendAt, now)}`
-    : sendTimeHeading(sendAt, now);
+    ? t(($) => $.failedToSendAt, { when: sendTimeLabel(sendAt, now, t, locale) })
+    : sendTimeHeading(sendAt, now, t, locale);
 
   return (
     <div className={styles.row}>
@@ -81,13 +85,23 @@ export function ScheduledMessageRow({
         </span>
       </div>
       <div className={styles.actions}>
-        <IconButton size={32} aria-label="Надіслати зараз" disabled={busy} onClick={onSendNow}>
+        <IconButton size={32} aria-label={t(($) => $.sendNow)} disabled={busy} onClick={onSendNow}>
           <PaperPlaneRightIcon size={18} />
         </IconButton>
-        <IconButton size={32} aria-label="Змінити час" disabled={busy} onClick={onReschedule}>
+        <IconButton
+          size={32}
+          aria-label={t(($) => $.changeTime)}
+          disabled={busy}
+          onClick={onReschedule}
+        >
           <CalendarDotsIcon size={18} />
         </IconButton>
-        <IconButton size={32} aria-label="Скасувати" disabled={busy} onClick={onCancel}>
+        <IconButton
+          size={32}
+          aria-label={t(($) => $.common.actions.cancel)}
+          disabled={busy}
+          onClick={onCancel}
+        >
           <TrashIcon size={18} />
         </IconButton>
       </div>

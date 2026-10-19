@@ -7,6 +7,7 @@ import {
 } from '@livekit/components-react';
 import type { Participant } from 'livekit-client';
 import { Track } from 'livekit-client';
+import { useTranslation } from 'react-i18next';
 
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 
@@ -59,6 +60,7 @@ function micRefFor(
  * here, so they can never disagree about whether video is on screen.
  */
 export function useCallStageParticipants(workspaceId: string, callee?: Callee): StageView {
+  const { t } = useTranslation(['calls', 'common']);
   const allParticipants = useParticipants();
   const { localParticipant } = useLocalParticipant();
   const { bySub } = useWorkspaceMemberLabels(workspaceId);
@@ -83,7 +85,7 @@ export function useCallStageParticipants(workspaceId: string, callee?: Callee): 
   function labelFor(identity: string, fallback: string | undefined) {
     const member = bySub.get(identity)?.member;
     return {
-      name: member?.profile.displayName ?? fallback ?? 'Учасник',
+      name: member?.profile.displayName ?? fallback ?? t(($) => $.common.member),
       avatarPath: member?.profile.avatarPath ?? null,
     };
   }
@@ -107,7 +109,10 @@ export function useCallStageParticipants(workspaceId: string, callee?: Callee): 
 
   if (dominant) {
     const { name } = labelFor(dominant.participant.identity, dominant.participant.name);
-    const label = name + (dominant.source === Track.Source.ScreenShare ? ' демонструє екран' : '');
+    const label =
+      dominant.source === Track.Source.ScreenShare
+        ? t(($) => $.overlay.sharingScreen, { name })
+        : name;
     const thumbnailParticipants = participants.filter(
       (participant) => participant.identity !== dominant.participant.identity,
     );

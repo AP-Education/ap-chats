@@ -3,6 +3,7 @@ import { test } from 'node:test';
 
 import type { Role } from '@/features/roles/types';
 
+import { i18n, i18nReady } from '../../../shared/i18n/i18n';
 import { groupMembersByRole } from './member-groups';
 import type { ChannelMembership } from './types';
 
@@ -27,11 +28,15 @@ const member = (memberId: string, hoistedRoleId: string | null): ChannelMembersh
   roleColor: null,
 });
 
+await i18nReady('uk');
+const t = i18n.getFixedT('uk', 'communities');
+
 test('hoisted roles become groups in role order, everyone else follows', () => {
   const groups = groupMembersByRole(
     [member('olena', 'design'), member('maria', 'leads'), member('ihor', null)],
     [role('leads', 0, true), role('design', 1, true), role('sales', 2, true)],
     (memberId) => memberId,
+    t,
   );
 
   assert.deepEqual(
@@ -49,6 +54,7 @@ test('a role no longer hoisted puts its people back among everyone', () => {
     [member('olena', 'design')],
     [role('design', 0, false)],
     (memberId) => memberId,
+    t,
   );
 
   assert.deepEqual(
@@ -68,6 +74,7 @@ test('people within a group are listed by name as a Ukrainian reader orders them
     [member('a', null), member('b', null), member('c', null), member('d', null)],
     [],
     (memberId) => names.get(memberId) ?? '',
+    t,
   );
 
   assert.deepEqual(

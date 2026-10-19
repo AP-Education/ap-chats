@@ -1,4 +1,6 @@
+import type { TFunction } from 'i18next';
 import type { ComponentType } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { ComposerIntent } from '@/features/social/conversation-scope/store';
 import { writeToken } from '@/features/social/mentions/mention-tokens';
@@ -29,7 +31,7 @@ export type ReplyPreview = Pick<Message, 'markdown' | 'blocks'>;
 
 interface ComposerIntentBehaviour<T> {
   Excerpt: ComponentType<IntentExcerptProps<T>>;
-  cancelLabel: string;
+  cancelLabel: (t: TFunction<'messaging'>) => string;
   /** The intent says enough to send without words of the person's own. */
   speaksForItself: boolean;
   /** The intent still means the same if the message goes out later. */
@@ -38,17 +40,32 @@ interface ComposerIntentBehaviour<T> {
   compose: (intent: T, draft: ComposerDraft) => IntentMessage;
 }
 
+function ReplyIntentExcerpt({
+  intent,
+  replyAuthor,
+  replyPreview,
+}: IntentExcerptProps<IntentOf<'reply'>>) {
+  const { t } = useTranslation('messaging');
+  const author = replyAuthor ?? t(($) => $.composer.replyFallbackName);
+
+  return (
+    <ReplyExcerpt
+      title={
+        intent.quoteText
+          ? t(($) => $.composer.quote)
+          : t(($) => $.composer.replyTo, { name: author })
+      }
+      markdown={replyPreview?.markdown ?? t(($) => $.composer.replyFallbackPreview)}
+      blocks={replyPreview?.blocks}
+      quoteText={intent.quoteText}
+    />
+  );
+}
+
 const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>> } = {
   reply: {
-    Excerpt: ({ intent, replyAuthor, replyPreview }) => (
-      <ReplyExcerpt
-        title={intent.quoteText ? 'Цитата' : `Відповідь для ${replyAuthor ?? 'учасника'}`}
-        markdown={replyPreview?.markdown ?? 'Повідомлення'}
-        blocks={replyPreview?.blocks}
-        quoteText={intent.quoteText}
-      />
-    ),
-    cancelLabel: 'Скасувати відповідь',
+    Excerpt: ReplyIntentExcerpt,
+    cancelLabel: (t) => t(($) => $.composer.cancelReply),
     speaksForItself: false,
     canWait: true,
     compose: (intent, { markdown, labels }) => ({
@@ -60,7 +77,7 @@ const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>>
   },
   ask: {
     Excerpt: ({ intent }) => <AskExcerpt member={intent.member} count={intent.messageIds.length} />,
-    cancelLabel: 'Скасувати запит',
+    cancelLabel: (t) => t(($) => $.composer.cancelAsk),
     speaksForItself: true,
     // StarMe hears a question only as it goes out, so the question cannot be put off.
     canWait: false,

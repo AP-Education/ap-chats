@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { MessageMarkdown } from '@/features/social/mentions/components/MessageMarkdown/MessageMarkdown';
 import type { MentionLabel } from '@/features/social/mentions/types';
 
@@ -13,8 +15,10 @@ export function MessagePreview({
   blocks?: MessageBlock[];
   mentions?: MentionLabel[];
 }) {
-  if (markdown === null) return <>Повідомлення видалено</>;
-  if (!markdown.trim()) return <>Вкладення</>;
+  const { t } = useTranslation('messaging');
+
+  if (markdown === null) return <>{t(($) => $.message.preview.deleted)}</>;
+  if (!markdown.trim()) return <>{t(($) => $.message.preview.attachment)}</>;
   if (isLoneGif({ markdown, blocks })) return <>GIF</>;
   return <MessageMarkdown markdown={markdown} mentions={mentions} inline />;
 }

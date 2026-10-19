@@ -1,19 +1,20 @@
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { ClockCounterClockwise, MagnifyingGlass } from 'phosphor-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { radius, spacing } from '../../../shell/theme';
 import { type ShellPalette, useShellPalette, useThemedStyles } from '../../appearance';
 import { readFrequentEmojis, recordFrequentEmoji } from '../store/frequent-emojis';
-import type { EmojiCategory, EmojiItem } from '../types';
+import type { EmojiCategory, EmojiCategoryId, EmojiItem } from '../types';
 import { EMOJI_CATEGORIES, FREQUENT_CATEGORY_ID, searchEmojis } from '../utils/emoji-data';
 
 const COLUMNS = 8;
 const EMOJI_FONT_SIZE = 26;
 
 type Row =
-  | { key: string; type: 'header'; categoryId: string; label: string }
+  | { key: string; type: 'header'; categoryId: EmojiCategoryId | typeof FREQUENT_CATEGORY_ID }
   | { key: string; type: 'grid'; categoryId: string; items: EmojiItem[] };
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -31,7 +32,6 @@ function buildRows(frequent: EmojiItem[]): Row[] {
       key: `header-${FREQUENT_CATEGORY_ID}`,
       type: 'header',
       categoryId: FREQUENT_CATEGORY_ID,
-      label: 'Часто використовувані',
     });
     chunk(frequent, COLUMNS).forEach((items, index) =>
       rows.push({
@@ -47,7 +47,6 @@ function buildRows(frequent: EmojiItem[]): Row[] {
       key: `header-${category.id}`,
       type: 'header',
       categoryId: category.id,
-      label: category.label,
     });
     chunk(category.items, COLUMNS).forEach((items, index) =>
       rows.push({ key: `${category.id}-${index}`, type: 'grid', categoryId: category.id, items }),
@@ -62,6 +61,7 @@ interface EmojiTabProps {
 }
 
 export function EmojiTab({ onPick, onSearchFocus }: EmojiTabProps) {
+  const { t } = useTranslation('composer');
   const palette = useShellPalette();
   const styles = useThemedStyles(themedStyles);
   const [query, setQuery] = useState('');
@@ -116,12 +116,12 @@ export function EmojiTab({ onPick, onSearchFocus }: EmojiTabProps) {
         <MagnifyingGlass size={16} color={palette.textSecondary} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Пошук емодзі"
+          placeholder={t(($) => $.emoji.search)}
           placeholderTextColor={palette.textSecondary}
           value={query}
           onChangeText={setQuery}
           onFocus={onSearchFocus}
-          accessibilityLabel="Пошук емодзі"
+          accessibilityLabel={t(($) => $.emoji.search)}
         />
       </View>
       {!query.trim() && (
@@ -139,7 +139,7 @@ export function EmojiTab({ onPick, onSearchFocus }: EmojiTabProps) {
       )}
       {rows.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>Нічого не знайдено.</Text>
+          <Text style={styles.emptyText}>{t(($) => $.emoji.empty)}</Text>
         </View>
       ) : (
         <FlashList
@@ -150,7 +150,7 @@ export function EmojiTab({ onPick, onSearchFocus }: EmojiTabProps) {
           keyExtractor={(row) => row.key}
           renderItem={({ item: row }) =>
             row.type === 'header' ? (
-              <Text style={styles.sectionHeader}>{row.label}</Text>
+              <Text style={styles.sectionHeader}>{t(($) => $.categories[row.categoryId])}</Text>
             ) : (
               <View style={styles.row}>
                 {row.items.map((item) => (

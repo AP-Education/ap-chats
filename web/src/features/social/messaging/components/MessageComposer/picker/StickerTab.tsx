@@ -1,5 +1,6 @@
 import { StickerIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   state: css`
@@ -18,10 +19,12 @@ const useStyles = createStyles(({ token, css }) => ({
 
 export function StickerTab() {
   const { styles } = useStyles();
+  const { t } = useTranslation('messaging');
+
   return (
     <div className={styles.state}>
       <StickerIcon size={28} />
-      Набори стікерів з’являться незабаром.
+      {t(($) => $.picker.stickersSoon)}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { message as toast, Modal } from 'antd';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
 import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
@@ -43,6 +44,7 @@ export function useConversationActions({
   memberId,
   operations,
 }: UseConversationActionsInput) {
+  const { t } = useTranslation(['conversation', 'common']);
   const { workspaceId, channelId, permissions } = useConversationScope();
   const { canPost, canReact, canManage, canPin } = permissions;
   const pins = usePinActions(workspaceId, channelId);
@@ -82,18 +84,18 @@ export function useConversationActions({
       Modal.confirm({
         title:
           targetItems.length === 1
-            ? 'Видалити повідомлення?'
-            : `Видалити ${targetItems.length} повідомлень?`,
-        content: 'Текст повідомлень стане недоступним усім учасникам каналу.',
-        okText: 'Видалити',
+            ? t(($) => $.delete.titleOne)
+            : t(($) => $.delete.titleMany, { count: targetItems.length }),
+        content: t(($) => $.delete.content),
+        okText: t(($) => $.common.actions.delete),
         okType: 'danger',
-        cancelText: 'Скасувати',
+        cancelText: t(($) => $.common.actions.cancel),
         onOk: async () => {
           try {
             await operations.remove(targetItems.map((item) => item.message.id));
             clearSelection();
           } catch {
-            toast.error('Не вдалося видалити повідомлення.');
+            toast.error(t(($) => $.delete.failed));
             throw new Error('Delete failed');
           }
         },
@@ -108,19 +110,17 @@ export function useConversationActions({
           targetItems.forEach((item) => flashMessage(item.message.id));
           clearSelection();
         },
-        () => toast.error('Не вдалося скопіювати текст'),
+        () => toast.error(t(($) => $.copyFailed)),
       );
     },
     forward: (targetItems) =>
       setForwardItems([...targetItems].sort((a, b) => (BigInt(a.seq) < BigInt(b.seq) ? -1 : 1))),
     pin: (item, active) => {
-      void pins
-        .update(item.message.id, active)
-        .catch(() => toast.error('Не вдалося змінити закріплення.'));
+      void pins.update(item.message.id, active).catch(() => toast.error(t(($) => $.pinFailed)));
     },
     markUnread: (item) => {
       markUnread.mutate(item.seq, {
-        onError: () => toast.error('Не вдалося позначити непрочитаним.'),
+        onError: () => toast.error(t(($) => $.markUnreadFailed)),
       });
     },
     showReactions: (item) => setReactionsMessageId(item.message.id),

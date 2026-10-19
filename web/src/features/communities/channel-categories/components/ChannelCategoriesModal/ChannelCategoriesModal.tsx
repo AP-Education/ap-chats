@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { AdaptiveModal } from '@/shared/ui/AdaptiveModal';
 
 import { ChannelCategoryList } from './ChannelCategoryList';
@@ -17,12 +19,14 @@ export function ChannelCategoriesModal({
   open,
   onClose,
 }: ChannelCategoriesModalProps) {
+  const { t } = useTranslation('communities');
+
   return (
     <AdaptiveModal
       open={open}
       onCancel={onClose}
       footer={null}
-      title="Категорії каналів"
+      title={t(($) => $.categories.title)}
       destroyOnHidden
       centered
     >

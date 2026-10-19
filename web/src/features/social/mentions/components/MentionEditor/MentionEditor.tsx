@@ -1,5 +1,6 @@
 import { type ComponentProps, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 import { useChannels } from '@/features/communities/channels/hooks/useChannels';
 import { useRoles } from '@/features/roles/hooks/useRoles';
@@ -36,6 +37,7 @@ export function MentionEditor() {
     editorRef,
     suggestionsHost,
   } = useMessageEditorSlot();
+  const { t } = useTranslation('mentions');
   const { workspaceId, composer } = useConversationScope();
   const channels = useChannels(workspaceId);
   const { query: roles } = useRoles(workspaceId);
@@ -101,7 +103,7 @@ export function MentionEditor() {
     range.setEnd(node, selection.anchorOffset);
     if (token.kind !== 'everyone') labels.current[token.id] = label;
     const fragment = document.createDocumentFragment();
-    fragment.append(tokenChip(token, labels.current, styles.chip), document.createTextNode(' '));
+    fragment.append(tokenChip(token, labels.current, styles.chip, t), document.createTextNode(' '));
     composerRef.current?.insertNode(fragment, range);
     setQuery(null);
     handleActivity();
@@ -172,6 +174,7 @@ export function MentionEditor() {
             root,
             { ...draft, labels: { ...listedNames, ...draft.labels } },
             styles.chip,
+            t,
           );
         }}
         className={[styles.editor, className].filter(Boolean).join(' ')}

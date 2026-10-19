@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import {
@@ -70,6 +71,7 @@ export function MessageComposer({
   onSend,
   children,
 }: MessageComposerProps) {
+  const { t } = useTranslation(['messaging', 'common']);
   const { workspaceId, channelId, composer } = useConversationScope();
   const { identity } = useQueryAuth();
   const draftKey = `ap-chats:draft:${identity}:${workspaceId}:${channelId}`;
@@ -297,7 +299,7 @@ export function MessageComposer({
       <IconButton
         size={toolbarActionSize}
         className={styles.toolbarButton}
-        aria-label="Емодзі, GIF і стікери"
+        aria-label={t(($) => $.composer.picker)}
         aria-pressed={activeTab !== null}
         onClick={togglePicker}
       >
@@ -313,7 +315,9 @@ export function MessageComposer({
       <IconButton
         size={toolbarActionSize}
         className={styles.toolbarButton}
-        aria-label={activeTab !== null ? 'Клавіатура' : 'Емодзі, GIF і стікери'}
+        aria-label={
+          activeTab !== null ? t(($) => $.composer.keyboard) : t(($) => $.composer.picker)
+        }
         aria-pressed={activeTab !== null}
         onPointerDown={(event) => event.preventDefault()}
         onClick={toggleCompactPicker}
@@ -372,7 +376,7 @@ export function MessageComposer({
         <IconButton
           size={44}
           className={`${styles.toolbarButton} ${styles.mobileAttach}`}
-          aria-label="Додати файл"
+          aria-label={t(($) => $.composer.attach)}
           disabled={!uploads.policy}
           onClick={() => fileInput.current?.click()}
         >
@@ -390,9 +394,9 @@ export function MessageComposer({
                 />
                 {uploads.policyError && (
                   <div role="alert">
-                    Не вдалося завантажити ліміти файлів.{' '}
+                    {t(($) => $.composer.limitsFailed)}{' '}
                     <Button type="link" size="small" onClick={uploads.reloadPolicy}>
-                      Повторити
+                      {t(($) => $.common.actions.retry)}
                     </Button>
                   </div>
                 )}
@@ -405,7 +409,7 @@ export function MessageComposer({
                     />
                     <IconButton
                       size={28}
-                      aria-label={composerIntent(intent.kind).cancelLabel}
+                      aria-label={composerIntent(intent.kind).cancelLabel(t)}
                       onClick={() => setIntent(null)}
                     >
                       <XIcon size={16} />
@@ -420,7 +424,7 @@ export function MessageComposer({
               <IconButton
                 size={toolbarActionSize}
                 className={styles.toolbarButton}
-                aria-label="Додати файл"
+                aria-label={t(($) => $.composer.attach)}
                 disabled={!uploads.policy}
                 onClick={() => fileInput.current?.click()}
               >

@@ -1,6 +1,8 @@
+import { useShellLocale } from '@ap-education/shell-sdk';
 import { useQuery } from '@tanstack/react-query';
 import { message } from 'antd';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
@@ -10,6 +12,8 @@ import type { AttachmentDraft } from './types';
 import { UploadQueue } from './upload-queue';
 
 export function useAttachments() {
+  const { t } = useTranslation('messaging');
+  const locale = useShellLocale();
   const { workspaceId, channelId } = useConversationScope();
   const { token, identity } = useQueryAuth();
   // Recreated per channel rather than reused across a scope change: an
@@ -37,10 +41,10 @@ export function useAttachments() {
 
   function addFiles(files: File[]) {
     if (!policy.data) {
-      void message.error('Не вдалося отримати ліміти файлів. Спробуйте ще раз.');
+      void message.error(t(($) => $.attachments.errors.limitsUnavailable));
       return;
     }
-    for (const error of queue.add(files, policy.data)) void message.error(error);
+    for (const error of queue.add(files, policy.data, t, locale)) void message.error(error);
   }
 
   /**

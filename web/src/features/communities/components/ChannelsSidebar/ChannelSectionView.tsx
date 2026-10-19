@@ -2,6 +2,7 @@ import { PanelSection } from '@ap-education/ui';
 import { PlusIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useChannelDialogs } from '../../channels/stores/channel-dialogs-context';
 import { ChannelRow } from './ChannelRow';
@@ -63,6 +64,7 @@ interface ChannelSectionViewProps {
 }
 
 export function ChannelSectionView({ section }: ChannelSectionViewProps) {
+  const { t } = useTranslation('communities');
   const { styles, cx } = useStyles();
   const { workspaceId, draggingChannel, moveChannel } = useChannelsSidebarStore();
   const dialogs = useChannelDialogs();
@@ -82,7 +84,7 @@ export function ChannelSectionView({ section }: ChannelSectionViewProps) {
           <button
             type="button"
             className={styles.add}
-            aria-label={`Створити канал у категорії ${section.name}`}
+            aria-label={t(($) => $.sidebar.createChannelIn, { name: section.name })}
             onClick={() => {
               dialogs.create({
                 workspaceId,
@@ -112,7 +114,7 @@ export function ChannelSectionView({ section }: ChannelSectionViewProps) {
       }}
     >
       {isUncategorized && section.channels.length === 0 && canDrop && (
-        <div className={styles.emptyHint}>Створіть канал або перетягніть його сюди</div>
+        <div className={styles.emptyHint}>{t(($) => $.sidebar.emptyHint)}</div>
       )}
       {section.channels.map((channel) => (
         <ChannelRow key={channel.id} channel={channel} />

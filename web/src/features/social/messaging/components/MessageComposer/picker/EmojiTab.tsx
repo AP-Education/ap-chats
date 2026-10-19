@@ -2,7 +2,9 @@ import { ClockCounterClockwiseIcon, MagnifyingGlassIcon } from '@phosphor-icons/
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Input } from 'antd';
 import { createStyles } from 'antd-style';
+import type { TFunction } from 'i18next';
 import { useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
   EMOJI_CATEGORIES,
@@ -31,16 +33,24 @@ function chunk<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
-function buildRows(frequent: EmojiItem[]): Row[] {
+function buildRows(frequent: EmojiItem[], t: TFunction<'messaging'>): Row[] {
   const rows: Row[] = [];
   if (frequent.length > 0) {
-    rows.push({ type: 'header', categoryId: FREQUENT_CATEGORY_ID, label: 'Часто використовувані' });
+    rows.push({
+      type: 'header',
+      categoryId: FREQUENT_CATEGORY_ID,
+      label: t(($) => $.picker.emojiCategories.frequent),
+    });
     chunk(frequent, COLUMNS).forEach((items) =>
       rows.push({ type: 'grid', categoryId: FREQUENT_CATEGORY_ID, items }),
     );
   }
   EMOJI_CATEGORIES.forEach((category) => {
-    rows.push({ type: 'header', categoryId: category.id, label: category.label });
+    rows.push({
+      type: 'header',
+      categoryId: category.id,
+      label: t(($) => $.picker.emojiCategories[category.id]),
+    });
     chunk(category.items, COLUMNS).forEach((items) =>
       rows.push({ type: 'grid', categoryId: category.id, items }),
     );
@@ -142,6 +152,7 @@ interface EmojiTabProps {
 
 export function EmojiTab({ onPick }: EmojiTabProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation('messaging');
   const [query, setQuery] = useState('');
   const [frequent, setFrequent] = useState<EmojiItem[]>(() => readFrequentEmojis());
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -157,8 +168,8 @@ export function EmojiTab({ onPick }: EmojiTabProps) {
         items,
       }));
     }
-    return buildRows(frequent);
-  }, [query, frequent]);
+    return buildRows(frequent, t);
+  }, [query, frequent, t]);
 
   const categoryStartIndex = useMemo(() => {
     const map = new Map<string, number>();
@@ -199,8 +210,8 @@ export function EmojiTab({ onPick }: EmojiTabProps) {
       <Input
         allowClear
         prefix={<MagnifyingGlassIcon size={16} />}
-        placeholder="Пошук емодзі"
-        aria-label="Пошук емодзі"
+        placeholder={t(($) => $.picker.emojiSearch)}
+        aria-label={t(($) => $.picker.emojiSearch)}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
@@ -223,7 +234,7 @@ export function EmojiTab({ onPick }: EmojiTabProps) {
         </div>
       )}
       {rows.length === 0 ? (
-        <div className={styles.empty}>Нічого не знайдено.</div>
+        <div className={styles.empty}>{t(($) => $.picker.nothingFound)}</div>
       ) : (
         <div ref={scrollerRef} className={styles.scroller}>
           <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>

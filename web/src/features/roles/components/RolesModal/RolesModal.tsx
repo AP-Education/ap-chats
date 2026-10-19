@@ -1,6 +1,7 @@
 import { ContentState, ContentStateDescription, useIsMobile } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { AdaptiveModal } from '@/shared/ui/AdaptiveModal';
 
@@ -48,6 +49,7 @@ interface RolesModalProps {
 export function RolesModal({ workspaceId, open, onClose }: RolesModalProps) {
   const { styles } = useStyles();
   const isMobile = useIsMobile();
+  const { t } = useTranslation('roles');
   const { query, reorder } = useRoles(workspaceId);
   const [selectedRoleId, setSelectedRoleId] = useState<string>();
 
@@ -75,7 +77,7 @@ export function RolesModal({ workspaceId, open, onClose }: RolesModalProps) {
     />
   ) : (
     <ContentState compact>
-      <ContentStateDescription>Виберіть роль, щоб керувати її складом</ContentStateDescription>
+      <ContentStateDescription>{t(($) => $.modal.selectRole)}</ContentStateDescription>
     </ContentState>
   );
 
@@ -84,8 +86,8 @@ export function RolesModal({ workspaceId, open, onClose }: RolesModalProps) {
       open={open}
       onCancel={onClose}
       footer={null}
-      title="Ролі"
-      description="Групи людей для згадок і списків доступу каналів"
+      title={t(($) => $.modal.title)}
+      description={t(($) => $.modal.description)}
       bodyHeight="min(560px, 72vh)"
       width={720}
       destroyOnHidden

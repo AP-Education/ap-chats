@@ -23,9 +23,11 @@ export type WallpaperLight =
   | (LightBase & { kind: 'ribbon'; stretch: number; angle: number })
   | (LightBase & { kind: 'halo'; tilt: number; angle: number });
 
+export type WallpaperPresetId =
+  'ap' | 'university' | 'school' | 'space' | 'aurora' | 'innovation' | 'minimal' | 'none';
+
 export interface WallpaperPreset {
-  id: string;
-  name: string;
+  id: WallpaperPresetId;
   lights: readonly WallpaperLight[];
   pattern: WallpaperPatternId | null;
 }

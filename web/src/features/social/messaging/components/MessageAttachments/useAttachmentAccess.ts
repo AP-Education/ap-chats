@@ -1,6 +1,7 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
 import { message } from 'antd';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
@@ -53,6 +54,7 @@ export function useAttachmentUrl(
 export function useAttachmentDownload(messageId: string, attachment: Attachment) {
   const { token } = useQueryAuth();
   const scope = useConversationScope();
+  const { t } = useTranslation('messaging');
   const [downloading, setDownloading] = useState(false);
 
   async function download() {
@@ -67,7 +69,7 @@ export function useAttachmentDownload(messageId: string, attachment: Attachment)
       link.referrerPolicy = 'no-referrer';
       link.click();
     } catch {
-      void message.error('Не вдалося завантажити файл. Можливо, доступ до повідомлення змінився.');
+      void message.error(t(($) => $.attachments.errors.downloadFailed));
     } finally {
       setDownloading(false);
     }

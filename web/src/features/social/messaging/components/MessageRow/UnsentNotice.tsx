@@ -1,4 +1,5 @@
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { useUnsentMessages } from '../../unsent-messages-context';
 
@@ -31,16 +32,17 @@ interface UnsentNoticeProps {
 
 export const UnsentNotice = ({ rowId }: UnsentNoticeProps) => {
   const { styles } = useStyles();
+  const { t } = useTranslation(['messaging', 'common']);
   const { retry, discard } = useUnsentMessages();
 
   return (
     <div className={styles.notice}>
-      Не надіслано
+      {t(($) => $.message.delivery.failed)}
       <button type="button" className={styles.action} onClick={() => retry(rowId)}>
-        Повторити
+        {t(($) => $.common.actions.retry)}
       </button>
       <button type="button" className={styles.action} onClick={() => discard(rowId)}>
-        Видалити
+        {t(($) => $.common.actions.delete)}
       </button>
     </div>
   );

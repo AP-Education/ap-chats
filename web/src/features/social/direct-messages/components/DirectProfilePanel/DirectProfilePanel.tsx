@@ -1,12 +1,14 @@
+import { useShellLocale } from '@ap-education/shell-sdk';
 import { PageAsideClose, PageHeader, PageTitle } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { DirectMessage } from '@/features/social/direct-messages/api/direct-messages-api';
 import { MemberIdentity } from '@/features/social/people/components/MemberIdentity';
 import type { WorkspaceMember } from '@/features/workspaces/types';
-import { accessLevelLabels } from '@/features/workspaces/workspace-access';
+import { dateTimeFormat } from '@/shared/i18n/format';
 
-const joinedFormat = new Intl.DateTimeFormat('uk-UA', {
+const joinedFormat = dateTimeFormat({
   day: 'numeric',
   month: 'long',
   year: 'numeric',
@@ -36,19 +38,22 @@ interface DirectProfilePanelProps {
 
 export function DirectProfilePanel({ participant, member }: DirectProfilePanelProps) {
   const { styles } = useStyles();
-  const name = member?.profile.displayName ?? participant.displayName ?? 'Ім’я недоступне';
+  const { t } = useTranslation(['directMessages', 'workspaces']);
+  const locale = useShellLocale();
+  const name =
+    member?.profile.displayName ?? participant.displayName ?? t(($) => $.nameUnavailable);
   const avatarPath = member?.profile.avatarPath ?? participant.avatarPath;
   const role = participant.active
-    ? accessLevelLabels[member?.accessLevel ?? 'member']
-    : 'Більше не в просторі';
+    ? t(($) => $.workspaces.accessLevels[member?.accessLevel ?? 'member'])
+    : t(($) => $.profile.formerMember);
 
   return (
     <div className={styles.shell}>
       <PageHeader>
-        <PageTitle>Профіль</PageTitle>
-        <PageAsideClose aria-label="Закрити профіль" />
+        <PageTitle>{t(($) => $.profile.title)}</PageTitle>
+        <PageAsideClose aria-label={t(($) => $.profile.close)} />
       </PageHeader>
-      <section className={styles.body} aria-label={`Профіль ${name}`}>
+      <section className={styles.body} aria-label={t(($) => $.profile.label, { name })}>
         <MemberIdentity
           name={name}
           avatarPath={avatarPath}
@@ -58,9 +63,9 @@ export function DirectProfilePanel({ participant, member }: DirectProfilePanelPr
         />
         {member?.createdAt && (
           <div className={styles.details}>
-            У просторі з{' '}
+            {t(($) => $.profile.memberSince)}{' '}
             <time dateTime={member.createdAt}>
-              {joinedFormat.format(new Date(member.createdAt))}
+              {joinedFormat(locale).format(new Date(member.createdAt))}
             </time>
           </div>
         )}

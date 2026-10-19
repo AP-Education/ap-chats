@@ -2,11 +2,12 @@ import { useIsMobile } from '@ap-education/ui';
 import { Modal } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { MessageHistoryItem } from '@/features/social/messaging/types';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
 
-import { reactionsLabel, totalReactions } from '../../reaction-display';
+import { totalReactions } from '../../reaction-display';
 import { ReactionTabs } from './ReactionTabs';
 import { ReactorList } from './ReactorList';
 
@@ -26,12 +27,13 @@ interface ReactorsDialogProps {
 /** Who reacted and with what: a dialog beside the conversation, a sheet on a phone. */
 export function ReactorsDialog({ item, onClose }: ReactorsDialogProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('reactions');
   const isMobile = useIsMobile();
   const [emoji, setEmoji] = useState<string | undefined>();
 
   const reactions = item.reactions ?? [];
   const total = totalReactions(reactions);
-  const title = reactionsLabel(total);
+  const title = t(($) => $.total, { count: total });
   const expected = emoji
     ? (reactions.find((reaction) => reaction.emoji === emoji)?.count ?? 0)
     : total;

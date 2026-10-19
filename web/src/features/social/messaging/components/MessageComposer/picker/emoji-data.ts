@@ -22,33 +22,33 @@ export interface EmojiItem {
 }
 
 export interface EmojiCategory {
-  id: string;
-  label: string;
+  id: EmojiCategoryId;
   icon: Icon;
   items: EmojiItem[];
 }
 
 export const FREQUENT_CATEGORY_ID = 'frequent';
 
-const CATEGORY_META: Record<string, { label: string; icon: Icon }> = {
-  people: { label: 'Смайли і люди', icon: SmileyIcon },
-  nature: { label: 'Тварини і природа', icon: PawPrintIcon },
-  foods: { label: 'Їжа і напої', icon: HamburgerIcon },
-  activity: { label: 'Активності', icon: SoccerBallIcon },
-  places: { label: 'Подорожі та місця', icon: AirplaneIcon },
-  objects: { label: 'Предмети', icon: LightbulbIcon },
-  symbols: { label: 'Символи', icon: HashIcon },
-  flags: { label: 'Прапори', icon: FlagIcon },
+const CATEGORY_META = {
+  people: { icon: SmileyIcon },
+  nature: { icon: PawPrintIcon },
+  foods: { icon: HamburgerIcon },
+  activity: { icon: SoccerBallIcon },
+  places: { icon: AirplaneIcon },
+  objects: { icon: LightbulbIcon },
+  symbols: { icon: HashIcon },
+  flags: { icon: FlagIcon },
 };
+
+export type EmojiCategoryId = keyof typeof CATEGORY_META;
 
 export const EMOJI_CATEGORIES: EmojiCategory[] = data.categories
   .filter((category) => category.id in CATEGORY_META)
   .map((category) => {
-    const meta = CATEGORY_META[category.id]!;
+    const id = category.id as EmojiCategoryId;
     return {
-      id: category.id,
-      label: meta.label,
-      icon: meta.icon,
+      id,
+      icon: CATEGORY_META[id].icon,
       items: category.emojis
         .map((emojiId) => data.emojis[emojiId])
         .filter((emoji) => emoji !== undefined)

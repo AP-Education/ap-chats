@@ -2,6 +2,7 @@ import { MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { Input } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useRoles } from '../../hooks/useRoles';
 import type { Role } from '../../types';
@@ -28,6 +29,7 @@ interface RolePickerProps {
 // Like Discord's role menu: search by name, a click adds a role or takes it away.
 export function RolePicker({ workspaceId, assignedRoleIds, onToggle, autoFocus }: RolePickerProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('roles');
   const { query } = useRoles(workspaceId);
   const [search, setSearch] = useState('');
 
@@ -42,8 +44,8 @@ export function RolePicker({ workspaceId, assignedRoleIds, onToggle, autoFocus }
         autoFocus={autoFocus}
         allowClear
         prefix={<MagnifyingGlassIcon size={16} />}
-        placeholder="Роль"
-        aria-label="Знайти роль"
+        placeholder={t(($) => $.picker.placeholder)}
+        aria-label={t(($) => $.picker.searchLabel)}
         value={search}
         onChange={(event) => setSearch(event.target.value)}
       />

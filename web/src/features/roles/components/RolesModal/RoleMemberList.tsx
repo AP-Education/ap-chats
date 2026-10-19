@@ -1,6 +1,7 @@
 import { XIcon } from '@phosphor-icons/react';
 import { Button, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { Avatar } from '@/shared/ui/Avatar';
 
@@ -64,14 +65,15 @@ interface RoleMemberListProps {
 
 export function RoleMemberList({ members, onRemove }: RoleMemberListProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('roles');
 
   if (!members) return <Skeleton active avatar title={false} paragraph={{ rows: 2 }} />;
-  if (!members.length) return <div className={styles.empty}>У ролі ще нікого немає</div>;
+  if (!members.length) return <div className={styles.empty}>{t(($) => $.members.empty)}</div>;
 
   return (
     <ul className={styles.list}>
       {members.map((member) => {
-        const name = member.displayName ?? 'Ім’я недоступне';
+        const name = member.displayName ?? t(($) => $.unnamedMember);
         return (
           <li className={styles.member} key={member.memberId}>
             <Avatar path={member.avatarPath} alt={name} size={32} shape="circle" />
@@ -81,7 +83,7 @@ export function RoleMemberList({ members, onRemove }: RoleMemberListProps) {
               shape="circle"
               className={styles.remove}
               icon={<XIcon size={16} />}
-              aria-label={`Прибрати ${name} з ролі`}
+              aria-label={t(($) => $.members.remove, { name })}
               onClick={() => onRemove(member.memberId)}
             />
           </li>

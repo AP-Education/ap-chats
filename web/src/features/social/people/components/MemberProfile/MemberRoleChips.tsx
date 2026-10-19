@@ -1,6 +1,7 @@
 import { XIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { RoleDot } from '@/features/roles/components/RoleDot';
 import type { RoleBadge } from '@/features/roles/types';
@@ -63,9 +64,10 @@ interface MemberRoleChipsProps {
 
 export function MemberRoleChips({ roles, onRemove, children }: MemberRoleChipsProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('people');
 
   return (
-    <ul className={styles.chips} aria-label="Ролі">
+    <ul className={styles.chips} aria-label={t(($) => $.roles.title)}>
       {roles.map((role) => (
         <li key={role.id} className={styles.chip}>
           <RoleDot color={role.color} />
@@ -74,7 +76,7 @@ export function MemberRoleChips({ roles, onRemove, children }: MemberRoleChipsPr
             <button
               type="button"
               className={styles.remove}
-              aria-label={`Забрати роль ${role.name}`}
+              aria-label={t(($) => $.roles.remove, { name: role.name })}
               onClick={() => onRemove(role)}
             >
               <XIcon size={10} weight="bold" />

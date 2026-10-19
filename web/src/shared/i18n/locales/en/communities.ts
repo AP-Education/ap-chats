@@ -1,0 +1,133 @@
+import type { Translation } from '../../translation';
+import type { communities as source } from '../uk/communities';
+
+export const communities = {
+  channels: {
+    page: {
+      title: 'Chats',
+      pickChannel: 'Select a channel from the list',
+      unavailableTitle: 'Channel unavailable',
+      unavailableDescription: 'It was deleted or you no longer have access to it.',
+      loadFailed: 'Couldn’t load the channel',
+    },
+    composer: 'Message #{{name}}',
+    settings: 'Channel settings',
+    settingsDescription: 'Name, category and channel access',
+    settingsTabs: {
+      general: 'General',
+    },
+    settingsOf: 'Channel settings for {{name}}',
+    actionsOf: 'Actions for channel {{name}}',
+    callTitle: 'Channel call',
+    members: 'Channel members',
+    largeCall: {
+      title_one: 'This channel has {{count}} member',
+      title_other: 'This channel has {{count}} members',
+      description:
+        'Calls work best for small groups. For this many people, scheduling a separate meeting may be easier.',
+      callAnyway: 'Call anyway',
+    },
+    readOnly: 'You can only read in this channel',
+    unlisted: {
+      title: 'You are not on this channel’s lists',
+      description:
+        'You can change its settings and access. To read the history, add yourself to those who can see it.',
+    },
+    name: {
+      label: 'Channel name',
+      placeholder: 'general',
+      required: 'Enter a name',
+      tooLong: 'At most 80 characters',
+      taken: 'A channel with this name already exists',
+    },
+    category: 'Category',
+    noCategory: 'No category',
+    delete: {
+      zoneLabel: 'Delete channel',
+      title: 'Delete channel',
+      hint: 'Messages and history will disappear for everyone and can’t be restored.',
+      confirmTitle: 'Delete channel?',
+      confirmDescription: 'The channel and its history will be deleted and can’t be restored.',
+    },
+    create: {
+      title: 'New channel',
+      inCategory: 'in category “{{name}}”',
+      description: 'Name and channel access',
+    },
+    saveFailed: 'Couldn’t save the channel.',
+    deleteFailed: 'Couldn’t delete the channel.',
+    createFailed: 'Couldn’t create the channel.',
+    moveFailed: 'Couldn’t move the channel.',
+  },
+  access: {
+    title: 'Access',
+    backToList: 'Back to the list',
+    removeFromChannel: 'Remove from channel',
+    nobody: 'Nobody can see the channel yet except managers.',
+    addPrincipal: 'Add a role or person',
+    everyone: 'Everyone',
+    nameUnavailable: 'Name unavailable',
+    unavailable: 'Unavailable',
+    capabilities: {
+      view: { label: 'Can view', hint: 'Reads the history, reacts and gets notifications.' },
+      post: {
+        label: 'Can post',
+        hint: 'Writes messages, replies in threads and starts calls.',
+      },
+      manage: {
+        label: 'Can manage',
+        hint: 'Changes the channel and its access, removes other people’s messages.',
+      },
+    },
+  },
+  categories: {
+    title: 'Channel categories',
+    empty: 'No categories yet',
+    loading: 'Loading categories',
+    newPlaceholder: 'New category',
+    namePlaceholder: 'Category name',
+    create: 'Create category',
+    shortTitle: 'Category',
+    deleteLabel: 'Delete category {{name}}',
+    deleteConfirmTitle: 'Delete category?',
+    deleteConfirmDescription: 'Its channels will be left without a category.',
+    createFailed: 'Couldn’t create the category.',
+    renameFailed: 'Couldn’t rename the category.',
+    deleteFailed: 'Couldn’t delete the category.',
+  },
+  members: {
+    title: 'Members',
+    close: 'Close members',
+    loading: 'Loading members',
+    loadFailed: 'Couldn’t load members.',
+    empty: 'No members yet',
+  },
+  notifications: {
+    title: 'Channel notifications',
+    loading: 'Loading channel notifications',
+    reload: 'Try loading again',
+    updateFailed: 'Couldn’t update channel notifications.',
+    mute: 'Mute channel',
+    unmute: 'Unmute channel',
+    levels: {
+      default: 'Default',
+      all: 'All messages',
+      mentions: 'Mentions only',
+      none: 'Nothing',
+    },
+    muteFor: {
+      hour: 'For 1 hour',
+      day: 'For 24 hours',
+      untilUnmuted: 'Until I turn it back on',
+    },
+  },
+  sidebar: {
+    workspacesLoadFailed: 'Couldn’t load workspaces.',
+    channelsLoadFailed: 'Couldn’t load channels.',
+    loading: 'Loading channel list',
+    createChannel: 'Create channel',
+    createChannelIn: 'Create a channel in category {{name}}',
+    emptyHint: 'Create a channel or drag one here',
+    unread: '{{unreadCount}} unread',
+  },
+} satisfies Translation<typeof source>;

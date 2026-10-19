@@ -1,6 +1,7 @@
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { Attachment } from '../../attachments/types';
 import { useAttachmentUrl } from './useAttachmentAccess';
@@ -44,12 +45,17 @@ interface AttachmentPlayerProps {
 /** Plays an audio attachment inline, fetching its address once asked to play. */
 export function AttachmentPlayer({ attachment, messageId }: AttachmentPlayerProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['messaging', 'common']);
   const [mediaFailed, setMediaFailed] = useState(false);
   const access = useAttachmentUrl(messageId, attachment.id, 'preview', true);
 
   if (access.isPending) {
     return (
-      <div className={styles.player} aria-label="Завантажуємо відтворення" role="status">
+      <div
+        className={styles.player}
+        aria-label={t(($) => $.attachments.playerLoading)}
+        role="status"
+      >
         <Skeleton.Node active styles={AUDIO_PLACEHOLDER} />
       </div>
     );
@@ -58,7 +64,7 @@ export function AttachmentPlayer({ attachment, messageId }: AttachmentPlayerProp
   if (access.isError || mediaFailed) {
     return (
       <div className={styles.error} role="status">
-        Перегляд недоступний. Файл можна завантажити.{' '}
+        {t(($) => $.attachments.previewUnavailable)}{' '}
         <button
           type="button"
           className={styles.retry}
@@ -67,7 +73,7 @@ export function AttachmentPlayer({ attachment, messageId }: AttachmentPlayerProp
             void access.refetch();
           }}
         >
-          Повторити
+          {t(($) => $.common.actions.retry)}
         </button>
       </div>
     );

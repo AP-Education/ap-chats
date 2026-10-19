@@ -1,10 +1,14 @@
+import type { TFunction } from 'i18next';
+
+import { dateTimeFormat } from '../../../shared/i18n/format';
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const LATEST_SEND_DAYS = 365;
 const DEFAULT_LEAD_MS = 5 * 60 * 1000;
 
-const clockFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
-const dateFormat = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'long' });
-const datedYearFormat = new Intl.DateTimeFormat('uk-UA', {
+const clockFormat = dateTimeFormat({ hour: '2-digit', minute: '2-digit' });
+const dateFormat = dateTimeFormat({ day: 'numeric', month: 'long' });
+const datedYearFormat = dateTimeFormat({
   day: 'numeric',
   month: 'long',
   year: 'numeric',
@@ -16,35 +20,47 @@ export interface SendTimeOption {
 }
 
 /** Quick picks, each still ahead and none the same moment twice. */
-export function sendTimeOptions(now: Date): SendTimeOption[] {
+export function sendTimeOptions(now: Date, t: TFunction<'scheduling'>): SendTimeOption[] {
   const inAnHour = new Date(now.getTime() + 60 * 60 * 1000);
   inAnHour.setSeconds(0, 0);
   const evening = atHour(now, 0, 18);
   const daysToMonday = (8 - now.getDay()) % 7 || 7;
 
   return [
-    { label: 'Через годину', sendAt: inAnHour },
-    ...(evening > inAnHour ? [{ label: 'Сьогодні о 18:00', sendAt: evening }] : []),
-    { label: 'Завтра о 09:00', sendAt: atHour(now, 1, 9) },
+    { label: t(($) => $.quickTimes.inAnHour), sendAt: inAnHour },
+    ...(evening > inAnHour
+      ? [{ label: t(($) => $.quickTimes.todayEvening), sendAt: evening }]
+      : []),
+    { label: t(($) => $.quickTimes.tomorrowMorning), sendAt: atHour(now, 1, 9) },
     ...(daysToMonday > 1
-      ? [{ label: 'У понеділок о 09:00', sendAt: atHour(now, daysToMonday, 9) }]
+      ? [{ label: t(($) => $.quickTimes.mondayMorning), sendAt: atHour(now, daysToMonday, 9) }]
       : []),
   ];
 }
 
 /** A send time as it reads inside a sentence: "завтра о 09:00", "20 жовтня о 09:00". */
-export function sendTimeLabel(sendAt: Date, now: Date): string {
-  const clock = clockFormat.format(sendAt);
+export function sendTimeLabel(
+  sendAt: Date,
+  now: Date,
+  t: TFunction<'scheduling'>,
+  locale: string,
+): string {
+  const clock = clockFormat(locale).format(sendAt);
   const days = Math.round((startOfDay(sendAt) - startOfDay(now)) / DAY_MS);
 
-  if (days === 0) return `сьогодні о ${clock}`;
-  if (days === 1) return `завтра о ${clock}`;
+  if (days === 0) return t(($) => $.sendTime.today, { clock });
+  if (days === 1) return t(($) => $.sendTime.tomorrow, { clock });
   const format = sendAt.getFullYear() === now.getFullYear() ? dateFormat : datedYearFormat;
-  return `${format.format(sendAt)} о ${clock}`;
+  return t(($) => $.sendTime.onDate, { date: format(locale).format(sendAt), clock });
 }
 
-export function sendTimeHeading(sendAt: Date, now: Date): string {
-  const label = sendTimeLabel(sendAt, now);
+export function sendTimeHeading(
+  sendAt: Date,
+  now: Date,
+  t: TFunction<'scheduling'>,
+  locale: string,
+): string {
+  const label = sendTimeLabel(sendAt, now, t, locale);
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 

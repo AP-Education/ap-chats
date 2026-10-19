@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import { i18n, i18nReady } from '../../../shared/i18n/i18n';
 import {
   type MentionToken,
   previewText,
@@ -12,6 +13,8 @@ import {
   writeToken,
 } from './mention-tokens';
 
+await i18nReady('uk');
+const t = i18n.getFixedT('uk', 'mentions');
 const id = '123e4567-e89b-42d3-a456-426614174000';
 
 test('every reference splits out and writes back as it was', () => {
@@ -37,7 +40,7 @@ test('every reference splits out and writes back as it was', () => {
 
 test('a preview reads every reference as a word on one line', () => {
   assert.equal(
-    previewText(`:mention[everyone]\nзустріч у :channel[${id}] з :member[${id}] і :role[${id}]`),
+    previewText(`:mention[everyone]\nзустріч у :channel[${id}] з :member[${id}] і :role[${id}]`, t),
     '@everyone зустріч у #канал з @учасник і @роль',
   );
 });
@@ -65,8 +68,8 @@ test('each kind of reference survives the trip through rendered attributes', () 
 });
 
 test('a reference reads by its name where known, otherwise by what it is', () => {
-  assert.equal(tokenText({ kind: 'role', id }, 'дизайн'), '@дизайн');
-  assert.equal(tokenText({ kind: 'role', id }), '@роль');
-  assert.equal(tokenText({ kind: 'channel', id }, 'загальне'), '#загальне');
-  assert.equal(tokenText({ kind: 'everyone' }), '@everyone');
+  assert.equal(tokenText({ kind: 'role', id }, t, 'дизайн'), '@дизайн');
+  assert.equal(tokenText({ kind: 'role', id }, t), '@роль');
+  assert.equal(tokenText({ kind: 'channel', id }, t, 'загальне'), '#загальне');
+  assert.equal(tokenText({ kind: 'everyone' }, t), '@everyone');
 });

@@ -2,6 +2,7 @@ import { useMobileMenu, useMobileMenuTrigger } from '@ap-education/shell-sdk';
 import { CountBadge, IconButton, useIsMobile } from '@ap-education/ui';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   button: css`
@@ -17,6 +18,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
 export function MobileMenuButton() {
   const { styles } = useStyles();
+  const { t } = useTranslation('navigation');
   const isMobile = useIsMobile();
   const { badgeCount: unreadCount } = useMobileMenu();
   const trigger = useMobileMenuTrigger();
@@ -25,8 +27,8 @@ export function MobileMenuButton() {
 
   const label =
     unreadCount > 0
-      ? `Відкрити список розмов, непрочитаних: ${unreadCount}`
-      : 'Відкрити список розмов';
+      ? t(($) => $.openConversationsUnread, { count: unreadCount })
+      : t(($) => $.openConversations);
 
   return (
     <IconButton size={44} className={styles.button} aria-label={label} {...trigger}>

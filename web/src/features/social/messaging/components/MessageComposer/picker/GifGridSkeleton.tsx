@@ -1,5 +1,6 @@
 import { Skeleton, theme } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ css }) => ({
   grid: css`
@@ -14,6 +15,7 @@ const useStyles = createStyles(({ css }) => ({
 
 export function GifGridSkeleton() {
   const { styles } = useStyles();
+  const { t } = useTranslation('messaging');
   const { token } = theme.useToken();
   const tile = {
     root: { width: '100%' },
@@ -26,7 +28,7 @@ export function GifGridSkeleton() {
   };
 
   return (
-    <div className={styles.grid} aria-label="Шукаємо GIF" role="status">
+    <div className={styles.grid} aria-label={t(($) => $.picker.gifSearching)} role="status">
       {[0, 1, 2, 3, 4, 5].map((index) => (
         <Skeleton.Node key={index} active styles={tile} />
       ))}

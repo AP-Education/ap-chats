@@ -1,4 +1,5 @@
 import type { UseMutationResult } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { isWorkspaceAdministrator } from '@/features/workspaces/workspace-access';
@@ -42,6 +43,7 @@ function groupByCategory(channels: Channel[]): Map<string, Channel[]> {
 // Owns the data behind ChannelsSidebar: the person's channels and the workspace categories,
 // reshaped into the sections the sidebar renders (categories in order, then "uncategorized").
 export function useChannelSections(workspaceId: string): ChannelSectionsResult {
+  const { t } = useTranslation('communities');
   const channelsQuery = useChannels(workspaceId);
   const channels = channelsQuery.data;
   const { query: categoriesQuery, create: createCategory } = useChannelCategories(workspaceId);
@@ -65,7 +67,7 @@ export function useChannelSections(workspaceId: string): ChannelSectionsResult {
     })),
     {
       id: UNCATEGORIZED,
-      name: 'Без категорії',
+      name: t(($) => $.channels.noCategory),
       channels: channelsByCategory.get(UNCATEGORIZED) ?? [],
       canCreateChannel: isAdministrator,
     },

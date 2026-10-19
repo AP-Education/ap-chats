@@ -1,6 +1,7 @@
 import { useIsMobile } from '@ap-education/ui';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { RoleBadge } from '@/features/roles/types';
 
@@ -35,6 +36,7 @@ interface MemberRoleSectionProps {
 
 export function MemberRoleSection({ onManageRoles }: MemberRoleSectionProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('people');
   const isMobile = useIsMobile();
   const { profile, canManageRoles, toggleRole } = useMemberCard();
   const roles = profile?.roles ?? [];
@@ -44,14 +46,14 @@ export function MemberRoleSection({ onManageRoles }: MemberRoleSectionProps) {
   const addOnDesktop = canManageRoles && !isMobile && <AddRolePopover />;
 
   return (
-    <section className={styles.section} aria-label="Ролі">
-      <h4 className={styles.heading}>Ролі</h4>
+    <section className={styles.section} aria-label={t(($) => $.roles.title)}>
+      <h4 className={styles.heading}>{t(($) => $.roles.title)}</h4>
       <MemberRoleChips roles={roles} onRemove={removeRole}>
         {addOnDesktop}
       </MemberRoleChips>
       {canManageRoles && isMobile && (
         <Button size="small" onClick={onManageRoles}>
-          Керувати ролями
+          {t(($) => $.roles.manage)}
         </Button>
       )}
     </section>

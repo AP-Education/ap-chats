@@ -1,16 +1,11 @@
+import { useTranslation } from 'react-i18next';
+
 import { useIsReadByPeer } from '@/features/social/read-receipts/stores/peer-read-context';
 
 import type { DeliveryStatus } from '../../types';
 import styles from './DeliveryMark.module.css';
 
 type MarkState = 'failed' | 'sending' | 'sent' | 'read';
-
-const labels: Record<MarkState, string> = {
-  failed: 'Не надіслано',
-  sending: 'Надсилається',
-  sent: 'Надіслано',
-  read: 'Прочитано',
-};
 
 /** Telegram's marks as one glyph: a clock while sending, one check once sent, two once read. */
 export function DeliveryMark({
@@ -20,6 +15,7 @@ export function DeliveryMark({
   delivery: DeliveryStatus | undefined;
   seq: string;
 }) {
+  const { t } = useTranslation('messaging');
   const isRead = useIsReadByPeer(seq);
   const state = markState(delivery, isRead);
 
@@ -31,7 +27,7 @@ export function DeliveryMark({
       width={18}
       height={12}
       role="img"
-      aria-label={labels[state]}
+      aria-label={t(($) => $.message.delivery[state])}
     >
       <g data-part="alert">
         <circle cx="9" cy="6" r="4.75" />

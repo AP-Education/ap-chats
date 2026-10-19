@@ -1,5 +1,6 @@
 import { ChatsCircleIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   empty: css`
@@ -25,12 +26,13 @@ const useStyles = createStyles(({ token, css }) => ({
 
 export function EmptyTimeline() {
   const { styles } = useStyles();
+  const { t } = useTranslation('messaging');
 
   return (
     <div className={styles.empty}>
       <div className={styles.emptyCard}>
         <ChatsCircleIcon size={36} weight="duotone" aria-hidden />
-        Тут почнеться розмова
+        {t(($) => $.timeline.empty)}
       </div>
     </div>
   );

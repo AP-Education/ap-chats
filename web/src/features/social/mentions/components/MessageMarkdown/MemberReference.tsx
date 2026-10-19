@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
 
@@ -15,8 +17,9 @@ interface MemberReferenceProps {
 
 /** A person named in a message: opens their profile, or plain where it cannot. */
 export function MemberReference({ memberId, person, inline, mine }: MemberReferenceProps) {
+  const { t } = useTranslation('mentions');
   const { workspaceId } = useConversationScope();
-  const text = tokenText({ kind: 'member', id: memberId }, person?.displayName ?? undefined);
+  const text = tokenText({ kind: 'member', id: memberId }, t, person?.displayName ?? undefined);
   const variant = { 'data-me': mine || undefined, 'data-assistant': person?.isBot || undefined };
 
   if (inline || !person)

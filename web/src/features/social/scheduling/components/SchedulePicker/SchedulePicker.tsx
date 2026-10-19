@@ -1,6 +1,8 @@
+import { useShellLocale } from '@ap-education/shell-sdk';
 import { useIsMobile } from '@ap-education/ui';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { AdaptiveModal } from '@/shared/ui/AdaptiveModal';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
@@ -43,12 +45,14 @@ interface SchedulePickerProps {
 /** When a message goes out: a sheet on a phone, a dialog elsewhere, the same choice in both. */
 export function SchedulePicker({ title, initial, pending, onPick, onClose }: SchedulePickerProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['scheduling', 'common']);
+  const locale = useShellLocale();
   const isMobile = useIsMobile();
   const pick = useSendTimePick(initial);
   const { sendAt } = pick;
   const summary = sendAt
-    ? `Надійде ${sendTimeLabel(sendAt, pick.now)}`
-    : 'Оберіть час, що ще не настав, у межах року';
+    ? t(($) => $.arrivesAt, { when: sendTimeLabel(sendAt, pick.now, t, locale) })
+    : t(($) => $.pickPrompt);
 
   function submit() {
     if (sendAt) onPick(sendAt);
@@ -63,9 +67,9 @@ export function SchedulePicker({ title, initial, pending, onPick, onClose }: Sch
         <p className={styles.summary}>{summary}</p>
         {fields}
         <div className={styles.actions}>
-          <Button onClick={onClose}>Скасувати</Button>
+          <Button onClick={onClose}>{t(($) => $.common.actions.cancel)}</Button>
           <Button type="primary" loading={pending} disabled={!sendAt} onClick={submit}>
-            Запланувати
+            {t(($) => $.schedule)}
           </Button>
         </div>
       </BottomSheet>
@@ -80,8 +84,8 @@ export function SchedulePicker({ title, initial, pending, onPick, onClose }: Sch
       width={400}
       title={title}
       description={summary}
-      okText="Запланувати"
-      cancelText="Скасувати"
+      okText={t(($) => $.schedule)}
+      cancelText={t(($) => $.common.actions.cancel)}
       okButtonProps={{ disabled: !sendAt }}
       confirmLoading={pending}
       onOk={submit}

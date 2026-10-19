@@ -1,5 +1,7 @@
+import { useShellLocale } from '@ap-education/shell-sdk';
 import { IconButton, LoadingIcon, useIsMobile } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 import { callActionLabel } from '@/features/calls/callActionLabel';
@@ -204,11 +206,13 @@ interface CallHistoryRowProps {
 }
 
 export function CallHistoryRow({ entry, active, onNavigate }: CallHistoryRowProps) {
+  const { t } = useTranslation('calls');
+  const locale = useShellLocale();
   const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
   const { latest, count, outgoing } = entry;
   const prefetchHistory = usePrefetchHistory();
-  const name = latest.participant.displayName ?? 'Колега';
+  const name = latest.participant.displayName ?? t(($) => $.colleague);
   const { Icon, live, missed } = getCallStatusIcon(latest.status, outgoing);
   const call = useKnownCallAction(
     latest.workspaceId,
@@ -217,7 +221,11 @@ export function CallHistoryRow({ entry, active, onNavigate }: CallHistoryRowProp
     latest.participant.avatarPath,
     latest,
   );
-  const callTitle = callActionLabel(call, `Подзвонити: ${name}`);
+  const callTitle = callActionLabel(
+    call,
+    t(($) => $.callPerson, { name }),
+    t,
+  );
   const callBackShown = call.inCall || call.joinable || call.pending;
 
   return (
@@ -248,12 +256,12 @@ export function CallHistoryRow({ entry, active, onNavigate }: CallHistoryRowProp
               className={cx(styles.date, callBackShown && styles.dateHidden)}
               dateTime={latest.startedAt}
             >
-              {formatCallDate(latest.startedAt)}
+              {formatCallDate(latest.startedAt, locale)}
             </time>
           </span>
           <span className={cx(styles.status, live && styles.statusLive)}>
             <Icon size={14} weight={live ? 'fill' : 'regular'} className={styles.statusIcon} />
-            <span className={styles.statusText}>{callEntryStatus(entry)}</span>
+            <span className={styles.statusText}>{callEntryStatus(entry, t)}</span>
           </span>
         </span>
       </Link>

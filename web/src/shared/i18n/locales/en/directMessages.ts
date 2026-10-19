@@ -1,0 +1,72 @@
+import type { Translation } from '../../translation';
+import type { directMessages as source } from '../uk/directMessages';
+
+export const directMessages = {
+  page: {
+    title: 'Personal',
+    choosePrompt: 'Select a conversation or message a colleague',
+    unavailable: 'Conversation unavailable',
+    openFailed: 'Couldn’t open the conversation',
+    openFailedToast: 'Couldn’t open the conversation.',
+    composerLabel: 'Message {{name}}',
+    composerPlaceholder: 'Message {{name}}',
+  },
+  nameUnavailable: 'Name unavailable',
+  colleague: 'Colleague',
+  list: {
+    title: 'Conversations',
+    compose: 'Message a colleague',
+    searchPlaceholder: 'Conversation or colleague',
+    searchLabel: 'Find a conversation or colleague',
+    loading: 'Loading conversations',
+    loadFailed: 'Couldn’t load conversations.',
+    notFound: 'Conversation not found',
+    empty: 'No conversations yet',
+    showMore: 'Show more',
+  },
+  unread: {
+    title: 'Unread',
+    sectionLabel: 'Unread personal conversations',
+    loadFailed: 'Couldn’t load unread conversations.',
+    badgeLabel: '{{unread}} unread',
+  },
+  people: {
+    title: 'People',
+    searching: 'Searching for people',
+    searchFailed: 'Couldn’t search for people.',
+    nothingFound: 'Nothing found',
+  },
+  findPerson: {
+    title: 'Message a colleague',
+    placeholder: 'Colleague’s name',
+    startTyping: 'Start typing a name',
+    nobodyFound: 'Nobody found',
+  },
+  row: {
+    messageDeleted: 'Message deleted',
+    attachment: 'Attachment',
+    newConversation: 'New conversation',
+    notificationsOff: 'Notifications off',
+    justNow: 'now',
+    minutesAgo: '{{minutes}}m',
+    hoursAgo: '{{hours}}h',
+    daysAgo: '{{days}}d',
+  },
+  actions: {
+    callTitle: 'Call {{name}}',
+    notificationsFailed: 'Couldn’t change notifications.',
+    notifications: 'Conversation notifications',
+    enableNotifications: 'Turn on notifications',
+    muteHour: 'Mute for 1 hour',
+    muteDay: 'Mute for 24 hours',
+    muteIndefinitely: 'Mute indefinitely',
+    profile: 'Contact profile',
+  },
+  profile: {
+    title: 'Profile',
+    close: 'Close profile',
+    label: '{{name}}’s profile',
+    formerMember: 'No longer in the workspace',
+    memberSince: 'In the workspace since',
+  },
+} satisfies Translation<typeof source>;

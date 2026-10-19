@@ -2,6 +2,7 @@ import { PlusIcon } from '@phosphor-icons/react';
 import { Button, Input, message } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useChannelCategories } from '../../hooks/useChannelCategories';
 
@@ -14,6 +15,7 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 export function NewChannelCategoryField({ workspaceId }: { workspaceId: string }) {
+  const { t } = useTranslation(['communities', 'common']);
   const { styles } = useStyles();
   const { create } = useChannelCategories(workspaceId);
   const [name, setName] = useState('');
@@ -25,7 +27,7 @@ export function NewChannelCategoryField({ workspaceId }: { workspaceId: string }
       { name: trimmed },
       {
         onSuccess: () => setName(''),
-        onError: () => void message.error('Не вдалося створити категорію.'),
+        onError: () => void message.error(t(($) => $.categories.createFailed)),
       },
     );
   }
@@ -33,7 +35,7 @@ export function NewChannelCategoryField({ workspaceId }: { workspaceId: string }
   return (
     <div className={styles.row}>
       <Input
-        placeholder="Нова категорія"
+        placeholder={t(($) => $.categories.newPlaceholder)}
         value={name}
         onChange={(event) => setName(event.target.value)}
         onPressEnter={submit}
@@ -44,7 +46,7 @@ export function NewChannelCategoryField({ workspaceId }: { workspaceId: string }
         loading={create.isPending}
         onClick={submit}
       >
-        Додати
+        {t(($) => $.common.actions.add)}
       </Button>
     </div>
   );

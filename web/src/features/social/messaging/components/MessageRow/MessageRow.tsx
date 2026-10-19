@@ -1,6 +1,9 @@
+import { useShellLocale } from '@ap-education/shell-sdk';
 import { memo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
+import { dateTimeFormat } from '@/shared/i18n/format';
 
 import type { AttachmentDraft } from '../../attachments/types';
 import { useTimelineActions } from '../../timeline-actions-context';
@@ -14,7 +17,7 @@ import { MessageHeader } from './MessageHeader';
 import styles from './MessageRow.module.css';
 import { UnsentNotice } from './UnsentNotice';
 
-const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
+const timeFormat = dateTimeFormat({ hour: '2-digit', minute: '2-digit' });
 
 interface MessageRowProps {
   item: MessageHistoryItem;
@@ -27,8 +30,10 @@ export const MessageRow = memo(function MessageRow({
   delivery,
   pendingAttachments,
 }: MessageRowProps) {
+  const { t } = useTranslation('messaging');
+  const locale = useShellLocale();
   const { viewer } = useTimelineActions();
-  const authorName = item.author.displayName ?? 'Ім’я недоступне';
+  const authorName = item.author.displayName ?? t(($) => $.message.nameUnavailable);
   const isOwnMessage = item.message.authorMemberId === viewer.memberId;
   const mentionsMe = !isOwnMessage && Boolean(item.mentionsMe);
   const isReplyToMe = !isOwnMessage && item.reply?.authorMemberId === viewer.memberId;
@@ -63,7 +68,10 @@ export const MessageRow = memo(function MessageRow({
           'data-mentions-me': highlighted || undefined,
           'data-sending': delivery === 'sending' || delivery === 'uploading' || undefined,
           tabIndex: delivery ? -1 : 0,
-          'aria-label': `Повідомлення від ${authorName}, ${timeFormat.format(new Date(item.message.createdAt))}`,
+          'aria-label': t(($) => $.message.from, {
+            author: authorName,
+            time: timeFormat(locale).format(new Date(item.message.createdAt)),
+          }),
           className: styles.row,
           onClick: (event) => {
             if (!hasSelection || window.getSelection()?.toString()) return;
@@ -93,7 +101,7 @@ export const MessageRow = memo(function MessageRow({
           <input
             type="checkbox"
             className={styles.checkbox}
-            aria-label={`Вибрати повідомлення ${authorName}`}
+            aria-label={t(($) => $.message.select, { author: authorName })}
             checked={isSelected}
             onChange={() => toggleSelected(item.message.id)}
           />

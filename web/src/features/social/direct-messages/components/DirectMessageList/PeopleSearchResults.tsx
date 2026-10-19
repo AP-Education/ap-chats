@@ -8,6 +8,7 @@ import { ChatTextIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
 import { Button, message as toast, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useDebouncedValue } from '@/shared/hooks/useDebouncedValue';
@@ -89,6 +90,7 @@ export function PeopleSearchResults({
   onNavigate,
 }: PeopleSearchResultsProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['directMessages', 'common']);
   const isMobile = useIsMobile();
   const { token, identity } = useQueryAuth();
   const { open, opening } = useOpenDirectMessage(workspaceId);
@@ -108,14 +110,14 @@ export function PeopleSearchResults({
       await open(memberId);
       onNavigate?.();
     } catch {
-      toast.error('Не вдалося відкрити розмову.');
+      toast.error(t(($) => $.page.openFailedToast));
     }
   }
 
   if (searching) {
     return (
-      <div role="status" aria-label="Шукаємо людей">
-        <div className={styles.heading}>Люди</div>
+      <div role="status" aria-label={t(($) => $.people.searching)}>
+        <div className={styles.heading}>{t(($) => $.people.title)}</div>
         {[0, 1].map((row) => (
           <div key={row} className={styles.row}>
             <Skeleton.Avatar active size={isMobile ? 44 : 36} shape="circle" />
@@ -129,9 +131,9 @@ export function PeopleSearchResults({
   if (people.isError) {
     return (
       <div role="alert" className={styles.error}>
-        Не вдалося знайти людей.{' '}
+        {t(($) => $.people.searchFailed)}{' '}
         <Button type="link" onClick={() => void people.refetch()}>
-          Повторити
+          {t(($) => $.common.actions.retry)}
         </Button>
       </div>
     );
@@ -144,14 +146,14 @@ export function PeopleSearchResults({
         <ContentStateIcon>
           <MagnifyingGlassIcon />
         </ContentStateIcon>
-        <ContentStateDescription>Нічого не знайдено</ContentStateDescription>
+        <ContentStateDescription>{t(($) => $.people.nothingFound)}</ContentStateDescription>
       </ContentState>
     );
   }
 
   return (
-    <section aria-label="Люди">
-      <div className={styles.heading}>Люди</div>
+    <section aria-label={t(($) => $.people.title)}>
+      <div className={styles.heading}>{t(($) => $.people.title)}</div>
       {visible.map((person) => (
         <button
           key={person.memberId}
@@ -162,11 +164,11 @@ export function PeopleSearchResults({
         >
           <Avatar
             path={person.avatarPath}
-            alt={person.displayName ?? 'Колега'}
+            alt={person.displayName ?? t(($) => $.colleague)}
             size={isMobile ? 44 : 36}
             shape="circle"
           />
-          <span className={styles.name}>{person.displayName ?? 'Ім’я недоступне'}</span>
+          <span className={styles.name}>{person.displayName ?? t(($) => $.nameUnavailable)}</span>
           <ChatTextIcon className={styles.action} size={20} aria-hidden="true" />
         </button>
       ))}

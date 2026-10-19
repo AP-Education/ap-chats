@@ -2,6 +2,7 @@ import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-edu
 import { ChatsIcon, CheckIcon } from '@phosphor-icons/react';
 import { Button, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import {
   PrivateChannelIcon,
@@ -166,9 +167,10 @@ export function ForwardTargetList({
   searched,
 }: ForwardTargetListProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['forwarding', 'common']);
   if (isLoading) {
     return (
-      <div className={styles.list} role="status" aria-label="Завантажуємо розмови">
+      <div className={styles.list} role="status" aria-label={t(($) => $.loadingConversations)}>
         <div className={styles.state}>
           <Skeleton active avatar paragraph={{ rows: 2 }} title={false} />
         </div>
@@ -177,7 +179,7 @@ export function ForwardTargetList({
   }
 
   return (
-    <div className={styles.list} aria-label="Адресати пересилання">
+    <div className={styles.list} aria-label={t(($) => $.recipients)}>
       {groups.map((group) => (
         <section key={group.label} aria-label={group.label}>
           <div className={styles.heading}>{group.label}</div>
@@ -193,7 +195,7 @@ export function ForwardTargetList({
       ))}
       {isSearching && (
         <div className={styles.state} role="status">
-          Шукаємо колег…
+          {t(($) => $.searchingColleagues)}
         </div>
       )}
       {!isSearching && !groups.length && !hasError && (
@@ -203,22 +205,22 @@ export function ForwardTargetList({
               <ChatsIcon />
             </ContentStateIcon>
             <ContentStateDescription>
-              {searched ? 'Нікого не знайдено' : 'Немає доступних розмов'}
+              {searched ? t(($) => $.nobodyFound) : t(($) => $.noConversations)}
             </ContentStateDescription>
           </ContentState>
         </div>
       )}
       {hasError && (
         <div className={styles.state} role="alert">
-          <span>Не все вдалося завантажити.</span>
+          <span>{t(($) => $.loadFailed)}</span>
           <Button type="link" onClick={retry}>
-            Повторити
+            {t(($) => $.common.actions.retry)}
           </Button>
         </div>
       )}
       {hasMore && (
         <Button block type="text" className={styles.more} loading={loadingMore} onClick={loadMore}>
-          Показати ще розмови
+          {t(($) => $.showMore)}
         </Button>
       )}
     </div>

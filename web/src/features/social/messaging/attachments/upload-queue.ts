@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 import { ApiError } from '@/shared/api/http';
 import { randomId } from '@/shared/lib/random-id';
 
@@ -40,7 +42,12 @@ export class UploadQueue {
     };
   };
 
-  add(files: File[], policy: AttachmentPolicy): string[] {
+  add(
+    files: File[],
+    policy: AttachmentPolicy,
+    t: TFunction<'messaging'>,
+    locale: string,
+  ): string[] {
     const errors: string[] = [];
     // Committed jobs belong to a message already on its way out, not this
     // one in progress — they shouldn't count against its own limits.
@@ -48,12 +55,18 @@ export class UploadQueue {
     let total = this.snapshot.reduce((sum, item) => sum + item.size, 0);
     for (const file of files) {
       let error: string | undefined;
-      if (visibleCount >= policy.maxFiles) error = `До ${policy.maxFiles} файлів у повідомленні`;
-      else if (!file.size) error = `${file.name}: файл порожній`;
+      if (visibleCount >= policy.maxFiles)
+        error = t(($) => $.attachments.errors.tooMany, { max: policy.maxFiles });
+      else if (!file.size) error = t(($) => $.attachments.errors.empty, { name: file.name });
       else if (file.size > policy.maxFileBytes)
-        error = `${file.name}: ліміт ${formatFileSize(policy.maxFileBytes)} на файл`;
+        error = t(($) => $.attachments.errors.fileTooLarge, {
+          name: file.name,
+          limit: formatFileSize(policy.maxFileBytes, locale),
+        });
       else if (total + file.size > policy.maxMessageBytes)
-        error = `Загальний розмір перевищує ${formatFileSize(policy.maxMessageBytes)}`;
+        error = t(($) => $.attachments.errors.totalTooLarge, {
+          limit: formatFileSize(policy.maxMessageBytes, locale),
+        });
       if (error) {
         errors.push(error);
         continue;
@@ -224,10 +237,7 @@ export class UploadQueue {
       }
       update({
         status: 'error',
-        error:
-          error instanceof ApiError && error.status === 404
-            ? 'Час завантаження минув. Спробуйте ще раз.'
-            : 'Не вдалося завантажити. Перевірте з’єднання й повторіть.',
+        error: error instanceof ApiError && error.status === 404 ? 'uploadExpired' : 'uploadFailed',
       });
     }
   }

@@ -3,6 +3,7 @@ import { BellIcon, BellSlashIcon } from '@phosphor-icons/react';
 import { Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { ChannelNotificationsMenu } from './ChannelNotificationsMenu';
 import { useChannelNotificationPreference } from './useChannelNotificationPreference';
@@ -31,6 +32,7 @@ export function ChannelNotificationsPopover({
   channelId,
   compact = false,
 }: ChannelNotificationsPopoverProps) {
+  const { t } = useTranslation('communities');
   const { styles, cx } = useStyles();
   const preference = useChannelNotificationPreference(workspaceId, channelId);
   const [open, setOpen] = useState(false);
@@ -44,7 +46,7 @@ export function ChannelNotificationsPopover({
       onOpenChange={setOpen}
       destroyOnHidden
       content={
-        <div className={styles.menu} role="dialog" aria-label="Сповіщення каналу">
+        <div className={styles.menu} role="dialog" aria-label={t(($) => $.notifications.title)}>
           <ChannelNotificationsMenu preference={preference} onDone={() => setOpen(false)} />
         </div>
       }
@@ -52,7 +54,7 @@ export function ChannelNotificationsPopover({
       <IconButton
         size={compact ? 40 : 36}
         className={cx(styles.trigger, (open || preference.isMuted) && styles.triggerActive)}
-        aria-label="Сповіщення каналу"
+        aria-label={t(($) => $.notifications.title)}
         aria-expanded={open}
         aria-haspopup="dialog"
         disabled={preference.changing}

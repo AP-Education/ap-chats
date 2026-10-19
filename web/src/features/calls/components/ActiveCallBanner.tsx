@@ -1,7 +1,9 @@
 import { IconButton } from '@ap-education/ui';
 import { XIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
+import type { TFunction } from 'i18next';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { CallStatus } from '../api/calls-api';
 import { callActionLabel } from '../callActionLabel';
@@ -29,6 +31,7 @@ export function ActiveCallBanner({
   title,
   calleeAvatarPath,
 }: ActiveCallBannerProps) {
+  const { t } = useTranslation('calls');
   const activeCall = useActiveCall(workspaceId, channelId);
   const call = useKnownCallAction(workspaceId, channelId, title, calleeAvatarPath, activeCall.data);
   const decline = useDeclineIncomingCall();
@@ -57,7 +60,7 @@ export function ActiveCallBanner({
         <CallIcon size={18} weight="fill" />
       </span>
       <span className={styles.info}>
-        <span className={styles.label}>{bannerLabel(activeCall.data.status)}</span>
+        <span className={styles.label}>{bannerLabel(activeCall.data.status, t)}</span>
         <span className={styles.duration}>{duration}</span>
       </span>
       <Button
@@ -68,12 +71,16 @@ export function ActiveCallBanner({
         disabled={call.busy}
         onClick={call.onClick}
       >
-        {callActionLabel(call, 'Приєднатися')}
+        {callActionLabel(
+          call,
+          t(($) => $.join),
+          t,
+        )}
       </Button>
       <IconButton
         size={36}
         className={styles.dismiss}
-        aria-label={isDm ? 'Відхилити дзвінок' : 'Приховати сповіщення про дзвінок'}
+        aria-label={isDm ? t(($) => $.declineCall) : t(($) => $.hideCallNotice)}
         onClick={handleDismiss}
       >
         <XIcon size={18} />
@@ -82,7 +89,7 @@ export function ActiveCallBanner({
   );
 }
 
-function bannerLabel(status: CallStatus): string {
-  if (status === 'ringing') return 'Вхідний дзвінок';
-  return 'Дзвінок триває';
+function bannerLabel(status: CallStatus, t: TFunction<'calls'>): string {
+  if (status === 'ringing') return t(($) => $.incomingCall);
+  return t(($) => $.inProgress);
 }

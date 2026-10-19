@@ -1,5 +1,7 @@
+import { useShellLocale } from '@ap-education/shell-sdk';
 import { FileIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { fileExtension, formatFileSize } from '../../attachments/file-presentation';
 import type { AttachmentDraft } from '../../attachments/types';
@@ -71,18 +73,23 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-const STATUS_LABEL: Record<string, string> = {
-  queued: 'У черзі',
-  uploading: 'Завантаження',
-  processing: 'Обробка файлу',
-};
-
 // Rendered in place of MessageAttachments while delivery === 'uploading':
 // the message is already in the timeline (sending never waits on uploads),
 // so this shows the same drafts the composer was tracking, live.
 export function PendingAttachments({ drafts }: { drafts: AttachmentDraft[] }) {
   const { styles } = useStyles();
+  const { t } = useTranslation('messaging');
+  const locale = useShellLocale();
   if (!drafts.length) return null;
+
+  function statusLabel(draft: AttachmentDraft) {
+    if (draft.status === 'uploading') {
+      return t(($) => $.attachments.status.uploading, { progress: draft.progress });
+    }
+    if (draft.status === 'processing') return t(($) => $.attachments.status.processing);
+    return t(($) => $.attachments.status.queued);
+  }
+
   return (
     <div className={styles.stack}>
       {drafts.map((draft) => (
@@ -98,10 +105,8 @@ export function PendingAttachments({ drafts }: { drafts: AttachmentDraft[] }) {
             <div className={styles.details}>
               <div className={styles.name}>{draft.name}</div>
               <div className={styles.meta}>
-                {fileExtension(draft.name)} · {formatFileSize(draft.size)} ·{' '}
-                {draft.status === 'uploading'
-                  ? `${STATUS_LABEL.uploading} ${draft.progress}%`
-                  : (STATUS_LABEL[draft.status] ?? STATUS_LABEL.queued)}
+                {fileExtension(draft.name, t)} · {formatFileSize(draft.size, locale)} ·{' '}
+                {statusLabel(draft)}
               </div>
               {draft.status === 'uploading' && (
                 <div className={styles.progress} role="progressbar" aria-valuenow={draft.progress}>

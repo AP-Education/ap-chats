@@ -1,9 +1,8 @@
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { MemberSummary } from '@/features/workspaces/types';
 import { Avatar } from '@/shared/ui/Avatar';
-
-import { messageCount } from '../../messageCount';
 
 const useStyles = createStyles(({ token, css }) => ({
   excerpt: css`
@@ -34,14 +33,15 @@ const useStyles = createStyles(({ token, css }) => ({
 /** Whom the composer asks, and about how many messages. */
 export function AskExcerpt({ member, count }: { member: MemberSummary; count: number }) {
   const { styles } = useStyles();
-  const name = member.displayName ?? 'учасника';
+  const { t } = useTranslation('messaging');
+  const name = member.displayName ?? t(($) => $.ask.fallbackName);
 
   return (
     <div className={styles.excerpt}>
       <Avatar path={member.avatarPath} alt={name} size={28} shape="circle" />
       <div className={styles.text}>
-        <span className={styles.title}>Запитати {name}</span>
-        <span className={styles.detail}>про {messageCount(count)}</span>
+        <span className={styles.title}>{t(($) => $.ask.title, { name })}</span>
+        <span className={styles.detail}>{t(($) => $.ask.about, { count })}</span>
       </div>
     </div>
   );

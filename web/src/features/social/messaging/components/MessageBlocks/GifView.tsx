@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { mediaKey, useMediaViewer } from '../../media-viewer-context';
 import type { GifBlock } from '../../types';
@@ -19,6 +20,7 @@ export function GifView({
   messageId: string;
   overlay?: ReactNode;
 }) {
+  const { t } = useTranslation('messaging');
   const viewer = useMediaViewer();
   const [broken, setBroken] = useState(false);
   const key = mediaKey(messageId, 'gif');
@@ -45,7 +47,7 @@ export function GifView({
       <button
         type="button"
         className={styles.open}
-        aria-label={`Переглянути ${block.title || 'GIF'}`}
+        aria-label={t(($) => $.message.viewGif, { title: block.title || 'GIF' })}
         onClick={() => viewer.open(key)}
       />
       <span className={styles.label} aria-hidden>

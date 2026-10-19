@@ -9,12 +9,14 @@ import {
   useIsMobile,
 } from '@ap-education/ui';
 import { PhoneIcon } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 /** On mobile the page keeps its header, so the list of calls stays one tap away. */
 export default function NoCallSelected() {
+  const { t } = useTranslation('calls');
   const isMobile = useIsMobile();
 
   return (
@@ -22,7 +24,7 @@ export default function NoCallSelected() {
       {isMobile && (
         <PageHeader>
           <MobileMenuButton />
-          <PageTitle>Дзвінки</PageTitle>
+          <PageTitle>{t(($) => $.title)}</PageTitle>
         </PageHeader>
       )}
       <PageBody>
@@ -31,7 +33,7 @@ export default function NoCallSelected() {
             <ContentStateIcon>
               <PhoneIcon />
             </ContentStateIcon>
-            <ContentStateTitle>Оберіть дзвінок, щоб відкрити розмову</ContentStateTitle>
+            <ContentStateTitle>{t(($) => $.selectCall)}</ContentStateTitle>
           </ContentState>
         </RefreshOnPull>
       </PageBody>

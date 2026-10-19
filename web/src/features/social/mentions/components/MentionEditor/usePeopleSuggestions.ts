@@ -1,5 +1,7 @@
 import { UsersThreeIcon } from '@phosphor-icons/react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
@@ -17,19 +19,21 @@ interface MentionableMember {
 
 const EVERYONE_ALIASES = ['everyone', 'all', 'усі', 'всі'];
 
-const everyone: Suggestion = {
-  key: 'everyone',
-  token: { kind: 'everyone' },
-  label: '@everyone',
-  visual: { icon: UsersThreeIcon },
-  hint: 'Сповістити всіх у каналі',
-};
+function everyoneSuggestion(t: TFunction<'mentions'>): Suggestion {
+  return {
+    key: 'everyone',
+    token: { kind: 'everyone' },
+    label: '@everyone',
+    visual: { icon: UsersThreeIcon },
+    hint: t(($) => $.suggestions.everyoneHint),
+  };
+}
 
-function memberSuggestion(member: MentionableMember): Suggestion {
+function memberSuggestion(member: MentionableMember, t: TFunction<'mentions'>): Suggestion {
   return {
     key: member.memberId,
     token: { kind: 'member', id: member.memberId },
-    label: member.displayName ?? 'Ім’я недоступне',
+    label: member.displayName ?? t(($) => $.suggestions.nameUnavailable),
     visual: { avatarPath: member.avatarPath },
     isBot: member.isBot,
   };
@@ -42,6 +46,7 @@ function matchesEveryone(text: string) {
 
 /** After `@`: members of the conversation, then roles and @everyone where it offers them. */
 export function usePeopleSuggestions(query: SuggestionQuery | null): SuggestionGroup | null {
+  const { t } = useTranslation('mentions');
   const { workspaceId, channelId, composer } = useConversationScope();
   const { token } = useQueryAuth();
   const roles = useRoleSuggestions(query);
@@ -61,11 +66,11 @@ export function usePeopleSuggestions(query: SuggestionQuery | null): SuggestionG
 
   if (text === null) return null;
 
-  const items = [...(members.data ?? []).map(memberSuggestion), ...roles];
-  if (composer.groupMentions && matchesEveryone(text)) items.push(everyone);
+  const items = [...(members.data ?? []).map((member) => memberSuggestion(member, t)), ...roles];
+  if (composer.groupMentions && matchesEveryone(text)) items.push(everyoneSuggestion(t));
   return {
-    heading: roles.length ? 'Учасники та ролі' : 'Учасники',
-    ariaLabel: 'Згадати людину або роль',
+    heading: roles.length ? t(($) => $.suggestions.peopleAndRoles) : t(($) => $.suggestions.people),
+    ariaLabel: t(($) => $.suggestions.mentionLabel),
     items,
   };
 }

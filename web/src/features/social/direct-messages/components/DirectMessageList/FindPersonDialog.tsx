@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button, Input, message as toast, Modal, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import type { MemberSummary } from '@/features/workspaces/types';
@@ -56,6 +57,7 @@ export function FindPersonDialog({
   onNavigate,
 }: FindPersonDialogProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['directMessages', 'common']);
   const { token, identity } = useQueryAuth();
   const { open: openConversation, opening } = useOpenDirectMessage(workspaceId);
   const [query, setQuery] = useState('');
@@ -79,16 +81,22 @@ export function FindPersonDialog({
       setQuery('');
       onNavigate?.();
     } catch {
-      toast.error('Не вдалося відкрити розмову.');
+      toast.error(t(($) => $.page.openFailedToast));
     }
   }
 
   return (
-    <Modal title="Написати колезі" open={open} onCancel={onClose} footer={null} destroyOnHidden>
+    <Modal
+      title={t(($) => $.findPerson.title)}
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      destroyOnHidden
+    >
       <Input
         autoFocus
-        placeholder="Ім’я колеги"
-        aria-label="Ім’я колеги"
+        placeholder={t(($) => $.findPerson.placeholder)}
+        aria-label={t(($) => $.findPerson.placeholder)}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
@@ -98,7 +106,7 @@ export function FindPersonDialog({
             <ContentStateIcon>
               <MagnifyingGlassIcon />
             </ContentStateIcon>
-            <ContentStateDescription>Почніть вводити ім’я</ContentStateDescription>
+            <ContentStateDescription>{t(($) => $.findPerson.startTyping)}</ContentStateDescription>
           </ContentState>
         )}
         {hasQuery &&
@@ -111,9 +119,9 @@ export function FindPersonDialog({
           ))}
         {hasQuery && !searching && people.isError && (
           <div role="alert" className={styles.error}>
-            Не вдалося знайти людей.{' '}
+            {t(($) => $.people.searchFailed)}{' '}
             <Button type="link" onClick={() => void people.refetch()}>
-              Повторити
+              {t(($) => $.common.actions.retry)}
             </Button>
           </div>
         )}
@@ -122,7 +130,7 @@ export function FindPersonDialog({
             <ContentStateIcon>
               <MagnifyingGlassIcon />
             </ContentStateIcon>
-            <ContentStateDescription>Нікого не знайдено</ContentStateDescription>
+            <ContentStateDescription>{t(($) => $.findPerson.nobodyFound)}</ContentStateDescription>
           </ContentState>
         )}
         {hasQuery &&
@@ -138,11 +146,11 @@ export function FindPersonDialog({
             >
               <Avatar
                 path={person.avatarPath}
-                alt={person.displayName ?? 'Колега'}
+                alt={person.displayName ?? t(($) => $.colleague)}
                 size={32}
                 shape="circle"
               />
-              <span>{person.displayName ?? 'Ім’я недоступне'}</span>
+              <span>{person.displayName ?? t(($) => $.nameUnavailable)}</span>
             </button>
           ))}
       </div>

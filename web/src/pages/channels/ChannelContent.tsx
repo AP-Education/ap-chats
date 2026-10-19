@@ -15,6 +15,7 @@ import {
 import { ChatsIcon, ProhibitIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 
 import { ChannelDetail } from '@/features/communities/channels/components/ChannelDetail';
@@ -31,6 +32,7 @@ import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 /** On mobile the page keeps its header, so the menu with the channel list stays one tap away. */
 function NoChannelSelected() {
+  const { t } = useTranslation('communities');
   const isMobile = useIsMobile();
 
   return (
@@ -38,7 +40,7 @@ function NoChannelSelected() {
       {isMobile && (
         <PageHeader>
           <MobileMenuButton />
-          <PageTitle>Чати</PageTitle>
+          <PageTitle>{t(($) => $.channels.page.title)}</PageTitle>
         </PageHeader>
       )}
       <PageBody>
@@ -47,7 +49,7 @@ function NoChannelSelected() {
             <ContentStateIcon>
               <ChatsIcon />
             </ContentStateIcon>
-            <ContentStateTitle>Оберіть канал зі списку</ContentStateTitle>
+            <ContentStateTitle>{t(($) => $.channels.page.pickChannel)}</ContentStateTitle>
           </ContentState>
         </RefreshOnPull>
       </PageBody>
@@ -56,20 +58,23 @@ function NoChannelSelected() {
 }
 
 function ChannelUnavailable() {
+  const { t } = useTranslation('communities');
+
   return (
     <StatePage>
       <ContentStateIcon>
         <ProhibitIcon />
       </ContentStateIcon>
-      <ContentStateTitle>Канал недоступний</ContentStateTitle>
+      <ContentStateTitle>{t(($) => $.channels.page.unavailableTitle)}</ContentStateTitle>
       <ContentStateDescription>
-        Його видалили або у вас більше немає до нього доступу.
+        {t(($) => $.channels.page.unavailableDescription)}
       </ContentStateDescription>
     </StatePage>
   );
 }
 
 export default function ChannelContent() {
+  const { t } = useTranslation(['communities', 'common']);
   const { id: workspaceId } = useRequiredWorkspace();
   const { channelId } = useParams<{ channelId?: string }>();
   const query = useChannel(workspaceId, channelId);
@@ -90,9 +95,11 @@ export default function ChannelContent() {
         <ContentStateIcon tone="danger">
           <WarningCircleIcon />
         </ContentStateIcon>
-        <ContentStateTitle>Не вдалося завантажити канал</ContentStateTitle>
+        <ContentStateTitle>{t(($) => $.channels.page.loadFailed)}</ContentStateTitle>
         <ContentStateActions>
-          <Button onClick={() => void query.refetch()}>Спробувати ще раз</Button>
+          <Button onClick={() => void query.refetch()}>
+            {t(($) => $.common.actions.tryAgain)}
+          </Button>
         </ContentStateActions>
       </StatePage>
     );
@@ -100,6 +107,8 @@ export default function ChannelContent() {
 
   const channel = query.data;
   if (!channel) return <ChannelUnavailable />;
+
+  const composerLabel = t(($) => $.channels.composer, { name: channel.name });
 
   return (
     <Page>
@@ -111,8 +120,8 @@ export default function ChannelContent() {
           channelId: channel.id,
           title: channel.name,
           composer: {
-            ariaLabel: `Написати в #${channel.name}`,
-            placeholder: `Написати в #${channel.name}`,
+            ariaLabel: composerLabel,
+            placeholder: composerLabel,
             groupMentions: true,
           },
           permissions: {

@@ -1,3 +1,4 @@
+import { useShellLocale } from '@ap-education/shell-sdk';
 import { IconButton } from '@ap-education/ui';
 import {
   ArrowClockwiseIcon,
@@ -9,6 +10,7 @@ import {
 import { Button, Input, Modal, Progress } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { fileExtension, formatFileSize } from '../../../attachments/file-presentation';
 import type { AttachmentDraft } from '../../../attachments/types';
@@ -121,9 +123,10 @@ interface AttachmentDraftsProps {
 
 export function AttachmentDrafts({ drafts, onRemove, onRetry, onDescribe }: AttachmentDraftsProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('messaging');
   if (!drafts.length) return null;
   return (
-    <section aria-label="Вкладення до повідомлення">
+    <section aria-label={t(($) => $.attachments.drafts)}>
       <div className={styles.strip}>
         {drafts.map((draft) => (
           <DraftAttachmentCard
@@ -146,15 +149,20 @@ function DraftAttachmentCard({
   onDescribe,
 }: Omit<AttachmentDraftsProps, 'drafts'> & { draft: AttachmentDraft }) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['messaging', 'common']);
+  const locale = useShellLocale();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState(draft.description);
   const failed = draft.status === 'error';
   const ready = draft.status === 'ready';
-  let label = 'У черзі';
-  if (draft.status === 'uploading') label = `Завантаження ${draft.progress}%`;
-  if (draft.status === 'processing') label = 'Обробка файлу';
-  if (ready) label = 'Готово';
-  if (failed) label = 'Помилка завантаження';
+  const errorKey = draft.error;
+  let label: string = t(($) => $.attachments.status.queued);
+  if (draft.status === 'uploading') {
+    label = t(($) => $.attachments.status.uploading, { progress: draft.progress });
+  }
+  if (draft.status === 'processing') label = t(($) => $.attachments.status.processing);
+  if (ready) label = t(($) => $.attachments.status.ready);
+  if (failed) label = t(($) => $.attachments.status.failed);
 
   return (
     <article className={styles.card} data-error={failed || undefined} aria-label={draft.name}>
@@ -163,7 +171,7 @@ function DraftAttachmentCard({
           type="button"
           className={styles.media}
           onClick={() => setOpen(true)}
-          aria-label={`Переглянути ${draft.name}`}
+          aria-label={t(($) => $.attachments.view, { name: draft.name })}
         >
           <img src={draft.previewUrl} alt={draft.description || draft.name} />
         </button>
@@ -176,7 +184,7 @@ function DraftAttachmentCard({
         {draft.previewUrl && (
           <IconButton
             size={36}
-            aria-label={`Опис зображення ${draft.name}`}
+            aria-label={t(($) => $.attachments.describeImage, { name: draft.name })}
             onClick={() => setOpen(true)}
           >
             <PencilSimpleIcon size={17} />
@@ -184,7 +192,7 @@ function DraftAttachmentCard({
         )}
         <IconButton
           size={36}
-          aria-label={`Прибрати ${draft.name}`}
+          aria-label={t(($) => $.attachments.remove, { name: draft.name })}
           onClick={() => onRemove(draft.key)}
         >
           <XIcon size={17} />
@@ -195,7 +203,7 @@ function DraftAttachmentCard({
           {draft.name}
         </div>
         <div className={styles.meta}>
-          {fileExtension(draft.name)} · {formatFileSize(draft.size)}
+          {fileExtension(draft.name, t)} · {formatFileSize(draft.size, locale)}
         </div>
         <div
           className={styles.status}
@@ -215,18 +223,18 @@ function DraftAttachmentCard({
             type="link"
             size="small"
             icon={<ArrowClockwiseIcon size={14} />}
-            title={draft.error}
+            title={errorKey && t(($) => $.attachments.errors[errorKey])}
             onClick={() => onRetry(draft.key)}
           >
-            Повторити
+            {t(($) => $.common.actions.retry)}
           </Button>
         )}
       </div>
       <Modal
         open={open}
         title={draft.name}
-        okText="Зберегти"
-        cancelText="Скасувати"
+        okText={t(($) => $.common.actions.save)}
+        cancelText={t(($) => $.common.actions.cancel)}
         onCancel={() => setOpen(false)}
         onOk={() => {
           onDescribe(draft.key, description);
@@ -240,14 +248,16 @@ function DraftAttachmentCard({
           alt={draft.description || draft.name}
         />
         <div className={styles.description}>
-          <label htmlFor={`description-${draft.key}`}>Опис зображення</label>
+          <label htmlFor={`description-${draft.key}`}>
+            {t(($) => $.attachments.imageDescription)}
+          </label>
           <Input.TextArea
             id={`description-${draft.key}`}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             maxLength={1000}
             rows={3}
-            placeholder="Що зображено? Опис допомагає людям, які користуються екранним читачем."
+            placeholder={t(($) => $.attachments.imageDescriptionPlaceholder)}
           />
         </div>
       </Modal>

@@ -1,5 +1,6 @@
 import { useMutation, type UseMutationResult, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
@@ -16,6 +17,7 @@ interface AccessLevelChange {
 export function useChangeAccessLevel(
   workspaceId: string,
 ): UseMutationResult<WorkspaceMember, Error, AccessLevelChange> {
+  const { t } = useTranslation('workspaces');
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
 
@@ -27,6 +29,6 @@ export function useChangeAccessLevel(
         queryKey: workspaceQueryKeys.members(identity, workspaceId),
       });
     },
-    onError: () => void message.error('Не вдалося змінити рівень доступу.'),
+    onError: () => void message.error(t(($) => $.changeAccessLevelFailed)),
   });
 }

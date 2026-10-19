@@ -6,6 +6,7 @@ import {
 } from '@livekit/components-react';
 import { MicrophoneSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { Avatar } from '@/shared/ui/Avatar';
 
@@ -65,6 +66,7 @@ export function ParticipantAvatarTile({
   micTrackRef,
   size = 88,
 }: ParticipantAvatarTileProps) {
+  const { t } = useTranslation('calls');
   const { styles } = useStyles();
   const muted = useIsMuted(micTrackRef);
   const volume = useTrackVolume(isTrackReference(micTrackRef) ? micTrackRef : undefined);
@@ -85,7 +87,7 @@ export function ParticipantAvatarTile({
       <span className={styles.name}>
         <span className={styles.nameText}>{name}</span>
         {muted && (
-          <span className={styles.muted} aria-label="Мікрофон вимкнено">
+          <span className={styles.muted} aria-label={t(($) => $.overlay.microphoneOff)}>
             <MicrophoneSlashIcon size={14} weight="fill" />
           </span>
         )}

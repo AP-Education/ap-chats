@@ -12,31 +12,32 @@ import {
   SoccerBall,
 } from 'phosphor-react-native';
 
-import type { EmojiCategory, EmojiItem } from '../types';
+import type { EmojiCategory, EmojiCategoryId, EmojiItem } from '../types';
 
 const data = rawData as EmojiMartData;
 
 export const FREQUENT_CATEGORY_ID = 'frequent';
 
-const CATEGORY_META: Record<string, { label: string; icon: Icon }> = {
-  people: { label: 'Смайли і люди', icon: Smiley },
-  nature: { label: 'Тварини і природа', icon: PawPrint },
-  foods: { label: 'Їжа і напої', icon: Hamburger },
-  activity: { label: 'Активності', icon: SoccerBall },
-  places: { label: 'Подорожі та місця', icon: Airplane },
-  objects: { label: 'Предмети', icon: Lightbulb },
-  symbols: { label: 'Символи', icon: Hash },
-  flags: { label: 'Прапори', icon: Flag },
+const CATEGORY_ICONS: Record<EmojiCategoryId, Icon> = {
+  people: Smiley,
+  nature: PawPrint,
+  foods: Hamburger,
+  activity: SoccerBall,
+  places: Airplane,
+  objects: Lightbulb,
+  symbols: Hash,
+  flags: Flag,
 };
 
 export const EMOJI_CATEGORIES: EmojiCategory[] = data.categories
-  .filter((category) => category.id in CATEGORY_META)
+  .filter(
+    (category): category is typeof category & { id: EmojiCategoryId } =>
+      category.id in CATEGORY_ICONS,
+  )
   .map((category) => {
-    const meta = CATEGORY_META[category.id]!;
     return {
       id: category.id,
-      label: meta.label,
-      icon: meta.icon,
+      icon: CATEGORY_ICONS[category.id],
       items: category.emojis
         .map((emojiId) => data.emojis[emojiId])
         .filter((emoji) => emoji !== undefined)

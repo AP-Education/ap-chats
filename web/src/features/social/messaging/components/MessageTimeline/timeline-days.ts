@@ -1,5 +1,8 @@
+import type { TFunction } from 'i18next';
+
 import type { MemberSummary } from '@/features/workspaces/types';
 
+import { dateTimeFormat } from '../../../../../shared/i18n/format';
 import type { DisplayItem, HistoryItem } from '../../types';
 import { isMessageItem } from '../../types';
 
@@ -116,20 +119,25 @@ function entryKey({ item }: DisplayItem) {
   return item.message.clientNonce ?? item.id;
 }
 
-const dayMonth = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'long' });
-const dayMonthYear = new Intl.DateTimeFormat('uk-UA', {
+const dayMonth = dateTimeFormat({ day: 'numeric', month: 'long' });
+const dayMonthYear = dateTimeFormat({
   day: 'numeric',
   month: 'long',
   year: 'numeric',
 });
 
-export function formatDayLabel(date: Date, now = new Date()): string {
+export function formatDayLabel(
+  date: Date,
+  t: TFunction<'messaging'>,
+  locale: string,
+  now = new Date(),
+): string {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const daysAgo = Math.round((today.getTime() - day.getTime()) / 86_400_000);
 
-  if (daysAgo === 0) return 'Сьогодні';
-  if (daysAgo === 1) return 'Вчора';
-  if (date.getFullYear() === now.getFullYear()) return dayMonth.format(date);
-  return dayMonthYear.format(date);
+  if (daysAgo === 0) return t(($) => $.timeline.today);
+  if (daysAgo === 1) return t(($) => $.timeline.yesterday);
+  if (date.getFullYear() === now.getFullYear()) return dayMonth(locale).format(date);
+  return dayMonthYear(locale).format(date);
 }

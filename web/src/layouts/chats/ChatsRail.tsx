@@ -1,4 +1,10 @@
-import { type AppTab, useIsAppActive, useOpenApp } from '@ap-education/shell-sdk';
+import {
+  type AppTab,
+  localize,
+  useIsAppActive,
+  useOpenApp,
+  useShellLocale,
+} from '@ap-education/shell-sdk';
 import { NavTile } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 import { useContext } from 'react';
@@ -40,6 +46,7 @@ function SectionTile({ tab, pathname, badge }: { tab: AppTab; pathname: string; 
   const chatsActive = useIsAppActive();
   const openApp = useOpenApp();
   const navigate = useNavigate();
+  const locale = useShellLocale();
   const active = chatsActive && tab.includes(pathname);
 
   function open() {
@@ -48,7 +55,7 @@ function SectionTile({ tab, pathname, badge }: { tab: AppTab; pathname: string; 
   }
 
   return (
-    <NavTile label={tab.label} active={active} badge={badge} onClick={open}>
+    <NavTile label={localize(tab.label, locale)} active={active} badge={badge} onClick={open}>
       <tab.icon size={22} weight={active ? 'fill' : 'regular'} />
     </NavTile>
   );

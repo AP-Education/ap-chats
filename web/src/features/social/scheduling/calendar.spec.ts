@@ -13,9 +13,10 @@ import {
 const october = new Date(2026, 9, 1);
 
 test('a week starts on Monday', () => {
-  assert.equal(weekdayLabels.length, 7);
-  assert.equal(weekdayLabels[0], 'пн');
-  assert.equal(weekdayLabels[6], 'нд');
+  assert.equal(weekdayLabels('uk').length, 7);
+  assert.equal(weekdayLabels('uk')[0], 'пн');
+  assert.equal(weekdayLabels('en')[0], 'Mon');
+  assert.equal(weekdayLabels('uk')[6], 'нд');
 });
 
 test('a month lays out from the weekday its first day falls on', () => {
@@ -33,5 +34,5 @@ test('a month holds each of its days once', () => {
 test('months turn over the year and read by name', () => {
   assert.deepEqual(addMonths(new Date(2026, 11, 1), 1), new Date(2027, 0, 1));
   assert.deepEqual(addMonths(new Date(2026, 0, 31), -1), new Date(2025, 11, 1));
-  assert.equal(monthTitle(october), 'Жовтень 2026');
+  assert.equal(monthTitle(october, 'uk'), 'Жовтень 2026');
 });

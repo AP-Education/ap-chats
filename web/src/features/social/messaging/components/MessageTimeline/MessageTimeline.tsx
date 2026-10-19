@@ -1,5 +1,7 @@
+import { useShellLocale } from '@ap-education/shell-sdk';
 import { ArrowDownIcon, ArrowUpIcon } from '@phosphor-icons/react';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
 
@@ -18,6 +20,8 @@ interface MessageTimelineProps {
 }
 
 export function MessageTimeline({ history, displayItems }: MessageTimelineProps) {
+  const { t } = useTranslation('messaging');
+  const locale = useShellLocale();
   const extensions = useConversationExtensions();
   const { pages, older, newer } = history;
   const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
@@ -41,19 +45,19 @@ export function MessageTimeline({ history, displayItems }: MessageTimelineProps)
     <TimelineScroller anchoring={anchoring} hasNewer={newer.available}>
       {older.available && (
         <LoadMoreButton icon={<ArrowUpIcon />} loading={older.loading} onLoad={anchoring.loadOlder}>
-          Раніші повідомлення
+          {t(($) => $.timeline.loadOlder)}
         </LoadMoreButton>
       )}
       {!displayItems.length && <EmptyTimeline />}
       {days.map((day) => (
-        <DaySection key={day.key} day={day} label={formatDayLabel(day.date)} />
+        <DaySection key={day.key} day={day} label={formatDayLabel(day.date, t, locale)} />
       ))}
       {/* Only the live end: what happens next has no place after an older stretch. */}
       {!newer.available &&
         extensions.map(({ id, TimelineEnd }) => TimelineEnd && <TimelineEnd key={id} />)}
       {newer.available && (
         <LoadMoreButton icon={<ArrowDownIcon />} loading={newer.loading} onLoad={newer.load}>
-          Новіші повідомлення
+          {t(($) => $.timeline.loadNewer)}
         </LoadMoreButton>
       )}
     </TimelineScroller>

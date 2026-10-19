@@ -10,6 +10,7 @@ import {
 } from '@phosphor-icons/react';
 import { Track } from 'livekit-client';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { playMuteChime, playUnmuteChime } from '../../../sound/callChimes';
 import { CallActionButton } from '../../CallActionButton/CallActionButton';
@@ -20,18 +21,18 @@ import {
 } from './TrackToggleControl';
 
 const MICROPHONE: TrackToggleStates = {
-  on: { label: 'Вимкнути мікрофон', icon: MicrophoneIcon, tone: 'glass' },
-  off: { label: 'Увімкнути мікрофон', icon: MicrophoneSlashIcon, tone: 'pressed' },
+  on: { label: 'muteMicrophone', icon: MicrophoneIcon, tone: 'glass' },
+  off: { label: 'unmuteMicrophone', icon: MicrophoneSlashIcon, tone: 'pressed' },
 };
 
 const CAMERA: TrackToggleStates = {
-  on: { label: 'Вимкнути камеру', icon: VideoCameraIcon, tone: 'pressed' },
-  off: { label: 'Увімкнути камеру', icon: VideoCameraSlashIcon, tone: 'glass' },
+  on: { label: 'turnOffCamera', icon: VideoCameraIcon, tone: 'pressed' },
+  off: { label: 'turnOnCamera', icon: VideoCameraSlashIcon, tone: 'glass' },
 };
 
 const SCREEN_SHARE: TrackToggleStates = {
-  on: { label: 'Зупинити демонстрацію екрана', icon: ScreencastIcon, tone: 'pressed' },
-  off: { label: 'Демонструвати екран', icon: ScreencastIcon, tone: 'glass' },
+  on: { label: 'stopScreenShare', icon: ScreencastIcon, tone: 'pressed' },
+  off: { label: 'startScreenShare', icon: ScreencastIcon, tone: 'glass' },
 };
 
 function playMicrophoneChime(wasEnabled: boolean) {
@@ -70,6 +71,7 @@ export function ScreenShareControl(size: CallControlSize) {
 
 /** Phones carry two cameras; offered only while one of them is actually streaming. */
 export function FlipCameraControl({ size, iconSize }: CallControlSize) {
+  const { t } = useTranslation('calls');
   const isMobile = useIsMobile();
   const { localParticipant, isCameraEnabled } = useLocalParticipant();
   // There's no reliable cross-browser way to read a track's current facing side
@@ -87,7 +89,11 @@ export function FlipCameraControl({ size, iconSize }: CallControlSize) {
   }
 
   return (
-    <CallActionButton size={size} aria-label="Змінити камеру" onClick={() => void flipCamera()}>
+    <CallActionButton
+      size={size}
+      aria-label={t(($) => $.controls.flipCamera)}
+      onClick={() => void flipCamera()}
+    >
       <ArrowsClockwiseIcon size={iconSize} />
     </CallActionButton>
   );

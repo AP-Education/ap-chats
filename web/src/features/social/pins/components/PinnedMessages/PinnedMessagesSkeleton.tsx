@@ -1,5 +1,6 @@
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ css }) => ({
   row: css`
@@ -13,9 +14,10 @@ const useStyles = createStyles(({ css }) => ({
 
 export function PinnedMessagesSkeleton() {
   const { styles } = useStyles();
+  const { t } = useTranslation('pins');
 
   return (
-    <div aria-label="Завантажуємо закріплене" role="status">
+    <div aria-label={t(($) => $.loading)} role="status">
       {[96, 72, 112].map((width) => (
         <div key={width} className={styles.row}>
           <Skeleton.Input active size="small" style={{ width, minWidth: 0, height: 12 }} />

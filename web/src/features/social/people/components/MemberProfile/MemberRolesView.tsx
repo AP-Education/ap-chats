@@ -1,6 +1,7 @@
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { RolePicker } from '@/features/roles/components/RolePicker';
 
@@ -39,6 +40,7 @@ interface MemberRolesViewProps {
 // On a phone the sheet swaps the profile for this list instead of stacking a popover on it.
 export function MemberRolesView({ name, onBack }: MemberRolesViewProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('people');
   const { workspaceId, assignedRoleIds, toggleRole } = useMemberCard();
 
   return (
@@ -47,10 +49,10 @@ export function MemberRolesView({ name, onBack }: MemberRolesViewProps) {
         <Button
           type="text"
           icon={<ArrowLeftIcon size={20} />}
-          aria-label="Назад до профілю"
+          aria-label={t(($) => $.roles.backToProfile)}
           onClick={onBack}
         />
-        <span className={styles.title}>Ролі: {name}</span>
+        <span className={styles.title}>{t(($) => $.roles.viewTitle, { name })}</span>
       </div>
       <RolePicker
         workspaceId={workspaceId}

@@ -1,6 +1,7 @@
 import { LoadingIcon } from '@ap-education/ui';
 import { WarningCircleIcon } from '@phosphor-icons/react';
 import { createStyles, keyframes } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { useSocketEvent } from '../hooks/useSocketEvent';
 import { sessionReadySchema } from '../schemas';
@@ -54,6 +55,7 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 export function ConnectionBanner() {
+  const { t } = useTranslation('realtime');
   const { status, error } = useConnection();
   const { styles, cx } = useStyles();
 
@@ -68,10 +70,10 @@ export function ConnectionBanner() {
 
   const isAuthError = status === 'error' && error?.kind === 'auth';
   const message = isAuthError
-    ? 'Не вдалося підключитися до сервера'
+    ? t(($) => $.connection.failed)
     : status === 'reconnecting'
-      ? 'Відновлюємо з’єднання'
-      : 'Ви офлайн. Відновлюємо з’єднання';
+      ? t(($) => $.connection.reconnecting)
+      : t(($) => $.connection.offline);
 
   return (
     <div className={cx(styles.banner, isAuthError ? styles.error : styles.warning)} role="status">

@@ -1,6 +1,7 @@
 import { getAppShell } from '@ap-education/shell-sdk';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { message as toast } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
@@ -16,6 +17,7 @@ export function useStartCall(
   title: string,
   calleeAvatarPath?: string | null,
 ) {
+  const { t } = useTranslation('calls');
   const { token } = useQueryAuth();
   const setActive = useCallStore((state) => state.setActive);
   const queryClient = useQueryClient();
@@ -42,7 +44,7 @@ export function useStartCall(
     },
     onError: (error) => {
       console.error('[calls] failed to start call', error);
-      toast.error('Не вдалося подзвонити. Спробуй ще раз.');
+      toast.error(t(($) => $.errors.start));
     },
   });
 }

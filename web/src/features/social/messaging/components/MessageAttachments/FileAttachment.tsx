@@ -1,3 +1,4 @@
+import { useShellLocale } from '@ap-education/shell-sdk';
 import { IconButton, LoadingIcon } from '@ap-education/ui';
 import {
   DownloadSimpleIcon,
@@ -7,6 +8,7 @@ import {
   VideoCameraIcon,
 } from '@phosphor-icons/react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { fileExtension, formatFileSize } from '../../attachments/file-presentation';
 import type { Attachment } from '../../attachments/types';
@@ -24,6 +26,8 @@ export function FileAttachment({
   messageId: string;
   available: boolean;
 }) {
+  const { t } = useTranslation('messaging');
+  const locale = useShellLocale();
   const viewer = useMediaViewer();
   const [playing, setPlaying] = useState(false);
   const download = useAttachmentDownload(messageId, attachment);
@@ -52,7 +56,7 @@ export function FileAttachment({
             {attachment.name}
           </button>
           <div className={styles.meta}>
-            {fileExtension(attachment.name)} · {formatFileSize(attachment.size)}
+            {fileExtension(attachment.name, t)} · {formatFileSize(attachment.size, locale)}
           </div>
         </div>
         <div className={styles.actions}>
@@ -60,7 +64,7 @@ export function FileAttachment({
             <IconButton
               size={36}
               className={styles.action}
-              aria-label={`Відтворити ${attachment.name}`}
+              aria-label={t(($) => $.attachments.play, { name: attachment.name })}
               disabled={!available}
               onClick={play}
             >
@@ -70,7 +74,7 @@ export function FileAttachment({
           <IconButton
             size={36}
             className={styles.action}
-            aria-label={`Завантажити ${attachment.name}`}
+            aria-label={t(($) => $.attachments.download, { name: attachment.name })}
             disabled={!available || download.downloading}
             onClick={() => void download.download()}
           >

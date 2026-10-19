@@ -2,6 +2,7 @@ import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-edu
 import { PushPinIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { MessagePreview } from '@/features/social/messaging/components/MessagePreview/MessagePreview';
@@ -50,6 +51,7 @@ interface PinnedMessagesProps {
 
 export function PinnedMessages({ onJump }: PinnedMessagesProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['pins', 'common']);
   const { workspaceId, channelId } = useConversationScope();
   const query = usePins(workspaceId, channelId);
 
@@ -62,9 +64,9 @@ export function PinnedMessages({ onJump }: PinnedMessagesProps) {
   if (query.isError)
     return (
       <div className={styles.list}>
-        Не вдалося завантажити закріплене.{' '}
+        {t(($) => $.loadFailed)}{' '}
         <Button type="link" onClick={() => void query.refetch()}>
-          Повторити
+          {t(($) => $.common.actions.retry)}
         </Button>
       </div>
     );
@@ -75,7 +77,7 @@ export function PinnedMessages({ onJump }: PinnedMessagesProps) {
           <ContentStateIcon>
             <PushPinIcon />
           </ContentStateIcon>
-          <ContentStateDescription>Закріплених повідомлень поки немає</ContentStateDescription>
+          <ContentStateDescription>{t(($) => $.empty)}</ContentStateDescription>
         </ContentState>
       </div>
     );
@@ -89,7 +91,9 @@ export function PinnedMessages({ onJump }: PinnedMessagesProps) {
           className={styles.item}
           onClick={() => onJump(pin.messageId)}
         >
-          <span className={styles.author}>{pin.author.displayName ?? 'Ім’я недоступне'}</span>
+          <span className={styles.author}>
+            {pin.author.displayName ?? t(($) => $.nameUnavailable)}
+          </span>
           <span className={styles.excerpt}>
             <MessagePreview markdown={pin.markdown} blocks={pin.blocks} />
           </span>

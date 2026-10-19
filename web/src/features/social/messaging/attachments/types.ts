@@ -32,7 +32,7 @@ export interface AttachmentDraft {
   previewUrl?: string;
   attachment?: Attachment;
   description: string;
-  error?: string;
+  error?: 'uploadExpired' | 'uploadFailed';
 }
 
 export interface UploadSession {

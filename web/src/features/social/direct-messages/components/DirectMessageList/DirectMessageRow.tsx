@@ -1,31 +1,39 @@
+import { useShellLocale } from '@ap-education/shell-sdk';
 import { useIsMobile } from '@ap-education/ui';
 import { BellSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import { Link, useMatch } from 'react-router-dom';
 
 import { previewText } from '@/features/social/mentions/mention-tokens';
 import { isLoneGif } from '@/features/social/messaging/gifs/gif-links';
 import { usePrefetchHistory } from '@/features/social/messaging/hooks';
+import { dateTimeFormat } from '@/shared/i18n/format';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
 
-function lastMessagePreview(message: NonNullable<DirectMessage['lastMessage']>): string {
-  if (message.markdown === null) return 'Повідомлення видалено';
-  if (!message.markdown) return 'Вкладення';
-  return isLoneGif(message) ? 'GIF' : previewText(message.markdown);
+function lastMessagePreview(
+  message: NonNullable<DirectMessage['lastMessage']>,
+  t: TFunction<'directMessages'>,
+  mentionsT: TFunction<'mentions'>,
+): string {
+  if (message.markdown === null) return t(($) => $.row.messageDeleted);
+  if (!message.markdown) return t(($) => $.row.attachment);
+  return isLoneGif(message) ? 'GIF' : previewText(message.markdown, mentionsT);
 }
 
-const dateFormat = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'numeric' });
+const dateFormat = dateTimeFormat({ day: 'numeric', month: 'numeric' });
 
-function formatRecentTime(value: string) {
+function formatRecentTime(value: string, t: TFunction<'directMessages'>, locale: string) {
   const date = new Date(value);
   const minutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60_000));
-  if (minutes < 1) return 'щойно';
-  if (minutes < 60) return `${minutes} хв`;
-  if (minutes < 1_440) return `${Math.floor(minutes / 60)} год`;
-  if (minutes < 10_080) return `${Math.floor(minutes / 1_440)} дн`;
-  return dateFormat.format(date);
+  if (minutes < 1) return t(($) => $.row.justNow);
+  if (minutes < 60) return t(($) => $.row.minutesAgo, { minutes });
+  if (minutes < 1_440) return t(($) => $.row.hoursAgo, { hours: Math.floor(minutes / 60) });
+  if (minutes < 10_080) return t(($) => $.row.daysAgo, { days: Math.floor(minutes / 1_440) });
+  return dateFormat(locale).format(date);
 }
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -171,13 +179,18 @@ export function DirectMessageRow({
   onNavigate?: () => void;
 }) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation('directMessages');
+  const { t: mentionsT } = useTranslation('mentions');
+  const locale = useShellLocale();
   const isMobile = useIsMobile();
   const prefetchHistory = usePrefetchHistory();
   // The panel renders outside the route tree, so the open conversation comes from the URL.
   const isActive = useMatch('/direct/:channelId')?.params.channelId === item.id;
   const visibleUnreadCount = isActive ? 0 : unreadCount;
   const isMuted = item.notification.isMuted;
-  const preview = item.lastMessage ? lastMessagePreview(item.lastMessage) : 'Нова розмова';
+  const preview = item.lastMessage
+    ? lastMessagePreview(item.lastMessage, t, mentionsT)
+    : t(($) => $.row.newConversation);
   return (
     <Link
       to={`/direct/${item.id}`}
@@ -189,13 +202,13 @@ export function DirectMessageRow({
     >
       <Avatar
         path={item.participant.avatarPath}
-        alt={item.participant.displayName ?? 'Колега'}
+        alt={item.participant.displayName ?? t(($) => $.colleague)}
         size={isMobile ? 44 : 36}
         shape="circle"
       />
       <span className={styles.body}>
         <span className={cx(styles.name, visibleUnreadCount > 0 && styles.unreadName)}>
-          {item.participant.displayName ?? 'Ім’я недоступне'}
+          {item.participant.displayName ?? t(($) => $.nameUnavailable)}
         </span>
         <span className={cx(styles.preview, visibleUnreadCount > 0 && styles.unreadPreview)}>
           {preview}
@@ -205,7 +218,7 @@ export function DirectMessageRow({
         <span className={styles.trailing}>
           {item.lastMessage && visibleUnreadCount === 0 && (
             <time className={styles.time} dateTime={item.lastMessage.createdAt}>
-              {formatRecentTime(item.lastMessage.createdAt)}
+              {formatRecentTime(item.lastMessage.createdAt, t, locale)}
             </time>
           )}
           {(isMuted || visibleUnreadCount > 0) && (
@@ -214,11 +227,14 @@ export function DirectMessageRow({
                 <BellSlashIcon
                   size={18}
                   className={styles.muted}
-                  aria-label="Сповіщення вимкнено"
+                  aria-label={t(($) => $.row.notificationsOff)}
                 />
               )}
               {visibleUnreadCount > 0 && (
-                <span className={styles.badge} aria-label={`${visibleUnreadCount} непрочитаних`}>
+                <span
+                  className={styles.badge}
+                  aria-label={t(($) => $.unread.badgeLabel, { unread: visibleUnreadCount })}
+                >
                   {visibleUnreadCount > 99 ? '99+' : visibleUnreadCount}
                 </span>
               )}
