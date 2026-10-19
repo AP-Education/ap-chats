@@ -3,12 +3,9 @@
   --excerpt-muted: var(--bubble-muted);
   position: relative;
   display: block;
-  /* A button only shrinks to fit, so it is stretched to the bubble; unlike width: 100%,
-     stretch keeps the inset a media bubble gives its captions. */
-  width: -webkit-fill-available;
-  width: -moz-available;
-  width: stretch;
-  min-width: 0;
+  /* A button sizes to its content, and iOS WebKit stretches none, so a long quote would push past
+     the bubble. The block around it takes the bubble's width, insets included, and it fills that. */
+  width: 100%;
   padding: var(--ant-padding-xxs) var(--ant-padding-xs) var(--ant-padding-xxs) var(--ant-padding);
   overflow: hidden;
   border: 0;

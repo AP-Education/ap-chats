@@ -10,8 +10,10 @@ interface BubbleExcerptProps {
 /** Another message quoted inside a bubble, as a tappable block. */
 export function BubbleExcerpt({ onClick, children }: BubbleExcerptProps) {
   return (
-    <button type="button" className={styles.excerpt} onClick={onClick}>
-      {children}
-    </button>
+    <div>
+      <button type="button" className={styles.excerpt} onClick={onClick}>
+        {children}
+      </button>
+    </div>
   );
 }
