@@ -1,5 +1,8 @@
+export const notificationSettingsKey = (identity: string | undefined) =>
+  ['notification-settings', identity] as const;
+
 export const workspaceNotificationsKey = (identity: string | undefined, workspaceId: string) =>
-  ['notification-settings', identity, workspaceId] as const;
+  [...notificationSettingsKey(identity), workspaceId] as const;
 
 export const channelNotificationsKey = (
   identity: string | undefined,

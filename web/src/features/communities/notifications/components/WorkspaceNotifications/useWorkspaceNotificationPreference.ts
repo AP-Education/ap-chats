@@ -1,9 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
 import { changeWorkspaceNotifications } from '../../api/workspace-notifications-api';
-import { workspaceNotificationsQuery } from '../../hooks/useWorkspaceNotifications';
+import { useWorkspaceNotifications } from '../../hooks/useWorkspaceNotifications';
 import { workspaceNotificationsKey } from '../../queryKeys';
 import type { ChangeNotificationSettings, WorkspaceNotifications } from '../../types';
 import { preferenceStatus } from '../NotificationsMenu/preference-status';
@@ -12,7 +12,7 @@ import type { NotificationPreference } from '../NotificationsMenu/types';
 export function useWorkspaceNotificationPreference(workspaceId: string): NotificationPreference {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
-  const query = useQuery(workspaceNotificationsQuery(identity, token, workspaceId));
+  const query = useWorkspaceNotifications(workspaceId);
   const change = useMutation({
     mutationFn: (command: ChangeNotificationSettings) =>
       changeWorkspaceNotifications(token as string, workspaceId, command),

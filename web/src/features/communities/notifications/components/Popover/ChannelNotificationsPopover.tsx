@@ -1,13 +1,10 @@
 import { IconButton } from '@ap-education/ui';
 import { BellIcon, BellSlashIcon } from '@phosphor-icons/react';
-import { useQuery } from '@tanstack/react-query';
 import { Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
-import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-
-import { workspaceNotificationsQuery } from '../../hooks/useWorkspaceNotifications';
+import { useWorkspaceNotifications } from '../../hooks/useWorkspaceNotifications';
 import { NotificationsMenu } from '../NotificationsMenu/NotificationsMenu';
 import { channelSubject } from '../NotificationsMenu/subjects';
 import { useChannelNotificationPreference } from './useChannelNotificationPreference';
@@ -37,9 +34,8 @@ export function ChannelNotificationsPopover({
   compact = false,
 }: ChannelNotificationsPopoverProps) {
   const { styles, cx } = useStyles();
-  const { token, identity } = useQueryAuth();
   const preference = useChannelNotificationPreference(workspaceId, channelId);
-  const { data: workspace } = useQuery(workspaceNotificationsQuery(identity, token, workspaceId));
+  const { data: workspace } = useWorkspaceNotifications(workspaceId);
   const [open, setOpen] = useState(false);
 
   return (

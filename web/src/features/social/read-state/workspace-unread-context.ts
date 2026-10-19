@@ -1,60 +1,59 @@
 import { createContext, useContext } from 'react';
 
-import type { ConversationNotify } from '@/features/communities/notifications/types';
-
 import {
   type Attention,
   combinedAttention,
+  type ConversationAttention,
   conversationAttention,
-  notifyOf,
 } from './conversation-attention';
 import type { ChannelUnread } from './hooks/useWorkspaceUnread';
 
-/** A workspace's conversations with what each of them tells the person about. */
-export interface WorkspaceReadState {
+export interface WorkspaceUnread {
+  workspaceId: string;
   conversations: ChannelUnread[] | undefined;
-  notifyByChannel: ReadonlyMap<string, ConversationNotify> | undefined;
 }
 
 export interface WorkspaceUnreadStore {
   /** The active workspace's channels and every direct conversation, by channel. */
-  attentionByChannel: Map<string, Attention>;
-  /** The active workspace's channels. */
+  attentionByChannel: Map<string, ConversationAttention>;
+  /** Each workspace's channels together, as its tile on the rail shows them. */
+  channelsByWorkspace: Map<string, Attention>;
+  /** Every workspace's channels: the team tab. */
   channels: Attention;
-  /** The other workspaces' channels. */
-  channelsElsewhere: Attention;
   /** Every direct conversation, whichever workspace it lives in. */
   direct: Attention;
 }
 
 export function createWorkspaceUnreadStore(
-  active: WorkspaceReadState,
-  elsewhere: WorkspaceReadState[],
+  activeWorkspaceId: string,
+  workspaces: WorkspaceUnread[],
+  mutedChannelIds: ReadonlySet<string>,
 ): WorkspaceUnreadStore {
-  const attentionByChannel = new Map<string, Attention>();
-  const channels: Attention[] = [];
-  const channelsElsewhere: Attention[] = [];
+  const attentionByChannel = new Map<string, ConversationAttention>();
+  const channelsByWorkspace = new Map<string, Attention>();
   const direct: Attention[] = [];
 
-  for (const workspace of [active, ...elsewhere]) {
-    const isActive = workspace === active;
-    for (const conversation of workspace.conversations ?? []) {
+  for (const { workspaceId, conversations = [] } of workspaces) {
+    const isActive = workspaceId === activeWorkspaceId;
+    const channels: Attention[] = [];
+
+    for (const conversation of conversations) {
+      const isDirect = conversation.kind === 'dm';
       const attention = conversationAttention(
         conversation,
-        notifyOf(conversation, workspace.notifyByChannel),
+        mutedChannelIds.has(conversation.channelId),
       );
-      if (conversation.kind === 'dm') direct.push(attention);
-      else (isActive ? channels : channelsElsewhere).push(attention);
-      if (isActive || conversation.kind === 'dm') {
-        attentionByChannel.set(conversation.channelId, attention);
-      }
+      (isDirect ? direct : channels).push(attention);
+      if (isActive || isDirect) attentionByChannel.set(conversation.channelId, attention);
     }
+
+    channelsByWorkspace.set(workspaceId, combinedAttention(channels));
   }
 
   return {
     attentionByChannel,
-    channels: combinedAttention(channels),
-    channelsElsewhere: combinedAttention(channelsElsewhere),
+    channelsByWorkspace,
+    channels: combinedAttention(channelsByWorkspace.values()),
     direct: combinedAttention(direct),
   };
 }

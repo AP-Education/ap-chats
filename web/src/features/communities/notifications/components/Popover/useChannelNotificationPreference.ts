@@ -6,7 +6,7 @@ import {
   changeChannelNotificationSettings,
   getChannelNotificationSettings,
 } from '../../api/channel-notifications-api';
-import { channelNotificationsKey, workspaceNotificationsKey } from '../../queryKeys';
+import { channelNotificationsKey } from '../../queryKeys';
 import type { ChangeNotificationSettings, NotificationSettings } from '../../types';
 import { preferenceStatus } from '../NotificationsMenu/preference-status';
 import type { NotificationPreference } from '../NotificationsMenu/types';
@@ -26,14 +26,7 @@ export function useChannelNotificationPreference(
   const change = useMutation({
     mutationFn: (command: ChangeNotificationSettings) =>
       changeChannelNotificationSettings(token as string, workspaceId, channelId, command),
-    onSuccess: (settings: NotificationSettings) => {
-      queryClient.setQueryData(queryKey, settings);
-      // The channel's place in the sidebar and on the rail follows what it now tells.
-      void queryClient.invalidateQueries({
-        queryKey: workspaceNotificationsKey(identity, workspaceId),
-        exact: true,
-      });
-    },
+    onSuccess: (settings: NotificationSettings) => queryClient.setQueryData(queryKey, settings),
   });
 
   return {
