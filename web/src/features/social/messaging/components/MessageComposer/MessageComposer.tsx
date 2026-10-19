@@ -57,8 +57,8 @@ function readLastPickerTab(): PickerTab {
 interface MessageComposerProps {
   replyAuthor?: string;
   replyPreview?: ReplyPreview;
-  /** `filesNonce` is the nonce the composer's files were committed under, when it had any. */
-  onSend: (input: ComposedMessage, filesNonce?: string) => void;
+  /** `nonce` names the message, and the composer's files went out under it. */
+  onSend: (input: ComposedMessage, nonce: string) => void;
   /** The text-input to compose with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
   children: ReactNode;
 }
@@ -155,10 +155,10 @@ export function MessageComposer({
     if (!canSend) return;
     const input = readMessage();
     const nonce = randomId();
-    const filesNonce = uploads.commit(nonce).length ? nonce : undefined;
+    uploads.commit(nonce);
     sendQueue.current = sendQueue.current.then(async () => {
       const blocks = await linkedGif.blocksFor(input.markdown);
-      onSend({ ...input, ...(blocks ? { blocks } : {}) }, filesNonce);
+      onSend({ ...input, ...(blocks ? { blocks } : {}) }, nonce);
     });
 
     clearSent();
@@ -201,7 +201,7 @@ export function MessageComposer({
       const input = sentIntent
         ? composerIntent(sentIntent.kind).compose(sentIntent, composed)
         : composed;
-      onSend({ ...input, blocks: [block] });
+      onSend({ ...input, blocks: [block] }, randomId());
     });
     setIntent(null);
     closePicker();

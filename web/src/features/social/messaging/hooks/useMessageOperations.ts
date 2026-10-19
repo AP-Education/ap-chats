@@ -2,7 +2,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { randomId } from '@/shared/lib/random-id';
 
 import { deleteMessages, editMessage } from '../api/messages-api';
 import { messagingQueryKeys } from '../queryKeys';
@@ -41,8 +40,8 @@ export function useMessageOperations(
     });
   }
 
-  function send(input: ComposedMessage, filesNonce?: string): Promise<Message> {
-    return filesNonce ? outbox.sendWithFiles(input, filesNonce) : outbox.send(input, randomId());
+  function send(input: ComposedMessage, nonce: string): Promise<Message> {
+    return outbox.send(input, nonce);
   }
 
   async function edit(messageId: string, change: MessageEdit, revision?: number) {

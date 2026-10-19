@@ -37,21 +37,15 @@ export class ConversationOutbox {
     };
   };
 
-  /** Settles once the server has the message, however many retries that takes. */
+  /** Posts once the files committed under `nonce` are up; settles once the server has it. */
   send(message: ComposedMessage, nonce: string): Promise<Message> {
     const landed = this.expectLanding(nonce);
+    const awaitsFiles = this.ports.uploads.getCommitted(nonce).length > 0;
 
-    this.change(enqueue(this.entries, { ...message, clientNonce: nonce }, now()));
-    void this.deliver(nonce);
-    return landed;
-  }
+    this.change(enqueue(this.entries, { ...message, clientNonce: nonce }, now(), awaitsFiles));
 
-  /** Shows the message at once and posts it once the files committed under `nonce` are up. */
-  sendWithFiles(message: ComposedMessage, nonce: string): Promise<Message> {
-    const landed = this.expectLanding(nonce);
-
-    this.change(enqueue(this.entries, { ...message, clientNonce: nonce }, now(), true));
-    this.followUploads();
+    if (awaitsFiles) this.followUploads();
+    else void this.deliver(nonce);
     return landed;
   }
 

@@ -129,7 +129,7 @@ test('a message with files waits for all of them, then posts them as its attachm
   const { outbox, uploads, posted, statuses } = setup();
   uploads.set('a', [draft('one', 'uploading'), draft('two', 'ready')]);
 
-  void outbox.sendWithFiles({ markdown: '' }, 'a');
+  void outbox.send({ markdown: '' }, 'a');
   assert.deepEqual(statuses(), ['uploading']);
   assert.equal(outbox.getSnapshot().files.get('a')?.length, 2);
   assert.equal(posted.length, 0);
@@ -145,8 +145,8 @@ test('two messages finishing in the same notification are each posted once', () 
   const { outbox, uploads, posted } = setup();
   uploads.committed.set('a', [draft('one', 'uploading')]);
   uploads.committed.set('b', [draft('two', 'uploading')]);
-  void outbox.sendWithFiles({ markdown: 'a' }, 'a');
-  void outbox.sendWithFiles({ markdown: 'b' }, 'b');
+  void outbox.send({ markdown: 'a' }, 'a');
+  void outbox.send({ markdown: 'b' }, 'b');
 
   uploads.committed.set('a', [draft('one', 'ready')]);
   uploads.set('b', [draft('two', 'ready')]);
@@ -157,7 +157,7 @@ test('two messages finishing in the same notification are each posted once', () 
 test('a failed upload stops the message, and a retry sends its failed files again', () => {
   const { outbox, uploads, statuses } = setup();
   uploads.set('a', [draft('one', 'uploading')]);
-  void outbox.sendWithFiles({ markdown: 'Звіт' }, 'a');
+  void outbox.send({ markdown: 'Звіт' }, 'a');
 
   uploads.set('a', [draft('one', 'error')]);
   assert.deepEqual(statuses(), ['failed']);
@@ -170,7 +170,7 @@ test('a failed upload stops the message, and a retry sends its failed files agai
 test('withdrawing a message still uploading stops its files and drops it', () => {
   const { outbox, uploads, posted, statuses } = setup();
   uploads.set('a', [draft('one', 'uploading'), draft('two', 'queued')]);
-  void outbox.sendWithFiles({ markdown: '' }, 'a');
+  void outbox.send({ markdown: '' }, 'a');
 
   outbox.cancel('a');
 
@@ -193,8 +193,8 @@ test('taking out the last file posts the text alone, or drops a message that had
   const { outbox, uploads, posted, statuses } = setup();
   uploads.set('a', [draft('one', 'uploading')]);
   uploads.set('b', [draft('two', 'uploading')]);
-  void outbox.sendWithFiles({ markdown: 'Підпис' }, 'a');
-  void outbox.sendWithFiles({ markdown: '' }, 'b');
+  void outbox.send({ markdown: 'Підпис' }, 'a');
+  void outbox.send({ markdown: '' }, 'b');
 
   outbox.cancelFile('a', 'one');
   outbox.cancelFile('b', 'two');
@@ -210,7 +210,7 @@ test('a failed post waits for a retry, and only messages without pending files a
   const { outbox, uploads, statuses, written } = setup({ post: 'reject' });
   uploads.set('b', [draft('one', 'uploading')]);
   void outbox.send({ markdown: 'a' }, 'a');
-  void outbox.sendWithFiles({ markdown: 'b' }, 'b');
+  void outbox.send({ markdown: 'b' }, 'b');
   await settle();
 
   assert.deepEqual(statuses(), ['failed', 'uploading']);

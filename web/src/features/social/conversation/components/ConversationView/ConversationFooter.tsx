@@ -37,11 +37,11 @@ function WritableConversationFooter({
       ? items.filter(isMessageItem).find((item) => item.message.id === intent.messageId)
       : undefined;
 
-  function onSend(input: ComposedMessage, filesNonce?: string) {
+  function onSend(input: ComposedMessage, nonce: string) {
     const sent = {
       channelId,
       input,
-      landed: send(input, filesNonce),
+      landed: send(input, nonce),
       ...(intent?.kind === 'ask' ? { picked: intent.messageIds } : {}),
       ...(replyTarget ? { replyToAuthorId: replyTarget.author.memberId } : {}),
     };
