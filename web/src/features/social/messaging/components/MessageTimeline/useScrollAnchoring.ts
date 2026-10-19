@@ -146,6 +146,8 @@ export function useScrollAnchoring({
     const nearBottom = container.scrollHeight - container.scrollTop - viewport < 110;
     atBottom.current = nearBottom && !newer.available;
     setAwayFromBottom(!atBottom.current);
+    // Scrolling away takes over from the way down, so later updates no longer pull the reader back.
+    if (!nearBottom) followToPresent.current = false;
     if (
       container.scrollTop < 90 &&
       older.available &&
