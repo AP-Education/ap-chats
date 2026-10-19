@@ -34,6 +34,7 @@ function message(seq: string, author: string, createdAt: string): DisplayItem {
       roleColor: null,
     },
     reply: null,
+    context: null,
     forwardedFrom: null,
     pin: null,
   };

@@ -46,11 +46,6 @@ export function useQuestionStatuses(): QuestionStatus[] {
     );
     // A snapshot taken before this report would land over it.
     if (snapshotLoading) void queryClient.invalidateQueries({ queryKey, exact: true });
-
-    // StarMe reports once it has taken the question, with the messages picked for it.
-    void queryClient.invalidateQueries({
-      queryKey: starMeQueryKeys.picked(identity, workspaceId, channelId, event.questionId),
-    });
   });
 
   return data;

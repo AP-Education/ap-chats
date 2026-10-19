@@ -1,5 +1,3 @@
-import type { MemberSummary } from '@/features/workspaces/types';
-
 // Mirrors STAR_ME.subject in the API's star-me/star-me.identity.ts.
 export const STAR_ME_SUBJECT = 'bot:star-me';
 
@@ -11,15 +9,6 @@ export type AnswerFailure = 'limited' | 'forbidden' | 'unavailable' | 'failed';
 /** The person's own posted message for StarMe to answer in a reply. */
 export interface AnswerRequest {
   questionId: string;
-  /** Messages the person picked for StarMe to read instead of the latest ones. */
-  contextMessageIds?: string[];
-}
-
-/** A message the person picked when asking, as anyone reading the channel sees it. */
-export interface PickedMessage {
-  id: string;
-  author: MemberSummary;
-  markdown: string;
 }
 
 /** A question for StarMe to answer, in the channel it was posted in. */
