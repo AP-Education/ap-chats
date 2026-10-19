@@ -116,7 +116,7 @@ export function TimelineScroller({ anchoring, hasNewer, children }: TimelineScro
           aria-label="Повідомлення каналу"
           aria-live="off"
         >
-          <div className={styles.feed} data-selecting={selecting || undefined}>
+          <div className={styles.feed} data-chat-inset data-selecting={selecting || undefined}>
             {children}
           </div>
         </div>
@@ -125,6 +125,7 @@ export function TimelineScroller({ anchoring, hasNewer, children }: TimelineScro
         <button
           type="button"
           className={cx(styles.bottom, hasNewer && styles.bottomUnread)}
+          data-chat-inset
           onClick={goDown}
           aria-label={downLabel}
           title={downLabel}

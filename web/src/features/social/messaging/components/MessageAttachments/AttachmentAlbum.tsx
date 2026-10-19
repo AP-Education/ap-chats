@@ -1,19 +1,10 @@
-import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
 import type { Attachment } from '../../attachments/types';
 import { albumLayout } from '../../media/album-layout';
 import { AlbumTile } from './AlbumTile';
 import { attachmentSize } from './attachment-size';
-
-const useStyles = createStyles(({ token, css }) => ({
-  album: css`
-    position: relative;
-    max-width: 100%;
-    overflow: hidden;
-    border-radius: calc(var(--bubble-radius, ${token.borderRadius * 2}px) - ${token.paddingXXS}px);
-  `,
-}));
+import styles from './AttachmentAlbum.module.css';
 
 interface AttachmentAlbumProps {
   images: Attachment[];
@@ -25,7 +16,6 @@ interface AttachmentAlbumProps {
 
 /** Several photos as one album, each at close to its own proportions, as Telegram groups them. */
 export function AttachmentAlbum({ images, messageId, available, overlay }: AttachmentAlbumProps) {
-  const { styles } = useStyles();
   const album = albumLayout(images.map(attachmentSize));
 
   return (

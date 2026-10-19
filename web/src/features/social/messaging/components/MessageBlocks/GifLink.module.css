@@ -1,0 +1,7 @@
+/* Room below for the time, which sits over a lone GIF and would cover the link otherwise. */
+.link {
+  display: block;
+  padding-bottom: 1.6em;
+  color: var(--bubble-link);
+  overflow-wrap: anywhere;
+}

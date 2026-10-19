@@ -1,0 +1,8 @@
+.album {
+  position: relative;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: calc(
+    var(--bubble-radius, calc(var(--ant-border-radius) * 2)) - var(--ant-padding-xxs)
+  );
+}

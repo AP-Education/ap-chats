@@ -3,6 +3,7 @@ import { infiniteQueryOptions, useInfiniteQuery } from '@tanstack/react-query';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
 import { historyPage, openHistory } from '../api/messages-api';
+import { shareHistory } from '../history-cache';
 import { messagingQueryKeys } from '../queryKeys';
 
 export type PageCursor =
@@ -44,6 +45,7 @@ export function historyQuery(
     // Kept current by realtime events while watched, and refreshed on watching again.
     staleTime: Infinity,
     refetchOnWindowFocus: false,
+    structuralSharing: shareHistory,
   });
 }
 

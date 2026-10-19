@@ -6,78 +6,14 @@ import {
   PlayIcon,
   VideoCameraIcon,
 } from '@phosphor-icons/react';
-import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import { fileExtension, formatFileSize } from '../../attachments/file-presentation';
 import type { Attachment } from '../../attachments/types';
 import { mediaKey, useMediaViewer } from '../../media-viewer-context';
 import { AttachmentPlayer } from './AttachmentPlayer';
+import styles from './FileAttachment.module.css';
 import { useAttachmentDownload } from './useAttachmentAccess';
-
-const useStyles = createStyles(({ token, css }) => ({
-  shell: css`
-    min-width: min(240px, 100%);
-    max-width: 420px;
-  `,
-  card: css`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
-    padding: 2px 0;
-  `,
-  icon: css`
-    display: grid;
-    place-items: center;
-    flex: 0 0 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: var(--bubble-accent);
-    color: var(--bubble-on-accent, #fff);
-  `,
-  details: css`
-    flex: 1;
-    min-width: 0;
-  `,
-  name: css`
-    display: block;
-    width: 100%;
-    padding: 0;
-    overflow: hidden;
-    border: 0;
-    background: transparent;
-    color: var(--bubble-text);
-    text-align: left;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font: inherit;
-    font-size: ${token.fontSizeSM}px;
-    font-weight: 550;
-    cursor: pointer;
-    &:hover:not(:disabled) {
-      text-decoration: underline;
-    }
-  `,
-  meta: css`
-    margin-top: 2px;
-    color: var(--bubble-meta);
-    font-size: 12px;
-  `,
-  actions: css`
-    display: flex;
-    flex-shrink: 0;
-    gap: 2px;
-  `,
-  action: css`
-    color: var(--bubble-muted);
-
-    &:hover:not(:disabled) {
-      background: var(--bubble-fill);
-      color: var(--bubble-text);
-    }
-  `,
-}));
 
 export function FileAttachment({
   attachment,
@@ -88,7 +24,6 @@ export function FileAttachment({
   messageId: string;
   available: boolean;
 }) {
-  const { styles } = useStyles();
   const viewer = useMediaViewer();
   const [playing, setPlaying] = useState(false);
   const download = useAttachmentDownload(messageId, attachment);
