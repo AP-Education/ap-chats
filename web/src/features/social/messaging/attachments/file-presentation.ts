@@ -13,3 +13,7 @@ export function formatFileSize(bytes: number): string {
 export function fileExtension(name: string): string {
   return name.includes('.') ? name.split('.').at(-1)!.slice(0, 8).toUpperCase() : 'ФАЙЛ';
 }
+
+export function fileSummary(name: string, size: number): string {
+  return `${formatFileSize(size)} · ${fileExtension(name)}`;
+}

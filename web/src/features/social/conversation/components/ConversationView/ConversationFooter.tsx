@@ -9,11 +9,7 @@ import {
 import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { MessageComposer } from '@/features/social/messaging/components/MessageComposer';
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
-import type {
-  HistoryItem,
-  PendingAttachmentCommit,
-  SendMessageCommand,
-} from '@/features/social/messaging/types';
+import type { ComposedMessage, HistoryItem } from '@/features/social/messaging/types';
 import { isMessageItem } from '@/features/social/messaging/types';
 
 interface ConversationFooterProps {
@@ -41,14 +37,11 @@ function WritableConversationFooter({
       ? items.filter(isMessageItem).find((item) => item.message.id === intent.messageId)
       : undefined;
 
-  function onSend(
-    input: Omit<SendMessageCommand, 'clientNonce' | 'attachments'>,
-    pending?: PendingAttachmentCommit,
-  ) {
+  function onSend(input: ComposedMessage, nonce: string) {
     const sent = {
       channelId,
       input,
-      landed: send(input, pending),
+      landed: send(input, nonce),
       ...(intent?.kind === 'ask' ? { picked: intent.messageIds } : {}),
       ...(replyTarget ? { replyToAuthorId: replyTarget.author.memberId } : {}),
     };

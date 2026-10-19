@@ -27,6 +27,11 @@ interface MarkdownScope {
 
 const MarkdownScopeContext = createContext<MarkdownScope>({ inline: false, people: new Map() });
 
+const BLOCKS = ['pre', 'blockquote', 'ul', 'ol', 'li'];
+const ELEMENTS = ['p', 'strong', 'em', 'code', 'a', 'img', 'br', 'span', 'del', ...BLOCKS];
+// A preview is one line: blocks give way to their text, the breaks between them read as spaces.
+const INLINE_ELEMENTS = ELEMENTS.filter((tag) => !BLOCKS.includes(tag));
+
 // A link the sanitizer emptied, such as javascript:, keeps only its label.
 function MarkdownLink({
   href,
@@ -106,22 +111,7 @@ export function MessageMarkdown({
           remarkBreaks,
           [remarkGfm, { singleTilde: false }],
         ]}
-        allowedElements={[
-          'p',
-          'strong',
-          'em',
-          'code',
-          'pre',
-          'a',
-          'img',
-          'blockquote',
-          'ul',
-          'ol',
-          'li',
-          'br',
-          'span',
-          'del',
-        ]}
+        allowedElements={inline ? INLINE_ELEMENTS : ELEMENTS}
         // Whatever has no look of its own here, a table or a heading, still shows its text.
         unwrapDisallowed
         components={components}

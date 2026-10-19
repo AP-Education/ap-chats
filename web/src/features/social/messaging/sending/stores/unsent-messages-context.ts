@@ -1,10 +1,6 @@
 import { createContext, useContext } from 'react';
 
-/** What a message the server never took can still do: go out again, or be dropped. */
-export interface UnsentMessages {
-  retry: (rowId: string) => void;
-  discard: (rowId: string) => void;
-}
+import type { UnsentMessages } from '../types';
 
 export const UnsentMessagesContext = createContext<UnsentMessages | null>(null);
 
