@@ -1,6 +1,7 @@
 package expo.modules.callreadiness
 
 import android.app.ActivityManager
+import android.app.KeyguardManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Intent
@@ -39,6 +40,12 @@ class CallReadinessModule : Module() {
 
     Function("fix") { id: String ->
       settingsFor(CallCheck.entries.first { it.id == id })?.let(::open)
+    }
+
+    // Locked or with its screen off, the phone shows a call only if the call lights it up itself.
+    Function("isAsleep") {
+      !context.getSystemService(PowerManager::class.java).isInteractive ||
+        context.getSystemService(KeyguardManager::class.java).isKeyguardLocked
     }
   }
 

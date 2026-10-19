@@ -11,6 +11,7 @@ export interface CallCheck {
 interface CallReadinessNativeModule {
   checks(): CallCheck[];
   fix(id: CallCheckId): void;
+  isAsleep(): boolean;
 }
 
 // Android only, since CallKit needs neither; optional so a build made before it keeps working.
@@ -24,4 +25,9 @@ export function readCallChecks(): CallCheck[] {
 /** Opens where the person changes it. */
 export function fixCallCheck(id: CallCheckId): void {
   ReadinessModule?.fix(id);
+}
+
+/** Locked or with its screen off: an incoming call has to light the phone up itself. */
+export function isPhoneAsleep(): boolean {
+  return ReadinessModule?.isAsleep() ?? false;
 }

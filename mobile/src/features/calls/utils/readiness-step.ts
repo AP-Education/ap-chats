@@ -5,10 +5,23 @@ const GATED = ['fullScreen', 'unrestricted'] as const;
 
 export type ReadinessStep = (typeof GATED)[number];
 
-/** What to ask for next so a call can wake the phone; nothing once it is allowed or put off. */
-export function nextReadinessStep(checks: CallCheck[], putOff: boolean): ReadinessStep | null {
-  if (putOff) return null;
+export interface ReadinessPrompt {
+  /** The person chose «Пізніше». */
+  putOff: boolean;
+  /** A call rang while the phone slept and could not light its screen. */
+  rangInTheDark: boolean;
+}
 
+/**
+ * What to ask for next so a call can wake the phone. Put off, the gate asks again only for the
+ * full screen, and only once a call has rung without it.
+ */
+export function nextReadinessStep(
+  checks: CallCheck[],
+  { putOff, rangInTheDark }: ReadinessPrompt,
+): ReadinessStep | null {
   const missing = new Set(checks.filter((check) => !check.ok).map((check) => check.id));
-  return GATED.find((step) => missing.has(step)) ?? null;
+  if (!putOff) return GATED.find((step) => missing.has(step)) ?? null;
+
+  return rangInTheDark && missing.has('fullScreen') ? 'fullScreen' : null;
 }

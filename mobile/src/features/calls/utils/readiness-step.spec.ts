@@ -12,12 +12,21 @@ function checks(fullScreen: boolean, unrestricted: boolean): CallCheck[] {
   ];
 }
 
+const fresh = { putOff: false, rangInTheDark: false };
+const putOff = { putOff: true, rangInTheDark: false };
+const putOffThenRang = { putOff: true, rangInTheDark: true };
+
 test('the full screen comes first: without it a call only buzzes on a dark screen', () => {
-  assert.equal(nextReadinessStep(checks(false, false), false), 'fullScreen');
-  assert.equal(nextReadinessStep(checks(true, false), false), 'unrestricted');
-  assert.equal(nextReadinessStep(checks(true, true), false), null);
+  assert.equal(nextReadinessStep(checks(false, false), fresh), 'fullScreen');
+  assert.equal(nextReadinessStep(checks(true, false), fresh), 'unrestricted');
+  assert.equal(nextReadinessStep(checks(true, true), fresh), null);
 });
 
 test('once put off, nothing is asked again', () => {
-  assert.equal(nextReadinessStep(checks(false, false), true), null);
+  assert.equal(nextReadinessStep(checks(false, false), putOff), null);
+});
+
+test('a call that rang in the dark asks for the full screen again, and for nothing else', () => {
+  assert.equal(nextReadinessStep(checks(false, false), putOffThenRang), 'fullScreen');
+  assert.equal(nextReadinessStep(checks(true, false), putOffThenRang), null);
 });
