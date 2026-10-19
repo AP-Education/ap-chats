@@ -1,0 +1,13 @@
+/* Not inherited: the insets reach only the elements marked [data-chat-inset] that read them, so a
+   composer growing a line restyles those few elements rather than the whole history. */
+@property --chat-inset-top {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --chat-inset-bottom {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}

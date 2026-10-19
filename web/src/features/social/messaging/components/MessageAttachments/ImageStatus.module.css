@@ -1,0 +1,8 @@
+.status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ant-color-text-secondary);
+  pointer-events: none;
+}

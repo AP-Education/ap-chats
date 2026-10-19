@@ -12,6 +12,7 @@ import type {
   WebViewTerminatedEvent,
 } from 'react-native-webview/lib/WebViewTypes';
 
+import { fixCallCheck, readCallChecks } from '../../../../modules/call-readiness';
 import { clearPageInsets, measurePageBottomGap } from '../../../../modules/page-frame';
 import { useAppearanceStore, useShellPalette } from '../../appearance';
 import { useAuthStore } from '../../auth/index';
@@ -151,13 +152,24 @@ export function WebViewHost() {
     sendInset(INSTANT);
   }, [insetBottom, loadCount, sendInset]);
 
+  // The page asked how calls reach this phone; it hears again whenever that may have changed.
+  const pageWatchesCalls = useRef(false);
+
   // Settings changes the permission outside the app, so it is re-read on every return.
   useEffect(() => {
     const appState = AppState.addEventListener('change', (state) => {
-      if (state === 'active') sendPushPermission();
+      if (state !== 'active') return;
+      sendPushPermission();
+      if (pageWatchesCalls.current) sendCallChecks();
     });
     return () => appState.remove();
   }, []);
+
+  function sendCallChecks() {
+    webViewRef.current?.injectJavaScript(
+      buildBridgeScript({ type: 'calls/readiness', checks: readCallChecks() }),
+    );
+  }
 
   function sendPushPermission() {
     void getPushPermissionStatus().then((status) =>
@@ -173,6 +185,7 @@ export function WebViewHost() {
     // Hidden rather than dropped: the page lives inside a tab's host until it reloads.
     setTabBar((current) => current && { ...current, visible: false });
     pageTakesBack.current = false;
+    pageWatchesCalls.current = false;
     useNotificationStore.getState().setWebReady(false);
   }
 
@@ -204,6 +217,11 @@ export function WebViewHost() {
       void dismissPresentedNotifications(message.collapseKey);
     } else if (message.type === 'notifications/context') {
       useNotificationStore.getState().setWebAttending(message.payload.attending);
+    } else if (message.type === 'calls/readiness-check') {
+      pageWatchesCalls.current = true;
+      sendCallChecks();
+    } else if (message.type === 'calls/readiness-fix') {
+      fixCallCheck(message.id);
     } else if (message.type === 'notifications/permission-check') {
       sendPushPermission();
     } else if (message.type === 'notifications/settings') {

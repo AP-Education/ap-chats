@@ -92,6 +92,7 @@ function startCallSession(
     '../utils/drop-ring-without-session': { dropRingWithoutSession: async () => {} },
     '../utils/end-call': {},
     '../utils/mute-call': {},
+    '../utils/ring-in-the-dark': { noteRingInTheDark: async () => {} },
     '../utils/hydrate-call-session': {},
     '../utils/synchronize-call-session': {},
     '@livekit/react-native': () => {

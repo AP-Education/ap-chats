@@ -60,6 +60,34 @@ export function buildTimelineDays(
   return days;
 }
 
+/** Whether a run draws the same as before: the same entries, each in the same state. */
+export function sameRun(previous: TimelineRun, next: TimelineRun): boolean {
+  return (
+    previous.key === next.key &&
+    previous.unreadBefore === next.unreadBefore &&
+    previous.entries.length === next.entries.length &&
+    previous.entries.every((entry, index) => sameEntry(entry, next.entries[index]!))
+  );
+}
+
+/** Whether a day draws the same as before; days are rebuilt on every change to the history. */
+export function sameDay(previous: TimelineDay, next: TimelineDay): boolean {
+  return (
+    previous.key === next.key &&
+    previous.runs.length === next.runs.length &&
+    previous.runs.every((run, index) => sameRun(run, next.runs[index]!))
+  );
+}
+
+function sameEntry(previous: TimelineEntry, next: TimelineEntry) {
+  return (
+    previous.key === next.key &&
+    previous.display.item === next.display.item &&
+    previous.display.delivery === next.display.delivery &&
+    previous.display.pendingAttachments === next.display.pendingAttachments
+  );
+}
+
 /** Incoming runs show their author's face; the viewer's own runs need none. */
 export function runAvatar(
   run: TimelineRun,

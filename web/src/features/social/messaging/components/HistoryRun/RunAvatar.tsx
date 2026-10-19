@@ -16,7 +16,7 @@ export function RunAvatar({ author, size, className }: RunAvatarProps) {
 
   return (
     <MemberProfileTrigger member={{ ...author, workspaceId }}>
-      <button type="button" className={className} aria-label={`Профіль ${name}`}>
+      <button type="button" className={className} data-chat-inset aria-label={`Профіль ${name}`}>
         <Avatar path={author.avatarPath} alt={name} size={size} shape="circle" />
       </button>
     </MemberProfileTrigger>
