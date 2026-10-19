@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { realtime as source } from '../uk/realtime';
 
 export const realtime = {

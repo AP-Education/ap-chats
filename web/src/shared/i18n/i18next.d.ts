@@ -1,4 +1,4 @@
-import type * as source from './locales/uk';
+import type * as source from '../../../messages/uk';
 
 declare module 'i18next' {
   interface CustomTypeOptions {

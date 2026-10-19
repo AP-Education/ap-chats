@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { mediaViewer as source } from '../uk/mediaViewer';
 
 export const mediaViewer = {

@@ -1,7 +1,7 @@
 import { createInstance } from 'i18next';
 import resourcesToBackend from 'i18next-resources-to-backend';
 
-import type * as source from './locales/uk';
+import type * as source from '../../../messages/uk';
 
 type Namespace = keyof typeof source;
 
@@ -41,7 +41,7 @@ const namespaces = Object.keys({
 
 // One chunk per language, downloaded only by the people who read it.
 function catalogs(locale: string): Promise<typeof source> {
-  return import(`./locales/${locale}/index.ts`);
+  return import(`../../../messages/${locale}/index.ts`);
 }
 
 /** Chats' own instance: the shell and every other application keep theirs. */

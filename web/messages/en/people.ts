@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { people as source } from '../uk/people';
 
 export const people = {

@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { messaging as source } from '../uk/messaging';
 
 export const messaging = {

@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { roles as source } from '../uk/roles';
 
 export const roles = {

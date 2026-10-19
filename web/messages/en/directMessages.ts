@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { directMessages as source } from '../uk/directMessages';
 
 export const directMessages = {

@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { wallpaper as source } from '../uk/wallpaper';
 
 export const wallpaper = {

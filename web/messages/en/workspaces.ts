@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { workspaces as source } from '../uk/workspaces';
 
 export const workspaces = {

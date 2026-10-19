@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { communities as source } from '../uk/communities';
 
 export const communities = {

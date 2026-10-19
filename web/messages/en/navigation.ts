@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { navigation as source } from '../uk/navigation';
 
 export const navigation = {

@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit && tsc -p tsconfig.test.json",
-    "lint": "eslint src tests vite.config.ts",
+    "lint": "eslint src messages tests vite.config.ts",
     "preview": "vite preview",
     "test": "node --import tsx --test \"src/**/*.spec.ts\" \"tests/*.spec.ts\"",
     "test:browser": "playwright test",

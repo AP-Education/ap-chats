@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { notifications as source } from '../uk/notifications';
 
 export const notifications = {
