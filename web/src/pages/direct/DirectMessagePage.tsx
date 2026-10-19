@@ -23,7 +23,6 @@ import { ConversationProvider } from '@/features/social/conversation-scope/store
 import { DirectMessageActions } from '@/features/social/direct-messages/components/DirectMessageActions';
 import { DirectProfilePanel } from '@/features/social/direct-messages/components/DirectProfilePanel/DirectProfilePanel';
 import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDirectMessages';
-import { WorkspaceChannelPresence } from '@/features/social/read-state/WorkspaceChannelPresence';
 import { schedulingExtension } from '@/features/social/scheduling/extension';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
@@ -138,7 +137,6 @@ export default function DirectMessagePage() {
           },
         }}
       >
-        <WorkspaceChannelPresence channelId={channelId} />
         <PageHeader>
           <MobileMenuButton />
           <PageTitle>
