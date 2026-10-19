@@ -1,6 +1,7 @@
 import { apiRequest, jsonInit } from '@/shared/api/http';
 
 import type { Attachment, AttachmentPolicy, UploadScope, UploadSession } from './types';
+import type { UploadFile } from './upload-file';
 
 function uploadsUrl({ workspaceId, channelId }: UploadScope) {
   return `/api/workspaces/${workspaceId}/channels/${channelId}/uploads`;
@@ -10,7 +11,11 @@ export function getUploadPolicy(token: string, scope: UploadScope): Promise<Atta
   return apiRequest(`${uploadsUrl(scope)}/policy`, token);
 }
 
-export function beginUpload(token: string, scope: UploadScope, file: File): Promise<UploadSession> {
+export function beginUpload(
+  token: string,
+  scope: UploadScope,
+  file: Pick<UploadFile, 'name' | 'size'>,
+): Promise<UploadSession> {
   return apiRequest(
     uploadsUrl(scope),
     token,

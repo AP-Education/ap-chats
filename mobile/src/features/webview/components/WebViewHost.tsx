@@ -33,6 +33,10 @@ import { dismissPresentedNotifications } from '../../push/api/presented-notifica
 import { getPushPermissionStatus } from '../../push/api/push-token';
 import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
 import { useNotificationStore } from '../../push/store/notification-store';
+import { useShareBridge } from '../../share/hooks/useShareBridge';
+import { useShareStore } from '../../share/store/share-store';
+import type { ShareEvent } from '../../share/types';
+import { isShareRequest } from '../../share/utils/share-request';
 import { forgetLastLocation, loadLastLocation, rememberLocation } from '../api/last-location';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
 import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
@@ -119,6 +123,10 @@ export function WebViewHost() {
   const input = useComposerInput(sendInputState, handleRoom, { reservedInset, containerHeight });
   // The page says whether it takes Android's back; a new document starts without it.
   const pageTakesBack = useRef(false);
+  const sendShareEvent = useCallback((event: ShareEvent) => {
+    webViewRef.current?.injectJavaScript(buildBridgeScript(event));
+  }, []);
+  const share = useShareBridge(sendShareEvent, auth.status === 'signed-in' && loadCount > 0);
   // Opens on the page the person left; unset until the stored one is read, a moment at launch.
   const [startUrl, setStartUrl] = useState<string>();
 
@@ -141,7 +149,13 @@ export function WebViewHost() {
     );
   }, [auth.status, webReady, pendingNotification, loadCount]);
 
-  useEffect(() => () => useNotificationStore.getState().setWebReady(false), []);
+  useEffect(
+    () => () => {
+      useNotificationStore.getState().setWebReady(false);
+      useShareStore.getState().setWebReady(false);
+    },
+    [],
+  );
 
   // A reloaded page, or one that now ends elsewhere, takes its geometry at once.
   useEffect(() => {
@@ -174,6 +188,7 @@ export function WebViewHost() {
     setTabBar((current) => current && { ...current, visible: false });
     pageTakesBack.current = false;
     useNotificationStore.getState().setWebReady(false);
+    useShareStore.getState().setWebReady(false);
   }
 
   function sendBackToPage(): boolean {
@@ -194,6 +209,8 @@ export function WebViewHost() {
       input.request(message);
     } else if (message.type === 'page/started') {
       startPage();
+    } else if (isShareRequest(message)) {
+      share.request(message);
     } else if (message.type === 'notifications/ready') {
       useNotificationStore.getState().setWebReady(true);
     } else if (message.type === 'notifications/ack') {

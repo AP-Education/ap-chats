@@ -2,7 +2,8 @@ import { ApiError } from '@/shared/api/http';
 
 import { beginUpload, cancelUpload, completeUpload, signUploadPart } from './attachments-api';
 import type { Attachment, UploadScope, UploadSession } from './types';
-import { PartUploadError, uploadPart } from './upload-part';
+import type { UploadFile } from './upload-file';
+import { PartUploadError } from './upload-part';
 
 /**
  * A part URL's own 403 (expired presign) is worth retrying with a fresh one;
@@ -43,7 +44,7 @@ export class MultipartUploader {
   }
 
   async upload(
-    file: File,
+    file: UploadFile,
     resume: UploadResumeState,
     signal: AbortSignal,
     { onProgress, onProcessing }: MultipartUploadHandlers,
@@ -68,15 +69,13 @@ export class MultipartUploader {
     const sendPart = async () => {
       while (remaining.length && !internal.signal.aborted) {
         const number = remaining.shift()!;
-        const part = file.slice(
-          (number - 1) * session.partBytes,
-          Math.min(number * session.partBytes, file.size),
-        );
+        const start = (number - 1) * session.partBytes;
+        const end = Math.min(number * session.partBytes, file.size);
         for (let attempt = 0; ; attempt++) {
           try {
             resume.bytes.set(number, 0);
             const { url } = await signUploadPart(this.token(), this.scope, session.id, number);
-            await uploadPart(url, part, internal.signal, (bytes) => {
+            await file.sendPart(url, start, end, internal.signal, (bytes) => {
               resume.bytes.set(number, bytes);
               onProgress([...resume.bytes.values()].reduce((sum, value) => sum + value, 0));
             });

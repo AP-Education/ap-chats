@@ -4,6 +4,7 @@ import type { ComposerInputRequest, ComposerInputState } from '../../composer';
 import type { TabBarModel } from '../../navigation/types';
 import type { PushPermission } from '../../push/types';
 import type { NotificationIntent } from '../../push/utils/notification-intent';
+import type { ShareEvent, ShareRequest } from '../../share/types';
 
 // Bridge protocol: mirrors web/src/features/auth/types/index.ts. Keep additive.
 export interface NativeAuthTokenPayload {
@@ -39,7 +40,8 @@ export type NativeToWebMessage =
   /** How much of the page's bottom the native tab bar covers. */
   | { type: 'navigation/inset'; bottom: number }
   /** Android's back: the page closes what is open or steps back, else answers back-unhandled. */
-  | { type: 'navigation/back' };
+  | { type: 'navigation/back' }
+  | ShareEvent;
 
 export type WebToNativeMessage =
   /** A new document started: what the previous one announced (tabs, back, readiness) is gone. */
@@ -71,4 +73,5 @@ export type WebToNativeMessage =
    * RN console, since the WebView runs in a separate JS context Metro can't see. */
   | { type: 'debug/console'; level: 'log' | 'warn' | 'error'; args: string[] }
   | { type: 'debug/error'; message: string }
-  | ComposerInputRequest;
+  | ComposerInputRequest
+  | ShareRequest;

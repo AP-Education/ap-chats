@@ -4,9 +4,10 @@ import { randomId } from '@/shared/lib/random-id';
 import { formatFileSize } from './file-presentation';
 import { MultipartUploader, type UploadResumeState } from './multipart-uploader';
 import type { AttachmentDraft, AttachmentPolicy, UploadScope } from './types';
+import type { UploadFile } from './upload-file';
 
 interface UploadJob extends UploadResumeState {
-  file: File;
+  file: UploadFile;
   draft: AttachmentDraft;
   controller?: AbortController;
   /** Set once a send commits this job: it keeps uploading, but drops out of the composer's own snapshot. */
@@ -40,7 +41,7 @@ export class UploadQueue {
     };
   };
 
-  add(files: File[], policy: AttachmentPolicy): string[] {
+  add(files: UploadFile[], policy: AttachmentPolicy): string[] {
     const errors: string[] = [];
     // Committed jobs belong to a message already on its way out, not this
     // one in progress — they shouldn't count against its own limits.
@@ -58,20 +59,9 @@ export class UploadQueue {
         errors.push(error);
         continue;
       }
-      if (
-        [...this.jobs.values()].some(
-          (job) =>
-            job.file.name === file.name &&
-            job.file.size === file.size &&
-            job.file.lastModified === file.lastModified,
-        )
-      )
-        continue;
+      if ([...this.jobs.values()].some((job) => job.file.identity === file.identity)) continue;
       const key = randomId();
-      const previewUrl =
-        /^(image\/(jpeg|png|webp|gif))$/.test(file.type) && file.size <= 20 * 1024 * 1024
-          ? URL.createObjectURL(file)
-          : undefined;
+      const previewUrl = file.preview();
       const draft: AttachmentDraft = {
         key,
         name: file.name,

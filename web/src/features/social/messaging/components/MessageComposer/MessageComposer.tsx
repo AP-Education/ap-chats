@@ -44,6 +44,7 @@ import styles from './MessageComposer.module.css';
 import { PickerPanel, type PickerTab } from './picker';
 import { useBrowserKeyboardHeight } from './useBrowserKeyboardHeight';
 import { useComposerDraft } from './useComposerDraft';
+import { useComposerSeed } from './useComposerSeed';
 import { useNativeComposerInput } from './useNativeComposerInput';
 
 const LAST_PICKER_TAB_KEY = 'ap-chats:last-picker-tab';
@@ -113,6 +114,10 @@ export function MessageComposer({
     onTab: persistLastTab,
   });
   const activeTab = isNativeShell() ? nativeInput.activeTab : webActiveTab;
+  useComposerSeed(channelId, {
+    editorRef: editableRef,
+    addFiles: uploads.policy ? uploads.addFiles : undefined,
+  });
 
   // Sending never waits on attachment upload completion (matches Discord/
   // Telegram/Slack/WhatsApp) — only a failed draft doesn't count, since it's
