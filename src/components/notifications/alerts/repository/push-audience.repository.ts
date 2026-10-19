@@ -1,5 +1,6 @@
 import type { ChannelKind } from '@/components/communities/channels/types';
 import type { MessageGif } from '@/components/social/content';
+import type { Locale } from '@/database/drizzle/schema';
 
 import type { StoredNotificationSettings } from '../../preferences/types';
 import type { ConversationRange, ConversationScope } from '../types';
@@ -15,6 +16,7 @@ export interface AlertConversation {
 /** A member with someone else's unread message in the range. */
 export interface PushRecipient extends StoredNotificationSettings {
   userId: string;
+  locale: Locale;
   lastReadEntrySeq: bigint;
   mentioned: boolean;
 }

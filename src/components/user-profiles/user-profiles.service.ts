@@ -3,7 +3,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { isNull, lte, or } from 'drizzle-orm';
 
 import { AccountsTokenVerifier } from '@/components/auth';
-import { userProfiles } from '@/database/drizzle/schema';
+import { type Locale, userProfiles } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 @Injectable()
@@ -39,5 +39,13 @@ export class UserProfilesService {
         },
         setWhere: or(isNull(userProfiles.syncedAt), lte(userProfiles.syncedAt, verified.issuedAt))!,
       });
+  }
+
+  // Upserted, since the language may arrive before the first profile sync does.
+  async chooseLocale(oidcUserId: string, locale: Locale): Promise<void> {
+    await this.txHost.tx
+      .insert(userProfiles)
+      .values({ oidcUserId, locale })
+      .onConflictDoUpdate({ target: userProfiles.oidcUserId, set: { locale } });
   }
 }
