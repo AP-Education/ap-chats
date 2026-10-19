@@ -1,6 +1,7 @@
 import { CheckIcon } from '@phosphor-icons/react';
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { Role } from '../../types';
 import { RoleDot } from '../RoleDot';
@@ -67,11 +68,12 @@ interface RoleOptionsProps {
 
 export function RoleOptions({ roles, isSearching, assignedRoleIds, onToggle }: RoleOptionsProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('roles');
 
   if (!roles) return <Skeleton active title={false} paragraph={{ rows: 3 }} />;
   if (!roles.length)
     return (
-      <div className={styles.empty}>{isSearching ? 'Ролей не знайдено' : 'Ролей ще немає'}</div>
+      <div className={styles.empty}>{isSearching ? t(($) => $.noneFound) : t(($) => $.empty)}</div>
     );
 
   return (

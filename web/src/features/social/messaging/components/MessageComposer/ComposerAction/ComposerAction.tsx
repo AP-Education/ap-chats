@@ -1,11 +1,13 @@
 import { PaperPlaneRightIcon } from '@phosphor-icons/react';
 import { Dropdown, type MenuProps } from 'antd';
 import { type PointerEvent, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
-import type {
-  ComposerCommands,
-  ComposerDraftState,
-  SendOption,
+import {
+  type ComposerCommands,
+  type ComposerDraftState,
+  extensionNamespaces,
+  type SendOption,
 } from '@/features/social/conversation-scope/extensions';
 
 import styles from './ComposerAction.module.css';
@@ -29,6 +31,8 @@ export function ComposerAction({
   draft,
   composer,
 }: ComposerActionProps) {
+  const { t } = useTranslation('common');
+  const { t: extensionT } = useTranslation(extensionNamespaces);
   const [menuOpen, setMenuOpen] = useState(false);
   const [chosen, setChosen] = useState<SendOption | null>(null);
   const pressTimer = useRef<number | undefined>(undefined);
@@ -44,7 +48,7 @@ export function ComposerAction({
     pressTimer.current = window.setTimeout(() => {
       pressedLong.current = true;
       const [only] = options;
-      const takesDraft = options.length === 1 && only && !only.unavailable?.(draft);
+      const takesDraft = options.length === 1 && only && !only.unavailable?.(draft, extensionT);
       if (takesDraft) setChosen(only);
       else setMenuOpen(true);
     }, LONG_PRESS_MS);
@@ -61,11 +65,11 @@ export function ComposerAction({
 
   const menu: MenuProps = {
     items: options.map((option) => {
-      const reason = option.unavailable?.(draft);
+      const reason = option.unavailable?.(draft, extensionT);
       return {
         key: option.id,
         icon: option.icon,
-        label: reason ?? option.label,
+        label: reason ?? option.label(extensionT),
         disabled: !!reason,
       };
     }),
@@ -79,7 +83,7 @@ export function ComposerAction({
     <button
       type="button"
       className={styles.button}
-      aria-label="Надіслати"
+      aria-label={t(($) => $.actions.send)}
       disabled={!hasContent}
       onPointerDown={startPress}
       onPointerUp={endPress}

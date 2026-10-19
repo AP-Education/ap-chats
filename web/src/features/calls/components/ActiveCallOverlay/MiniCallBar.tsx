@@ -1,4 +1,5 @@
 import { createStyles, keyframes } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { CALL_PALETTE } from '../../callTheme';
 import { LeaveCallControl } from './controls/LeaveCallControl';
@@ -104,6 +105,7 @@ interface MiniCallBarProps {
 
 /** The app-level "return to call" strip: the room stays connected, only the stage collapses. */
 export function MiniCallBar({ title, duration, onExpand }: MiniCallBarProps) {
+  const { t } = useTranslation('calls');
   const { styles } = useStyles();
 
   return (
@@ -111,7 +113,7 @@ export function MiniCallBar({ title, duration, onExpand }: MiniCallBarProps) {
       <button
         type="button"
         className={styles.expand}
-        aria-label={`Повернутися до дзвінка: ${title}`}
+        aria-label={t(($) => $.overlay.returnTo, { title })}
         onClick={onExpand}
       >
         <span className={styles.dot} aria-hidden />

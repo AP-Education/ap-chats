@@ -1,7 +1,11 @@
+import { useShellLocale } from '@ap-education/shell-sdk';
 import { IconButton } from '@ap-education/ui';
 import { CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import type { CSSProperties } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import { dateTimeFormat } from '@/shared/i18n/format';
 
 import {
   addMonths,
@@ -14,7 +18,7 @@ import {
 } from '../../calendar';
 import { isSendDayOpen, latestSendTime } from '../../send-times';
 
-const dayLabel = new Intl.DateTimeFormat('uk-UA', {
+const dayLabel = dateTimeFormat({
   weekday: 'long',
   day: 'numeric',
   month: 'long',
@@ -111,6 +115,8 @@ export function MonthCalendar({
   onSelect,
 }: MonthCalendarProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation('scheduling');
+  const locale = useShellLocale();
   const canGoBack = month > startOfMonth(now);
   const canGoForward = month < startOfMonth(latestSendTime(now));
   const layout = { '--first-column': firstWeekColumn(month) } as CSSProperties;
@@ -118,11 +124,11 @@ export function MonthCalendar({
   return (
     <div>
       <div className={styles.header}>
-        <span className={styles.month}>{monthTitle(month)}</span>
+        <span className={styles.month}>{monthTitle(month, locale)}</span>
         <div className={styles.steps}>
           <IconButton
             size={32}
-            aria-label="Попередній місяць"
+            aria-label={t(($) => $.previousMonth)}
             disabled={!canGoBack}
             onClick={() => onMonthChange(addMonths(month, -1))}
           >
@@ -130,7 +136,7 @@ export function MonthCalendar({
           </IconButton>
           <IconButton
             size={32}
-            aria-label="Наступний місяць"
+            aria-label={t(($) => $.nextMonth)}
             disabled={!canGoForward}
             onClick={() => onMonthChange(addMonths(month, 1))}
           >
@@ -139,7 +145,7 @@ export function MonthCalendar({
         </div>
       </div>
       <div className={styles.grid} aria-hidden="true">
-        {weekdayLabels.map((label) => (
+        {weekdayLabels(locale).map((label) => (
           <span key={label} className={styles.weekday}>
             {label}
           </span>
@@ -157,7 +163,7 @@ export function MonthCalendar({
                 isSameDay(day, now) && styles.today,
                 isSelected && styles.selected,
               )}
-              aria-label={dayLabel.format(day)}
+              aria-label={dayLabel(locale).format(day)}
               aria-pressed={isSelected}
               disabled={!isSendDayOpen(day, now)}
               onClick={() => onSelect(day)}

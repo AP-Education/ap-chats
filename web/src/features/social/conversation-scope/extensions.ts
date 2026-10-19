@@ -2,10 +2,22 @@ import { type ComponentType, createContext, type ReactNode, useContext } from 'r
 
 import type {
   ConversationAction,
+  ExtensionNamespaces,
+  ExtensionT,
   Message,
   MessageHistoryItem,
   SendMessageCommand,
 } from '../messaging/types';
+
+export const extensionNamespaces: ExtensionNamespaces = [
+  'messaging',
+  'common',
+  'conversation',
+  'pins',
+  'reactions',
+  'scheduling',
+  'starMe',
+];
 
 /** A message the person sent from the composer, and what they composed it as. */
 export interface SentMessage {
@@ -42,10 +54,10 @@ export interface SendOptionDialogProps {
 /** Another way to send what the composer holds, offered beside its send button. */
 export interface SendOption {
   id: string;
-  label: string;
+  label: (t: ExtensionT) => string;
   icon: ReactNode;
   /** Why it cannot take this draft; nothing when it can. */
-  unavailable?: (draft: ComposerDraftState) => string | undefined;
+  unavailable?: (draft: ComposerDraftState, t: ExtensionT) => string | undefined;
   /** Takes the draft over and decides what becomes of it. */
   Dialog: ComponentType<SendOptionDialogProps>;
 }

@@ -2,6 +2,7 @@ import { CheckIcon, XIcon } from '@phosphor-icons/react';
 import { message as toast } from 'antd';
 import { createStyles } from 'antd-style';
 import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { MessageEditorSlotProvider } from '@/features/social/mentions/MessageEditorSlot';
 import type { ComposerEditorApi, ComposerEditorSlotProps } from '@/features/social/mentions/types';
@@ -61,6 +62,7 @@ interface MessageEditorProps {
 
 export function MessageEditor({ item, onEdit, onClose, children }: MessageEditorProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('messaging');
   const editor = useRef<ComposerEditorApi>(null);
   const [hasContent, setHasContent] = useState(Boolean(item.message.markdown?.trim()));
   const [saving, setSaving] = useState(false);
@@ -69,10 +71,12 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
   const labels = useMemo(
     () =>
       Object.fromEntries(
-        item.mentions?.map(({ memberId, displayName }) => [memberId, displayName ?? 'учасник']) ??
-          [],
+        item.mentions?.map(({ memberId, displayName }) => [
+          memberId,
+          displayName ?? t(($) => $.editor.mentionFallback),
+        ]) ?? [],
       ),
-    [item.mentions],
+    [item.mentions, t],
   );
 
   const save = useCallback(
@@ -87,12 +91,12 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
         onClose();
       } catch (error) {
         if (error instanceof ApiError && error.status === 409) setConflict(true);
-        else toast.error('Не вдалося зберегти. Перевірте зміни й спробуйте ще раз.');
+        else toast.error(t(($) => $.editor.saveFailed));
       } finally {
         setSaving(false);
       }
     },
-    [item, saving, onEdit, onClose, linkedGif],
+    [item, saving, onEdit, onClose, linkedGif, t],
   );
 
   const slot = useMemo<ComposerEditorSlotProps>(
@@ -101,12 +105,12 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
       initialDraft: { markdown: item.message.markdown ?? '', labels },
       className: styles.editor,
       autoFocus: true,
-      ariaLabel: 'Редагувати повідомлення',
+      ariaLabel: t(($) => $.editor.label),
       onChange: ({ markdown }) => setHasContent(Boolean(markdown.trim())),
       onSubmit: () => void save(),
       onEscape: onClose,
     }),
-    [item, labels, styles.editor, onClose, save],
+    [item, labels, styles.editor, onClose, save, t],
   );
 
   return (
@@ -118,7 +122,7 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
             <button
               type="button"
               className={styles.action}
-              aria-label="Скасувати редагування"
+              aria-label={t(($) => $.editor.cancel)}
               onClick={onClose}
             >
               <XIcon size={18} />
@@ -126,7 +130,7 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
             <button
               type="button"
               className={styles.action}
-              aria-label="Зберегти зміни"
+              aria-label={t(($) => $.editor.save)}
               disabled={saving || (!hasContent && !item.message.attachments?.length)}
               onClick={() => void save()}
             >
@@ -139,9 +143,9 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
       </MessageInputSurface>
       {conflict && (
         <div className={styles.conflict} role="alert">
-          Повідомлення змінилося на іншому пристрої. Ваш текст збережено тут.
+          {t(($) => $.editor.conflict)}
           <button type="button" onClick={() => void save(true)}>
-            Зберегти поверх
+            {t(($) => $.editor.overwrite)}
           </button>
         </div>
       )}

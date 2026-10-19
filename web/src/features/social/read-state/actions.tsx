@@ -6,7 +6,7 @@ export const readStateActions: ConversationAction[] = [
   {
     id: 'mark-unread',
     icon: <NotificationIcon size={18} />,
-    label: () => 'Позначити непрочитаним',
+    label: (_, t) => t(($) => $.conversation.markUnread),
     // The person's own messages never count as unread for them.
     available: (target, context) =>
       target.kind === 'message' && target.items[0].message.authorMemberId !== context.memberId,

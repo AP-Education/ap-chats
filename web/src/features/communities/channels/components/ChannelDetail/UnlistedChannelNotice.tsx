@@ -7,6 +7,7 @@ import {
 } from '@ap-education/ui';
 import { GearSixIcon, LockIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 interface UnlistedChannelNoticeProps {
   onSettings: () => void;
@@ -14,19 +15,18 @@ interface UnlistedChannelNoticeProps {
 
 // A workspace manager runs every channel but reads only those whose lists include them.
 export function UnlistedChannelNotice({ onSettings }: UnlistedChannelNoticeProps) {
+  const { t } = useTranslation('communities');
+
   return (
     <ContentState>
       <ContentStateIcon>
         <LockIcon />
       </ContentStateIcon>
-      <ContentStateTitle>Вас немає в списках цього каналу</ContentStateTitle>
-      <ContentStateDescription>
-        Ви можете змінити його налаштування й доступ. Щоб читати історію, додайте себе до тих, хто
-        його бачить.
-      </ContentStateDescription>
+      <ContentStateTitle>{t(($) => $.channels.unlisted.title)}</ContentStateTitle>
+      <ContentStateDescription>{t(($) => $.channels.unlisted.description)}</ContentStateDescription>
       <ContentStateActions>
         <Button icon={<GearSixIcon size={18} />} onClick={onSettings}>
-          Налаштування каналу
+          {t(($) => $.channels.settings)}
         </Button>
       </ContentStateActions>
     </ContentState>

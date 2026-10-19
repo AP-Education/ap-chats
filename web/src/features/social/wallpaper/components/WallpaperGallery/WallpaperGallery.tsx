@@ -1,4 +1,5 @@
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { useOwnBubbleColors } from '../../hooks/useOwnBubbleColors';
 import { useWallpaperBase } from '../../hooks/useWallpaperBase';
@@ -16,13 +17,19 @@ const useStyles = createStyles(({ css }) => ({
 
 export function WallpaperGallery() {
   const { styles } = useStyles();
+  const { t } = useTranslation('wallpaper');
   const current = useChatWallpaper();
   const choose = useChooseWallpaper();
   const base = useWallpaperBase();
   const ownBubbles = useOwnBubbleColors();
 
   return (
-    <div className={styles.gallery} style={ownBubbles} role="radiogroup" aria-label="Фон чатів">
+    <div
+      className={styles.gallery}
+      style={ownBubbles}
+      role="radiogroup"
+      aria-label={t(($) => $.chatBackground)}
+    >
       {wallpaperPresets.map((preset) => (
         <WallpaperPresetCard
           key={preset.id}

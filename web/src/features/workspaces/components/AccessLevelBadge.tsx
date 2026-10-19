@@ -1,9 +1,9 @@
 import { CaretDownIcon, CheckIcon } from '@phosphor-icons/react';
 import { Dropdown, type MenuProps } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { WorkspaceAccessLevel } from '../types';
-import { accessLevelLabels } from '../workspace-access';
 
 const useStyles = createStyles(({ token, css }) => ({
   badge: css`
@@ -59,11 +59,7 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-const levels: { level: WorkspaceAccessLevel; hint: string }[] = [
-  { level: 'owner', hint: 'Усе, що може менеджер, і призначення рівнів доступу.' },
-  { level: 'manager', hint: 'Канали, ролі та люди. Читає лише канали, де його вписали.' },
-  { level: 'member', hint: 'Працює в каналах, куди його вписали.' },
-];
+const levels: WorkspaceAccessLevel[] = ['owner', 'manager', 'member'];
 
 interface AccessLevelBadgeProps {
   accessLevel: WorkspaceAccessLevel;
@@ -75,16 +71,19 @@ interface AccessLevelBadgeProps {
 /** A person's access level, and for the owner the menu to change it. */
 export function AccessLevelBadge({ accessLevel, editable, onChange }: AccessLevelBadgeProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation('workspaces');
   const badgeClass = cx(styles.badge, accessLevel !== 'member' && styles.manager);
 
-  if (!editable) return <span className={badgeClass}>{accessLevelLabels[accessLevel]}</span>;
+  const levelLabel = t(($) => $.accessLevels[accessLevel]);
 
-  const items: MenuProps['items'] = levels.map(({ level, hint }) => ({
+  if (!editable) return <span className={badgeClass}>{levelLabel}</span>;
+
+  const items: MenuProps['items'] = levels.map((level) => ({
     key: level,
     label: (
       <span className={styles.option}>
-        <span className={styles.optionLabel}>{accessLevelLabels[level]}</span>
-        <span className={styles.optionHint}>{hint}</span>
+        <span className={styles.optionLabel}>{t(($) => $.accessLevels[level])}</span>
+        <span className={styles.optionHint}>{t(($) => $.accessLevelHints[level])}</span>
         {level === accessLevel && <CheckIcon size={16} weight="bold" className={styles.check} />}
       </span>
     ),
@@ -103,9 +102,9 @@ export function AccessLevelBadge({ accessLevel, editable, onChange }: AccessLeve
       <button
         type="button"
         className={cx(badgeClass, styles.editable)}
-        aria-label={`Рівень доступу: ${accessLevelLabels[accessLevel]}. Змінити`}
+        aria-label={t(($) => $.accessLevelLabel, { level: levelLabel })}
       >
-        {accessLevelLabels[accessLevel]}
+        {levelLabel}
         <CaretDownIcon size={12} weight="bold" />
       </button>
     </Dropdown>

@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 import { type MentionToken, splitTokens, tokenText, writeToken } from '../../mention-tokens';
 import type { ComposerDraft } from '../../types';
 
@@ -21,20 +23,34 @@ export function serializeEditor(root: HTMLElement | null): string {
 }
 
 /** An uneditable chip that serializes back to the token it shows. */
-export function tokenChip(token: MentionToken, labels: Record<string, string>, className: string) {
+export function tokenChip(
+  token: MentionToken,
+  labels: Record<string, string>,
+  className: string,
+  t: TFunction<'mentions'>,
+) {
   const element = document.createElement('span');
   element.contentEditable = 'false';
   element.className = className;
   element.dataset.token = writeToken(token);
-  element.textContent = tokenText(token, token.kind === 'everyone' ? undefined : labels[token.id]);
+  element.textContent = tokenText(
+    token,
+    t,
+    token.kind === 'everyone' ? undefined : labels[token.id],
+  );
   return element;
 }
 
-export function restoreEditor(root: HTMLElement, draft: ComposerDraft, chipClass: string) {
+export function restoreEditor(
+  root: HTMLElement,
+  draft: ComposerDraft,
+  chipClass: string,
+  t: TFunction<'mentions'>,
+) {
   const nodes = splitTokens(draft.markdown).map((part) =>
     typeof part === 'string'
       ? document.createTextNode(part)
-      : tokenChip(part, draft.labels, chipClass),
+      : tokenChip(part, draft.labels, chipClass, t),
   );
   root.replaceChildren(...nodes);
 }

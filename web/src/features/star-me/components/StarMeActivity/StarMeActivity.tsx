@@ -1,6 +1,7 @@
 import { AiText } from '@ap-education/ui';
 import { createStyles, keyframes } from 'antd-style';
 import type { PropsWithChildren } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { Bubble } from '@/features/social/messaging/components/Bubble/Bubble';
@@ -32,6 +33,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
 /** StarMe at the end of the conversation, where its answer will land: composing, or why not. */
 export function StarMeActivity() {
+  const { t } = useTranslation('starMe');
   const { workspaceId, channelId } = useConversationScope();
   const starMe = useStarMe(workspaceId);
   const { currentMember } = useWorkspaceMemberLabels(workspaceId);
@@ -43,7 +45,7 @@ export function StarMeActivity() {
     return (
       <ActivityRow starMe={starMe} role="status">
         <Bubble own={false}>
-          <AiText thinking>Думаю над відповіддю</AiText>
+          <AiText thinking>{t(($) => $.thinking)}</AiText>
         </Bubble>
       </ActivityRow>
     );

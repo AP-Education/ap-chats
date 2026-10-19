@@ -1,10 +1,12 @@
 import { IconButton, LoadingIcon, useIsMobile } from '@ap-education/ui';
 import { BellIcon, BellSlashIcon } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 
 import { usePushControl } from '../hooks/usePushControl';
 import type { PushControl } from '../types';
 
 export function PushSettings() {
+  const { t } = useTranslation('notifications');
   const push = usePushControl();
   const isMobile = useIsMobile();
   if (!push) return null;
@@ -14,7 +16,7 @@ export function PushSettings() {
   return (
     <IconButton
       size={isMobile ? 44 : 36}
-      aria-label="Сповіщення"
+      aria-label={t(($) => $.title)}
       aria-description={push.hint}
       aria-pressed={push.status === 'on'}
       aria-busy={push.busy}

@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
@@ -14,6 +15,7 @@ import { conversationMedia } from '../media-list';
  * PhotoSwipe's zoom starts from the bubble the person touched.
  */
 export function useMediaGallery(items: HistoryItem[]) {
+  const { t } = useTranslation('mediaViewer');
   const queryClient = useQueryClient();
   const auth = useQueryAuth();
   const scope = useConversationScope();
@@ -48,12 +50,12 @@ export function useMediaGallery(items: HistoryItem[]) {
         const index = media.findIndex((entry) => entry.key === key);
         if (index < 0) return;
 
-        setGallery(new MediaGallery(media, index, urls, { onClosed: () => setGallery(null) }));
+        setGallery(new MediaGallery(media, index, urls, { onClosed: () => setGallery(null) }, t));
       } finally {
         opening.current = false;
       }
     },
-    [queryClient],
+    [queryClient, t],
   );
 
   return { gallery, open };

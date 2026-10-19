@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useIsNarrowLayout } from '@/shared/hooks/useIsNarrowLayout';
 
@@ -49,6 +50,7 @@ export function MemberProfileTrigger({ member, children }: MemberProfileTriggerP
 
 function MemberPopover({ member, children }: MemberProfileTriggerProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('people');
   const { token } = theme.useToken();
   const isNarrowLayout = useIsNarrowLayout();
   const [open, setOpen] = useState(false);
@@ -84,7 +86,7 @@ function MemberPopover({ member, children }: MemberProfileTriggerProps) {
         <div
           ref={dialogRef}
           role="dialog"
-          aria-label={memberProfileLabel(member)}
+          aria-label={memberProfileLabel(member, t)}
           tabIndex={-1}
           className={styles.dialog}
           // Portal events still bubble through React to the host row's selection and menu.

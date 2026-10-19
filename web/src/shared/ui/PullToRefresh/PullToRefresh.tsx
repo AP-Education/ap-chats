@@ -1,6 +1,7 @@
 import { ArrowClockwiseIcon, CircleNotchIcon } from '@phosphor-icons/react';
 import { createStyles, keyframes } from 'antd-style';
 import { type PropsWithChildren, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { usePullToRefresh } from './usePullToRefresh';
 
@@ -70,6 +71,7 @@ interface PullToRefreshProps extends PropsWithChildren {
 /** Refreshes a list pulled down from its top, the way phone apps do, keeping what it shows meanwhile. */
 export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
   const { armed, refreshing } = usePullToRefresh(rootRef, onRefresh);
 
@@ -78,7 +80,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       <div
         className={cx(styles.indicator, refreshing && styles.refreshing)}
         role="status"
-        aria-label={refreshing ? 'Оновлення' : undefined}
+        aria-label={refreshing ? t(($) => $.refreshing) : undefined}
       >
         {refreshing ? (
           <CircleNotchIcon size={20} weight="bold" className={styles.spinner} />

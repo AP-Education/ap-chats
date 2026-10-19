@@ -1,5 +1,6 @@
 import { PhoneOutgoingIcon, UsersThreeIcon } from '@phosphor-icons/react';
 import { createStyles, keyframes } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { RingingAvatar } from '../../RingingAvatar/RingingAvatar';
 import type { Callee } from './useCallStageParticipants';
@@ -64,6 +65,7 @@ interface WaitingStageProps {
  * exactly who you're calling while it rings. Falls back to a plain waiting
  * state for channel calls, which have no single person to show. */
 export function WaitingStage({ callee }: WaitingStageProps) {
+  const { t } = useTranslation('calls');
   const { styles } = useStyles();
 
   if (callee)
@@ -74,7 +76,7 @@ export function WaitingStage({ callee }: WaitingStageProps) {
           <span className={styles.name}>{callee.name}</span>
           <span className={styles.status}>
             <PhoneOutgoingIcon size={14} weight="fill" />
-            Дзвонимо
+            {t(($) => $.overlay.calling)}
           </span>
         </div>
       </div>
@@ -86,7 +88,7 @@ export function WaitingStage({ callee }: WaitingStageProps) {
         <span className={styles.placeholder}>
           <UsersThreeIcon size={56} weight="light" />
         </span>
-        <span className={styles.status}>Очікуємо на учасників</span>
+        <span className={styles.status}>{t(($) => $.overlay.waitingForParticipants)}</span>
       </div>
     </div>
   );

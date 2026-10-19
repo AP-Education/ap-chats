@@ -2,6 +2,7 @@ import { IconButton, useIsMobile } from '@ap-education/ui';
 import { CalendarDotsIcon } from '@phosphor-icons/react';
 import { message as toast, Popover } from 'antd';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { BottomSheet } from '@/shared/ui/BottomSheet';
 
@@ -13,10 +14,9 @@ import { ScheduledMessages } from '../ScheduledMessages/ScheduledMessages';
 import { SchedulePicker } from '../SchedulePicker/SchedulePicker';
 import styles from './ScheduledMessagesEntry.module.css';
 
-const TITLE = 'Заплановані повідомлення';
-
 /** Shown in the composer while the conversation holds messages of the viewer's waiting to go out. */
 export function ScheduledMessagesEntry() {
+  const { t } = useTranslation('scheduling');
   const isMobile = useIsMobile();
   const { data } = useScheduledMessages();
   const scheduled = data ?? [];
@@ -37,11 +37,12 @@ export function ScheduledMessagesEntry() {
       { message, sendAt },
       {
         onSuccess: () => setRescheduling(null),
-        onError: () => toast.error('Не вдалося змінити час.'),
+        onError: () => toast.error(t(($) => $.errors.reschedule)),
       },
     );
   }
 
+  const title = t(($) => $.listTitle);
   const list = <ScheduledMessages messages={scheduled} onReschedule={startRescheduling} />;
   const button = (
     <IconButton
@@ -49,7 +50,7 @@ export function ScheduledMessagesEntry() {
       size={isMobile ? 36 : 38}
       className={styles.button}
       data-arrived={arrivals > 0 || undefined}
-      aria-label={`${TITLE}: ${scheduled.length}`}
+      aria-label={`${title}: ${scheduled.length}`}
       onClick={() => setListOpen(true)}
     >
       <CalendarDotsIcon size={22} />
@@ -61,8 +62,8 @@ export function ScheduledMessagesEntry() {
       {isMobile ? (
         <>
           {button}
-          <BottomSheet open={listOpen} onClose={() => setListOpen(false)} aria-label={TITLE}>
-            <h2 className={styles.title}>{TITLE}</h2>
+          <BottomSheet open={listOpen} onClose={() => setListOpen(false)} aria-label={title}>
+            <h2 className={styles.title}>{title}</h2>
             {list}
           </BottomSheet>
         </>
@@ -72,7 +73,7 @@ export function ScheduledMessagesEntry() {
           open={listOpen}
           onOpenChange={setListOpen}
           placement="topRight"
-          title={TITLE}
+          title={title}
           content={list}
         >
           {button}
@@ -80,7 +81,7 @@ export function ScheduledMessagesEntry() {
       )}
       {rescheduling && (
         <SchedulePicker
-          title="Змінити час"
+          title={t(($) => $.changeTime)}
           initial={new Date(rescheduling.sendAt)}
           pending={reschedule.isPending}
           onPick={(sendAt) => pick(rescheduling, sendAt)}

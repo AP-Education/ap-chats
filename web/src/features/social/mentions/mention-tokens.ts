@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 // References a message carries inline, as remark text directives; the server reads the same
 // grammar in src/components/social/messages/content/message-markdown.ts.
 
@@ -10,10 +12,10 @@ export type MentionToken =
 type ReferenceKind = Exclude<MentionToken['kind'], 'everyone'>;
 
 // Every kind of reference by id, with how it reads: a new kind is added here and rendered once.
-const references: Record<ReferenceKind, { sigil: '@' | '#'; unnamed: string }> = {
-  member: { sigil: '@', unnamed: 'учасник' },
-  role: { sigil: '@', unnamed: 'роль' },
-  channel: { sigil: '#', unnamed: 'канал' },
+const references: Record<ReferenceKind, { sigil: '@' | '#' }> = {
+  member: { sigil: '@' },
+  role: { sigil: '@' },
+  channel: { sigil: '#' },
 };
 
 export const EVERYONE_TOKEN = ':mention[everyone]';
@@ -41,10 +43,10 @@ export function readToken(name: string | undefined, label: string): MentionToken
 }
 
 /** How a reference reads as text: by its name where known, otherwise by what it is. */
-export function tokenText(token: MentionToken, name?: string): string {
+export function tokenText(token: MentionToken, t: TFunction<'mentions'>, name?: string): string {
   if (token.kind === 'everyone') return '@everyone';
-  const { sigil, unnamed } = references[token.kind];
-  return `${sigil}${name ?? unnamed}`;
+  const { sigil } = references[token.kind];
+  return `${sigil}${name ?? t(($) => $.unnamed[token.kind])}`;
 }
 
 /** The attributes a rendered reference carries, read back by `tokenFromAttributes`. */
@@ -80,9 +82,9 @@ export function splitTokens(markdown: string): (string | MentionToken)[] {
 }
 
 /** One line of the markdown with its references read as words, without resolving names. */
-export function previewText(markdown: string): string {
+export function previewText(markdown: string, t: TFunction<'mentions'>): string {
   return splitTokens(markdown)
-    .map((part) => (typeof part === 'string' ? part : tokenText(part)))
+    .map((part) => (typeof part === 'string' ? part : tokenText(part, t)))
     .join('')
     .replace(/\s+/gu, ' ');
 }

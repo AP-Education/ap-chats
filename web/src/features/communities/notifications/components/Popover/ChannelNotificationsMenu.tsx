@@ -1,5 +1,6 @@
 import { App, Button } from 'antd';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { ChannelNotificationsMenuSkeleton } from './ChannelNotificationsMenuSkeleton';
 import { MuteDurationView } from './MuteDurationView';
@@ -13,6 +14,7 @@ interface ChannelNotificationsMenuProps {
 }
 
 export function ChannelNotificationsMenu({ preference, onDone }: ChannelNotificationsMenuProps) {
+  const { t } = useTranslation(['communities', 'common']);
   const { message } = App.useApp();
   const [view, setView] = useState<'levels' | 'mute'>('levels');
 
@@ -21,7 +23,7 @@ export function ChannelNotificationsMenu({ preference, onDone }: ChannelNotifica
       await change();
       onDone();
     } catch {
-      void message.error('Не вдалося оновити сповіщення каналу.');
+      void message.error(t(($) => $.notifications.updateFailed));
     }
   }
 
@@ -30,7 +32,7 @@ export function ChannelNotificationsMenu({ preference, onDone }: ChannelNotifica
   if (preference.status === 'failed') {
     return (
       <Button type="link" onClick={preference.retry}>
-        Повторити завантаження
+        {t(($) => $.notifications.reload)}
       </Button>
     );
   }

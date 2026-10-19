@@ -11,12 +11,12 @@ export const schedulingExtension: ConversationExtension = {
   sendOptions: [
     {
       id: 'schedule',
-      label: 'Запланувати повідомлення',
+      label: (t) => t(($) => $.scheduling.extension.label),
       icon: <CalendarDotsIcon size={18} />,
       // The server keeps no uploads for later, so files go only with a message sent now.
-      unavailable: ({ hasAttachments, canWait }) => {
-        if (hasAttachments) return 'Файли поки не можна запланувати';
-        if (!canWait) return 'Цей запит надсилається лише одразу';
+      unavailable: ({ hasAttachments, canWait }, t) => {
+        if (hasAttachments) return t(($) => $.scheduling.extension.noAttachments);
+        if (!canWait) return t(($) => $.scheduling.extension.immediateOnly);
         return undefined;
       },
       Dialog: ScheduleMessageDialog,

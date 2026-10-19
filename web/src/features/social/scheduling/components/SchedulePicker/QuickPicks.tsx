@@ -1,5 +1,6 @@
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { SendTimeOption } from '../../send-times';
 
@@ -20,9 +21,10 @@ interface QuickPicksProps {
 /** Common send times that fill in the day and the time at once. */
 export function QuickPicks({ options, picked, onPick }: QuickPicksProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('scheduling');
 
   return (
-    <div className={styles.picks} role="group" aria-label="Швидкий вибір">
+    <div className={styles.picks} role="group" aria-label={t(($) => $.quickPicks)}>
       {options.map((option) => {
         const isPicked = picked?.getTime() === option.sendAt.getTime();
         return (

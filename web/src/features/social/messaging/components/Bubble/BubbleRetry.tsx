@@ -1,5 +1,6 @@
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   retry: css`
@@ -33,13 +34,14 @@ interface BubbleRetryProps {
 /** What stopped a failed bubble, and the way to try it again. */
 export function BubbleRetry({ status, onRetry }: BubbleRetryProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('common');
 
   return (
     <div className={styles.retry}>
       {status}
       {onRetry && (
         <button type="button" className={styles.button} onClick={onRetry}>
-          Повторити
+          {t(($) => $.actions.retry)}
         </button>
       )}
     </div>

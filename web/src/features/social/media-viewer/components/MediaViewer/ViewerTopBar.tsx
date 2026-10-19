@@ -1,14 +1,17 @@
+import { useShellLocale } from '@ap-education/shell-sdk';
 import { IconButton } from '@ap-education/ui';
 import { XIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { formatDayLabel } from '@/features/social/messaging/components/MessageTimeline/timeline-days';
+import { dateTimeFormat } from '@/shared/i18n/format';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { ViewerMedia } from '../../types';
 
-const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
+const timeFormat = dateTimeFormat({ hour: '2-digit', minute: '2-digit' });
 
 const useStyles = createStyles(({ token, css }) => ({
   // Shown and hidden with PhotoSwipe's own controls, which a tap on the photo toggles.
@@ -108,9 +111,12 @@ interface ViewerTopBarProps {
 /** Who sent the media and when, which leads back to the message, and the way out. */
 export function ViewerTopBar({ media, tools, onClose, onShowInChat }: ViewerTopBarProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['mediaViewer', 'common']);
+  const { t: messagingT } = useTranslation('messaging');
+  const locale = useShellLocale();
   const { author, createdAt } = media.item;
   const { index, total } = media.position;
-  const name = author.displayName ?? 'Ім’я недоступне';
+  const name = author.displayName ?? t(($) => $.nameUnavailable);
   const sentAt = new Date(createdAt);
 
   return (
@@ -119,24 +125,25 @@ export function ViewerTopBar({ media, tools, onClose, onShowInChat }: ViewerTopB
         type="button"
         className={styles.author}
         onClick={onShowInChat}
-        title="Показати в чаті"
+        title={t(($) => $.showInChat)}
       >
         <Avatar path={author.avatarPath} alt={name} size={36} shape="circle" />
         <span className={styles.who}>
           <span className={styles.name}>{name}</span>
           <time className={styles.date} dateTime={createdAt}>
-            {formatDayLabel(sentAt)} о {timeFormat.format(sentAt)}
+            {t(($) => $.sentAt, {
+              day: formatDayLabel(sentAt, messagingT, locale),
+              time: timeFormat(locale).format(sentAt),
+            })}
           </time>
         </span>
       </button>
       {total > 1 && (
-        <span className={styles.counter}>
-          {index + 1} з {total}
-        </span>
+        <span className={styles.counter}>{t(($) => $.position, { index: index + 1, total })}</span>
       )}
       {tools && <div className={styles.group}>{tools}</div>}
       <div className={styles.group}>
-        <IconButton size={40} aria-label="Закрити" onClick={onClose}>
+        <IconButton size={40} aria-label={t(($) => $.common.actions.close)} onClick={onClose}>
           <XIcon size={22} />
         </IconButton>
       </div>

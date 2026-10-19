@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { useRoles } from '@/features/roles/hooks/useRoles';
 import { useWorkspaceMembers } from '@/features/workspaces/hooks/useWorkspaceMembers';
 import { compareNames } from '@/shared/lib/compare-names';
@@ -11,12 +13,6 @@ export type PrincipalDetails =
   | { key: string; kind: 'role'; name: string; color: string | null }
   | { key: string; kind: 'member'; name: string; avatarPath: string | null };
 
-const everyone: PrincipalDetails = {
-  key: principalKey({ kind: 'everyone' }),
-  kind: 'everyone',
-  name: 'Уся компанія',
-};
-
 /** Everyone a channel's lists can name, and how to show whoever they already name. */
 export interface PrincipalDirectory {
   known: PrincipalDetails[];
@@ -25,8 +21,15 @@ export interface PrincipalDirectory {
 }
 
 export function usePrincipalDirectory(workspaceId: string): PrincipalDirectory {
+  const { t } = useTranslation('communities');
   const { query: roles } = useRoles(workspaceId);
   const members = useWorkspaceMembers(workspaceId);
+
+  const everyone: PrincipalDetails = {
+    key: principalKey({ kind: 'everyone' }),
+    kind: 'everyone',
+    name: t(($) => $.access.everyone),
+  };
 
   const known: PrincipalDetails[] = [
     everyone,
@@ -40,7 +43,7 @@ export function usePrincipalDirectory(workspaceId: string): PrincipalDirectory {
       .map((member) => ({
         key: principalKey({ kind: 'member', memberId: member.id }),
         kind: 'member' as const,
-        name: member.profile.displayName ?? 'Ім’я недоступне',
+        name: member.profile.displayName ?? t(($) => $.access.nameUnavailable),
         avatarPath: member.profile.avatarPath,
       }))
       .sort((a, b) => compareNames(a.name, b.name)),
@@ -50,7 +53,14 @@ export function usePrincipalDirectory(workspaceId: string): PrincipalDirectory {
   // A role deleted or a person gone since the lists were read still has a row to remove.
   function describe(principal: Principal): PrincipalDetails {
     const key = principalKey(principal);
-    return byKey.get(key) ?? { key, kind: 'member', name: 'Недоступно', avatarPath: null };
+    return (
+      byKey.get(key) ?? {
+        key,
+        kind: 'member',
+        name: t(($) => $.access.unavailable),
+        avatarPath: null,
+      }
+    );
   }
 
   return { known, describe, isLoading: roles.isPending || members.isPending };

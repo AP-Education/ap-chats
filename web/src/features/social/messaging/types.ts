@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import type { ReactNode } from 'react';
 
 import type { MemberSummary } from '@/features/workspaces/types';
@@ -211,11 +212,24 @@ export interface ActionCommands {
 /** How an action stands out: a destructive one warns, an assistant's leads on its own sky. */
 export type ActionAccent = 'danger' | 'ai';
 
+/** The namespaces the features extending a conversation take the words of their actions and options from. */
+export type ExtensionNamespaces = readonly [
+  'messaging',
+  'common',
+  'conversation',
+  'pins',
+  'reactions',
+  'scheduling',
+  'starMe',
+];
+
+export type ExtensionT = TFunction<ExtensionNamespaces>;
+
 export interface ConversationAction {
   id: string;
   icon: ReactNode;
   accent?: ActionAccent;
-  label: (target: ActionTarget) => string;
+  label: (target: ActionTarget, t: ExtensionT) => string;
   available: (target: ActionTarget, context: ActionContext) => boolean;
   execute: (target: ActionTarget, commands: ActionCommands) => void;
 }

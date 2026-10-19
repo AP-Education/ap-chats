@@ -2,6 +2,7 @@ import { MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { Input } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { isGifSearchConfigured } from '../../../gifs/klipy-api';
 import type { Gif } from '../../../gifs/types';
@@ -34,16 +35,13 @@ interface GifTabProps {
 
 export function GifTab({ onPick }: GifTabProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('messaging');
   const [query, setQuery] = useState('');
   const configured = isGifSearchConfigured();
   const search = useGifSearch(query, configured);
 
   if (!configured) {
-    return (
-      <div className={styles.unavailable}>
-        Пошук GIF вимкнено: додайте VITE_KLIPY_API_KEY, щоб увімкнути його.
-      </div>
-    );
+    return <div className={styles.unavailable}>{t(($) => $.picker.gifUnavailable)}</div>;
   }
 
   return (
@@ -53,8 +51,8 @@ export function GifTab({ onPick }: GifTabProps) {
         allowClear
         prefix={<MagnifyingGlassIcon size={16} />}
         // KLIPY's terms require its name as the search placeholder.
-        placeholder="Пошук у KLIPY"
-        aria-label="Пошук GIF"
+        placeholder={t(($) => $.picker.gifPlaceholder)}
+        aria-label={t(($) => $.picker.gifSearch)}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />

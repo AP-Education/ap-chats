@@ -1,6 +1,7 @@
 import { PageAsideClose, PageHeader, PageTitle } from '@ap-education/ui';
 import { UsersThreeIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { useRoles } from '@/features/roles/hooks/useRoles';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
@@ -41,6 +42,7 @@ interface ChannelMembersPanelProps {
 }
 
 export function ChannelMembersPanel({ workspaceId, channel }: ChannelMembersPanelProps) {
+  const { t } = useTranslation('communities');
   const { styles } = useStyles();
   const { byId, isLoading: labelsLoading } = useWorkspaceMemberLabels(workspaceId);
   const { query } = useChannelMembership(workspaceId, channel.id);
@@ -50,6 +52,7 @@ export function ChannelMembersPanel({ workspaceId, channel }: ChannelMembersPane
     memberships,
     roles.data ?? [],
     (memberId) => byId.get(memberId)?.label ?? '',
+    t,
   );
   const isLoading = query.isPending || labelsLoading;
   const isError = query.isError && !query.data;
@@ -59,10 +62,10 @@ export function ChannelMembersPanel({ workspaceId, channel }: ChannelMembersPane
       <PageHeader>
         <PageTitle>
           <UsersThreeIcon size={20} weight="duotone" className={styles.headingIcon} />
-          Учасники
+          {t(($) => $.members.title)}
           {!isLoading && !isError && <span className={styles.count}>{memberships.length}</span>}
         </PageTitle>
-        <PageAsideClose aria-label="Закрити учасників" />
+        <PageAsideClose aria-label={t(($) => $.members.close)} />
       </PageHeader>
       <ChannelMembersContent
         isLoading={isLoading}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { useChannels } from '@/features/communities/channels/hooks/useChannels';
@@ -13,11 +14,12 @@ interface ChannelReferenceProps {
 
 /** A channel named in a message: opens it for anyone who can see it, plain text otherwise. */
 export function ChannelReference({ channelId, inline }: ChannelReferenceProps) {
+  const { t } = useTranslation('mentions');
   const navigate = useNavigate();
   const { workspaceId } = useConversationScope();
   const channels = useChannels(workspaceId);
   const channel = channels.data?.find((item) => item.id === channelId);
-  const name = channel ? `#${channel.name}` : '#недоступний канал';
+  const name = channel ? `#${channel.name}` : `#${t(($) => $.unavailableChannel)}`;
 
   if (!channel || inline)
     return (

@@ -1,7 +1,9 @@
 import { IconButton } from '@ap-education/ui';
 import { ChatCircleTextIcon, DotsThreeIcon } from '@phosphor-icons/react';
 import { Dropdown, type MenuProps } from 'antd';
+import { useTranslation } from 'react-i18next';
 
+import { extensionNamespaces } from '@/features/social/conversation-scope/extensions';
 import { groupMessageActions } from '@/features/social/messaging/components/MessageRow/messageActionGroups';
 import type { ActionTarget } from '@/features/social/messaging/types';
 
@@ -21,11 +23,13 @@ interface ViewerMenuProps {
 }
 
 export function ViewerMenu({ target, actions, onLeave, placement }: ViewerMenuProps) {
+  const { t } = useTranslation(['mediaViewer', 'common']);
+  const { t: extensionT } = useTranslation(extensionNamespaces);
   const available = actions.actions.filter(
     (action) => VIEWER_ACTIONS.has(action.id) && action.available(target, actions.context),
   );
   const items: MenuProps['items'] = [
-    { key: SHOW_IN_CHAT, label: 'Показати в чаті', icon: <ChatCircleTextIcon size={18} /> },
+    { key: SHOW_IN_CHAT, label: t(($) => $.showInChat), icon: <ChatCircleTextIcon size={18} /> },
   ];
 
   for (const group of groupMessageActions(available)) {
@@ -33,7 +37,7 @@ export function ViewerMenu({ target, actions, onLeave, placement }: ViewerMenuPr
     for (const action of group) {
       items.push({
         key: action.id,
-        label: action.label(target),
+        label: action.label(target, extensionT),
         icon: action.icon,
         danger: action.id === 'delete',
       });
@@ -59,7 +63,7 @@ export function ViewerMenu({ target, actions, onLeave, placement }: ViewerMenuPr
       // Inside the viewer, or PhotoSwipe's focus trap pulls focus back out of the menu.
       getPopupContainer={(trigger) => trigger.parentElement ?? document.body}
     >
-      <IconButton size={40} aria-label="Інші дії">
+      <IconButton size={40} aria-label={t(($) => $.common.actions.moreActions)}>
         <DotsThreeIcon size={22} weight="bold" />
       </IconButton>
     </Dropdown>

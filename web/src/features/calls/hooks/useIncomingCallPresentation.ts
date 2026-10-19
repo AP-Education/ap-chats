@@ -1,4 +1,5 @@
 import { message as toast } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 import { useChannel } from '@/features/communities/channels/hooks/useChannels';
 
@@ -32,10 +33,11 @@ export interface IncomingCallPresentation {
  * layout with no branching to read through.
  */
 export function useIncomingCallPresentation(signal: CallSignal): IncomingCallPresentation {
+  const { t } = useTranslation('calls');
   const decline = useDeclineIncomingCall();
   const clearIncoming = useCallStore((state) => state.clearIncoming);
   const isDm = signal.channelKind === 'dm';
-  const starterName = signal.startedByDisplayName ?? 'Колега';
+  const starterName = signal.startedByDisplayName ?? t(($) => $.colleague);
   // A channel member is already in the sidebar's channel list by the time a
   // call there can ring them, so this resolves from cache almost every time —
   // no loading flash for the common case.
@@ -43,7 +45,7 @@ export function useIncomingCallPresentation(signal: CallSignal): IncomingCallPre
     isDm ? undefined : signal.workspaceId,
     isDm ? undefined : signal.channelId,
   );
-  const channelName = channel.data?.name ?? 'канал';
+  const channelName = channel.data?.name ?? t(($) => $.channel);
   // Undefined (not the starter's photo) marks this a channel call to the call
   // stage: it has no single callee, unlike a DM's one-on-one waiting screen.
   const join = useJoinCall(
@@ -62,31 +64,35 @@ export function useIncomingCallPresentation(signal: CallSignal): IncomingCallPre
       return;
     }
     decline.mutate(signal, {
-      onError: () => toast.error('Не вдалося відхилити дзвінок.'),
+      onError: () => toast.error(t(($) => $.errors.decline)),
     });
   }
 
   function handleAccept() {
     join.mutate(signal.callId, {
-      onError: () => toast.error('Не вдалося приєднатися до дзвінка.'),
+      onError: () => toast.error(t(($) => $.errors.join)),
     });
   }
 
   return {
-    cardAriaLabel: isDm ? `Вхідний дзвінок від ${starterName}` : `Дзвінок у каналі ${channelName}`,
+    cardAriaLabel: isDm
+      ? t(($) => $.incoming.fromPerson, { name: starterName })
+      : t(($) => $.incoming.inChannel, { name: channelName }),
     headline: isDm ? starterName : `#${channelName}`,
-    subtitle: isDm ? 'Вхідний дзвінок' : `Розпочав(-ла) ${starterName}`,
+    subtitle: isDm
+      ? t(($) => $.incomingCall)
+      : t(($) => $.incoming.startedBy, { name: starterName }),
     avatarPath: signal.startedByAvatarPath,
     avatarAlt: starterName,
     dismiss: {
-      ariaLabel: isDm ? 'Відхилити дзвінок' : 'Приховати сповіщення про дзвінок',
-      actionLabel: isDm ? 'Відхилити' : 'Приховати',
+      ariaLabel: isDm ? t(($) => $.declineCall) : t(($) => $.hideCallNotice),
+      actionLabel: isDm ? t(($) => $.incoming.decline) : t(($) => $.incoming.hide),
       pending: decline.isPending,
       onClick: handleDismiss,
     },
     accept: {
-      ariaLabel: isDm ? 'Прийняти дзвінок' : 'Приєднатися до дзвінка',
-      actionLabel: isDm ? 'Прийняти' : 'Приєднатися',
+      ariaLabel: isDm ? t(($) => $.incoming.acceptCall) : t(($) => $.joinCall),
+      actionLabel: isDm ? t(($) => $.incoming.accept) : t(($) => $.join),
       pending: join.isPending,
       onClick: handleAccept,
     },

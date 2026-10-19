@@ -2,6 +2,7 @@ import { SWIPE_SETTLE_TRANSITION, useIsMobile } from '@ap-education/ui';
 import { ArrowDownIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
 import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
@@ -96,12 +97,13 @@ interface TimelineScrollerProps {
 /** The timeline's scrolling surface: a pull down puts the keyboard away, a button leads back down. */
 export function TimelineScroller({ anchoring, hasNewer, children }: TimelineScrollerProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation('messaging');
   const isMobile = useIsMobile();
   const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
   const selecting = useConversation((state) => state.selectedIds.length > 0);
   const keyboardSwipe = useKeyboardSwipe(requestComposerBlur);
   const { scrollRef, onScroll, awayFromBottom, goDown } = anchoring;
-  const downLabel = hasNewer ? 'До новіших повідомлень' : 'До низу розмови';
+  const downLabel = hasNewer ? t(($) => $.timeline.toNewer) : t(($) => $.timeline.toBottom);
   useMobileMessageSelection(scrollRef, isMobile);
 
   return (
@@ -113,7 +115,7 @@ export function TimelineScroller({ anchoring, hasNewer, children }: TimelineScro
           onScroll={onScroll}
           {...keyboardSwipe}
           role="log"
-          aria-label="Повідомлення каналу"
+          aria-label={t(($) => $.timeline.log)}
           aria-live="off"
         >
           <div className={styles.feed} data-chat-inset data-selecting={selecting || undefined}>

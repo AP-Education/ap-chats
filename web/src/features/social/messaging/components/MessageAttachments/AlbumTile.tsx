@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import type { Attachment } from '../../attachments/types';
 import type { Album, Tile } from '../../media/album-layout';
 import { mediaKey, useMediaViewer } from '../../media-viewer-context';
@@ -17,6 +19,7 @@ const percent = (part: number, whole: number) => `${(part / whole) * 100}%`;
 
 /** One photo of an album, placed by the album's layout in shares of its box. */
 export function AlbumTile({ attachment, messageId, available, album, tile }: AlbumTileProps) {
+  const { t } = useTranslation('messaging');
   const viewer = useMediaViewer();
   const key = mediaKey(messageId, attachment.id);
   const { observeElement, src, broken, markBroken, retry } = useAttachmentImage(
@@ -25,6 +28,9 @@ export function AlbumTile({ attachment, messageId, available, album, tile }: Alb
     available,
   );
   const label = attachment.description || attachment.name;
+  const viewLabel = broken
+    ? t(($) => $.attachments.retryView, { name: attachment.name })
+    : t(($) => $.attachments.view, { name: attachment.name });
 
   return (
     <button
@@ -38,7 +44,7 @@ export function AlbumTile({ attachment, messageId, available, album, tile }: Alb
         height: percent(tile.height, album.height),
       }}
       disabled={!available}
-      aria-label={`${broken ? 'Повторити перегляд' : 'Переглянути'} ${attachment.name}`}
+      aria-label={viewLabel}
       title={label}
       onClick={broken ? retry : () => viewer.open(key)}
       data-media-key={key}

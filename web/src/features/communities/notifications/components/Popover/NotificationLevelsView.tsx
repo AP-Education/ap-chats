@@ -1,14 +1,10 @@
 import { CaretRightIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { NotificationLevel } from '../../types';
 
-const levels: Array<{ value: NotificationLevel; title: string; description?: string }> = [
-  { value: 'default', title: 'За замовчуванням', description: 'Усі повідомлення' },
-  { value: 'all', title: 'Усі повідомлення' },
-  { value: 'mentions', title: 'Лише згадки' },
-  { value: 'none', title: 'Жодних' },
-];
+const levels: NotificationLevel[] = ['default', 'all', 'mentions', 'none'];
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
@@ -90,6 +86,7 @@ export function NotificationLevelsView({
   onUnmute,
   onChooseLevel,
 }: NotificationLevelsViewProps) {
+  const { t } = useTranslation('communities');
   const { styles, cx } = useStyles();
 
   return (
@@ -99,28 +96,28 @@ export function NotificationLevelsView({
         className={cx(styles.row, styles.mainAction)}
         onClick={isMuted ? onUnmute : onOpenMute}
       >
-        <span>{isMuted ? 'Увімкнути канал' : 'Вимкнути канал'}</span>
+        <span>{isMuted ? t(($) => $.notifications.unmute) : t(($) => $.notifications.mute)}</span>
         {!isMuted && <CaretRightIcon size={16} />}
       </button>
       <div className={styles.divider} />
-      <div role="radiogroup" aria-label="Сповіщення каналу">
+      <div role="radiogroup" aria-label={t(($) => $.notifications.title)}>
         {levels.map((option) => (
           <button
-            key={option.value}
+            key={option}
             type="button"
             role="radio"
-            aria-checked={level === option.value}
+            aria-checked={level === option}
             className={styles.row}
-            onClick={() => onChooseLevel(option.value)}
+            onClick={() => onChooseLevel(option)}
           >
             <span className={styles.rowText}>
-              <span>{option.title}</span>
-              {option.description && (
-                <span className={styles.description}>{option.description}</span>
+              <span>{t(($) => $.notifications.levels[option])}</span>
+              {option === 'default' && (
+                <span className={styles.description}>{t(($) => $.notifications.levels.all)}</span>
               )}
             </span>
-            <span className={cx(styles.radio, level === option.value && styles.radioActive)}>
-              {level === option.value && <span className={styles.radioDot} />}
+            <span className={cx(styles.radio, level === option && styles.radioActive)}>
+              {level === option && <span className={styles.radioDot} />}
             </span>
           </button>
         ))}

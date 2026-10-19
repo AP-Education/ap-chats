@@ -1,6 +1,7 @@
 import { LoadingIcon } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { Attachment } from '@/features/social/messaging/attachments/types';
 import { useAttachmentUrl } from '@/features/social/messaging/components/MessageAttachments/useAttachmentAccess';
@@ -32,6 +33,7 @@ interface VideoSlideProps {
 
 export function VideoSlide({ messageId, attachment, active }: VideoSlideProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('mediaViewer');
   const access = useAttachmentUrl(messageId, attachment.id, 'preview', true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const url = access.data?.url;
@@ -48,14 +50,14 @@ export function VideoSlide({ messageId, attachment, active }: VideoSlideProps) {
   if (access.isError) {
     return (
       <div className={styles.status} role="status">
-        Не вдалося відкрити відео
+        {t(($) => $.videoFailed)}
       </div>
     );
   }
 
   if (!url) {
     return (
-      <div className={styles.status} role="status" aria-label="Завантажуємо відео">
+      <div className={styles.status} role="status" aria-label={t(($) => $.videoLoading)}>
         <LoadingIcon size={32} />
       </div>
     );

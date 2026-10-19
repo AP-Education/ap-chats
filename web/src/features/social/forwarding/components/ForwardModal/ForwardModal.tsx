@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button, message, Modal } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { confirmDirectMessage, mergeDirectMessage } from '@/features/social/direct-messages/cache';
@@ -41,6 +42,7 @@ interface ForwardModalProps {
 
 export function ForwardModal({ workspaceId, sourceChannelId, items, onClose }: ForwardModalProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['forwarding', 'common']);
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
   const [target, setTarget] = useState<ForwardTarget | null>(null);
@@ -67,7 +69,7 @@ export function ForwardModal({ workspaceId, sourceChannelId, items, onClose }: F
       items.forEach((item) => flashMessage(item.message.id));
       onClose();
     } catch {
-      message.error('Не вдалося переслати повідомлення. Спробуйте ще раз.');
+      message.error(t(($) => $.failed));
     } finally {
       setSending(false);
     }
@@ -76,7 +78,7 @@ export function ForwardModal({ workspaceId, sourceChannelId, items, onClose }: F
   return (
     <Modal
       title={
-        items.length === 1 ? 'Переслати повідомлення' : `Переслати повідомлення (${items.length})`
+        items.length === 1 ? t(($) => $.title) : t(($) => $.titleWithCount, { count: items.length })
       }
       open
       width={560}
@@ -97,7 +99,7 @@ export function ForwardModal({ workspaceId, sourceChannelId, items, onClose }: F
       />
       <div className={styles.footer}>
         <span className={styles.destination}>
-          {target ? `Куди: ${target.name}` : 'Оберіть адресата'}
+          {target ? t(($) => $.destination, { name: target.name }) : t(($) => $.chooseRecipient)}
         </span>
         <Button
           type="primary"
@@ -106,7 +108,7 @@ export function ForwardModal({ workspaceId, sourceChannelId, items, onClose }: F
           loading={sending}
           onClick={() => void submit()}
         >
-          Переслати
+          {t(($) => $.common.actions.forward)}
         </Button>
       </div>
     </Modal>

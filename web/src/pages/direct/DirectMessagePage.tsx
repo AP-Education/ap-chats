@@ -15,6 +15,7 @@ import {
 import { ChatTextIcon, ProhibitIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 import { useMatch, useParams } from 'react-router-dom';
 
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
@@ -44,6 +45,7 @@ const useStyles = createStyles(({ css }) => ({
 
 /** On mobile the page keeps its header, so the menu with the conversations stays one tap away. */
 function NoConversationSelected() {
+  const { t } = useTranslation('directMessages');
   const isMobile = useIsMobile();
 
   return (
@@ -51,7 +53,7 @@ function NoConversationSelected() {
       {isMobile && (
         <PageHeader>
           <MobileMenuButton />
-          <PageTitle>Особисті</PageTitle>
+          <PageTitle>{t(($) => $.page.title)}</PageTitle>
         </PageHeader>
       )}
       <PageBody>
@@ -60,7 +62,7 @@ function NoConversationSelected() {
             <ContentStateIcon>
               <ChatTextIcon />
             </ContentStateIcon>
-            <ContentStateTitle>Оберіть розмову або напишіть колезі</ContentStateTitle>
+            <ContentStateTitle>{t(($) => $.page.choosePrompt)}</ContentStateTitle>
           </ContentState>
         </RefreshOnPull>
       </PageBody>
@@ -69,6 +71,7 @@ function NoConversationSelected() {
 }
 
 export default function DirectMessagePage() {
+  const { t } = useTranslation(['directMessages', 'common']);
   const { styles } = useStyles();
   const { id: activeWorkspaceId } = useRequiredWorkspace();
   const { channelId } = useParams<{ channelId: string }>();
@@ -94,7 +97,7 @@ export default function DirectMessagePage() {
         <ContentStateIcon>
           <ProhibitIcon />
         </ContentStateIcon>
-        <ContentStateTitle>Розмова недоступна</ContentStateTitle>
+        <ContentStateTitle>{t(($) => $.page.unavailable)}</ContentStateTitle>
       </StatePage>
     );
   }
@@ -105,16 +108,18 @@ export default function DirectMessagePage() {
         <ContentStateIcon tone="danger">
           <WarningCircleIcon />
         </ContentStateIcon>
-        <ContentStateTitle>Не вдалося відкрити розмову</ContentStateTitle>
+        <ContentStateTitle>{t(($) => $.page.openFailed)}</ContentStateTitle>
         <ContentStateActions>
-          <Button onClick={() => void conversation.refetch()}>Повторити</Button>
+          <Button onClick={() => void conversation.refetch()}>
+            {t(($) => $.common.actions.retry)}
+          </Button>
         </ContentStateActions>
       </StatePage>
     );
   }
 
   const { participant, workspaceId } = conversation.data;
-  const name = participant.displayName ?? 'Ім’я недоступне';
+  const name = participant.displayName ?? t(($) => $.nameUnavailable);
   return (
     <Page>
       <ConversationProvider
@@ -126,8 +131,8 @@ export default function DirectMessagePage() {
           title: name,
           avatarPath: participant.avatarPath,
           composer: {
-            ariaLabel: `Написати ${name}`,
-            placeholder: `Повідомлення для ${name}`,
+            ariaLabel: t(($) => $.page.composerLabel, { name }),
+            placeholder: t(($) => $.page.composerPlaceholder, { name }),
             autoFocus: true,
           },
           permissions: {

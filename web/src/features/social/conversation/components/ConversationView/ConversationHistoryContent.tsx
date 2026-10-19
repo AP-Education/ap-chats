@@ -1,5 +1,6 @@
 import { Alert, Button } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 
@@ -28,6 +29,7 @@ export function ConversationHistoryContent({
   operations,
 }: ConversationHistoryContentProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['conversation', 'common']);
   const { history } = navigation;
 
   // The wallpaper alone until the history lands, which then appears at once.
@@ -39,8 +41,12 @@ export function ConversationHistoryContent({
         <Alert
           type="error"
           showIcon
-          message="Не вдалося завантажити повідомлення"
-          action={<Button onClick={() => void history.refetch()}>Повторити</Button>}
+          message={t(($) => $.historyLoadFailed)}
+          action={
+            <Button onClick={() => void history.refetch()}>
+              {t(($) => $.common.actions.retry)}
+            </Button>
+          }
         />
       </div>
     );

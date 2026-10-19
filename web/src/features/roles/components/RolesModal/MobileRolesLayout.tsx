@@ -2,6 +2,7 @@ import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   stacked: css`
@@ -24,6 +25,7 @@ interface MobileRolesLayoutProps {
 
 export function MobileRolesLayout({ list, details, onBack }: MobileRolesLayoutProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('roles');
   if (!details) return list;
 
   return (
@@ -34,7 +36,7 @@ export function MobileRolesLayout({ list, details, onBack }: MobileRolesLayoutPr
         icon={<ArrowLeftIcon size={18} />}
         onClick={onBack}
       >
-        Усі ролі
+        {t(($) => $.modal.allRoles)}
       </Button>
       {details}
     </div>

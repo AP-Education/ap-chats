@@ -1,10 +1,11 @@
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const muteDurations = [
-  { label: 'На 1 годину', milliseconds: 60 * 60 * 1000 },
-  { label: 'На 24 години', milliseconds: 24 * 60 * 60 * 1000 },
-];
+  { key: 'hour', milliseconds: 60 * 60 * 1000 },
+  { key: 'day', milliseconds: 24 * 60 * 60 * 1000 },
+] as const;
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
@@ -66,26 +67,27 @@ export function MuteDurationView({
   onChooseMute,
   onMuteIndefinitely,
 }: MuteDurationViewProps) {
+  const { t } = useTranslation('communities');
   const { styles } = useStyles();
 
   return (
     <>
       <button type="button" className={styles.back} onClick={onBack}>
-        <ArrowLeftIcon size={16} /> Вимкнути канал
+        <ArrowLeftIcon size={16} /> {t(($) => $.notifications.mute)}
       </button>
       <div className={styles.divider} />
       {muteDurations.map((duration) => (
         <button
-          key={duration.label}
+          key={duration.key}
           type="button"
           className={styles.row}
           onClick={() => onChooseMute(duration.milliseconds)}
         >
-          {duration.label}
+          {t(($) => $.notifications.muteFor[duration.key])}
         </button>
       ))}
       <button type="button" className={styles.row} onClick={onMuteIndefinitely}>
-        Поки не ввімкну
+        {t(($) => $.notifications.muteFor.untilUnmuted)}
       </button>
     </>
   );

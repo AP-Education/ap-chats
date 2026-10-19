@@ -1,5 +1,6 @@
 import { useCurrentUser } from '@ap-education/shell-sdk';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { WorkspaceMember } from '../types';
 import { useWorkspaceMembers } from './useWorkspaceMembers';
@@ -23,6 +24,7 @@ interface WorkspaceMemberLabelsResult {
 export function useWorkspaceMemberLabels(
   workspaceId: string | undefined,
 ): WorkspaceMemberLabelsResult {
+  const { t } = useTranslation('workspaces');
   const user = useCurrentUser();
   const sub = user.status === 'signed-in' ? user.profile?.sub : undefined;
   const { data: members, isLoading, isError, refetch } = useWorkspaceMembers(workspaceId);
@@ -32,13 +34,13 @@ export function useWorkspaceMemberLabels(
     const bySub = new Map<string, WorkspaceMemberLabel>();
     for (const member of members ?? []) {
       const isSelf = member.profile.oidcUserId === sub;
-      const label = member.profile.displayName ?? 'Ім’я недоступне';
+      const label = member.profile.displayName ?? t(($) => $.unnamedMember);
       const entry = { member, isSelf, label };
       byId.set(member.id, entry);
       bySub.set(member.profile.oidcUserId, entry);
     }
     return { byId, bySub };
-  }, [members, sub]);
+  }, [members, sub, t]);
 
   const currentMember = members?.find((candidate) => candidate.profile.oidcUserId === sub);
 

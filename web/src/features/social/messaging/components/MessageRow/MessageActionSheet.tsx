@@ -1,7 +1,9 @@
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { AssistedActionLabel } from '@/features/social/conversation/components/AssistedActionLabel/AssistedActionLabel';
+import { extensionNamespaces } from '@/features/social/conversation-scope/extensions';
 import { BottomSheet } from '@/shared/ui/BottomSheet';
 
 import type { ActionTarget, ConversationAction } from '../../types';
@@ -66,8 +68,10 @@ export function MessageActionSheet({
   onAction,
 }: MessageActionSheetProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation(extensionNamespaces);
+
   return (
-    <BottomSheet open={open} onClose={onClose} aria-label="Дії з повідомленням">
+    <BottomSheet open={open} onClose={onClose} aria-label={t(($) => $.message.actionsSheet)}>
       {header}
       {groups.map((group, index) => (
         <div className={styles.group} key={index}>
@@ -87,7 +91,7 @@ export function MessageActionSheet({
               ) : (
                 <>
                   {action.icon}
-                  {action.label(target)}
+                  {action.label(target, t)}
                 </>
               )}
             </button>

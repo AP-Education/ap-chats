@@ -2,6 +2,7 @@ import { PlusIcon } from '@phosphor-icons/react';
 import { Button, Input, message } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { ApiError } from '@/shared/api/http';
 
@@ -26,6 +27,7 @@ interface NewRoleFieldProps {
 
 export function NewRoleField({ workspaceId, onCreated }: NewRoleFieldProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['roles', 'common']);
   const { create } = useRoles(workspaceId);
   const [name, setName] = useState('');
 
@@ -42,8 +44,8 @@ export function NewRoleField({ workspaceId, onCreated }: NewRoleFieldProps) {
         onError: (error) =>
           void message.error(
             error instanceof ApiError && error.status === 409
-              ? 'Роль із такою назвою вже є.'
-              : 'Не вдалося створити роль.',
+              ? t(($) => $.nameTaken)
+              : t(($) => $.newRole.createFailed),
           ),
       },
     );
@@ -53,8 +55,8 @@ export function NewRoleField({ workspaceId, onCreated }: NewRoleFieldProps) {
     <Input
       variant="filled"
       prefix={<PlusIcon size={16} className={styles.icon} />}
-      placeholder="Нова роль"
-      aria-label="Назва нової ролі"
+      placeholder={t(($) => $.newRole.placeholder)}
+      aria-label={t(($) => $.newRole.label)}
       maxLength={80}
       value={name}
       onChange={(event) => setName(event.target.value)}
@@ -63,7 +65,7 @@ export function NewRoleField({ workspaceId, onCreated }: NewRoleFieldProps) {
         <span className={styles.suffix}>
           {name.trim() && (
             <Button type="link" size="small" loading={create.isPending} onClick={submit}>
-              Додати
+              {t(($) => $.common.actions.add)}
             </Button>
           )}
         </span>

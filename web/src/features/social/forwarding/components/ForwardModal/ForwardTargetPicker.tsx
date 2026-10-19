@@ -1,6 +1,7 @@
 import { MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { Input, Segmented } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { ForwardTarget } from './forward-targets';
 import { ForwardTargetList } from './ForwardTargetList';
@@ -26,6 +27,7 @@ export function ForwardTargetPicker({
   onSelect: (target: ForwardTarget) => void;
 }) {
   const { styles } = useStyles();
+  const { t } = useTranslation('forwarding');
   const targets = useForwardTargets(workspaceId);
 
   return (
@@ -36,8 +38,8 @@ export function ForwardTargetPicker({
         size="large"
         className={styles.search}
         prefix={<MagnifyingGlassIcon size={18} />}
-        placeholder="Знайти канал або колегу"
-        aria-label="Знайти адресата пересилання"
+        placeholder={t(($) => $.searchPlaceholder)}
+        aria-label={t(($) => $.searchLabel)}
         value={targets.search}
         onChange={(event) => targets.setSearch(event.target.value)}
       />
@@ -45,9 +47,9 @@ export function ForwardTargetPicker({
         block
         className={styles.tabs}
         options={[
-          { label: 'Усі', value: 'all' },
-          { label: 'Особисті', value: 'direct' },
-          { label: 'Канали', value: 'channels' },
+          { label: t(($) => $.scopes.all), value: 'all' },
+          { label: t(($) => $.scopes.direct), value: 'direct' },
+          { label: t(($) => $.scopes.channels), value: 'channels' },
         ]}
         value={targets.scope}
         onChange={(value) => targets.setScope(value as typeof targets.scope)}

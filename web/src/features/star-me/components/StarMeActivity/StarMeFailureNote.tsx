@@ -1,4 +1,5 @@
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { BubbleRetry } from '@/features/social/messaging/components/Bubble/BubbleRetry';
 
@@ -12,13 +13,6 @@ const useStyles = createStyles(({ css }) => ({
   `,
 }));
 
-const FAILURE_TEXT: Record<AnswerFailure, string> = {
-  limited: 'Запитів до StarMe забагато. Спробуйте трохи згодом.',
-  forbidden: 'StarMe недоступний для вашого облікового запису.',
-  unavailable: 'StarMe зараз не відповідає.',
-  failed: 'StarMe не зміг відповісти.',
-};
-
 interface StarMeFailureNoteProps {
   failure: AnswerFailure;
   onRetry: () => void;
@@ -27,12 +21,13 @@ interface StarMeFailureNoteProps {
 /** Why StarMe did not answer the person's question, told to them alone. */
 export function StarMeFailureNote({ failure, onRetry }: StarMeFailureNoteProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('starMe');
   const canRetry = failure !== 'forbidden';
 
   return (
     <div className={styles.note}>
-      {FAILURE_TEXT[failure]}
-      <BubbleRetry status="Бачите лише ви" onRetry={canRetry ? onRetry : undefined} />
+      {t(($) => $.failures[failure])}
+      <BubbleRetry status={t(($) => $.visibleOnlyToYou)} onRetry={canRetry ? onRetry : undefined} />
     </div>
   );
 }

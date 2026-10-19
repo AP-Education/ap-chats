@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { Attachment } from '../../attachments/types';
 import { mediaKey, useMediaViewer } from '../../media-viewer-context';
@@ -23,6 +24,7 @@ export function ImageAttachment({
   available,
   overlay,
 }: ImageAttachmentProps) {
+  const { t } = useTranslation('messaging');
   const viewer = useMediaViewer();
   const key = mediaKey(messageId, attachment.id);
   const { observeElement, src, broken, markBroken, retry } = useAttachmentImage(
@@ -31,6 +33,9 @@ export function ImageAttachment({
     available,
   );
   const label = attachment.description || attachment.name;
+  const viewLabel = broken
+    ? t(($) => $.attachments.retryView, { name: attachment.name })
+    : t(($) => $.attachments.view, { name: attachment.name });
 
   return (
     <MediaFrame
@@ -49,7 +54,7 @@ export function ImageAttachment({
         type="button"
         className={styles.open}
         disabled={!available}
-        aria-label={`${broken ? 'Повторити перегляд' : 'Переглянути'} ${attachment.name}`}
+        aria-label={viewLabel}
         title={label}
         onClick={broken ? retry : () => viewer.open(key)}
       />

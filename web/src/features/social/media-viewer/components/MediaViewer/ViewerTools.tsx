@@ -1,6 +1,8 @@
 import { IconButton } from '@ap-education/ui';
 import { MagnifyingGlassMinusIcon, MagnifyingGlassPlusIcon } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 
+import { extensionNamespaces } from '@/features/social/conversation-scope/extensions';
 import { ForwardIcon } from '@/features/social/messaging/actionIcons';
 import type { ActionTarget } from '@/features/social/messaging/types';
 
@@ -25,6 +27,8 @@ interface ViewerToolsProps {
 
 /** What can be done with the media on screen and its message. */
 export function ViewerTools({ media, actions, onLeave, edge, zoom }: ViewerToolsProps) {
+  const { t } = useTranslation('mediaViewer');
+  const { t: extensionT } = useTranslation(extensionNamespaces);
   const target: ActionTarget = { kind: 'message', items: [media.item] };
   const forward = actions.actions.find(
     (action) => action.id === 'forward' && action.available(target, actions.context),
@@ -36,7 +40,7 @@ export function ViewerTools({ media, actions, onLeave, edge, zoom }: ViewerTools
       {zoom && (
         <IconButton
           size={40}
-          aria-label={zoom.zoomedIn ? 'Зменшити' : 'Збільшити'}
+          aria-label={zoom.zoomedIn ? t(($) => $.zoomOut) : t(($) => $.zoomIn)}
           onClick={zoom.toggle}
         >
           {zoom.zoomedIn ? (
@@ -49,7 +53,7 @@ export function ViewerTools({ media, actions, onLeave, edge, zoom }: ViewerTools
       {forward && (
         <IconButton
           size={40}
-          aria-label={forward.label(target)}
+          aria-label={forward.label(target, extensionT)}
           onClick={() => onLeave(() => actions.run(forward, target))}
         >
           <ForwardIcon size={22} />

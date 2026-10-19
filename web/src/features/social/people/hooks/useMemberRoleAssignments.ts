@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useRoleMembership } from '@/features/roles/hooks/useRoleMembership';
@@ -10,6 +11,7 @@ import { peopleQueryKeys } from '../queryKeys';
 
 /** Gives a person a role or takes it away, showing the change on their profile before the server confirms it. */
 export function useMemberRoleAssignments(workspaceId: string, memberId: string) {
+  const { t } = useTranslation('people');
   const { identity } = useQueryAuth();
   const queryClient = useQueryClient();
   const { add, remove } = useRoleMembership(workspaceId);
@@ -34,7 +36,7 @@ export function useMemberRoleAssignments(workspaceId: string, memberId: string) 
     const previous = showOnProfile(role, assigned);
     const onError = () => {
       queryClient.setQueryData(profileKey, previous);
-      void message.error('Не вдалося змінити ролі.');
+      void message.error(t(($) => $.roles.changeFailed));
     };
 
     if (assigned) add.mutate({ roleId: role.id, memberIds: [memberId] }, { onError });
