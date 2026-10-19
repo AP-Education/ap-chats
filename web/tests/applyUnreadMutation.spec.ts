@@ -25,9 +25,8 @@ function mutation(changes: Partial<UnreadMutation> = {}): UnreadMutation {
     eventId: 'event',
     operation: 'append',
     subject: 'message',
-    entries: [{ seq: '10', authorMemberId: 'other' }],
+    entries: [{ seq: '10', authorMemberId: 'other', mentioned: false }],
     alert: false,
-    mentionsMe: false,
     ...changes,
   };
 }
@@ -42,8 +41,8 @@ test('updates only the affected channel for entries after the cursor by other me
       summary,
       mutation({
         entries: [
-          { seq: '10', authorMemberId: 'self' },
-          { seq: '9', authorMemberId: 'other' },
+          { seq: '10', authorMemberId: 'self', mentioned: false },
+          { seq: '9', authorMemberId: 'other', mentioned: false },
         ],
       }),
       'self',
@@ -52,10 +51,16 @@ test('updates only the affected channel for entries after the cursor by other me
   );
 });
 
-test('a new message that mentions the reader counts as a mention too', () => {
-  assert.deepEqual(applyUnreadMutation(summary, mutation({ mentionsMe: true }), 'self')[0], {
+test('only the new entries that mention the reader count as mentions', () => {
+  const entries = [
+    { seq: '10', authorMemberId: 'other', mentioned: true },
+    { seq: '11', authorMemberId: 'other', mentioned: false },
+    { seq: '12', authorMemberId: 'self', mentioned: true },
+  ];
+
+  assert.deepEqual(applyUnreadMutation(summary, mutation({ entries }), 'self')[0], {
     ...summary[0],
-    unreadCount: 3,
+    unreadCount: 4,
     mentionCount: 2,
   });
 });
@@ -78,9 +83,9 @@ test('removes deleted unread entries without going below zero', () => {
       mutation({
         operation: 'remove',
         entries: [
-          { seq: '10', authorMemberId: 'other' },
-          { seq: '11', authorMemberId: 'other' },
-          { seq: '12', authorMemberId: 'other' },
+          { seq: '10', authorMemberId: 'other', mentioned: false },
+          { seq: '11', authorMemberId: 'other', mentioned: false },
+          { seq: '12', authorMemberId: 'other', mentioned: false },
         ],
       }),
       'self',

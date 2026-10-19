@@ -29,16 +29,19 @@ export class RealtimeNotificationDeliveryService {
         this.channels.findById(event.workspaceId, event.channelId),
       ]);
       if (!channel || !recipients.length) return;
-      const [settings, mentionedIds] = await Promise.all([
+      const [settings, mentions] = await Promise.all([
         this.settings.membersOf(event.channelId),
-        this.mentions.mentionedMemberIds(event.messageIds),
+        this.mentions.mentionsByEntry(event.messageIds),
       ]);
       const settingsByMember = new Map(settings.map((item) => [item.memberId, item]));
-      const mentioned = new Set(mentionedIds);
+      const mentionKeys = new Set(mentions.map(({ seq, memberId }) => `${seq}:${memberId}`));
       for (const recipient of recipients) {
         const preference = settingsByMember.get(recipient.memberId);
         if (!preference) continue;
-        const mentionsMe = mentioned.has(recipient.memberId);
+        const entries = event.entries.map((entry) => ({
+          ...entry,
+          mentioned: mentionKeys.has(`${entry.seq}:${recipient.memberId}`),
+        }));
         const mutation: UnreadMutation = {
           workspaceId: event.workspaceId,
           channelId: event.channelId,
@@ -46,15 +49,14 @@ export class RealtimeNotificationDeliveryService {
           eventId: event.eventId,
           operation: event.operation,
           subject: event.kind === 'call.created' ? 'call' : 'message',
-          entries: event.entries,
+          entries,
           alert: this.policy.shouldAlert({
             kind: event.kind,
             actorMemberId: event.actorMemberId,
             recipientMemberId: recipient.memberId,
             settings: preference,
-            mentioned: mentionsMe,
+            mentioned: entries.some((entry) => entry.mentioned),
           }),
-          mentionsMe,
         };
         this.realtime.toUser(recipient.userId, 'social:unread', mutation);
       }

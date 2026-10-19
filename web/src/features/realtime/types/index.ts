@@ -12,10 +12,9 @@ export interface UnreadMutation {
   eventId: string;
   operation: 'append' | 'remove';
   subject: 'message' | 'call';
-  entries: { seq: string; authorMemberId: string }[];
+  /** `mentioned`: the entry mentions the person this arrived for; a removed one never says. */
+  entries: { seq: string; authorMemberId: string; mentioned: boolean }[];
   alert: boolean;
-  /** The appended messages mention the recipient; a removal never says, its mentions are gone. */
-  mentionsMe: boolean;
 }
 
 // Mirrors src/components/bootstrap/bootstrap.gateway.ts on the API, kept in sync by hand.
