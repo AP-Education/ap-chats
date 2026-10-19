@@ -119,12 +119,13 @@ export class UploadQueue {
    * completion (matches Discord/Telegram/Slack/WhatsApp), so this hands back
    * whatever state they're currently in — queued, uploading or already ready
    * — while they keep running in pump()/run(). A failed draft is left
-   * uncommitted so it stays visible (and retryable) in the composer.
+   * uncommitted so it stays visible (and retryable) in the composer, and a
+   * draft an earlier send took stays with that message.
    */
   commit(clientNonce: string): AttachmentDraft[] {
     const committed: AttachmentDraft[] = [];
     for (const job of this.jobs.values()) {
-      if (job.draft.status === 'error') continue;
+      if (job.committedTo || job.draft.status === 'error') continue;
       job.committedTo = clientNonce;
       committed.push(job.draft);
     }
