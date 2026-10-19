@@ -102,6 +102,14 @@ export class SendMessageDto {
   @MaxLength(2048)
   quoteText?: string;
 
+  /** Earlier messages of the channel this one is about; any other is left out. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @ArrayUnique()
+  @IsUUID('all', { each: true })
+  contextMessageIds?: string[];
+
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(1)

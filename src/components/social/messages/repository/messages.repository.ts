@@ -26,6 +26,8 @@ export abstract class MessagesRepository {
   abstract findWithEntries(channelId: string, ids: string[]): Promise<MessageWithSeq[]>;
   abstract entrySeq(messageId: string): Promise<bigint>;
   abstract insert(data: CreateMessageRecord): Promise<MessageModel>;
+  /** Records the listed messages of its channel posted before it as what the message is about. */
+  abstract addContext(message: MessageModel, seq: bigint, messageIds: string[]): Promise<void>;
   abstract insertForwarded(input: {
     workspaceId: string;
     channelId: string;

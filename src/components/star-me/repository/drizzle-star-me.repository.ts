@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, asc, desc, eq, inArray, isNull, lt, lte, type SQL, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, lte, type SQL } from 'drizzle-orm';
 
 import type { MemberSummary } from '@/components/workspaces/members/types';
 import {
   channelEntries,
   chatMessages,
+  messageContext,
   messageMentions,
-  starMeQuestionMessages,
   userProfiles,
   workspaceMembers,
   workspaces,
@@ -139,33 +139,13 @@ export class DrizzleStarMeRepository extends StarMeRepository {
     return this.withMentions(rows);
   }
 
-  async pick(question: Question, messageIds: string[]): Promise<void> {
-    const earlier = this.txHost.tx
-      .select({
-        workspaceId: chatMessages.workspaceId,
-        channelId: chatMessages.channelId,
-        questionId: sql<string>`${question.id}::uuid`.as('question_id'),
-        messageId: chatMessages.id,
-      })
-      .from(chatMessages)
-      .innerJoin(channelEntries, eq(channelEntries.messageId, chatMessages.id))
-      .where(
-        and(
-          eq(chatMessages.channelId, question.channelId),
-          inArray(chatMessages.id, messageIds),
-          lt(channelEntries.seq, question.seq),
-        ),
-      );
-    await this.txHost.tx.insert(starMeQuestionMessages).select(earlier).onConflictDoNothing();
-  }
-
-  async picked(channelId: string, questionId: string): Promise<ConversationMessage[]> {
-    const pickedIds = this.txHost.tx
-      .select({ id: starMeQuestionMessages.messageId })
-      .from(starMeQuestionMessages)
-      .where(eq(starMeQuestionMessages.questionId, questionId));
+  async context(channelId: string, questionId: string): Promise<ConversationMessage[]> {
+    const contextIds = this.txHost.tx
+      .select({ id: messageContext.contextMessageId })
+      .from(messageContext)
+      .where(eq(messageContext.messageId, questionId));
     const rows = await this.messages(
-      and(eq(chatMessages.channelId, channelId), inArray(chatMessages.id, pickedIds)),
+      and(eq(chatMessages.channelId, channelId), inArray(chatMessages.id, contextIds)),
     ).orderBy(asc(channelEntries.seq));
     return this.withMentions(rows);
   }

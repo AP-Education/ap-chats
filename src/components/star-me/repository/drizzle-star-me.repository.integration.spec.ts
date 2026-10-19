@@ -120,31 +120,30 @@ test('StarMe on PostgreSQL', async (t) => {
     },
   );
 
-  await t.test(
-    'remembers the earlier messages of its channel a question was asked about',
-    async () => {
-      const general = await seed.channel(office, vlad);
-      const elsewhere = await seed.channel(office, vlad);
-      const first = await seed.post(general, ilya, 'бюджет');
-      const removed = await seed.post(general, ilya, 'чернетка');
-      const foreign = await seed.post(elsewhere, ilya, 'інше');
-      const asked = await seed.post(general, vlad, `:member[${starMe}] що тут?`, [starMe]);
-      const later = await seed.post(general, ilya, 'після питання');
-      const question = (await repository.question(vlad, general, asked.id, starMe))!;
+  await t.test('reads the live messages a question is about, oldest first', async () => {
+    const general = await seed.channel(office, vlad);
+    const first = await seed.post(general, ilya, 'бюджет');
+    const second = await seed.post(general, ilya, 'терміни');
+    const removed = await seed.post(general, ilya, 'чернетка');
+    const asked = await seed.post(general, vlad, `:member[${starMe}] що тут?`, [starMe]);
+    await db.insert(schema.messageContext).values(
+      [second, removed, first].map(({ id }) => ({
+        workspaceId: office,
+        channelId: general,
+        messageId: asked.id,
+        contextMessageId: id,
+      })),
+    );
+    await db
+      .update(schema.chatMessages)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.chatMessages.id, removed.id));
 
-      await repository.pick(question, [later.id, first.id, foreign.id, removed.id]);
-      await repository.pick(question, [first.id]);
-      await db
-        .update(schema.chatMessages)
-        .set({ deletedAt: new Date() })
-        .where(eq(schema.chatMessages.id, removed.id));
-
-      assert.deepEqual(
-        (await repository.picked(general, asked.id)).map(({ id }) => id),
-        [first.id],
-      );
-    },
-  );
+    assert.deepEqual(
+      (await repository.context(general, asked.id)).map(({ id }) => id),
+      [first.id, second.id],
+    );
+  });
 
   await t.test('finds the answer StarMe sent with a nonce', async () => {
     const general = await seed.channel(office, vlad);
