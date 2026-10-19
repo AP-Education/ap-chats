@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 
-import { splitFileName } from '../../attachments/file-presentation';
 import styles from './FileCard.module.css';
+
+// A long name gives way in its middle; this many letters at its end, the extension among them, stay.
+const NAME_TAIL = 10;
 
 interface FileCardProps {
   name: string;
@@ -28,11 +30,10 @@ export function FileCard({
   trailing,
   children,
 }: FileCardProps) {
-  const { head, tail } = splitFileName(name);
   const label = (
     <>
-      <span className={styles.head}>{head}</span>
-      <span className={styles.tail}>{tail}</span>
+      <span className={styles.head}>{name.slice(0, -NAME_TAIL)}</span>
+      <span className={styles.tail}>{name.slice(-NAME_TAIL)}</span>
     </>
   );
 
