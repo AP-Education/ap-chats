@@ -30,7 +30,7 @@ export class RealtimeNotificationDeliveryService {
       ]);
       if (!channel || !recipients.length) return;
       const [settings, mentionedIds] = await Promise.all([
-        this.settings.forChannel(event.channelId),
+        this.settings.membersOf(event.channelId),
         this.mentions.mentionedMemberIds(event.messageIds),
       ]);
       const settingsByMember = new Map(settings.map((item) => [item.memberId, item]));

@@ -9,7 +9,6 @@ import type {
   ConversationNotificationSettings,
   MemberNotificationSettings,
   NotificationSettingsUpdate,
-  StoredNotificationSettings,
 } from '../types';
 import { NotificationSettingsRepository } from './notification-settings.repository';
 
@@ -24,6 +23,10 @@ const workspaceSettings = {
   mutedUntil: workspaceMembers.mutedUntil,
   notificationsMuted: workspaceMembers.notificationsMuted,
 };
+
+function storedSettings({ level, notificationsMuted, mutedUntil }: NotificationSettingsUpdate) {
+  return { notificationLevel: level, notificationsMuted, mutedUntil };
+}
 
 @Injectable()
 export class DrizzleNotificationSettingsRepository extends NotificationSettingsRepository {
@@ -45,9 +48,12 @@ export class DrizzleNotificationSettingsRepository extends NotificationSettingsR
       .where(eq(channelMemberships.channelId, channelId));
   }
 
-  async forMember(channelId: string, memberId: string): Promise<StoredNotificationSettings | null> {
+  async channelSettings(
+    channelId: string,
+    memberId: string,
+  ): Promise<NotificationSettingsUpdate | null> {
     const [row] = await this.txHost.tx
-      .select({ memberId: channelMemberships.memberId, ...channelSettings })
+      .select(channelSettings)
       .from(channelMemberships)
       .where(
         and(eq(channelMemberships.channelId, channelId), eq(channelMemberships.memberId, memberId)),
@@ -55,26 +61,20 @@ export class DrizzleNotificationSettingsRepository extends NotificationSettingsR
     return row ?? null;
   }
 
-  async update(
+  async saveChannel(
     channelId: string,
     memberId: string,
-    change: NotificationSettingsUpdate,
-  ): Promise<StoredNotificationSettings | null> {
-    const [row] = await this.txHost.tx
+    settings: NotificationSettingsUpdate,
+  ): Promise<void> {
+    await this.txHost.tx
       .update(channelMemberships)
-      .set({
-        notificationLevel: change.level,
-        notificationsMuted: change.notificationsMuted,
-        mutedUntil: change.mutedUntil,
-      })
+      .set(storedSettings(settings))
       .where(
         and(eq(channelMemberships.channelId, channelId), eq(channelMemberships.memberId, memberId)),
-      )
-      .returning({ memberId: channelMemberships.memberId, ...channelSettings });
-    return row ?? null;
+      );
   }
 
-  async forWorkspaceMember(memberId: string): Promise<NotificationSettingsUpdate | null> {
+  async workspaceSettings(memberId: string): Promise<NotificationSettingsUpdate | null> {
     const [row] = await this.txHost.tx
       .select(workspaceSettings)
       .from(workspaceMembers)
@@ -82,20 +82,11 @@ export class DrizzleNotificationSettingsRepository extends NotificationSettingsR
     return row ?? null;
   }
 
-  async updateWorkspaceMember(
-    memberId: string,
-    change: NotificationSettingsUpdate,
-  ): Promise<NotificationSettingsUpdate | null> {
-    const [row] = await this.txHost.tx
+  async saveWorkspace(memberId: string, settings: NotificationSettingsUpdate): Promise<void> {
+    await this.txHost.tx
       .update(workspaceMembers)
-      .set({
-        notificationLevel: change.level,
-        notificationsMuted: change.notificationsMuted,
-        mutedUntil: change.mutedUntil,
-      })
-      .where(eq(workspaceMembers.id, memberId))
-      .returning(workspaceSettings);
-    return row ?? null;
+      .set(storedSettings(settings))
+      .where(eq(workspaceMembers.id, memberId));
   }
 
   conversationsOf(

@@ -2,25 +2,21 @@ import type {
   ConversationNotificationSettings,
   MemberNotificationSettings,
   NotificationSettingsUpdate,
-  StoredNotificationSettings,
 } from '../types';
 
 export abstract class NotificationSettingsRepository {
   abstract forChannel(channelId: string): Promise<MemberNotificationSettings[]>;
-  abstract forMember(
+  abstract channelSettings(
     channelId: string,
     memberId: string,
-  ): Promise<StoredNotificationSettings | null>;
-  abstract update(
-    channelId: string,
-    memberId: string,
-    change: NotificationSettingsUpdate,
-  ): Promise<StoredNotificationSettings | null>;
-  abstract forWorkspaceMember(memberId: string): Promise<NotificationSettingsUpdate | null>;
-  abstract updateWorkspaceMember(
-    memberId: string,
-    change: NotificationSettingsUpdate,
   ): Promise<NotificationSettingsUpdate | null>;
+  abstract saveChannel(
+    channelId: string,
+    memberId: string,
+    settings: NotificationSettingsUpdate,
+  ): Promise<void>;
+  abstract workspaceSettings(memberId: string): Promise<NotificationSettingsUpdate | null>;
+  abstract saveWorkspace(memberId: string, settings: NotificationSettingsUpdate): Promise<void>;
   /** Every conversation the member belongs to in their workspace. */
   abstract conversationsOf(
     memberId: string,

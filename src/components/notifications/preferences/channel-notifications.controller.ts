@@ -5,13 +5,13 @@ import { CurrentWorkspaceMember } from '@/components/workspaces/members/decorato
 import { WorkspaceMemberGuard } from '@/components/workspaces/members/guards';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { ChangeNotificationSettingsDto } from './dto';
+import { ChangeNotificationSettingsDto, toNotificationChange } from './dto';
 import { NotificationSettingsService } from './notification-settings.service';
 import type { NotificationSettingsView } from './types';
 
 @Controller('workspaces/:workspaceId/channels/:channelId/notifications')
 @UseAuthGuards(WorkspaceMemberGuard('param', 'workspaceId'))
-export class NotificationsController {
+export class ChannelNotificationsController {
   constructor(private readonly settings: NotificationSettingsService) {}
 
   @Get()
@@ -19,7 +19,7 @@ export class NotificationsController {
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
   ): Promise<NotificationSettingsView> {
-    return this.settings.get(member, channelId);
+    return this.settings.ofChannel(member, channelId);
   }
 
   @Patch()
@@ -28,6 +28,6 @@ export class NotificationsController {
     @Param('channelId', ParseUUIDPipe) channelId: string,
     @Body() command: ChangeNotificationSettingsDto,
   ): Promise<NotificationSettingsView> {
-    return this.settings.change(member, channelId, command);
+    return this.settings.changeChannel(member, channelId, toNotificationChange(command));
   }
 }

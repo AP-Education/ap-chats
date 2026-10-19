@@ -5,7 +5,7 @@ import { CurrentWorkspaceMember } from '@/components/workspaces/members/decorato
 import { WorkspaceMemberGuard } from '@/components/workspaces/members/guards';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
-import { ChangeNotificationSettingsDto } from './dto';
+import { ChangeNotificationSettingsDto, toNotificationChange } from './dto';
 import { NotificationSettingsService } from './notification-settings.service';
 import type { WorkspaceNotifications } from './types';
 
@@ -16,7 +16,7 @@ export class WorkspaceNotificationsController {
 
   @Get()
   get(@CurrentWorkspaceMember() member: WorkspaceMember): Promise<WorkspaceNotifications> {
-    return this.settings.forWorkspace(member);
+    return this.settings.ofWorkspace(member);
   }
 
   @Patch()
@@ -24,6 +24,6 @@ export class WorkspaceNotificationsController {
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Body() command: ChangeNotificationSettingsDto,
   ): Promise<WorkspaceNotifications> {
-    return this.settings.changeForWorkspace(member, command);
+    return this.settings.changeWorkspace(member, toNotificationChange(command));
   }
 }
