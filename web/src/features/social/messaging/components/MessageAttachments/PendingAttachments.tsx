@@ -1,6 +1,6 @@
 import { XIcon } from '@phosphor-icons/react';
 
-import { fileExtension, formatFileSize } from '../../attachments/file-presentation';
+import { fileSummary, formatFileSize } from '../../attachments/file-presentation';
 import type { AttachmentDraft } from '../../attachments/types';
 import { useUnsentMessages } from '../../sending/stores/unsent-messages-context';
 import { FileBadge } from './FileBadge';
@@ -11,7 +11,7 @@ function uploadMeta(draft: AttachmentDraft): string {
   if (draft.status === 'error') return draft.error ?? 'Не вдалося завантажити';
   if (draft.status === 'queued') return `У черзі · ${total}`;
   if (draft.status === 'processing') return 'Обробка файлу';
-  if (draft.status === 'ready') return `${total} · ${fileExtension(draft.name)}`;
+  if (draft.status === 'ready') return fileSummary(draft.name, draft.size);
   return `${formatFileSize((draft.size * draft.progress) / 100)} / ${total}`;
 }
 
