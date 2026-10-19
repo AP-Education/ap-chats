@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { webview as source } from '../uk/webview';
 
 export const webview = {

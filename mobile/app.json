@@ -35,8 +35,8 @@
       "favicon": "./assets/favicon.png"
     },
     "locales": {
-      "uk": "./locales/uk.json",
-      "en": "./locales/en.json"
+      "uk": "./messages/uk/native.json",
+      "en": "./messages/en/native.json"
     },
     "plugins": [
       [

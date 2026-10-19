@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { auth as source } from '../uk/auth';
 
 export const auth = {

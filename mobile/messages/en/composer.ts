@@ -1,4 +1,4 @@
-import type { Translation } from '../../translation';
+import type { Translation } from '../translation';
 import type { composer as source } from '../uk/composer';
 
 export const composer = {
