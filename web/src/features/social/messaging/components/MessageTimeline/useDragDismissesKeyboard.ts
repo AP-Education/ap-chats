@@ -20,10 +20,15 @@ export function useDragDismissesKeyboard(dismissKeyboard: () => void) {
     onTouchMove: (event: TouchEvent) => {
       const touch = event.touches[0];
       if (!start.current || !touch) return;
-      if (Math.abs(touch.clientY - start.current.y) < DRAG_SLOP) return;
 
+      const across = Math.abs(touch.clientX - start.current.x);
+      const down = Math.abs(touch.clientY - start.current.y);
+      if (Math.max(across, down) < DRAG_SLOP) return;
+
+      // Decided once, like the row's own swipe: a sideways drag is swipe to reply and keeps it up.
+      const isScroll = down > across;
       start.current = null;
-      dismissKeyboard();
+      if (isScroll) dismissKeyboard();
     },
     onTouchEnd: () => {
       start.current = null;
