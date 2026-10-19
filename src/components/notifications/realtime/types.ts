@@ -7,6 +7,11 @@ export interface UnreadEntryChange {
   authorMemberId: string;
 }
 
+export interface UnreadEntry extends UnreadEntryChange {
+  /** Mentions whoever the mutation is sent to; a removed entry never does, its mentions went with it. */
+  mentioned: boolean;
+}
+
 export interface UnreadMutation {
   workspaceId: string;
   channelId: string;
@@ -14,7 +19,7 @@ export interface UnreadMutation {
   eventId: string;
   operation: 'append' | 'remove';
   subject: 'message' | 'call';
-  entries: UnreadEntryChange[];
+  entries: UnreadEntry[];
   alert: boolean;
 }
 

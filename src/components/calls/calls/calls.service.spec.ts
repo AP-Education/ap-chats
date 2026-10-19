@@ -6,9 +6,10 @@ import { ConflictException } from '@nestjs/common';
 import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import { ChannelAccessRepository } from '@/components/communities/channel-access/channel-access/repository/channel-access.repository';
 import type { ChannelAccessSnapshot } from '@/components/communities/channel-access/channel-access/types';
+import { NotificationPolicyService } from '@/components/notifications/policy';
 import { NotificationSettingsService } from '@/components/notifications/preferences';
 import { NotificationSettingsRepository } from '@/components/notifications/preferences/repository/notification-settings.repository';
-import type { StoredNotificationSettings } from '@/components/notifications/preferences/types';
+import type { MemberNotificationSettings } from '@/components/notifications/preferences/types';
 import { EntriesFacade } from '@/components/social/entries';
 import { EntriesRepository } from '@/components/social/entries/repository/entries.repository';
 import type { ChannelEntry } from '@/components/social/entries/types/entry.types';
@@ -245,18 +246,26 @@ class FakeCallsRepository extends CallsRepository {
 }
 
 class FakeNotificationSettingsRepository extends NotificationSettingsRepository {
-  readonly settings: StoredNotificationSettings[] = [];
+  readonly settings: MemberNotificationSettings[] = [];
 
   async forChannel() {
     return this.settings;
   }
 
-  async forMember() {
+  async channelSettings() {
     return null;
   }
 
-  async update() {
+  async saveChannel() {}
+
+  async workspaceSettings() {
     return null;
+  }
+
+  async saveWorkspace() {}
+
+  async conversationsOf() {
+    return [];
   }
 }
 
@@ -355,7 +364,12 @@ beforeEach(() => {
   notificationSettings = new FakeNotificationSettingsRepository();
   const audience = new RingAudience(
     repository,
-    new NotificationSettingsService(channelAccess, notificationSettings),
+    new NotificationSettingsService(
+      channelAccess,
+      notificationSettings,
+      new NotificationPolicyService(),
+      signals,
+    ),
   );
   lifecycle = new CallLifecycle(
     repository,
@@ -550,9 +564,9 @@ test('start: rings everyone in the channel except the caller', async () => {
 test('start: does not ring a member who muted the conversation', async () => {
   notificationSettings.settings.push({
     memberId: bystander.id,
-    level: 'default',
-    mutedUntil: null,
-    notificationsMuted: true,
+    kind: 'channel',
+    channel: { level: 'default', mutedUntil: null, notificationsMuted: true },
+    workspace: { level: 'default', mutedUntil: null, notificationsMuted: false },
   });
 
   await calls.start(starter, group.id, 'test-token');

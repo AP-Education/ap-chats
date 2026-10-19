@@ -7,7 +7,7 @@ import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { RolesFacade } from '@/components/workspaces/roles';
 
 import { MentionsRepository } from './repository/mentions.repository';
-import type { MentionedMessage, MentionTargets } from './types';
+import type { EntryMention, MentionedMessage, MentionTargets } from './types';
 
 @Injectable()
 export class MentionsService {
@@ -17,8 +17,8 @@ export class MentionsService {
     private readonly roles: RolesFacade,
   ) {}
 
-  mentionedMemberIds(messageIds: string[]): Promise<string[]> {
-    return this.repository.mentionedMemberIds(messageIds);
+  mentionsByEntry(messageIds: string[]): Promise<EntryMention[]> {
+    return this.repository.mentionsByEntry(messageIds);
   }
 
   @Transactional()

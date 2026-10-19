@@ -52,7 +52,7 @@ export class DirectConversationsService {
 
     const command =
       mode === 'unmute' ? { type: 'unmute' as const } : { type: 'mute' as const, duration: mode };
-    await this.settings.change(member, channelId, command);
+    await this.settings.changeChannel(member, channelId, command);
 
     return this.inbox.view([member.id], channelId);
   }

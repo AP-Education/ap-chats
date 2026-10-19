@@ -5,13 +5,16 @@ import { QueryClient } from '@tanstack/react-query';
 
 import type { UnreadMutation } from '../src/features/realtime/types';
 import { applyReadState } from '../src/features/social/read-state/applyReadState';
-import { applyUnreadMutation } from '../src/features/social/read-state/applyUnreadMutation';
+import {
+  applyUnreadMutation,
+  mayRemoveUnreadMention,
+} from '../src/features/social/read-state/applyUnreadMutation';
 import type { ChannelUnread } from '../src/features/social/read-state/hooks/useWorkspaceUnread';
 import { workspaceUnreadKey } from '../src/features/social/read-state/queryKeys';
 
 const summary: ChannelUnread[] = [
-  { channelId: 'channel', kind: 'channel', lastReadEntrySeq: '9', unreadCount: 2 },
-  { channelId: 'dm', kind: 'dm', lastReadEntrySeq: '0', unreadCount: 1 },
+  { channelId: 'channel', kind: 'channel', lastReadEntrySeq: '9', unreadCount: 2, mentionCount: 1 },
+  { channelId: 'dm', kind: 'dm', lastReadEntrySeq: '0', unreadCount: 1, mentionCount: 0 },
 ];
 
 function mutation(changes: Partial<UnreadMutation> = {}): UnreadMutation {
@@ -22,7 +25,7 @@ function mutation(changes: Partial<UnreadMutation> = {}): UnreadMutation {
     eventId: 'event',
     operation: 'append',
     subject: 'message',
-    entries: [{ seq: '10', authorMemberId: 'other' }],
+    entries: [{ seq: '10', authorMemberId: 'other', mentioned: false }],
     alert: false,
     ...changes,
   };
@@ -38,13 +41,38 @@ test('updates only the affected channel for entries after the cursor by other me
       summary,
       mutation({
         entries: [
-          { seq: '10', authorMemberId: 'self' },
-          { seq: '9', authorMemberId: 'other' },
+          { seq: '10', authorMemberId: 'self', mentioned: false },
+          { seq: '9', authorMemberId: 'other', mentioned: false },
         ],
       }),
       'self',
     ),
     summary,
+  );
+});
+
+test('only the new entries that mention the reader count as mentions', () => {
+  const entries = [
+    { seq: '10', authorMemberId: 'other', mentioned: true },
+    { seq: '11', authorMemberId: 'other', mentioned: false },
+    { seq: '12', authorMemberId: 'self', mentioned: true },
+  ];
+
+  assert.deepEqual(applyUnreadMutation(summary, mutation({ entries }), 'self')[0], {
+    ...summary[0],
+    unreadCount: 4,
+    mentionCount: 2,
+  });
+});
+
+test('only a removed unread message where mentions are counted needs a recount', () => {
+  const removal = mutation({ operation: 'remove' });
+
+  assert.equal(mayRemoveUnreadMention(summary, removal, 'self'), true);
+  assert.equal(mayRemoveUnreadMention(summary, mutation(), 'self'), false);
+  assert.equal(
+    mayRemoveUnreadMention([{ ...summary[0]!, mentionCount: 0 }], removal, 'self'),
+    false,
   );
 });
 
@@ -55,9 +83,9 @@ test('removes deleted unread entries without going below zero', () => {
       mutation({
         operation: 'remove',
         entries: [
-          { seq: '10', authorMemberId: 'other' },
-          { seq: '11', authorMemberId: 'other' },
-          { seq: '12', authorMemberId: 'other' },
+          { seq: '10', authorMemberId: 'other', mentioned: false },
+          { seq: '11', authorMemberId: 'other', mentioned: false },
+          { seq: '12', authorMemberId: 'other', mentioned: false },
         ],
       }),
       'self',
@@ -83,15 +111,18 @@ test('the active conversation clears an incoming delta without moving its cursor
   applyReadState(queryClient, 'user', 'workspace', 'channel', {
     lastReadEntrySeq: '10',
     unreadCount: 0,
+    mentionCount: 0,
   });
   assert.deepEqual(queryClient.getQueryData<ChannelUnread[]>(key)?.[0], {
     ...summary[0],
     lastReadEntrySeq: '10',
     unreadCount: 0,
+    mentionCount: 0,
   });
   applyReadState(queryClient, 'user', 'workspace', 'channel', {
     lastReadEntrySeq: '9',
     unreadCount: 3,
+    mentionCount: 1,
   });
   assert.equal(queryClient.getQueryData<ChannelUnread[]>(key)?.[0]?.unreadCount, 0);
 });

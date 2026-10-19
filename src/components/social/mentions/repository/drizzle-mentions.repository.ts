@@ -4,6 +4,7 @@ import { and, desc, eq, ilike, inArray, isNotNull, ne, or, type SQL, sql } from 
 
 import {
   activeRoleMembers,
+  channelEntries,
   channelMemberships,
   channels,
   messageMentions,
@@ -13,7 +14,7 @@ import {
 } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
-import type { MentionedMessage } from '../types';
+import type { EntryMention, MentionedMessage } from '../types';
 import { MentionsRepository } from './mentions.repository';
 
 @Injectable()
@@ -22,13 +23,14 @@ export class DrizzleMentionsRepository extends MentionsRepository {
     super();
   }
 
-  async mentionedMemberIds(messageIds: string[]): Promise<string[]> {
+  async mentionsByEntry(messageIds: string[]): Promise<EntryMention[]> {
     if (!messageIds.length) return [];
     const rows = await this.txHost.tx
-      .selectDistinct({ memberId: messageMentions.memberId })
+      .select({ seq: channelEntries.seq, memberId: messageMentions.memberId })
       .from(messageMentions)
+      .innerJoin(channelEntries, eq(channelEntries.messageId, messageMentions.messageId))
       .where(inArray(messageMentions.messageId, messageIds));
-    return rows.map((row) => row.memberId);
+    return rows.map((row) => ({ seq: row.seq.toString(), memberId: row.memberId }));
   }
 
   async candidates(workspaceId: string, channelId: string, query: string) {

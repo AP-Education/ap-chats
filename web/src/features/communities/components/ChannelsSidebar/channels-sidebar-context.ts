@@ -1,12 +1,14 @@
 import { createContext, useContext } from 'react';
 
+import type { ConversationAttention } from '@/features/social/read-state/conversation-attention';
+
 import type { Channel } from '../../channels/types';
 
 export interface ChannelsSidebarStore {
   workspaceId: string;
   selectedChannelId: string | undefined;
   openChannelId: string | undefined;
-  unreadByChannel: Map<string, number>;
+  attentionByChannel: Map<string, ConversationAttention>;
   onNavigate: (() => void) | undefined;
   draggingChannel: Channel | null;
   setDraggingChannel: (channel: Channel | null) => void;

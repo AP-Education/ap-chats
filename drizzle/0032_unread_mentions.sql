@@ -1,0 +1,1 @@
+CREATE INDEX "message_mentions_member_channel_idx" ON "message_mentions" USING btree ("member_id","channel_id");

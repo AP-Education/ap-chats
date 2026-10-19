@@ -1,7 +1,7 @@
 import type { ChannelKind } from '@/components/communities/channels/types';
 import type { MessageGif } from '@/components/social/content';
 
-import type { StoredNotificationSettings } from '../../preferences/types';
+import type { MemberNotificationSettings } from '../../preferences/types';
 import type { ConversationRange, ConversationScope } from '../types';
 
 export const RECIPIENTS_PAGE_SIZE = 100;
@@ -13,7 +13,7 @@ export interface AlertConversation {
 }
 
 /** A member with someone else's unread message in the range. */
-export interface PushRecipient extends StoredNotificationSettings {
+export interface PushRecipient extends MemberNotificationSettings {
   userId: string;
   lastReadEntrySeq: bigint;
   mentioned: boolean;

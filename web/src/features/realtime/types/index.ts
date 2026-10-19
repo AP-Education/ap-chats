@@ -12,7 +12,8 @@ export interface UnreadMutation {
   eventId: string;
   operation: 'append' | 'remove';
   subject: 'message' | 'call';
-  entries: { seq: string; authorMemberId: string }[];
+  /** `mentioned`: the entry mentions the person this arrived for; a removed one never says. */
+  entries: { seq: string; authorMemberId: string; mentioned: boolean }[];
   alert: boolean;
 }
 
@@ -40,6 +41,7 @@ export type ServerToClientEvents = {
     channelId: string;
     lastReadEntrySeq: string;
     unreadCount: number;
+    mentionCount: number;
   }) => void;
 };
 

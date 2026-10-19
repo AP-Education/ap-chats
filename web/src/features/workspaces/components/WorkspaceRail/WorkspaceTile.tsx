@@ -1,6 +1,8 @@
 import { NavTile, useIsMobile } from '@ap-education/ui';
+import { useContext } from 'react';
 
-import { useWorkspaceChannelUnread } from '@/features/social/read-state/hooks/useWorkspaceChannelUnread';
+import { QUIET } from '@/features/social/read-state/conversation-attention';
+import { WorkspaceUnreadContext } from '@/features/social/read-state/workspace-unread-context';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { Workspace } from '../../types';
@@ -11,13 +13,20 @@ interface WorkspaceTileProps {
   onSelect: () => void;
 }
 
-/** A workspace on the rail, with the count of unread messages in its channels. */
+/** A workspace on the rail: marked while its channels hold something new, counting mentions. */
 export function WorkspaceTile({ workspace, active, onSelect }: WorkspaceTileProps) {
   const isMobile = useIsMobile();
-  const unread = useWorkspaceChannelUnread(workspace.id);
+  const attention =
+    useContext(WorkspaceUnreadContext)?.channelsByWorkspace.get(workspace.id) ?? QUIET;
 
   return (
-    <NavTile label={workspace.name} active={active} badge={unread} onClick={onSelect}>
+    <NavTile
+      label={workspace.name}
+      active={active}
+      unread={attention.unread}
+      badge={attention.badge}
+      onClick={onSelect}
+    >
       <Avatar
         path={workspace.avatarPath}
         alt={workspace.name}

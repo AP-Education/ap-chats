@@ -1,10 +1,10 @@
 import type { MemberSummary } from '@/components/workspaces/members/types';
 
-import type { MentionedMessage } from '../types';
+import type { EntryMention, MentionedMessage } from '../types';
 
 export abstract class MentionsRepository {
-  /** Everyone a message reached, whether named directly, through a role or through @everyone. */
-  abstract mentionedMemberIds(messageIds: string[]): Promise<string[]>;
+  /** Everyone the messages reached, named directly, through a role or through @everyone. */
+  abstract mentionsByEntry(messageIds: string[]): Promise<EntryMention[]>;
   abstract candidates(
     workspaceId: string,
     channelId: string,

@@ -1,18 +1,26 @@
 import { App, Button } from 'antd';
 import { useState } from 'react';
 
-import { ChannelNotificationsMenuSkeleton } from './ChannelNotificationsMenuSkeleton';
 import { MuteDurationView } from './MuteDurationView';
 import { NotificationLevelsView } from './NotificationLevelsView';
-import type { ChannelNotificationPreference } from './useChannelNotificationPreference';
+import { NotificationsMenuSkeleton } from './NotificationsMenuSkeleton';
+import type { NotificationPreference, NotificationsMenuSize, NotificationsSubject } from './types';
 
-interface ChannelNotificationsMenuProps {
-  preference: ChannelNotificationPreference;
-  /** Called once a change is saved, so the popover can close. */
+interface NotificationsMenuProps {
+  subject: NotificationsSubject;
+  preference: NotificationPreference;
+  size?: NotificationsMenuSize;
+  /** Called once a change is saved, so whatever holds the menu can close. */
   onDone: () => void;
 }
 
-export function ChannelNotificationsMenu({ preference, onDone }: ChannelNotificationsMenuProps) {
+/** What a channel or a workspace tells the person about, and for how long it stays silent. */
+export function NotificationsMenu({
+  subject,
+  preference,
+  size = 'small',
+  onDone,
+}: NotificationsMenuProps) {
   const { message } = App.useApp();
   const [view, setView] = useState<'levels' | 'mute'>('levels');
 
@@ -21,11 +29,11 @@ export function ChannelNotificationsMenu({ preference, onDone }: ChannelNotifica
       await change();
       onDone();
     } catch {
-      void message.error('Не вдалося оновити сповіщення каналу.');
+      void message.error(subject.failure);
     }
   }
 
-  if (preference.status === 'loading') return <ChannelNotificationsMenuSkeleton />;
+  if (preference.status === 'loading') return <NotificationsMenuSkeleton />;
 
   if (preference.status === 'failed') {
     return (
@@ -38,8 +46,10 @@ export function ChannelNotificationsMenu({ preference, onDone }: ChannelNotifica
   if (view === 'mute') {
     return (
       <MuteDurationView
+        title={subject.mute}
+        size={size}
         onBack={() => setView('levels')}
-        onChooseMute={(milliseconds) => void apply(() => preference.chooseMute(milliseconds))}
+        onChooseMute={(duration) => void apply(() => preference.chooseMute(duration))}
         onMuteIndefinitely={() => void apply(() => preference.chooseLevel('none'))}
       />
     );
@@ -47,6 +57,8 @@ export function ChannelNotificationsMenu({ preference, onDone }: ChannelNotifica
 
   return (
     <NotificationLevelsView
+      subject={subject}
+      size={size}
       level={preference.level}
       isMuted={preference.isMuted}
       onOpenMute={() => setView('mute')}

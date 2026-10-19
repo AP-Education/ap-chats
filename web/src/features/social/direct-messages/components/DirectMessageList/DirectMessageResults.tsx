@@ -8,6 +8,7 @@ import { ChatTextIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 
+import { QUIET } from '@/features/social/read-state/conversation-attention';
 import { useWorkspaceUnreadStore } from '@/features/social/read-state/workspace-unread-context';
 
 import { useDirectMessages } from '../../hooks/useDirectMessages';
@@ -40,7 +41,7 @@ export function DirectMessageResults({
 }) {
   const { styles } = useStyles();
   const conversations = useDirectMessages();
-  const { unreadByChannel } = useWorkspaceUnreadStore();
+  const { attentionByChannel } = useWorkspaceUnreadStore();
 
   if (conversations.isPending) return <DirectMessageListSkeleton />;
   if (conversations.isError && !conversations.data)
@@ -79,7 +80,7 @@ export function DirectMessageResults({
         <DirectMessageRow
           key={item.id}
           item={item}
-          unreadCount={unreadByChannel.get(item.id) ?? 0}
+          attention={attentionByChannel.get(item.id) ?? QUIET}
           onNavigate={onNavigate}
         />
       ))}

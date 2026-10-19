@@ -135,6 +135,16 @@ test('mentions on PostgreSQL', async (t) => {
     },
   );
 
+  await t.test('who a message reached comes back by the entry that holds it', async () => {
+    const { people, message } = await seedChannel();
+    await mentions.replace(message, { memberIds: [people.named], roleIds: [], everyone: false });
+
+    assert.deepEqual(await mentions.mentionsByEntry([message.messageId]), [
+      { seq: '1', memberId: people.named },
+    ]);
+    assert.deepEqual(await mentions.mentionsByEntry([]), []);
+  });
+
   await t.test(
     'a role reaches its people in the channel, but not the author or anyone outside it',
     async () => {
@@ -223,7 +233,7 @@ test('mentions on PostgreSQL', async (t) => {
     const reader = await audience.memberRecipient(range, people.reader);
 
     assert.equal(reader?.mentioned, true);
-    assert.equal(reader?.level, 'mentions');
+    assert.equal(reader?.channel.level, 'mentions');
   });
 
   await t.test(

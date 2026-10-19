@@ -8,7 +8,7 @@ import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspa
 import { apiRequest } from '@/shared/api/http';
 
 import { applyReadState, applyRewoundReadState } from '../applyReadState';
-import { applyUnreadMutation } from '../applyUnreadMutation';
+import { applyUnreadMutation, mayRemoveUnreadMention } from '../applyUnreadMutation';
 import { unreadDirectMessagesKey, workspaceUnreadKey } from '../queryKeys';
 import type { ReadStateServerToClientEvents } from '../types';
 
@@ -17,6 +17,7 @@ export interface ChannelUnread {
   kind: 'channel' | 'dm';
   lastReadEntrySeq: string;
   unreadCount: number;
+  mentionCount: number;
 }
 
 export function workspaceUnreadQuery(
@@ -81,7 +82,7 @@ export function useWorkspaceUnread(workspaceId: string) {
       queryKey,
       applyUnreadMutation(current, event, currentMember.id),
     );
-    if (snapshotWasFetching) {
+    if (snapshotWasFetching || mayRemoveUnreadMention(current, event, currentMember.id)) {
       void queryClient.invalidateQueries({ queryKey, exact: true });
     }
   });

@@ -1,13 +1,11 @@
-import { isMuted } from '@/components/notifications/preferences/notification-settings.rules';
 import { messageBlocks } from '@/components/social/messages/message-blocks';
 
 import type { ConversationRow } from './types';
 
 export type ConversationView = ReturnType<typeof conversationView>;
 
-export function conversationView(row: ConversationRow) {
+export function conversationView(row: ConversationRow, isMuted: boolean) {
   const other = row.first.id === row.viewerId ? row.second : row.first;
-  const { muted, mutedUntil, level } = row.notification;
 
   return {
     id: row.channel.id,
@@ -18,10 +16,7 @@ export function conversationView(row: ConversationRow) {
       avatarPath: other.avatarPath,
       active: other.status === 'active',
     },
-    notification: {
-      isMuted: isMuted({ notificationsMuted: muted, mutedUntil, level }),
-      mutedUntil,
-    },
+    notification: { isMuted, mutedUntil: row.notification.mutedUntil },
     lastMessage: row.lastMessage
       ? {
           id: row.lastMessage.id,

@@ -169,7 +169,7 @@ test('an edited entry is new while its neighbours keep their objects', () => {
 test('a page whose read state moved keeps its entries list', () => {
   const shown = history([page([item('a', '1'), item('b', '2')])]);
   const read = structuredClone(shown);
-  read.pages[0]!.readState = { lastReadEntrySeq: '2', unreadCount: 0 };
+  read.pages[0]!.readState = { lastReadEntrySeq: '2', unreadCount: 0, mentionCount: 0 };
 
   const shared = shareHistory(shown, read) as typeof read;
 

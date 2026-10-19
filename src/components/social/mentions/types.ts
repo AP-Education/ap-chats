@@ -11,3 +11,9 @@ export interface MentionedMessage {
   messageId: string;
   authorMemberId: string;
 }
+
+/** Someone a message reached, by the seq of the entry that holds it in its conversation. */
+export interface EntryMention {
+  seq: string;
+  memberId: string;
+}

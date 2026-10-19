@@ -99,6 +99,8 @@ export interface MessageAuthor extends MemberSummary {
 export interface ReadState {
   lastReadEntrySeq: string;
   unreadCount: number;
+  /** Unread messages that mention the reader, @everyone and their roles included. */
+  mentionCount: number;
 }
 
 export interface HistoryPage {

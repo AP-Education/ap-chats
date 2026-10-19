@@ -41,7 +41,7 @@ test('push persistence on PostgreSQL', async (t) => {
   const outboxRepository = new DrizzleEventOutboxRepository(txHost as never);
 
   // A workspace with an author and a reader in one channel; each test gets its own.
-  async function seedConversation(level: 'default' | 'mentions' = 'default') {
+  async function seedConversation(level: 'default' | 'all' | 'mentions' = 'all') {
     const ids = {
       workspaceId: randomUUID(),
       channelId: randomUUID(),
@@ -199,7 +199,7 @@ test('push persistence on PostgreSQL', async (t) => {
 
     const [recipient] = await audience.recipients(scope);
     assert.equal(recipient?.mentioned, true);
-    assert.equal(recipient?.level, 'mentions');
+    assert.equal(recipient?.channel.level, 'mentions');
 
     await db
       .update(schema.channelMemberships)
@@ -269,6 +269,34 @@ test('push persistence on PostgreSQL', async (t) => {
     assert.equal((await audience.recipients(window)).length, 1);
     assert.equal((await content.render(chat.alertFor('1')))?.body, 'second');
   });
+
+  await t.test(
+    'a channel follows its workspace: mentions by default, nothing once muted',
+    async () => {
+      const content = new MessageNotificationContentService(
+        audience,
+        new NotificationPolicyService(),
+      );
+      const chat = await seedConversation('default');
+      const readerWorkspace = eq(schema.workspaceMembers.id, chat.readerId);
+      await chat.post('for you', { mention: true });
+      await chat.post('for everyone');
+
+      assert.equal((await content.render(chat.alertFor('2')))?.body, 'for you');
+
+      await db
+        .update(schema.workspaceMembers)
+        .set({ notificationLevel: 'all' })
+        .where(readerWorkspace);
+      assert.equal((await content.render(chat.alertFor('2')))?.body, 'for everyone');
+
+      await db
+        .update(schema.workspaceMembers)
+        .set({ notificationsMuted: true })
+        .where(readerWorkspace);
+      assert.equal(await content.render(chat.alertFor('2')), null);
+    },
+  );
 
   await t.test(
     'a DM or call alert needs both peers active and the call still ringing',

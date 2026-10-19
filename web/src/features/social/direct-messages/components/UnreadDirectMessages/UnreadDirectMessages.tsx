@@ -2,6 +2,9 @@ import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import { useMatch } from 'react-router-dom';
 
+import { QUIET } from '@/features/social/read-state/conversation-attention';
+import { useWorkspaceUnreadStore } from '@/features/social/read-state/workspace-unread-context';
+
 import { useUnreadDirectMessagesStore } from '../../unread-direct-messages-context';
 import { DirectMessageRow } from '../DirectMessageList/DirectMessageRow';
 
@@ -29,6 +32,7 @@ const useStyles = createStyles(({ token, css }) => ({
 export function UnreadDirectMessages({ onNavigate }: { onNavigate?: () => void }) {
   const { styles } = useStyles();
   const unread = useUnreadDirectMessagesStore();
+  const { attentionByChannel } = useWorkspaceUnreadStore();
   const activeId = useMatch('/direct/:channelId')?.params.channelId;
 
   if (unread.isPending) return null;
@@ -42,7 +46,9 @@ export function UnreadDirectMessages({ onNavigate }: { onNavigate?: () => void }
       </div>
     );
   }
-  const items = unread.data?.filter((item) => item.id !== activeId) ?? [];
+  // A muted conversation never calls for the person, so it waits in the list instead.
+  const items =
+    unread.data?.filter((item) => item.id !== activeId && !item.notification.isMuted) ?? [];
   if (!items.length) return null;
 
   return (
@@ -52,7 +58,7 @@ export function UnreadDirectMessages({ onNavigate }: { onNavigate?: () => void }
         <DirectMessageRow
           key={item.id}
           item={item}
-          unreadCount={item.unreadCount}
+          attention={attentionByChannel.get(item.id) ?? QUIET}
           onNavigate={onNavigate}
         />
       ))}

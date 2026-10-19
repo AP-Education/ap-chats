@@ -97,7 +97,7 @@ function fixture({
         eventId: 'message-event',
         operation: 'append',
         subject: 'message',
-        entries: [{ seq: '1', authorMemberId: 'author' }],
+        entries: [{ seq: '1', authorMemberId: 'author', mentioned: false }],
         alert: true,
         ...changes,
       });

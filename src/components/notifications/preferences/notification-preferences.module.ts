@@ -5,16 +5,26 @@ import { ChannelAccessPolicyModule } from '@/components/communities/channel-acce
 import { WorkspaceMembersModule } from '@/components/workspaces/members';
 import { DrizzleModule } from '@/database/drizzle';
 
+import { NotificationPolicyModule } from '../policy';
+import { ChannelNotificationsController } from './channel-notifications.controller';
+import { NotificationSettingsRelay } from './notification-settings.relay';
 import { NotificationSettingsService } from './notification-settings.service';
-import { NotificationsController } from './notifications.controller';
 import { DrizzleNotificationSettingsRepository } from './repository/drizzle-notification-settings.repository';
 import { NotificationSettingsRepository } from './repository/notification-settings.repository';
+import { WorkspaceNotificationsController } from './workspace-notifications.controller';
 
 @Module({
-  imports: [AuthModule, ChannelAccessPolicyModule, WorkspaceMembersModule, DrizzleModule],
-  controllers: [NotificationsController],
+  imports: [
+    AuthModule,
+    ChannelAccessPolicyModule,
+    WorkspaceMembersModule,
+    DrizzleModule,
+    NotificationPolicyModule,
+  ],
+  controllers: [ChannelNotificationsController, WorkspaceNotificationsController],
   providers: [
     NotificationSettingsService,
+    NotificationSettingsRelay,
     { provide: NotificationSettingsRepository, useClass: DrizzleNotificationSettingsRepository },
   ],
   exports: [NotificationSettingsService],

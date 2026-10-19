@@ -1,9 +1,11 @@
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 
-const muteDurations = [
-  { label: 'На 1 годину', milliseconds: 60 * 60 * 1000 },
-  { label: 'На 24 години', milliseconds: 24 * 60 * 60 * 1000 },
+import type { MuteDuration, NotificationsMenuSize } from './types';
+
+const muteDurations: Array<{ label: string; duration: MuteDuration }> = [
+  { label: 'На 1 годину', duration: 'hour' },
+  { label: 'На 24 години', duration: 'day' },
 ];
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -27,6 +29,16 @@ const useStyles = createStyles(({ token, css }) => ({
     }
     &:focus-visible {
       outline: 2px solid ${token.colorPrimary};
+    }
+  `,
+  large: css`
+    min-height: 48px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: ${token.fontSize}px;
+
+    &:active {
+      background: ${token.colorFillTertiary};
     }
   `,
   back: css`
@@ -53,38 +65,47 @@ const useStyles = createStyles(({ token, css }) => ({
     margin: 4px 6px;
     background: ${token.colorBorderSecondary};
   `,
+  dividerLarge: css`
+    margin: 6px 12px;
+  `,
 }));
 
 interface MuteDurationViewProps {
+  title: string;
+  size: NotificationsMenuSize;
   onBack: () => void;
-  onChooseMute: (milliseconds: number) => void;
+  onChooseMute: (duration: MuteDuration) => void;
   onMuteIndefinitely: () => void;
 }
 
 export function MuteDurationView({
+  title,
+  size,
   onBack,
   onChooseMute,
   onMuteIndefinitely,
 }: MuteDurationViewProps) {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
+  const isLarge = size === 'large';
+  const row = cx(styles.row, isLarge && styles.large);
 
   return (
     <>
-      <button type="button" className={styles.back} onClick={onBack}>
-        <ArrowLeftIcon size={16} /> Вимкнути канал
+      <button type="button" className={cx(styles.back, isLarge && styles.large)} onClick={onBack}>
+        <ArrowLeftIcon size={16} /> {title}
       </button>
-      <div className={styles.divider} />
+      <div className={cx(styles.divider, isLarge && styles.dividerLarge)} />
       {muteDurations.map((duration) => (
         <button
-          key={duration.label}
+          key={duration.duration}
           type="button"
-          className={styles.row}
-          onClick={() => onChooseMute(duration.milliseconds)}
+          className={row}
+          onClick={() => onChooseMute(duration.duration)}
         >
           {duration.label}
         </button>
       ))}
-      <button type="button" className={styles.row} onClick={onMuteIndefinitely}>
+      <button type="button" className={row} onClick={onMuteIndefinitely}>
         Поки не ввімкну
       </button>
     </>

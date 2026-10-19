@@ -52,7 +52,7 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
   const { isLoading, isError, retry, isAdministrator, sections, createCategory } =
     useChannelSections(workspaceId);
   const { update } = useChannelActions(workspaceId);
-  const { unreadByChannel } = useWorkspaceUnreadStore();
+  const { attentionByChannel } = useWorkspaceUnreadStore();
   const { identity } = useQueryAuth();
   const isMobile = useIsMobile();
   const location = useLocation();
@@ -90,7 +90,7 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
     workspaceId,
     selectedChannelId,
     openChannelId: routedChannelId,
-    unreadByChannel,
+    attentionByChannel,
     onNavigate,
     draggingChannel,
     setDraggingChannel,
