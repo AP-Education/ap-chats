@@ -2,6 +2,9 @@ import type { ChangeNotificationSettings, NotificationLevel } from '../../types'
 
 export type MuteDuration = Extract<ChangeNotificationSettings, { type: 'mute' }>['duration'];
 
+/** Compact rows for a popover; finger-sized ones for a dialog or a sheet. */
+export type NotificationsMenuSize = 'small' | 'large';
+
 /** A channel's or a workspace's notifications, as the menu reads and changes them. */
 export interface NotificationPreference {
   status: 'loading' | 'failed' | 'ready';

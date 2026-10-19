@@ -4,17 +4,23 @@ import { useState } from 'react';
 import { MuteDurationView } from './MuteDurationView';
 import { NotificationLevelsView } from './NotificationLevelsView';
 import { NotificationsMenuSkeleton } from './NotificationsMenuSkeleton';
-import type { NotificationPreference, NotificationsSubject } from './types';
+import type { NotificationPreference, NotificationsMenuSize, NotificationsSubject } from './types';
 
 interface NotificationsMenuProps {
   subject: NotificationsSubject;
   preference: NotificationPreference;
+  size?: NotificationsMenuSize;
   /** Called once a change is saved, so whatever holds the menu can close. */
   onDone: () => void;
 }
 
 /** What a channel or a workspace tells the person about, and for how long it stays silent. */
-export function NotificationsMenu({ subject, preference, onDone }: NotificationsMenuProps) {
+export function NotificationsMenu({
+  subject,
+  preference,
+  size = 'small',
+  onDone,
+}: NotificationsMenuProps) {
   const { message } = App.useApp();
   const [view, setView] = useState<'levels' | 'mute'>('levels');
 
@@ -41,6 +47,7 @@ export function NotificationsMenu({ subject, preference, onDone }: Notifications
     return (
       <MuteDurationView
         title={subject.mute}
+        size={size}
         onBack={() => setView('levels')}
         onChooseMute={(duration) => void apply(() => preference.chooseMute(duration))}
         onMuteIndefinitely={() => void apply(() => preference.chooseLevel('none'))}
@@ -51,6 +58,7 @@ export function NotificationsMenu({ subject, preference, onDone }: Notifications
   return (
     <NotificationLevelsView
       subject={subject}
+      size={size}
       level={preference.level}
       isMuted={preference.isMuted}
       onOpenMute={() => setView('mute')}

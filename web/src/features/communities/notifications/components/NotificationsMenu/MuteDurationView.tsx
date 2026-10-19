@@ -1,7 +1,7 @@
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 
-import type { MuteDuration } from './types';
+import type { MuteDuration, NotificationsMenuSize } from './types';
 
 const muteDurations: Array<{ label: string; duration: MuteDuration }> = [
   { label: 'На 1 годину', duration: 'hour' },
@@ -31,6 +31,16 @@ const useStyles = createStyles(({ token, css }) => ({
       outline: 2px solid ${token.colorPrimary};
     }
   `,
+  large: css`
+    min-height: 48px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: ${token.fontSize}px;
+
+    &:active {
+      background: ${token.colorFillTertiary};
+    }
+  `,
   back: css`
     display: flex;
     align-items: center;
@@ -55,10 +65,14 @@ const useStyles = createStyles(({ token, css }) => ({
     margin: 4px 6px;
     background: ${token.colorBorderSecondary};
   `,
+  dividerLarge: css`
+    margin: 6px 12px;
+  `,
 }));
 
 interface MuteDurationViewProps {
   title: string;
+  size: NotificationsMenuSize;
   onBack: () => void;
   onChooseMute: (duration: MuteDuration) => void;
   onMuteIndefinitely: () => void;
@@ -66,29 +80,32 @@ interface MuteDurationViewProps {
 
 export function MuteDurationView({
   title,
+  size,
   onBack,
   onChooseMute,
   onMuteIndefinitely,
 }: MuteDurationViewProps) {
-  const { styles } = useStyles();
+  const { styles, cx } = useStyles();
+  const isLarge = size === 'large';
+  const row = cx(styles.row, isLarge && styles.large);
 
   return (
     <>
-      <button type="button" className={styles.back} onClick={onBack}>
+      <button type="button" className={cx(styles.back, isLarge && styles.large)} onClick={onBack}>
         <ArrowLeftIcon size={16} /> {title}
       </button>
-      <div className={styles.divider} />
+      <div className={cx(styles.divider, isLarge && styles.dividerLarge)} />
       {muteDurations.map((duration) => (
         <button
           key={duration.duration}
           type="button"
-          className={styles.row}
+          className={row}
           onClick={() => onChooseMute(duration.duration)}
         >
           {duration.label}
         </button>
       ))}
-      <button type="button" className={styles.row} onClick={onMuteIndefinitely}>
+      <button type="button" className={row} onClick={onMuteIndefinitely}>
         Поки не ввімкну
       </button>
     </>

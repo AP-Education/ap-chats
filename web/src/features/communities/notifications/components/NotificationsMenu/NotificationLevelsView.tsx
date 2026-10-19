@@ -2,7 +2,7 @@ import { CaretRightIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 
 import type { NotificationLevel } from '../../types';
-import type { NotificationsSubject } from './types';
+import type { NotificationsMenuSize, NotificationsSubject } from './types';
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
@@ -29,6 +29,16 @@ const useStyles = createStyles(({ token, css }) => ({
       outline: 2px solid ${token.colorPrimary};
     }
   `,
+  rowLarge: css`
+    min-height: 48px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: ${token.fontSize}px;
+
+    &:active {
+      background: ${token.colorFillTertiary};
+    }
+  `,
   mainAction: css`
     font-weight: 600;
   `,
@@ -42,10 +52,16 @@ const useStyles = createStyles(({ token, css }) => ({
     color: ${token.colorTextSecondary};
     font-size: 11px;
   `,
+  descriptionLarge: css`
+    font-size: ${token.fontSizeSM}px;
+  `,
   divider: css`
     height: 1px;
     margin: 4px 6px;
     background: ${token.colorBorderSecondary};
+  `,
+  dividerLarge: css`
+    margin: 6px 12px;
   `,
   radio: css`
     display: inline-flex;
@@ -56,6 +72,10 @@ const useStyles = createStyles(({ token, css }) => ({
     height: 16px;
     border: 2px solid ${token.colorBorder};
     border-radius: 50%;
+  `,
+  radioLarge: css`
+    width: 20px;
+    height: 20px;
   `,
   radioActive: css`
     border-color: ${token.colorPrimary};
@@ -71,6 +91,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
 interface NotificationLevelsViewProps {
   subject: NotificationsSubject;
+  size: NotificationsMenuSize;
   level: NotificationLevel;
   isMuted: boolean;
   onOpenMute: () => void;
@@ -80,6 +101,7 @@ interface NotificationLevelsViewProps {
 
 export function NotificationLevelsView({
   subject,
+  size,
   level,
   isMuted,
   onOpenMute,
@@ -87,18 +109,20 @@ export function NotificationLevelsView({
   onChooseLevel,
 }: NotificationLevelsViewProps) {
   const { styles, cx } = useStyles();
+  const isLarge = size === 'large';
+  const row = cx(styles.row, isLarge && styles.rowLarge);
 
   return (
     <>
       <button
         type="button"
-        className={cx(styles.row, styles.mainAction)}
+        className={cx(row, styles.mainAction)}
         onClick={isMuted ? onUnmute : onOpenMute}
       >
         <span>{isMuted ? subject.unmute : subject.mute}</span>
         {!isMuted && <CaretRightIcon size={16} />}
       </button>
-      <div className={styles.divider} />
+      <div className={cx(styles.divider, isLarge && styles.dividerLarge)} />
       <div role="radiogroup" aria-label={subject.label}>
         {subject.levels.map((option) => (
           <button
@@ -106,16 +130,24 @@ export function NotificationLevelsView({
             type="button"
             role="radio"
             aria-checked={level === option.value}
-            className={styles.row}
+            className={row}
             onClick={() => onChooseLevel(option.value)}
           >
             <span className={styles.rowText}>
               <span>{option.title}</span>
               {option.description && (
-                <span className={styles.description}>{option.description}</span>
+                <span className={cx(styles.description, isLarge && styles.descriptionLarge)}>
+                  {option.description}
+                </span>
               )}
             </span>
-            <span className={cx(styles.radio, level === option.value && styles.radioActive)}>
+            <span
+              className={cx(
+                styles.radio,
+                isLarge && styles.radioLarge,
+                level === option.value && styles.radioActive,
+              )}
+            >
               {level === option.value && <span className={styles.radioDot} />}
             </span>
           </button>
