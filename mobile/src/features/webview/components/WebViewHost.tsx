@@ -246,9 +246,8 @@ export function WebViewHost() {
     } else if (message.type === 'appearance/changed') {
       useAppearanceStore.getState().setPalette(message.payload);
     } else if (message.type === 'locale/changed') {
-      if (isLocale(message.payload.locale)) {
-        useLocaleStore.getState().setLocale(message.payload.locale);
-      }
+      const { locale } = message.payload;
+      useLocaleStore.getState().setLocale(isLocale(locale) ? locale : 'uk');
     } else if (message.type === 'navigation/tabs') {
       setTabBar(message.payload);
     } else if (message.type === 'navigation/handles-back') {
