@@ -36,11 +36,7 @@
   white-space: nowrap;
 }
 
-.text pre,
-.text code,
-.text blockquote,
-.text ul,
-.text ol {
+.text code {
   display: inline;
   white-space: inherit;
   margin: 0;

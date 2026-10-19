@@ -42,6 +42,7 @@ export function sendMessage(
   workspaceId: string,
   channelId: string,
   input: SendMessageCommand,
+  signal?: AbortSignal,
 ): Promise<Message> {
   const payload = {
     markdown: input.markdown,
@@ -54,7 +55,10 @@ export function sendMessage(
     })),
     blocks: input.blocks,
   };
-  return apiRequest(messagesUrl(workspaceId, channelId), token, jsonInit('POST', payload));
+  return apiRequest(messagesUrl(workspaceId, channelId), token, {
+    ...jsonInit('POST', payload),
+    signal,
+  });
 }
 
 // One route resolves either subject id (backend: HistoryFacade.entry()). The

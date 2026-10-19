@@ -27,12 +27,15 @@ export function useScrollAnchoring({
   const scrollRef = useRef<HTMLDivElement>(null);
   const prepend = useRef<{ height: number; top: number } | null>(null);
   const didPosition = useRef(false);
+  // At the live bottom: the end of the loaded history, and that history reaches the present.
+  // Only there do new messages and growing content pull the view down; near the end of a
+  // window with newer pages still to load, the next page arrives below the reader instead.
   const atBottom = useRef(true);
   // The height the anchoring last answered for. A viewport that changes size fires its scroll
   // event before the observer below catches up; measured against the smaller of the two heights,
   // a reader at the bottom would read as leaving it.
   const viewportHeight = useRef(0);
-  const jumpAfterNext = useRef(false);
+  const followToPresent = useRef(false);
   const suppressOlderUntil = useRef(0);
   const lastSeq = useRef<string | undefined>(undefined);
   const lastFlashedTarget = useRef<string | null>(null);
@@ -67,10 +70,13 @@ export function useScrollAnchoring({
       lastSeq.current = currentLastSeq;
       return;
     }
-    if (jumpAfterNext.current) {
+    if (followToPresent.current) {
       container.scrollTop = container.scrollHeight;
-      jumpAfterNext.current = false;
       lastSeq.current = currentLastSeq;
+      if (!newer.available) {
+        followToPresent.current = false;
+        atBottom.current = true;
+      } else if (!newer.loading) void newer.load();
       return;
     }
     if (didPosition.current) {
@@ -101,11 +107,14 @@ export function useScrollAnchoring({
       }
       const nearBottom =
         container.scrollHeight - container.scrollTop - container.clientHeight < 110;
-      setAwayFromBottom(!nearBottom);
-      atBottom.current = nearBottom;
+      atBottom.current = nearBottom && !newer.available;
+      setAwayFromBottom(!atBottom.current);
     } else {
       container.scrollTop = container.scrollHeight;
+      atBottom.current = !newer.available;
     }
+    // newer is read fresh each run; the content it describes changes with pages.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, items, displayItems, firstUnreadSeq, targetMessageId]);
 
   useEffect(() => {
@@ -135,8 +144,10 @@ export function useScrollAnchoring({
     if (!container) return;
     const viewport = Math.max(viewportHeight.current, container.clientHeight);
     const nearBottom = container.scrollHeight - container.scrollTop - viewport < 110;
-    atBottom.current = nearBottom;
-    setAwayFromBottom(!nearBottom);
+    atBottom.current = nearBottom && !newer.available;
+    setAwayFromBottom(!atBottom.current);
+    // Scrolling away takes over from the way down, so later updates no longer pull the reader back.
+    if (!nearBottom) followToPresent.current = false;
     if (
       container.scrollTop < 90 &&
       older.available &&
@@ -147,9 +158,10 @@ export function useScrollAnchoring({
     if (nearBottom && newer.available && !newer.loading) void newer.load();
   }
 
+  // Newer pages load one after another, each landing at its end, until the present is in.
   function goDown() {
     if (newer.available) {
-      jumpAfterNext.current = true;
+      followToPresent.current = true;
       void newer.load();
     } else scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }

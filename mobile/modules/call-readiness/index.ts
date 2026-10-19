@@ -1,34 +1,33 @@
 import { requireOptionalNativeModule } from 'expo';
 
+export type CallCheckId =
+  'notifications' | 'ringsAloud' | 'fullScreen' | 'unrestricted' | 'backgroundAllowed';
+
+export interface CallCheck {
+  id: CallCheckId;
+  ok: boolean;
+}
+
 interface CallReadinessNativeModule {
-  canRingFullScreen(): boolean;
-  runsUnrestricted(): boolean;
-  openFullScreenSettings(): void;
-  askToRunUnrestricted(): void;
+  checks(): CallCheck[];
+  fix(id: CallCheckId): void;
+  isAsleep(): boolean;
 }
 
 // Android only, since CallKit needs neither; optional so a build made before it keeps working.
 const ReadinessModule = requireOptionalNativeModule<CallReadinessNativeModule>('CallReadiness');
 
-export interface CallReadiness {
-  /** An incoming call may light up the locked screen. */
-  fullScreen: boolean;
-  /** Battery optimisation never holds a call push back. */
-  background: boolean;
+/** What an incoming call needs from this phone to ring it; nothing where the OS asks for nothing. */
+export function readCallChecks(): CallCheck[] {
+  return ReadinessModule?.checks() ?? [];
 }
 
-/** What Android lets an incoming call do; everything, where there is nothing to ask. */
-export function readCallReadiness(): CallReadiness {
-  return {
-    fullScreen: ReadinessModule?.canRingFullScreen() ?? true,
-    background: ReadinessModule?.runsUnrestricted() ?? true,
-  };
+/** Opens where the person changes it. */
+export function fixCallCheck(id: CallCheckId): void {
+  ReadinessModule?.fix(id);
 }
 
-export function openFullScreenCallSettings(): void {
-  ReadinessModule?.openFullScreenSettings();
-}
-
-export function askToRunUnrestricted(): void {
-  ReadinessModule?.askToRunUnrestricted();
+/** Locked or with its screen off: an incoming call has to light the phone up itself. */
+export function isPhoneAsleep(): boolean {
+  return ReadinessModule?.isAsleep() ?? false;
 }

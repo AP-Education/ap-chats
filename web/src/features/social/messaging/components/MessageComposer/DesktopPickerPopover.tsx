@@ -51,6 +51,8 @@ export function DesktopPickerPopover({
     <Popover
       trigger={[]}
       open={isOpen}
+      // A search typed in the panel ends with it, so it reopens on the full set.
+      destroyOnHidden
       placement="topRight"
       content={
         <div ref={panelRef} className={styles.panel}>

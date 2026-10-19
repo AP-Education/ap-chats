@@ -294,3 +294,35 @@ test('tap and vertical scroll do not request haptic feedback', () => {
   assert.equal(f.longPresses(), 0);
   assert.equal(f.nativeMessages.length, 0);
 });
+
+test('a resting finger presses the message until it lets go', () => {
+  const f = replyFixture();
+  f.start();
+  assert.equal(f.row.render().pressed, true);
+  f.advance(500);
+  assert.equal(f.row.render().pressed, true);
+  assert.equal(f.release(150).pressed, false);
+});
+
+test('a scroll or a swipe lets go of the press', () => {
+  const f = replyFixture();
+  f.start();
+  assert.equal(f.move(153, 90).pressed, false);
+  f.release(153, 90);
+  f.start();
+  assert.equal(f.move(120).pressed, false);
+  f.release(120);
+});
+
+test('links, buttons and disabled rows are never pressed', () => {
+  const f = replyFixture();
+  f.start(
+    f.touch(150, 50, { target: { closest: (selector) => (selector === 'a, button' ? {} : null) } }),
+  );
+  assert.equal(f.row.render().pressed, false);
+  f.release(150);
+
+  const disabled = replyFixture({ enabled: false });
+  disabled.start();
+  assert.equal(disabled.row.render().pressed, false);
+});

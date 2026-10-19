@@ -3,6 +3,7 @@ import { MagnifyingGlassIcon, NotePencilIcon } from '@phosphor-icons/react';
 import { Button, Input } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { PanelHeaderActions } from '@/shared/ui/PanelHeaderActions';
 
@@ -38,8 +39,12 @@ export function DirectMessageList({
   onNavigate?: () => void;
 }) {
   const { styles } = useStyles();
-  const [filter, setFilter] = useState('');
+  const { pathname } = useLocation();
   const [composeOpen, setComposeOpen] = useState(false);
+  // A search belongs to the page it was typed on: opening a result ends it, as in Telegram.
+  const [search, setSearch] = useState({ pathname, filter: '' });
+  if (search.pathname !== pathname) setSearch({ pathname, filter: '' });
+  const setFilter = (filter: string) => setSearch({ pathname, filter });
 
   return (
     <div className={styles.root}>
@@ -59,14 +64,18 @@ export function DirectMessageList({
           prefix={<MagnifyingGlassIcon size={20} />}
           placeholder="Розмова або колега"
           aria-label="Знайти розмову або колегу"
-          value={filter}
+          allowClear
+          value={search.filter}
           onChange={(event) => setFilter(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setFilter('');
+          }}
         />
       </div>
       <div className={styles.list}>
         <DirectMessageResults
           workspaceId={workspaceId}
-          filter={filter}
+          filter={search.filter}
           onCompose={() => setComposeOpen(true)}
           onNavigate={onNavigate}
         />

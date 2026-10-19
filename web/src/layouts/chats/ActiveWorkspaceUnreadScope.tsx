@@ -42,7 +42,6 @@ export function ActiveWorkspaceUnreadScope({
     () => createWorkspaceUnreadStore(workspaceId, workspaces, mutedChannelIds),
     [workspaceId, workspaces, mutedChannelIds],
   );
-
   useAppBadge(unread.channels.badge + unread.direct.badge);
   useTabBadge(teamTab.id, unread.channels.badge);
   useTabBadge(personalTab.id, unread.direct.badge);

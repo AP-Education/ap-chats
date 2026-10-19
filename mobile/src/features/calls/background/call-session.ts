@@ -5,6 +5,7 @@ import { dropRingWithoutSession } from '../utils/drop-ring-without-session';
 import { endCallSession } from '../utils/end-call';
 import { hydrateCallSession, restoreIncomingSession } from '../utils/hydrate-call-session';
 import { setCallMuted } from '../utils/mute-call';
+import { noteRingInTheDark } from '../utils/ring-in-the-dark';
 import { synchronizeCallSession } from '../utils/synchronize-call-session';
 
 /** Wires CallKit/Telecom's lifecycle events to the same REST endpoints and
@@ -22,6 +23,7 @@ async function listenToCallSessions(): Promise<void> {
   CallKit.addCallSessionAddedListener((event) => restoreIncomingSession(event.session));
   // A push can arrive after the call was already answered, declined or hung up elsewhere.
   CallKit.addIncomingCallReportedListener(() => {
+    void noteRingInTheDark(CallKit).catch(() => undefined);
     void dropRingWithoutSession(CallKit)
       .catch(() => undefined)
       .then(() => hydrateCallSession(CallKit))
@@ -41,6 +43,8 @@ async function listenToCallSessions(): Promise<void> {
     syncAudioRoute(event.currentRoute, event.availableRoutes),
   );
 
+  // A ring that started this runtime came before the listener above was there to hear it.
+  void noteRingInTheDark(CallKit).catch(() => undefined);
   await dropRingWithoutSession(CallKit).catch(() => undefined);
   await hydrateCallSession(CallKit);
   await synchronizeCallSession(CallKit);

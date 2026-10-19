@@ -1,0 +1,11 @@
+.unread {
+  margin: var(--ant-margin-xs) 0 var(--ant-margin-sm);
+  padding: var(--ant-padding-xxs) 0;
+  background: var(--chat-service-bg, rgba(0, 0, 0, 0.32));
+  backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
+  color: var(--ant-color-white);
+  font-size: var(--ant-font-size-sm);
+  line-height: var(--ant-line-height);
+  font-weight: 650;
+  text-align: center;
+}

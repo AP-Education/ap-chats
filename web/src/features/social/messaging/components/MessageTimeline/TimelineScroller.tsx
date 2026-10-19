@@ -8,7 +8,7 @@ import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 import { keyboardGlidePart } from '../../keyboard-glide-part';
 import { MEDIA_MAX_SIDE } from '../../media/media-fit';
-import { useKeyboardSwipe } from './useKeyboardSwipe';
+import { useDragDismissesKeyboard } from './useDragDismissesKeyboard';
 import { useMobileMessageSelection } from './useMobileMessageSelection';
 import type { useScrollAnchoring } from './useScrollAnchoring';
 
@@ -93,13 +93,13 @@ interface TimelineScrollerProps {
   children: ReactNode;
 }
 
-/** The timeline's scrolling surface: a pull down puts the keyboard away, a button leads back down. */
+/** The timeline's scrolling surface: dragging it puts the keyboard away, a button leads back down. */
 export function TimelineScroller({ anchoring, hasNewer, children }: TimelineScrollerProps) {
   const { styles, cx } = useStyles();
   const isMobile = useIsMobile();
   const requestComposerBlur = useConversation((state) => state.requestComposerBlur);
   const selecting = useConversation((state) => state.selectedIds.length > 0);
-  const keyboardSwipe = useKeyboardSwipe(requestComposerBlur);
+  const dragDismissesKeyboard = useDragDismissesKeyboard(requestComposerBlur);
   const { scrollRef, onScroll, awayFromBottom, goDown } = anchoring;
   const downLabel = hasNewer ? 'До новіших повідомлень' : 'До низу розмови';
   useMobileMessageSelection(scrollRef, isMobile);
@@ -111,12 +111,12 @@ export function TimelineScroller({ anchoring, hasNewer, children }: TimelineScro
           ref={scrollRef}
           className={styles.scroll}
           onScroll={onScroll}
-          {...keyboardSwipe}
+          {...dragDismissesKeyboard}
           role="log"
           aria-label="Повідомлення каналу"
           aria-live="off"
         >
-          <div className={styles.feed} data-selecting={selecting || undefined}>
+          <div className={styles.feed} data-chat-inset data-selecting={selecting || undefined}>
             {children}
           </div>
         </div>
@@ -125,6 +125,7 @@ export function TimelineScroller({ anchoring, hasNewer, children }: TimelineScro
         <button
           type="button"
           className={cx(styles.bottom, hasNewer && styles.bottomUnread)}
+          data-chat-inset
           onClick={goDown}
           aria-label={downLabel}
           title={downLabel}

@@ -2,11 +2,11 @@ import { useMemo } from 'react';
 
 import { MessageTimeline } from '@/features/social/messaging/components/MessageTimeline/MessageTimeline';
 import type { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
+import { UnsentMessagesContext } from '@/features/social/messaging/sending/stores/unsent-messages-context';
 import {
   type TimelineActions,
   TimelineActionsContext,
 } from '@/features/social/messaging/timeline-actions-context';
-import { UnsentMessagesContext } from '@/features/social/messaging/unsent-messages-context';
 import { peerReadSeqOf } from '@/features/social/read-receipts/read-receipts';
 import { PeerReadContext } from '@/features/social/read-receipts/stores/peer-read-context';
 
@@ -34,7 +34,7 @@ export function ConversationTimeline({
 
   return (
     <TimelineActionsContext.Provider value={timelineActions}>
-      <UnsentMessagesContext.Provider value={operations}>
+      <UnsentMessagesContext.Provider value={operations.unsent}>
         <PeerReadContext.Provider value={peerReadSeqOf(historyWindow.pages)}>
           <MessageTimeline
             key={historyTargetId ?? 'unread'}

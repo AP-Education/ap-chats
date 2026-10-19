@@ -3,7 +3,8 @@ import { test } from 'node:test';
 
 import { type InfiniteData, QueryClient } from '@tanstack/react-query';
 
-import { catchUpHistory, mergeHistoryItem } from './history-cache.ts';
+import { catchUpHistory, mergeHistoryItem, shareHistory } from './history-cache.ts';
+import type { PageCursor } from './hooks/useMessageHistory.ts';
 import { messagingQueryKeys } from './queryKeys.ts';
 import type { HistoryPage, MessageHistoryItem } from './types';
 
@@ -135,4 +136,49 @@ test('a sequence gap fetches only missing entries before the acknowledgement', a
     client.getQueryData<InfiniteData<HistoryPage>>(key)?.pages[0]?.items.map((entry) => entry.seq),
     ['1', '2', '3', '4'],
   );
+});
+
+function history(pages: HistoryPage[]): InfiniteData<HistoryPage, PageCursor> {
+  return { pages, pageParams: pages.map(() => ({ mode: 'window' }) as PageCursor) };
+}
+
+test('older history arriving in front keeps the objects of everything already shown', () => {
+  const shown = history([page([item('c', '3'), item('d', '4')])]);
+  const fetched = structuredClone(shown);
+  const older = history([page([item('a', '1'), item('b', '2')]), ...fetched.pages]);
+
+  const shared = shareHistory(shown, older) as typeof older;
+
+  assert.equal(shared.pages[1], shown.pages[0]);
+  assert.equal(shared.pages[1]!.items[0], shown.pages[0]!.items[0]);
+});
+
+test('an edited entry is new while its neighbours keep their objects', () => {
+  const shown = history([page([item('a', '1'), item('b', '2')])]);
+  const editedEntry = item('b', '2');
+  editedEntry.message.markdown = 'edited';
+  const edited = history([page([item('a', '1'), editedEntry])]);
+
+  const shared = shareHistory(shown, edited) as typeof edited;
+
+  assert.equal(shared.pages[0]!.items[0], shown.pages[0]!.items[0]);
+  assert.notEqual(shared.pages[0]!.items[1], shown.pages[0]!.items[1]);
+  assert.deepEqual(shared.pages[0]!.items[1], editedEntry);
+});
+
+test('a page whose read state moved keeps its entries list', () => {
+  const shown = history([page([item('a', '1'), item('b', '2')])]);
+  const read = structuredClone(shown);
+  read.pages[0]!.readState = { lastReadEntrySeq: '2', unreadCount: 0, mentionCount: 0 };
+
+  const shared = shareHistory(shown, read) as typeof read;
+
+  assert.notEqual(shared.pages[0], shown.pages[0]);
+  assert.equal(shared.pages[0]!.items, shown.pages[0]!.items);
+});
+
+test('the same history fetched again is the history already held', () => {
+  const shown = history([page([item('a', '1')]), page([item('b', '2')])]);
+
+  assert.equal(shareHistory(shown, structuredClone(shown)), shown);
 });

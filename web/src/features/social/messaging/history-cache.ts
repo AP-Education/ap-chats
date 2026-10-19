@@ -1,4 +1,4 @@
-import type { InfiniteData, QueryClient } from '@tanstack/react-query';
+import { type InfiniteData, type QueryClient, replaceEqualDeep } from '@tanstack/react-query';
 
 import type { PageCursor } from './hooks/useMessageHistory';
 import { messagingQueryKeys } from './queryKeys';
@@ -87,4 +87,48 @@ export function refreshHistoryWindow(queryClient: QueryClient, key: readonly unk
     });
   }
   void queryClient.invalidateQueries({ queryKey: key, exact: true });
+}
+
+/**
+ * Structural sharing for a history: an entry keeps its object while its content is the same,
+ * wherever its page moved. Sharing by position, as the query cache does by default, would
+ * rebuild every entry each time older history arrives in front of the pages already shown.
+ */
+export function shareHistory(previous: unknown, next: unknown): unknown {
+  const before = previous as HistoryData | undefined;
+  const after = next as HistoryData;
+  if (!before?.pages || !after?.pages) return after;
+
+  const entries = new Map<string, HistoryItem>();
+  for (const page of before.pages) for (const item of page.items) entries.set(item.id, item);
+  const pagesByFirstEntry = new Map(before.pages.map((page) => [pageKey(page), page]));
+
+  const pages = after.pages.map((page) =>
+    sharePage(pagesByFirstEntry.get(pageKey(page)), page, entries),
+  );
+  const unchanged =
+    pages.length === before.pages.length &&
+    pages.every((page, index) => page === before.pages[index]) &&
+    replaceEqualDeep(before.pageParams, after.pageParams) === before.pageParams;
+  return unchanged ? before : { ...after, pages };
+}
+
+function pageKey(page: HistoryPage) {
+  return page.items[0]?.id ?? `empty:${page.snapshotSeq}`;
+}
+
+function sharePage(
+  previous: HistoryPage | undefined,
+  page: HistoryPage,
+  entries: Map<string, HistoryItem>,
+): HistoryPage {
+  const items = page.items.map((item) => {
+    const known = entries.get(item.id);
+    return known ? replaceEqualDeep(known, item) : item;
+  });
+  const sameItems =
+    previous?.items.length === items.length &&
+    items.every((item, index) => item === previous.items[index]);
+  const shared = { ...page, items: sameItems ? previous.items : items };
+  return previous && replaceEqualDeep(previous, shared) === previous ? previous : shared;
 }

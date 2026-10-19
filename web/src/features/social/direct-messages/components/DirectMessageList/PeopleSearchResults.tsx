@@ -76,7 +76,7 @@ const useStyles = createStyles(({ token, css }) => ({
 interface PeopleSearchResultsProps {
   workspaceId: string;
   query: string;
-  excludedMemberIds: Set<string>;
+  excludedMemberIds?: ReadonlySet<string>;
   showEmpty: boolean;
   onNavigate?: () => void;
 }
@@ -92,7 +92,8 @@ export function PeopleSearchResults({
   const isMobile = useIsMobile();
   const { token, identity } = useQueryAuth();
   const { open, opening } = useOpenDirectMessage(workspaceId);
-  const searchTerm = useDebouncedValue(query.trim(), 180);
+  const term = query.trim();
+  const searchTerm = useDebouncedValue(term, 180);
 
   const people = useQuery({
     queryKey: ['dm-people-search', identity, workspaceId, searchTerm],
@@ -100,8 +101,8 @@ export function PeopleSearchResults({
     enabled: Boolean(token && searchTerm),
   });
 
-  const searching = searchTerm !== query.trim() || people.isPending;
-  const visible = people.data?.filter((person) => !excludedMemberIds.has(person.memberId)) ?? [];
+  const searching = searchTerm !== term || people.isPending;
+  const visible = people.data?.filter((person) => !excludedMemberIds?.has(person.memberId)) ?? [];
 
   async function choose(memberId: string) {
     try {
@@ -110,6 +111,17 @@ export function PeopleSearchResults({
     } catch {
       toast.error('Не вдалося відкрити розмову.');
     }
+  }
+
+  if (!term) {
+    return (
+      <ContentState compact>
+        <ContentStateIcon>
+          <MagnifyingGlassIcon />
+        </ContentStateIcon>
+        <ContentStateDescription>Почніть вводити ім’я</ContentStateDescription>
+      </ContentState>
+    );
   }
 
   if (searching) {
