@@ -19,10 +19,14 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-/** Chats on the shell rail: the person's direct messages, then the team workspaces. */
+/**
+ * Chats on the shell rail: the person's direct messages, then, while Chats is open, the team
+ * workspaces, so they do not crowd the rail of every other application.
+ */
 export function ChatsRail() {
   const { styles } = useStyles();
   const { pathname } = useLocation();
+  const chatsActive = useIsAppActive();
   const direct = useContext(WorkspaceUnreadContext)?.direct ?? QUIET;
   const onTeam = sectionAt(pathname) === 'channels';
 
@@ -31,8 +35,12 @@ export function ChatsRail() {
       <SectionTile tab={personalTab} pathname={pathname} attention={direct} />
       {/* Technical debt: calls have no desktop tile until the stakeholder settles where they
           belong there; /calls still opens from links and the mobile tab. */}
-      <div className={styles.divider} role="separator" />
-      <WorkspaceRail onTeam={onTeam} />
+      {chatsActive && (
+        <>
+          <div className={styles.divider} role="separator" />
+          <WorkspaceRail onTeam={onTeam} />
+        </>
+      )}
     </>
   );
 }
