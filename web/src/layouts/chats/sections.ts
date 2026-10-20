@@ -26,7 +26,7 @@ export function sectionAt(pathname: string): ChatsSection {
 
 export const clientsTab: AppTab = {
   id: 'clients',
-  label: 'Клієнти',
+  label: 'Clients',
   icon: IdentificationCardIcon,
   symbol: { ios: 'person.text.rectangle', android: 'badge' },
   path: '/clients',
@@ -35,7 +35,7 @@ export const clientsTab: AppTab = {
 
 export const teamTab: AppTab = {
   id: 'team',
-  label: 'Команда',
+  label: 'Team',
   icon: UsersThreeIcon,
   symbol: { ios: 'person.2', android: 'groups' },
   path: '/channels',
@@ -45,7 +45,7 @@ export const teamTab: AppTab = {
 
 export const personalTab: AppTab = {
   id: 'personal',
-  label: 'Особисте',
+  label: 'Personal',
   icon: ChatTextIcon,
   symbol: { ios: 'bubble.left', android: 'forum' },
   path: '/direct',
@@ -54,7 +54,7 @@ export const personalTab: AppTab = {
 
 export const callsTab: AppTab = {
   id: 'calls',
-  label: 'Дзвінки',
+  label: 'Calls',
   icon: PhoneIcon,
   symbol: { ios: 'phone', android: 'call' },
   path: '/calls',

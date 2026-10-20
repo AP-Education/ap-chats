@@ -57,7 +57,7 @@ export function SectionSwitch() {
   const { pathname } = useLocation();
 
   return (
-    <nav className={styles.switch} aria-label="Розмови">
+    <nav className={styles.switch} aria-label="Conversations">
       {tabs.map((tab) => {
         const active = tab.includes(pathname);
         return (

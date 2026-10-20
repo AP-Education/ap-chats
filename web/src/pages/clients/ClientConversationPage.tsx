@@ -1,3 +1,4 @@
+import { useCurrentUser } from '@ap-education/shell-sdk';
 import {
   ContentState,
   ContentStateIcon,
@@ -23,11 +24,14 @@ import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 
+import { askStarMe } from '@/features/clients/api/ask-star-me';
 import {
   answerAbout,
   ASSISTANT_MENTION,
   assistantPrompts,
+  assistantTurns,
   isForAssistant,
+  questionOf,
 } from '@/features/clients/assistant';
 import { ClientCard } from '@/features/clients/components/ClientCard';
 import { ClientChannelIcon } from '@/features/clients/components/ClientChannelIcon';
@@ -202,10 +206,12 @@ function MessageBubble({ message }: { message: ClientMessage }) {
       <div className={styles.assistant}>
         <Avatar path="builtin:ai-spark" alt="StarMe" size={32} shape="circle" />
         <div className={cx(styles.bubble, styles.assistantBubble)}>
-          <div className={styles.assistantName}>StarMe</div>
-          {message.text}
+          <div className={styles.assistantName}>
+            StarMe{message.offline ? ' · offline, from the client events' : ''}
+          </div>
+          {message.pending ? 'Thinking…' : message.text}
           {!!message.sources?.length && (
-            <div className={styles.sources} aria-label="З подій">
+            <div className={styles.sources} aria-label="From the events">
               {message.sources.map((source) => (
                 <span key={source}>{source}</span>
               ))}
@@ -230,7 +236,7 @@ function MessageBubble({ message }: { message: ClientMessage }) {
         <div className={styles.meta}>
           {message.direction === 'note' && (
             <>
-              <LockSimpleIcon size={11} /> лише команда ·{' '}
+              <LockSimpleIcon size={11} /> team only ·{' '}
             </>
           )}
           {message.by ? `${message.by} · ` : ''}
@@ -243,32 +249,52 @@ function MessageBubble({ message }: { message: ClientMessage }) {
 
 function Conversation({ conversation }: { conversation: ClientConversation }) {
   const { styles } = useStyles();
+  const user = useCurrentUser();
   const [messages, setMessages] = useState(conversation.messages);
   const [draft, setDraft] = useState('');
+
+  function settle(id: string, answer: Partial<ClientMessage>) {
+    setMessages((current) =>
+      current.map((message) =>
+        message.id === id ? { ...message, ...answer, pending: false } : message,
+      ),
+    );
+  }
 
   function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed) return;
-    setMessages((current) => {
-      const id = `local-${current.length}`;
-      if (!isForAssistant(trimmed)) {
-        return [...current, { id, direction: 'out', text: trimmed, at: 'щойно', by: 'Ви' }];
-      }
-      // The question stays with the team; the answer comes from the client's own events.
-      const answer = answerAbout(conversation, trimmed.slice(ASSISTANT_MENTION.length));
-      return [
-        ...current,
-        { id, direction: 'note', text: trimmed, at: 'щойно', by: 'Ви' },
-        {
-          id: `${id}-answer`,
-          direction: 'assistant',
-          text: answer.text,
-          at: 'щойно',
-          sources: answer.sources,
-        },
-      ];
-    });
+    const id = `local-${Date.now()}`;
     setDraft('');
+
+    if (!isForAssistant(trimmed)) {
+      setMessages((current) => [
+        ...current,
+        { id, direction: 'out', text: trimmed, at: 'just now', by: 'You' },
+      ]);
+      return;
+    }
+
+    // The question stays with the team; StarMe reads the client card and the whole conversation.
+    const question = questionOf(trimmed);
+    const answerId = `${id}-answer`;
+    const asker = (user.status === 'signed-in' && user.profile?.name) || 'Team member';
+    const turns = assistantTurns(conversation, messages, question, asker);
+    setMessages((current) => [
+      ...current,
+      { id, direction: 'note', text: trimmed, at: 'just now', by: 'You' },
+      { id: answerId, direction: 'assistant', text: '', at: 'just now', pending: true },
+    ]);
+
+    const offline = () => {
+      const answer = answerAbout(conversation, question);
+      settle(answerId, { text: answer.text, sources: answer.sources, offline: true });
+    };
+    if (user.status !== 'signed-in') return offline();
+    askStarMe(turns, user.accessToken).then(
+      (text) => settle(answerId, { text, sources: ['client card', 'conversation'] }),
+      offline,
+    );
   }
 
   return (
@@ -278,14 +304,18 @@ function Conversation({ conversation }: { conversation: ClientConversation }) {
           <BriefcaseIcon size={14} />
           {funnelNames[conversation.funnel]} · {conversation.funnel}
         </span>
-        <span className={styles.history}>Вся історія</span>
+        <span className={styles.history}>Full history</span>
       </div>
-      <div className={styles.messages} role="log" aria-label={`Переписка з ${conversation.name}`}>
+      <div
+        className={styles.messages}
+        role="log"
+        aria-label={`Conversation with ${conversation.name}`}
+      >
         {messages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}
       </div>
-      <div className={styles.prompts} aria-label="Запитати StarMe">
+      <div className={styles.prompts} aria-label="Ask StarMe">
         {assistantPrompts.map((prompt) => (
           <button key={prompt} onClick={() => send(`${ASSISTANT_MENTION} ${prompt}`)}>
             ✦ {prompt}
@@ -302,14 +332,14 @@ function Conversation({ conversation }: { conversation: ClientConversation }) {
         <Input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder={`Написати в ${conversation.channel}… · ${ASSISTANT_MENTION} — помічник`}
-          aria-label={`Повідомлення для ${conversation.name}`}
+          placeholder={`Write on ${conversation.channel}… · ${ASSISTANT_MENTION} for the assistant`}
+          aria-label={`Message to ${conversation.name}`}
         />
         <Button
           type="primary"
           htmlType="submit"
           icon={<PaperPlaneRightIcon size={18} weight="fill" />}
-          aria-label="Надіслати"
+          aria-label="Send"
         />
       </form>
     </div>
@@ -323,7 +353,7 @@ function NoClientSelected() {
       {isMobile && (
         <PageHeader>
           <MobileMenuButton />
-          <PageTitle>Клієнти</PageTitle>
+          <PageTitle>Clients</PageTitle>
         </PageHeader>
       )}
       <PageBody>
@@ -331,7 +361,7 @@ function NoClientSelected() {
           <ContentStateIcon>
             <IdentificationCardIcon />
           </ContentStateIcon>
-          <ContentStateTitle>Оберіть клієнта, щоб відкрити переписку</ContentStateTitle>
+          <ContentStateTitle>Pick a client to open the conversation</ContentStateTitle>
         </ContentState>
       </PageBody>
     </Page>
@@ -356,15 +386,15 @@ export default function ClientConversationPage() {
             <span className={styles.name}>{conversation.name}</span>
             <span className={styles.sub}>
               <ClientChannelIcon channel={conversation.channel} size={12} />
-              {conversation.channel} · власник: {conversation.owner}
+              {conversation.channel} · owner: {conversation.owner}
             </span>
           </span>
         </PageTitle>
         <PageActions>
-          <Tooltip title="Дзвінки з CRM підключаються окремо">
-            <Button icon={<PhoneIcon size={18} />}>Подзвонити</Button>
+          <Tooltip title="Calls from the CRM are connected separately">
+            <Button icon={<PhoneIcon size={18} />}>Call</Button>
           </Tooltip>
-          <PageAsideTrigger aria-label="Картка клієнта">
+          <PageAsideTrigger aria-label="Client card">
             <IdentificationCardIcon size={20} />
           </PageAsideTrigger>
         </PageActions>

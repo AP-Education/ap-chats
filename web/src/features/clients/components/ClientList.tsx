@@ -19,8 +19,8 @@ import { ClientChannelIcon } from './ClientChannelIcon';
 type Filter = 'all' | 'awaiting' | FunnelCode;
 
 const filters: { id: Filter; label: string }[] = [
-  { id: 'all', label: 'Усі' },
-  { id: 'awaiting', label: 'чекають відповіді' },
+  { id: 'all', label: 'All' },
+  { id: 'awaiting', label: 'awaiting reply' },
   { id: 'BB', label: 'Bachelor' },
   { id: 'MA', label: 'Masters & MBA' },
 ];
@@ -184,7 +184,7 @@ function ClientRow({ conversation }: { conversation: ClientConversation }) {
       <span className={styles.meta}>
         <span>{last?.at}</span>
         {isAwaitingReply(conversation) && !isActive && (
-          <span className={styles.awaiting} aria-label="чекає відповіді" />
+          <span className={styles.awaiting} aria-label="awaiting reply" />
         )}
       </span>
     </Link>
@@ -201,19 +201,19 @@ export function ClientList() {
   return (
     <div className={styles.root}>
       <PanelHeader>
-        <PanelTitle>Клієнти</PanelTitle>
+        <PanelTitle>Clients</PanelTitle>
       </PanelHeader>
       <div className={styles.search}>
         <Input
           prefix={<MagnifyingGlassIcon size={20} />}
-          placeholder="Клієнт або програма"
-          aria-label="Знайти клієнта або програму"
+          placeholder="Client or programme"
+          aria-label="Find a client or programme"
           allowClear
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
       </div>
-      <div className={styles.filters} role="toolbar" aria-label="Фільтр клієнтів">
+      <div className={styles.filters} role="toolbar" aria-label="Filter clients">
         {filters.map(({ id, label }) => (
           <button
             key={id}
@@ -229,7 +229,7 @@ export function ClientList() {
         {shown.map((conversation) => (
           <ClientRow key={conversation.id} conversation={conversation} />
         ))}
-        {!shown.length && <div className={styles.empty}>Нікого не знайдено</div>}
+        {!shown.length && <div className={styles.empty}>Nobody found</div>}
       </div>
     </div>
   );

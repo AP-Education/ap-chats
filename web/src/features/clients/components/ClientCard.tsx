@@ -194,7 +194,7 @@ function Task({ task }: { task: ClientTask }) {
         <span className={styles.taskMeta}>
           <span>→ {task.owner}</span>
           <span>{task.due}</span>
-          {task.priority === 'high' && <span className={styles.high}>високий</span>}
+          {task.priority === 'high' && <span className={styles.high}>high</span>}
         </span>
       </span>
     </label>
@@ -204,15 +204,13 @@ function Task({ task }: { task: ClientTask }) {
 /** Everything about the client beside the conversation: the deal, what is to do, what happened. */
 export function ClientCard({ conversation }: { conversation: ClientConversation }) {
   const { styles } = useStyles();
-  const urgency = conversation.sla
-    ? `SLA ${conversation.sla}`
-    : conversation.overdue && 'прострочено';
+  const urgency = conversation.sla ? `SLA ${conversation.sla}` : conversation.overdue && 'overdue';
 
   return (
     <div className={styles.card}>
       <PageHeader>
-        <PageTitle>Картка клієнта</PageTitle>
-        <PageAsideClose aria-label="Закрити картку клієнта" />
+        <PageTitle>Client card</PageTitle>
+        <PageAsideClose aria-label="Close the client card" />
       </PageHeader>
       <div className={styles.scroll}>
         <div className={styles.identity}>
@@ -228,31 +226,31 @@ export function ClientCard({ conversation }: { conversation: ClientConversation 
           <SparkleIcon size={14} weight="fill" />
           {conversation.state}
         </p>
-        <Section title={`Угода · ${conversation.funnel}`}>
+        <Section title={`Deal · ${conversation.funnel}`}>
           <dl className={styles.sectionBody} style={{ padding: 0 }}>
-            <Field label="Воронка · етап">
+            <Field label="Funnel · stage">
               {funnelNames[conversation.funnel]} · <b>{conversation.stage}</b>
             </Field>
-            <Field label="Програма">{conversation.programme}</Field>
-            <Field label="Джерело">{conversation.source}</Field>
-            <Field label="Наступний крок">
+            <Field label="Programme">{conversation.programme}</Field>
+            <Field label="Source">{conversation.source}</Field>
+            <Field label="Next step">
               <span className={urgency ? styles.urgent : undefined}>
                 {conversation.next}
                 {urgency && ` · ${urgency}`}
               </span>
             </Field>
-            <Field label="Сума">{conversation.sum}</Field>
-            <Field label="Відповідальний">{conversation.owner}</Field>
+            <Field label="Amount">{conversation.sum}</Field>
+            <Field label="Owner">{conversation.owner}</Field>
           </dl>
         </Section>
-        <Section title={`Задачі · ${conversation.tasks.length}`}>
+        <Section title={`Tasks · ${conversation.tasks.length}`}>
           {conversation.tasks.map((task) => (
             <Task key={task.title} task={task} />
           ))}
-          {!conversation.tasks.length && <span className={styles.muted}>задач немає</span>}
+          {!conversation.tasks.length && <span className={styles.muted}>no tasks</span>}
         </Section>
         <Section
-          title={`Дзвінки і зустрічі · ${conversation.calls.length}`}
+          title={`Calls and meetings · ${conversation.calls.length}`}
           defaultOpen={conversation.calls.length > 0}
         >
           {conversation.calls.map((call) => (
@@ -261,27 +259,27 @@ export function ClientCard({ conversation }: { conversation: ClientConversation 
                 {call.at} · {call.duration}
               </div>
               <div>{call.summary}</div>
-              {call.open && <div className={styles.urgent}>відкрите: {call.open}</div>}
+              {call.open && <div className={styles.urgent}>still open: {call.open}</div>}
             </div>
           ))}
-          {!conversation.calls.length && <span className={styles.muted}>дзвінків ще не було</span>}
+          {!conversation.calls.length && <span className={styles.muted}>no calls yet</span>}
         </Section>
-        <Section title="Календар клієнта">
+        <Section title="Client calendar">
           {conversation.events.map((event) => (
             <div key={event.date + event.text} className={styles.event}>
               <time>{event.date}</time>
               <span>{event.text}</span>
             </div>
           ))}
-          <span className={styles.muted}>події, не заняття · розклад — у LMS</span>
+          <span className={styles.muted}>events, not classes · the timetable is in LMS</span>
         </Section>
-        <Section title="Поля">
+        <Section title="Fields">
           <dl className={styles.sectionBody} style={{ padding: 0 }}>
-            <Field label="Особа">контакт</Field>
-            <Field label="Канал">{conversation.channel}</Field>
-            <Field label="Набір">{conversation.intake}</Field>
-            <Field label="Мова">{conversation.language}</Field>
-            <Field label="Країна">{conversation.country}</Field>
+            <Field label="Person">contact</Field>
+            <Field label="Channel">{conversation.channel}</Field>
+            <Field label="Intake">{conversation.intake}</Field>
+            <Field label="Language">{conversation.language}</Field>
+            <Field label="Country">{conversation.country}</Field>
           </dl>
         </Section>
       </div>
