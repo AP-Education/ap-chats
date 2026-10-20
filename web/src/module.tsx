@@ -10,7 +10,7 @@ import { WallpaperSettings } from './features/social/wallpaper/components/Wallpa
 import { ChatsContent } from './layouts/chats/ChatsContent';
 import { ChatsPanel } from './layouts/chats/ChatsPanel';
 import { ChatsRail, ChatsRailEnd } from './layouts/chats/ChatsRail';
-import { callsTab, personalTab, teamTab } from './layouts/chats/sections';
+import { callsTab, clientsTab, personalTab, teamTab } from './layouts/chats/sections';
 
 const startup = (
   <div role="status" aria-label="Завантажуємо чати" style={{ padding: 16 }}>
@@ -45,8 +45,9 @@ export default {
     Backdrop: ChatBackdrop,
     AppearanceSection: WallpaperSettings,
     // On mobile the lists are the navigation itself.
-    opensMobileMenuAt: (path) => path === '/channels' || path === '/direct' || path === '/calls',
-    tabs: [teamTab, personalTab, callsTab],
+    opensMobileMenuAt: (path) =>
+      path === '/clients' || path === '/channels' || path === '/direct' || path === '/calls',
+    tabs: [clientsTab, teamTab, personalTab, callsTab],
   }),
   // The rail's end arrives in the next @ap-education/shell-sdk; the university shell reads it already.
   RailEnd: ChatsRailEnd,

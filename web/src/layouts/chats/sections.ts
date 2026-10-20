@@ -1,19 +1,37 @@
 import type { AppTab } from '@ap-education/shell-sdk';
-import { ChatTextIcon, PhoneIcon, UsersThreeIcon } from '@phosphor-icons/react';
+import {
+  ChatTextIcon,
+  IdentificationCardIcon,
+  PhoneIcon,
+  UsersThreeIcon,
+} from '@phosphor-icons/react';
 
-export const chatsSections = ['channels', 'direct', 'calls'] as const;
+export const chatsSections = ['clients', 'channels', 'direct', 'calls'] as const;
 export type ChatsSection = (typeof chatsSections)[number];
 
 function isWithin(pathname: string, path: string) {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
-/** Direct messages and calls belong to the person; every other page is the team's. */
+/**
+ * Clients' conversations are their own section; direct messages and calls belong to the person;
+ * every other page is the team's.
+ */
 export function sectionAt(pathname: string): ChatsSection {
+  if (isWithin(pathname, '/clients')) return 'clients';
   if (isWithin(pathname, '/direct')) return 'direct';
   if (isWithin(pathname, '/calls')) return 'calls';
   return 'channels';
 }
+
+export const clientsTab: AppTab = {
+  id: 'clients',
+  label: 'Клієнти',
+  icon: IdentificationCardIcon,
+  symbol: { ios: 'person.text.rectangle', android: 'badge' },
+  path: '/clients',
+  includes: (path) => sectionAt(path) === 'clients',
+};
 
 export const teamTab: AppTab = {
   id: 'team',

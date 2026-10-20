@@ -12,6 +12,7 @@ export function ChatsContent() {
   const { pathname } = useLocation();
   const routes = useRoutes(chatsRoutes);
   const isChatPage =
+    pathname.startsWith('/clients') ||
     pathname.startsWith('/channels') ||
     pathname.startsWith('/direct') ||
     pathname.startsWith('/calls');
