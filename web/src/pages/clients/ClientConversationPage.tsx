@@ -207,7 +207,7 @@ function MessageBubble({ message }: { message: ClientMessage }) {
         <Avatar path="builtin:ai-spark" alt="StarMe" size={32} shape="circle" />
         <div className={cx(styles.bubble, styles.assistantBubble)}>
           <div className={styles.assistantName}>
-            StarMe{message.offline ? ' · offline, from the client events' : ''}
+            StarMe{message.offline && ` · offline (${message.offline}), from the client events`}
           </div>
           {message.pending ? 'Thinking…' : message.text}
           {!!message.sources?.length && (
@@ -286,11 +286,12 @@ function Conversation({ conversation }: { conversation: ClientConversation }) {
       { id: answerId, direction: 'assistant', text: '', at: 'just now', pending: true },
     ]);
 
-    const offline = () => {
+    const offline = (reason: unknown) => {
       const answer = answerAbout(conversation, question);
-      settle(answerId, { text: answer.text, sources: answer.sources, offline: true });
+      const why = reason instanceof Error ? reason.message : 'not signed in';
+      settle(answerId, { text: answer.text, sources: answer.sources, offline: why });
     };
-    if (user.status !== 'signed-in') return offline();
+    if (user.status !== 'signed-in') return offline(null);
     askStarMe(turns, user.accessToken).then(
       (text) => settle(answerId, { text, sources: ['client card', 'conversation'] }),
       offline,

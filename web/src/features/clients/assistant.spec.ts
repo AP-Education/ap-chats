@@ -11,7 +11,11 @@ test('only a message that starts with the mention goes to the assistant', () => 
   assert.equal(isForAssistant('@StarMe what did she want?'), true);
   assert.equal(isForAssistant('  @starme next'), true);
   assert.equal(isForAssistant('Hello, @StarMe'), false);
+  assert.equal(isForAssistant('@Stram me what task i have'), true);
+  assert.equal(isForAssistant('@Star me next'), true);
+  assert.equal(isForAssistant('@Steve can you call'), false);
   assert.equal(questionOf('@StarMe  next step?'), 'next step?');
+  assert.equal(questionOf('@Stram me what task i have'), 'what task i have');
 });
 
 test('StarMe reads the client card, the conversation and then the question', () => {

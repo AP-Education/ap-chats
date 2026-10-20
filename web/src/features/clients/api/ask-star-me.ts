@@ -19,7 +19,11 @@ export async function askStarMe(turns: AssistantTurn[], accessToken: string): Pr
     body: JSON.stringify({ messages: turns, stream: false }),
     signal: AbortSignal.timeout(RUN_TIMEOUT_MS),
   });
-  if (!response.ok) throw new Error(`StarMe answered ${response.status}`);
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: unknown } | null;
+    const code = typeof body?.error === 'string' ? ` ${body.error}` : '';
+    throw new Error(`HTTP ${response.status}${code}`);
+  }
   const run = (await response.json()) as { text?: unknown };
   if (typeof run.text !== 'string' || !run.text.trim()) throw new Error('StarMe gave no answer');
   return run.text;

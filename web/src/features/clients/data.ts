@@ -22,8 +22,8 @@ export interface ClientMessage {
   sources?: string[];
   /** For an assistant's answer: still on its way. */
   pending?: boolean;
-  /** For an assistant's answer: built from the events because StarMe could not be reached. */
-  offline?: boolean;
+  /** For an assistant's answer: built from the events because StarMe could not answer, and why. */
+  offline?: string;
 }
 
 export interface ClientTask {

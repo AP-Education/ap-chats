@@ -25,14 +25,17 @@ export interface AssistantTurn {
   text: string;
 }
 
+// `@StarMe`, and the ways it gets typed in a hurry: `@starme`, `@Star me`, `@Stram me`.
+const mention = /^@\s*st[a-z]{0,4}\s?me\b/i;
+
 /** Whether a message is addressed to the assistant rather than to the client. */
 export function isForAssistant(text: string): boolean {
-  return text.trim().toLowerCase().startsWith(ASSISTANT_MENTION.toLowerCase());
+  return mention.test(text.trim());
 }
 
 /** The question itself, without the mention. */
 export function questionOf(text: string): string {
-  return text.trim().slice(ASSISTANT_MENTION.length).trim();
+  return text.trim().replace(mention, '').trim();
 }
 
 /** The client card as the assistant reads it: everything the team knows about the lead. */
