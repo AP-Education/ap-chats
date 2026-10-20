@@ -9,7 +9,7 @@ import { ChatBackdrop } from './features/social/wallpaper/components/ChatBackdro
 import { WallpaperSettings } from './features/social/wallpaper/components/WallpaperSettings';
 import { ChatsContent } from './layouts/chats/ChatsContent';
 import { ChatsPanel } from './layouts/chats/ChatsPanel';
-import { ChatsRail } from './layouts/chats/ChatsRail';
+import { ChatsRail, ChatsRailEnd } from './layouts/chats/ChatsRail';
 import { callsTab, personalTab, teamTab } from './layouts/chats/sections';
 
 const startup = (
@@ -34,16 +34,20 @@ function Content() {
   );
 }
 
-export default defineApp({
-  Providers: ChatsProviders,
-  Panel,
-  Rail: ChatsRail,
-  Ongoing: CallSurface,
-  Banner: ConnectionBanner,
-  Content,
-  Backdrop: ChatBackdrop,
-  AppearanceSection: WallpaperSettings,
-  // On mobile the lists are the navigation itself.
-  opensMobileMenuAt: (path) => path === '/channels' || path === '/direct' || path === '/calls',
-  tabs: [teamTab, personalTab, callsTab],
-});
+export default {
+  ...defineApp({
+    Providers: ChatsProviders,
+    Panel,
+    Rail: ChatsRail,
+    Ongoing: CallSurface,
+    Banner: ConnectionBanner,
+    Content,
+    Backdrop: ChatBackdrop,
+    AppearanceSection: WallpaperSettings,
+    // On mobile the lists are the navigation itself.
+    opensMobileMenuAt: (path) => path === '/channels' || path === '/direct' || path === '/calls',
+    tabs: [teamTab, personalTab, callsTab],
+  }),
+  // The rail's end arrives in the next @ap-education/shell-sdk; the university shell reads it already.
+  RailEnd: ChatsRailEnd,
+};

@@ -1,6 +1,5 @@
 import { type AppTab, useIsAppActive, useOpenApp } from '@ap-education/shell-sdk';
 import { NavTile } from '@ap-education/ui';
-import { createStyles } from 'antd-style';
 import { useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -9,40 +8,25 @@ import { WorkspaceUnreadContext } from '../../features/social/read-state/workspa
 import { WorkspaceRail } from '../../features/workspaces/components/WorkspaceRail';
 import { personalTab, sectionAt } from './sections';
 
-const useStyles = createStyles(({ token, css }) => ({
-  divider: css`
-    flex-shrink: 0;
-    width: 28px;
-    height: 2px;
-    border-radius: 1px;
-    background: ${token.colorBorderSecondary};
-  `,
-}));
+/** Chats at its place on the shell rail: the person's direct messages. */
+export function ChatsRail() {
+  const { pathname } = useLocation();
+  const direct = useContext(WorkspaceUnreadContext)?.direct ?? QUIET;
+
+  // Technical debt: calls have no desktop tile until the stakeholder settles where they
+  // belong there; /calls still opens from links and the mobile tab.
+  return <SectionTile tab={personalTab} pathname={pathname} attention={direct} />;
+}
 
 /**
- * Chats on the shell rail: the person's direct messages, then, while Chats is open, the team
- * workspaces, so they do not crowd the rail of every other application.
+ * The team workspaces at the end of the shell rail, only while Chats is open, so they do not
+ * crowd the rail of every other application.
  */
-export function ChatsRail() {
-  const { styles } = useStyles();
+export function ChatsRailEnd() {
   const { pathname } = useLocation();
   const chatsActive = useIsAppActive();
-  const direct = useContext(WorkspaceUnreadContext)?.direct ?? QUIET;
-  const onTeam = sectionAt(pathname) === 'channels';
-
-  return (
-    <>
-      <SectionTile tab={personalTab} pathname={pathname} attention={direct} />
-      {/* Technical debt: calls have no desktop tile until the stakeholder settles where they
-          belong there; /calls still opens from links and the mobile tab. */}
-      {chatsActive && (
-        <>
-          <div className={styles.divider} role="separator" />
-          <WorkspaceRail onTeam={onTeam} />
-        </>
-      )}
-    </>
-  );
+  if (!chatsActive) return null;
+  return <WorkspaceRail onTeam={sectionAt(pathname) === 'channels'} />;
 }
 
 function SectionTile({
