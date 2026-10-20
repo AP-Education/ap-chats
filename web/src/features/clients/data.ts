@@ -10,11 +10,16 @@ export type FunnelCode = 'BB' | 'MA';
 
 export interface ClientMessage {
   id: string;
-  /** `in` from the client, `out` from the team, `system` a note of what happened. */
-  direction: 'in' | 'out' | 'system';
+  /**
+   * `in` from the client, `out` from the team, `system` a note of what happened; `note` a team
+   * member's word to the assistant and `assistant` its answer, both kept from the client.
+   */
+  direction: 'in' | 'out' | 'system' | 'note' | 'assistant';
   text: string;
   at: string;
   by?: string;
+  /** For an assistant's answer: the events it was put together from. */
+  sources?: string[];
 }
 
 export interface ClientTask {
@@ -710,7 +715,9 @@ export const clientConversations: ClientConversation[] = [
 
 /** The conversation is waiting on the team when the client wrote last. */
 export function isAwaitingReply(conversation: ClientConversation): boolean {
-  const last = conversation.messages.at(-1);
+  const last = conversation.messages
+    .filter((message) => message.direction !== 'note' && message.direction !== 'assistant')
+    .at(-1);
   return last?.direction === 'in' || last?.direction === 'system';
 }
 
