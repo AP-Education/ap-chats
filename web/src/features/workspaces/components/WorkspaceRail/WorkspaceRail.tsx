@@ -1,7 +1,7 @@
 import { useIsAppActive, useOpenApp } from '@ap-education/shell-sdk';
 import { NavAddTile, NavTile } from '@ap-education/ui';
-import { ArrowClockwiseIcon } from '@phosphor-icons/react';
-import { Skeleton } from 'antd';
+import { ArrowClockwiseIcon, ChartBarIcon, UsersThreeIcon } from '@phosphor-icons/react';
+import { Dropdown, Skeleton } from 'antd';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -24,6 +24,7 @@ export function WorkspaceRail({ onTeam }: WorkspaceRailProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [creating, setCreating] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   function handleSelect(workspaceId: string) {
     const changed = workspaceId !== workspace?.id;
@@ -68,7 +69,34 @@ export function WorkspaceRail({ onTeam }: WorkspaceRailProps) {
           onSelect={() => handleSelect(item.id)}
         />
       ))}
-      <NavAddTile label="Створити робочий простір" onClick={() => setCreating(true)} />
+      {/* The plus builds something new: a workspace here, or a dashboard from the CRM's data. */}
+      <Dropdown
+        open={adding}
+        onOpenChange={setAdding}
+        trigger={[]}
+        placement="bottomLeft"
+        menu={{
+          items: [
+            {
+              key: 'workspace',
+              icon: <UsersThreeIcon size={18} />,
+              label: 'New workspace',
+              onClick: () => setCreating(true),
+            },
+            {
+              key: 'dashboard',
+              icon: <ChartBarIcon size={18} />,
+              label: 'Generate a dashboard',
+              onClick: () => openApp('crm', '/dashboards'),
+            },
+          ],
+          onClick: () => setAdding(false),
+        }}
+      >
+        <span style={{ display: 'inline-flex' }}>
+          <NavAddTile label="Add" onClick={() => setAdding(true)} />
+        </span>
+      </Dropdown>
       <WorkspaceFormModal open={creating} onClose={() => setCreating(false)} />
     </>
   );
