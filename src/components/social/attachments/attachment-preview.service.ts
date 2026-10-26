@@ -15,7 +15,8 @@ import type { Attachment } from '../messages/types/message.types';
 import { imagePlaceholder } from './image-placeholder';
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
-const MAX_PIXELS = 20_000_000;
+// Phone cameras shoot 24 to 50 megapixels by default; JPEG decodes shrunk, so a preview stays cheap.
+const MAX_PIXELS = 50_000_000;
 
 // file-type's own signature library: maintained against the real corpus of
 // container formats (zip-based docs, webm/mkv, heic, ...) instead of the
