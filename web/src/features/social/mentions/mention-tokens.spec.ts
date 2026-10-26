@@ -42,6 +42,10 @@ test('a preview reads every reference as a word on one line', () => {
   );
 });
 
+test('a preview keeps a spoiler shut, whatever its length', () => {
+  assert.equal(previewText('Відповідь: ||сорок два|| і || все'), 'Відповідь: ▒▒▒▒ і || все');
+});
+
 test('a directive is a reference only by its exact name and label', () => {
   assert.deepEqual(readToken('mention', 'everyone'), { kind: 'everyone' });
   assert.equal(readToken('mention', 'team'), null);

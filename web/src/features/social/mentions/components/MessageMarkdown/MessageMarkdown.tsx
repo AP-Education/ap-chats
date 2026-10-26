@@ -10,6 +10,8 @@ import type { MentionLabel } from '../../types';
 import { withoutLinkEscapes } from './link-escapes';
 import { mentionDirective } from './mention-directive';
 import { MentionReference } from './MentionReference';
+import { Spoiler } from './Spoiler';
+import { spoilerSyntax } from './spoiler-syntax';
 
 interface MessageMarkdownProps {
   markdown: string;
@@ -80,6 +82,9 @@ const components: Components = {
   },
   span: function Reference({ node, children }): ReactNode {
     const { inline, people, viewer } = useContext(MarkdownScopeContext);
+    if (node?.properties.dataSpoiler !== undefined)
+      return <Spoiler inline={inline}>{children}</Spoiler>;
+
     const token = tokenFromAttributes(node?.properties);
     if (!token) return <span>{children}</span>;
     return (
@@ -108,6 +113,7 @@ export function MessageMarkdown({
         remarkPlugins={[
           remarkDirective,
           mentionDirective,
+          spoilerSyntax,
           remarkBreaks,
           [remarkGfm, { singleTilde: false }],
         ]}

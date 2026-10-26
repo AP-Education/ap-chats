@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { isLoneGif, messagePlainText } from '@/components/social/content';
+import { isLoneGif, messagePreviewText } from '@/components/social/content';
 
 import { NotificationContent } from '../delivery/notification-content';
 import type { NotificationPayload } from '../delivery/types';
@@ -28,7 +28,7 @@ export class MessageNotificationContentService extends NotificationContent {
     if (!preview) return null;
 
     const { conversation, message } = preview;
-    const text = await messagePlainText(message.contentMarkdown);
+    const text = await messagePreviewText(message.contentMarkdown);
     const body = isLoneGif(message.contentMarkdown, message.gif) ? 'GIF' : clip(text.trim(), 180);
 
     return {

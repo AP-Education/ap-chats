@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { MessageMarkdownService, messagePlainText } from './message-markdown';
+import { MessageMarkdownService, messagePlainText, messagePreviewText } from './message-markdown';
 
 const markdown = new MessageMarkdownService();
 
@@ -150,3 +150,11 @@ async function readsAsText(source: string) {
   assert.equal(normalized.plainText.trim(), source);
   assert.deepEqual(normalized.mentions, { memberIds: [], roleIds: [], everyone: false });
 }
+
+test('a notification keeps a spoiler shut, while the text still reads it whole', async () => {
+  const source = 'Відповідь: ||сорок **два**||, а || лишається';
+
+  assert.equal((await messagePreviewText(source)).trim(), 'Відповідь: ▒▒▒▒, а || лишається');
+  assert.equal((await messagePlainText(source)).trim(), 'Відповідь: ||сорок два||, а || лишається');
+  assert.equal((await markdown.normalize(source)).markdown, source);
+});

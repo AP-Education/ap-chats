@@ -80,9 +80,14 @@ export function splitTokens(markdown: string): (string | MentionToken)[] {
 }
 
 /** One line of the markdown with its references read as words, without resolving names. */
+// A spoiler stays shut in a one-line preview, whatever its length; the message opens it.
+const SPOILER = /\|\|(?=\S)[\s\S]*?\S\|\|/gu;
+const SPOILER_MASK = '▒▒▒▒';
+
 export function previewText(markdown: string): string {
   return splitTokens(markdown)
     .map((part) => (typeof part === 'string' ? part : tokenText(part)))
     .join('')
+    .replace(SPOILER, SPOILER_MASK)
     .replace(/\s+/gu, ' ');
 }

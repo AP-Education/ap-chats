@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 import type { MentionTargets } from '../mentions/types';
+import { withSpoilers } from './message-spoilers';
 
 // The parts of an mdast node chat reads; every mdast node fits it as it is.
 type MarkdownNode = {
@@ -36,6 +37,8 @@ const KEPT_TYPES = new Set([
 ]);
 const BLOCK_CONTAINERS = new Set(['root', 'blockquote', 'listItem']);
 const LINK_PROTOCOLS = new Set(['https:', 'http:', 'mailto:']);
+// A spoiler where it cannot be opened, as in a notification: shut, whatever its length.
+const SPOILER_MASK = '▒▒▒▒';
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export interface NormalizedMessageContent {
@@ -183,6 +186,10 @@ function lowercaseReferences(source: string, node: MarkdownNode): string {
 
 // Every node here is one chat keeps, so this only reads the text, the mentions and the links.
 function collect(node: MarkdownNode, reading: Reading): void {
+  if (node.type === 'spoiler') {
+    reading.plain.push(SPOILER_MASK);
+    return;
+  }
   const reference = referenceOf(node);
   if (reference) {
     reading.plain.push(reference.read(reference.value, reading.mentions));
@@ -209,15 +216,24 @@ async function parseMarkdown(source: string): Promise<MarkdownNode> {
   return remark().use(remarkDirective).use(remarkGfm, { singleTilde: false }).parse(source);
 }
 
-/** What the text says, whatever formatting chat cannot show: its plain text, mentions and links. */
-function readTree(tree: MarkdownNode, source: string): Reading {
+/**
+ * What the text says, whatever formatting chat cannot show: its plain text, mentions and links. A
+ * spoiler reads whole unless it is to stay shut.
+ */
+function readTree(tree: MarkdownNode, source: string, spoilers: 'read' | 'shut' = 'read'): Reading {
   const reading = newReading();
-  collect({ ...tree, children: reshapeAll(tree, source) }, reading);
+  const shaped = { ...tree, children: reshapeAll(tree, source) };
+  collect(spoilers === 'shut' ? withSpoilers(shaped) : shaped, reading);
   return reading;
 }
 
 export async function messagePlainText(markdown: string): Promise<string> {
   return readTree(await parseMarkdown(markdown), markdown).plain.join('');
+}
+
+/** The text where a spoiler cannot be opened, such as a notification. */
+export async function messagePreviewText(markdown: string): Promise<string> {
+  return readTree(await parseMarkdown(markdown), markdown, 'shut').plain.join('');
 }
 
 @Injectable()
