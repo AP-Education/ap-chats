@@ -45,3 +45,6 @@ brag
 brag-output
 brag-output-*
 keys/
+
+# Discord member links: generated, per server
+scripts/discord/links/
