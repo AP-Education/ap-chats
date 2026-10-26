@@ -4,31 +4,42 @@
     "appVersionSource": "remote"
   },
   "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal",
+    "base": {
+      "node": "24.22.0",
       "env": {
-        "EXPO_PUBLIC_APNS_ENVIRONMENT": "production"
+        "EXPO_PUBLIC_APNS_ENVIRONMENT": "production",
+        "pnpm_config_verify_deps_before_run": "false"
       }
+    },
+    "development": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_APNS_ENVIRONMENT": "production"
-      }
+      "extends": "base",
+      "distribution": "internal"
     },
     "production": {
+      "extends": "base",
       "environment": "production",
-      "env": {
-        "EXPO_PUBLIC_APNS_ENVIRONMENT": "production"
-      },
       "autoIncrement": true
+    },
+    "apk": {
+      "extends": "base",
+      "environment": "production",
+      "distribution": "internal",
+      "android": { "buildType": "apk" }
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "ascAppId": "6748347387"
+        "ascAppId": "6825831160",
+        "appleTeamId": "C4QXXF6LNF",
+        "ascApiKeyPath": "../keys/AuthKey_54BFB3JXL4.p8",
+        "ascApiKeyId": "54BFB3JXL4",
+        "ascApiKeyIssuerId": "d7ac62ef-0911-41ae-b030-52ccfb3712a3"
       }
     }
   }

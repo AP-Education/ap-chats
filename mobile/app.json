@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "AP App",
-    "slug": "ap-connect",
+    "slug": "ap-app",
     "description": "Робочий простір AP Education: командні чати, дзвінки й сповіщення.",
     "version": "0.2.0",
     "scheme": "apchats",
@@ -11,7 +11,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.apeducation.app",
+      "bundleIdentifier": "com.apeducation.connect",
       "buildNumber": "11",
       "icon": "./assets/AppIcon.icon",
       "config": {
@@ -19,7 +19,7 @@
       }
     },
     "android": {
-      "package": "com.apeducation.app",
+      "package": "com.apeducation.connect",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -70,9 +70,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "b14951bf-969c-46c8-9e8e-ebe2f16216ad"
+        "projectId": "236f60a9-fd83-4e58-b4b3-6231bfd7fc6f"
       }
     },
-    "owner": "pillowskiy"
+    "owner": "ap-education"
   }
 }

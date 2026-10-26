@@ -58,7 +58,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src tests",
-    "test": "node --import tsx --test \"src/**/*.spec.ts\" \"tests/**/*.spec.ts\""
+    "test": "node --import tsx --test \"src/**/*.spec.ts\" \"tests/**/*.spec.ts\"",
+    "eas-build-pre-install": "test -n \"$NODE_AUTH_TOKEN\" || { echo 'Set NODE_AUTH_TOKEN (read:packages) in EAS env: the workspace installs @ap-education/* from GitHub Packages' >&2; exit 1; }; echo \"//npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN\" >> ~/.npmrc"
   },
   "private": true
 }
