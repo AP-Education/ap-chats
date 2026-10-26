@@ -41,6 +41,8 @@ infra/ansible/**/__pycache__/
 
 # SSH private keys someone drops at repo root for local deploy use
 keys/
+# Apple APNs / App Store Connect API keys
+*.p8
 brag
 brag-output
 brag-output-*
