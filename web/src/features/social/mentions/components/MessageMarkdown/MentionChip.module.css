@@ -60,3 +60,11 @@ button.mention[data-me]:hover,
 button.mention[data-me]:focus-visible {
   background-color: var(--mention-me-bg-hover, rgba(250, 173, 20, 0.28));
 }
+
+button.mention[data-role]:hover,
+button.mention[data-role]:focus-visible {
+  background-color: var(
+    --mention-role-bg-hover,
+    color-mix(in srgb, var(--role-color) 28%, transparent)
+  );
+}

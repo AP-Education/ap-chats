@@ -27,7 +27,7 @@ export function MentionReference({ token, people, inline, mine }: MentionReferen
         />
       );
     case 'role':
-      return <RoleReference roleId={token.id} mine={mine} />;
+      return <RoleReference roleId={token.id} inline={inline} mine={mine} />;
     case 'channel':
       return <ChannelReference channelId={token.id} inline={inline} />;
     case 'everyone':
