@@ -30,9 +30,27 @@ interface MarkdownScope {
 const MarkdownScopeContext = createContext<MarkdownScope>({ inline: false, people: new Map() });
 
 const BLOCKS = ['pre', 'blockquote', 'ul', 'ol', 'li'];
-const ELEMENTS = ['p', 'strong', 'em', 'code', 'a', 'img', 'br', 'span', 'del', ...BLOCKS];
+const HEADINGS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+const ELEMENTS = [
+  'p',
+  ...HEADINGS,
+  'strong',
+  'em',
+  'code',
+  'a',
+  'img',
+  'br',
+  'span',
+  'del',
+  ...BLOCKS,
+];
 // A preview is one line: blocks give way to their text, the breaks between them read as spaces.
 const INLINE_ELEMENTS = ELEMENTS.filter((tag) => !BLOCKS.includes(tag));
+
+function Paragraph({ children }: { children?: ReactNode }) {
+  const { inline } = useContext(MarkdownScopeContext);
+  return inline ? <span>{children} </span> : <p>{children}</p>;
+}
 
 // A link the sanitizer emptied, such as javascript:, keeps only its label.
 function MarkdownLink({
@@ -63,10 +81,14 @@ function MarkdownLink({
 // Element views live outside the render: a fresh function per render is a new component type,
 // which remounts the text and drops any selection the reader is making in it.
 const components: Components = {
-  p: function Paragraph({ children }) {
-    const { inline } = useContext(MarkdownScopeContext);
-    return inline ? <span>{children} </span> : <p>{children}</p>;
-  },
+  p: Paragraph,
+  // Chat has no headings: one reads as a paragraph of its own, as the server keeps it.
+  h1: Paragraph,
+  h2: Paragraph,
+  h3: Paragraph,
+  h4: Paragraph,
+  h5: Paragraph,
+  h6: Paragraph,
   a: ({ children, href, title }) => (
     <MarkdownLink href={href} title={title}>
       {children}
