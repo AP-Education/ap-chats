@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
-import { requireAccessLevel } from '@/components/workspaces/access';
+import { isAdministrator, requireAccessLevel } from '@/components/workspaces/access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import type { CreateChannelCategoryDto } from './dto/create-channel-category.dto';
@@ -12,8 +12,11 @@ import type { ChannelCategory } from './types';
 export class ChannelCategoriesService {
   constructor(private readonly categories: ChannelCategoriesRepository) {}
 
+  // A category heads channels: people get those holding one of theirs, managers every one, to fill it.
   list(member: WorkspaceMember): Promise<ChannelCategory[]> {
-    return this.categories.findAllForWorkspace(member.workspaceId);
+    return isAdministrator(member)
+      ? this.categories.findAllForWorkspace(member.workspaceId)
+      : this.categories.findListedFor(member.workspaceId, member.id);
   }
 
   async create(member: WorkspaceMember, dto: CreateChannelCategoryDto): Promise<ChannelCategory> {

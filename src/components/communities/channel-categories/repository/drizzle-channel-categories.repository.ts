@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, exists } from 'drizzle-orm';
 
 import { throwConflictOnUnique } from '@/database/drizzle/pg-errors';
-import { channelCategories, channels } from '@/database/drizzle/schema';
+import { channelCategories, channelMemberships, channels } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
 import type { ChannelCategory } from '../types';
@@ -20,6 +20,28 @@ export class DrizzleChannelCategoriesRepository extends ChannelCategoriesReposit
       .select()
       .from(channelCategories)
       .where(eq(channelCategories.workspaceId, workspaceId))
+      .orderBy(asc(channelCategories.position), asc(channelCategories.name));
+    return rows.map((row) => this.toModel(row));
+  }
+
+  async findListedFor(workspaceId: string, memberId: string): Promise<ChannelCategory[]> {
+    const holdsListedChannel = exists(
+      this.txHost.tx
+        .select({ id: channels.id })
+        .from(channels)
+        .innerJoin(
+          channelMemberships,
+          and(
+            eq(channelMemberships.channelId, channels.id),
+            eq(channelMemberships.memberId, memberId),
+          ),
+        )
+        .where(eq(channels.categoryId, channelCategories.id)),
+    );
+    const rows = await this.txHost.tx
+      .select()
+      .from(channelCategories)
+      .where(and(eq(channelCategories.workspaceId, workspaceId), holdsListedChannel))
       .orderBy(asc(channelCategories.position), asc(channelCategories.name));
     return rows.map((row) => this.toModel(row));
   }

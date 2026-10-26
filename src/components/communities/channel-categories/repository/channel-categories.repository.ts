@@ -2,6 +2,8 @@ import type { ChannelCategory } from '../types';
 
 export abstract class ChannelCategoriesRepository {
   abstract findAllForWorkspace(workspaceId: string): Promise<ChannelCategory[]>;
+  /** The categories holding a channel the member takes part in. */
+  abstract findListedFor(workspaceId: string, memberId: string): Promise<ChannelCategory[]>;
   abstract findById(workspaceId: string, categoryId: string): Promise<ChannelCategory | undefined>;
   abstract create(workspaceId: string, name: string, position: number): Promise<ChannelCategory>;
   abstract update(
