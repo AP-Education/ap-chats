@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "648434381465",
-    "project_id": "ap-app-54b51",
-    "storage_bucket": "ap-app-54b51.firebasestorage.app"
+    "project_number": "1013735512419",
+    "project_id": "ap-app-fa6c6",
+    "storage_bucket": "ap-app-fa6c6.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:648434381465:android:45f89ff036304c92ce3e08",
+        "mobilesdk_app_id": "1:1013735512419:android:8eb8654b87c66523d85b56",
         "android_client_info": {
-          "package_name": "com.apeducation.app"
+          "package_name": "com.apeducation.connect"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAnSZoc7ZhpeGRPSp84fn-fXMGf5NT4ZUE"
+          "current_key": "AIzaSyCt0JG2DJVQmRjUETU8aERGOzm0zFE1uZs"
         }
       ],
       "services": {

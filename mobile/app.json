@@ -19,7 +19,7 @@
       }
     },
     "android": {
-      "package": "com.apeducation.app",
+      "package": "com.apeducation.connect",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
