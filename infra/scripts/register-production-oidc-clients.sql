@@ -48,11 +48,11 @@ INSERT INTO oidc_clients (
         now()
     ),
     (
-        'ap-chats-mobile',
+        'ap-connect-mobile',
         '6e8c8a93-d26b-4f2d-8d40-8bc9f31f2b02',
         'AP Connect mobile client',
-        ARRAY['apchats://auth/callback'],
-        ARRAY['apchats://auth/callback'],
+        ARRAY['apchats://auth/callback', 'com.apeducation.connect://auth/callback'],
+        ARRAY['apchats://auth/callback', 'com.apeducation.connect://auth/callback'],
         -- Native apps renew with refresh tokens (offline_access); web renews against the session cookie.
         ARRAY['authorization_code', 'refresh_token'],
         ARRAY['code'],

@@ -208,14 +208,14 @@ The LMS client is `lms-web`, with redirect URI
 `https://ap-platform.online` and resource `https://api.ap-platform.online`.
 The Chats web client is `ap-chats-web`, with redirect URI
 `https://chats.ap-platform.online/auth/callback` and logout return to
-`https://chats.ap-platform.online`. The native client is `ap-chats-mobile`,
+`https://chats.ap-platform.online`. The native client is `ap-connect-mobile`,
 with `apchats://auth/callback` for both login and logout, matching
-`mobile/app.json`. It is also allowed the `refresh_token` grant: the app asks for
+`mobile/app.json`, and the bundle id scheme `com.apeducation.connect://auth/callback`. It is also allowed the `refresh_token` grant: the app asks for
 `offline_access` and renews its session with refresh tokens, since it has no
 Accounts cookie to renew against the way the browser does. Its public release settings live in
 `mobile/.env.production`, which is gitignored and kept on the machine that builds releases;
 `mobile/.env.example` lists the variables, and for production they hold the web/API URLs, the
-Accounts issuer, `EXPO_PUBLIC_OIDC_CLIENT_ID=ap-chats-mobile` and the Chats audience. The EAS
+Accounts issuer, `EXPO_PUBLIC_OIDC_CLIENT_ID=ap-connect-mobile` and the Chats audience. The EAS
 `production` profile selects the production environment. Expo loads the file when bundling a release; exported variables and
 EAS environment values take precedence. An EAS cloud build does not upload gitignored files,
 so there the same values come from the EAS `production` environment. Keep any local overrides
