@@ -11,10 +11,15 @@ web/test-results/
 web/playwright-report/
 .husky/_/
 .pnpm-store/
+# Local environment files; keep examples and deployment templates
 .env
 .env.*
+*.env
+*.env.*
 !.env.example
-!.env.production.example
+!.env.*.example
+!*.env.example
+!*.env.j2
 *.log
 .DS_Store
 mobile/android/
@@ -39,14 +44,23 @@ infra/ansible/collections/ansible_collections/*
 !infra/ansible/collections/ansible_collections/ap_education/
 infra/ansible/**/__pycache__/
 
-# SSH private keys someone drops at repo root for local deploy use
+# Private key directories and signing credentials
+key/
 keys/
-# Apple APNs / App Store Connect API keys
 *.p8
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+id_ecdsa
+id_dsa
 brag
 brag-output
 brag-output-*
-keys/
 
 # Discord member links: generated, per server
 scripts/discord/links/
