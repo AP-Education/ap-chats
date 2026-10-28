@@ -3,7 +3,14 @@ import { test } from 'node:test';
 
 import { type InfiniteData, QueryClient } from '@tanstack/react-query';
 
-import { catchUpHistory, mergeHistoryItem, shareHistory } from './history-cache.ts';
+import {
+  catchUpHistory,
+  mergeHistoryItem,
+  noteUnwatched,
+  noteWindowRequested,
+  refreshHistoryWindowIfBehind,
+  shareHistory,
+} from './history-cache.ts';
 import type { PageCursor } from './hooks/useMessageHistory.ts';
 import { messagingQueryKeys } from './queryKeys.ts';
 import type { HistoryPage, MessageHistoryItem } from './types';
@@ -181,4 +188,44 @@ test('the same history fetched again is the history already held', () => {
   const shown = history([page([item('a', '1')]), page([item('b', '2')])]);
 
   assert.equal(shareHistory(shown, structuredClone(shown)), shown);
+});
+
+function openedWindow(channelId: string, lastSeq: string) {
+  const queryClient = new QueryClient();
+  const key = messagingQueryKeys.history('user', 'workspace', channelId);
+  const data: InfiniteData<HistoryPage, PageCursor> = {
+    pages: [page([item('a', lastSeq)])],
+    pageParams: [{ mode: 'window' }],
+  };
+  queryClient.setQueryData(key, data);
+  const isRefreshed = () => queryClient.getQueryState(key)?.isInvalidated ?? false;
+  return { key, queryClient, isRefreshed };
+}
+
+test('a window asked for on the way into a conversation is not asked for again once watching', () => {
+  const opened = openedWindow('fresh', '7');
+  noteWindowRequested(opened.key);
+
+  refreshHistoryWindowIfBehind(opened.queryClient, opened.key, '7');
+
+  assert.equal(opened.isRefreshed(), false);
+});
+
+test('an entry created before watching began brings the window again', () => {
+  const opened = openedWindow('behind', '7');
+  noteWindowRequested(opened.key);
+
+  refreshHistoryWindowIfBehind(opened.queryClient, opened.key, '8');
+
+  assert.equal(opened.isRefreshed(), true);
+});
+
+test('a window kept from before the conversation was left is asked for again', () => {
+  const opened = openedWindow('returning', '7');
+  noteWindowRequested(opened.key);
+  noteUnwatched(opened.key);
+
+  refreshHistoryWindowIfBehind(opened.queryClient, opened.key, '7');
+
+  assert.equal(opened.isRefreshed(), true);
 });
