@@ -1,37 +1,9 @@
 import path from 'node:path';
 
 import react from '@vitejs/plugin-react';
-import { defineConfig, type ViteDevServer } from 'vite';
+import { defineConfig } from 'vite';
 
-function attachmentApi(server: Pick<ViteDevServer, 'middlewares'>) {
-  server.middlewares.use((req, res, next) => {
-    if (!req.url?.startsWith('/api/')) return next();
-    const request = new URL(req.url, 'http://localhost');
-    res.setHeader('Content-Type', 'application/json');
-    if (request.pathname.endsWith('/policy')) {
-      res.end(
-        JSON.stringify({
-          maxFileBytes: 1_000_000_000,
-          maxMessageBytes: 1_000_000_000,
-          maxFiles: 10,
-          partBytes: 8 * 1024 * 1024,
-        }),
-      );
-      return;
-    }
-    if (!request.pathname.endsWith('/url')) {
-      res.end('[]');
-      return;
-    }
-    const portrait = req.headers.referer?.includes('portrait');
-    const prefix = portrait ? 'portrait' : 'sample';
-    const variant = request.searchParams.get('variant');
-    res.setHeader('Content-Type', 'application/json');
-    res.end(
-      JSON.stringify({ url: `/media/${prefix}.${variant === 'thumbnail' ? 'webp' : 'mp4'}` }),
-    );
-  });
-}
+import { fixtureApi } from './fixture-api.ts';
 
 export default defineConfig({
   root: import.meta.dirname,
@@ -39,8 +11,8 @@ export default defineConfig({
     react(),
     {
       name: 'fixture-attachment-api',
-      configureServer: attachmentApi,
-      configurePreviewServer: attachmentApi,
+      configureServer: fixtureApi,
+      configurePreviewServer: fixtureApi,
     },
   ],
   resolve: { alias: { '@': path.resolve(import.meta.dirname, '../../src') } },

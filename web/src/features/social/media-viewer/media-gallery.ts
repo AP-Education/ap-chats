@@ -73,6 +73,8 @@ const OPTIONS: PhotoSwipeOptions = {
   close: false,
   zoom: false,
   counter: false,
+  // Restore the logical media trigger, including engines where a tap does not focus buttons.
+  returnFocus: false,
   errorMsg: 'Не вдалося відкрити зображення',
 };
 
@@ -91,8 +93,12 @@ function ensureStyles() {
 }
 
 /** Where the bubble shows the media: the photo itself, not a frame that can be wider than it. */
+function ownerOf(key: string): HTMLElement | null {
+  return document.querySelector<HTMLElement>(`[data-media-key="${CSS.escape(key)}"]`);
+}
+
 function thumbnailOf(key: string): HTMLElement | null {
-  const owner = document.querySelector<HTMLElement>(`[data-media-key="${CSS.escape(key)}"]`);
+  const owner = ownerOf(key);
   return owner?.querySelector('img') ?? owner;
 }
 
@@ -124,8 +130,7 @@ export class MediaGallery {
   private view: GalleryView = { current: undefined, mounted: [], zoomable: false, zoomedIn: false };
   private readonly listeners = new Set<() => void>();
   private readonly mounted = new Map<Content, MountedSlide>();
-  private readonly returnFocus =
-    document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  private readonly returnFocus: HTMLElement | null;
   private mountedCount = 0;
   private closed = false;
   private closeRequested = false;
@@ -135,6 +140,10 @@ export class MediaGallery {
     this.slides = slides;
     this.urls = urls;
     this.events = events;
+    const owner = ownerOf(slides[index]!.key);
+    this.returnFocus = owner?.matches('button, a[href]')
+      ? owner
+      : (owner?.querySelector<HTMLElement>('button, a[href]') ?? null);
     ensureStyles();
     this.pswp = new PhotoSwipe({
       ...OPTIONS,
@@ -186,7 +195,7 @@ export class MediaGallery {
     this.pswp.updateSize(true);
   }
 
-  /** Gone at once, without the closing animation: the conversation is leaving. */
+  /** Disposes the viewer when its conversation leaves, including an in-flight opening. */
   dispose() {
     if (this.closed) return;
     this.closed = true;
@@ -208,7 +217,15 @@ export class MediaGallery {
     pswp.on('contentLoad', (event) => this.load(event));
     pswp.on('contentDestroy', ({ content }) => this.unmount(content));
     pswp.on('pointerDown', (event) => this.yieldToVideoControls(event));
+    pswp.on('keydown', (event) => {
+      const { target, key } = event.originalEvent;
+      if (target instanceof HTMLVideoElement && key.startsWith('Arrow')) event.preventDefault();
+    });
     pswp.on('openingAnimationEnd', () => {
+      if (this.closed) {
+        queueMicrotask(() => pswp.destroy());
+        return;
+      }
       pswp.updateSize(true);
       // A fast tap on Close must survive the opening transition.
       if (this.closeRequested) queueMicrotask(() => pswp.close());
@@ -221,7 +238,7 @@ export class MediaGallery {
       if (this.closed) return;
       this.closed = true;
       this.events.onClosed();
-      // Closing during the opening animation precedes PhotoSwipe's own focus trap.
+      // A following action may have focused something else; leave that focus alone.
       queueMicrotask(() => {
         if (this.returnFocus?.isConnected && document.activeElement === document.body)
           this.returnFocus.focus({ preventScroll: true });

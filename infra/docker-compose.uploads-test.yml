@@ -1,6 +1,17 @@
 name: ap-chats-upload-tests
 
 services:
+  valkey:
+    image: valkey/valkey:8.1.9-alpine
+    command: ['valkey-server', '--save', '', '--appendonly', 'no']
+    ports:
+      - '127.0.0.1:6387:6379'
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -24,3 +35,8 @@ services:
       S3_BUCKET: uploads-test
     ports:
       - '127.0.0.1:9017:8333'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:9333/cluster/status']
+      interval: 2s
+      timeout: 2s
+      retries: 30

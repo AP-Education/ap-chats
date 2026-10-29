@@ -26,7 +26,13 @@ function setup(file: Partial<Attachment>, state = 'attached', workspaceId = 'wor
       return { attachments: [{ id: 'file', name: 'video.mp4', mediaType: 'video/mp4', ...file }] };
     },
   };
-  const repository = { find: async () => ({ state, workspaceId, objectKey: 'private/video' }) };
+  const repository = {
+    find: async (): Promise<{ state: string; workspaceId: string; objectKey: string } | null> => ({
+      state,
+      workspaceId,
+      objectKey: 'private/video',
+    }),
+  };
   const storage = {
     signDownload: async (...args: unknown[]) => {
       calls.push(args);
@@ -39,7 +45,7 @@ function setup(file: Partial<Attachment>, state = 'attached', workspaceId = 'wor
     repository as unknown as ChatUploadsRepository,
     storage as unknown as StorageProvider,
   );
-  return { service, calls, access };
+  return { service, calls, access, messages, repository };
 }
 
 test('a video poster is signed as a private inline WebP after read access and live-message checks', async () => {
@@ -50,6 +56,48 @@ test('a video poster is signed as a private inline WebP after read access and li
     ['message'],
     ['private/video.preview.webp', 'video.mp4', 'image/webp', true],
   ]);
+});
+
+test('all original variants choose a safe content type and never substitute the poster', async () => {
+  for (const [preview, variant, contentType, inline] of [
+    ['video', 'preview', 'video/mp4', true],
+    ['video', 'download', 'application/octet-stream', false],
+    [null, 'preview', 'application/octet-stream', false],
+    [null, 'download', 'application/octet-stream', false],
+  ] as const) {
+    const { service, calls } = setup({ preview, hasThumbnail: true });
+    await service.link(member, message, 'file', variant);
+    assert.deepEqual(calls.at(-1), ['private/video', 'video.mp4', contentType, inline]);
+  }
+});
+
+test('missing uploads and deleted messages cannot obtain any file variant', async () => {
+  for (const variant of ['thumbnail', 'preview', 'download'] as const) {
+    const absent = setup({ preview: 'video', hasThumbnail: true });
+    absent.repository.find = async () => null;
+    await assert.rejects(
+      absent.service.link(member, message, 'file', variant),
+      /Attachment not found/,
+    );
+    assert.deepEqual(absent.calls, [['access'], ['message']]);
+    const deleted = setup({ preview: 'video', hasThumbnail: true });
+    deleted.messages.requireLive = async () => {
+      throw new Error('message deleted');
+    };
+    await assert.rejects(deleted.service.link(member, message, 'file', variant), /message deleted/);
+    assert.deepEqual(deleted.calls, [['access']]);
+  }
+});
+
+test('revocation denies thumbnail, inline playback and download equally', async () => {
+  for (const variant of ['thumbnail', 'preview', 'download'] as const) {
+    const f = setup({ preview: 'video', hasThumbnail: true });
+    f.access.requireViewAccess = async () => {
+      throw new Error('forbidden');
+    };
+    await assert.rejects(f.service.link(member, message, 'file', variant), /forbidden/);
+    assert.deepEqual(f.calls, []);
+  }
 });
 
 test('old videos cannot return their original bytes for a thumbnail request', async () => {

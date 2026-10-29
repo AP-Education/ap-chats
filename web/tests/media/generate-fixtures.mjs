@@ -46,3 +46,24 @@ for (const [name, size] of [
   ]);
   writeFileSync(`${directory}/${name}.webp`, await sharp(frame).webp().toBuffer());
 }
+
+execFileSync('ffmpeg', [
+  '-nostdin',
+  '-y',
+  '-v',
+  'error',
+  '-f',
+  'lavfi',
+  '-i',
+  'testsrc2=size=320x180:rate=4:duration=12',
+  '-c:v',
+  'libx264',
+  '-pix_fmt',
+  'yuv420p',
+  '-movflags',
+  '+faststart',
+  '-map_metadata',
+  '-1',
+  `${directory}/long.mp4`,
+]);
+await import('./generate-webm.mjs');

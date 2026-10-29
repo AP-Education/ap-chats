@@ -81,6 +81,20 @@ export function VideoSlide({ messageId, attachment, active }: VideoSlideProps) {
           playsInline
           preload={active ? 'metadata' : 'none'}
           aria-label={attachment.name}
+          onKeyDownCapture={(event) => {
+            if (event.key !== ' ') return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (event.repeat) return;
+            const video = event.currentTarget;
+            if (video.paused) void video.play().catch(() => setBlockedUrl(url));
+            else video.pause();
+          }}
+          onKeyUpCapture={(event) => {
+            if (event.key !== ' ') return;
+            event.preventDefault();
+            event.stopPropagation();
+          }}
           onLoadedData={() => setReadyUrl(url)}
           onWaiting={() => setWaiting(true)}
           onCanPlay={() => setWaiting(false)}

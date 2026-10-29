@@ -1,11 +1,9 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './media-test';
 
 for (const variant of ['chat', 'chat&portrait', 'chat&own']) {
   test(`video is framed inside its real message bubble with caption and time: ${variant}`, async ({
     page,
   }, info) => {
-    const session = await page.context().newCDPSession(page);
-    await session.send('Emulation.setCPUThrottlingRate', { rate: 4 });
     await page.goto(`/?${variant}`);
     const row = page.locator('#message-message');
     const poster = row.getByRole('img', { name: 'Кадр відео Зустріч команди.mp4' });
@@ -67,8 +65,6 @@ for (const theme of ['', '&own', '&dark']) {
   test(`a video without a caption has one compact media bubble and time on its poster: ${theme}`, async ({
     page,
   }, info) => {
-    const session = await page.context().newCDPSession(page);
-    await session.send('Emulation.setCPUThrottlingRate', { rate: 4 });
     await page.goto(`/?chat&nocaption${theme}`);
     const row = page.locator('#message-message');
     const poster = row.locator('[data-media-key]');

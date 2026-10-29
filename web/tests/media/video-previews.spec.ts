@@ -1,9 +1,4 @@
-import { expect, test } from '@playwright/test';
-
-test.beforeEach(async ({ page }) => {
-  const client = await page.context().newCDPSession(page);
-  await client.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-});
+import { expect, test } from './media-test';
 
 test('a poster and duration appear without fetching or playing the original', async ({
   page,

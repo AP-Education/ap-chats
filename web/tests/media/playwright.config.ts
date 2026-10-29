@@ -2,6 +2,11 @@ import path from 'node:path';
 
 import { defineConfig } from '@playwright/test';
 
+const chromium = {
+  channel: process.env.PLAYWRIGHT_CHANNEL,
+  launchOptions: { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH },
+};
+
 export default defineConfig({
   testDir: import.meta.dirname,
   testMatch: '*.spec.ts',
@@ -12,18 +17,25 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:5568',
     headless: true,
     trace: 'retain-on-failure',
-    channel: process.env.PLAYWRIGHT_CHANNEL,
-    launchOptions: { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH },
   },
   projects: [
-    { name: 'desktop', use: { viewport: { width: 1440, height: 900 } } },
+    { name: 'desktop', use: { ...chromium, viewport: { width: 1440, height: 900 } } },
     {
       name: 'phone',
-      use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
+      use: { ...chromium, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
     },
     {
       name: 'narrow-phone',
-      use: { viewport: { width: 320, height: 740 }, isMobile: true, hasTouch: true },
+      use: { ...chromium, viewport: { width: 320, height: 740 }, isMobile: true, hasTouch: true },
+    },
+    {
+      name: 'webkit-phone',
+      use: {
+        browserName: 'webkit',
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      },
     },
   ],
   webServer: {
