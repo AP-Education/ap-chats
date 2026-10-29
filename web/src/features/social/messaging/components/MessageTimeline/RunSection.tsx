@@ -1,30 +1,21 @@
-import { memo } from 'react';
+import type { RunFrameProps, UnreadMarkProps } from '@ap-education/timeline/react';
 
+import type { ChatEntry } from '../../timeline/chat-entry';
 import { useTimelineActions } from '../../timeline-actions-context';
 import { HistoryRun } from '../HistoryRun/HistoryRun';
-import { HistoryEntry } from './HistoryEntry';
 import styles from './RunSection.module.css';
-import { runAvatar, sameRun, type TimelineRun } from './timeline-days';
 
-interface RunSectionProps {
-  run: TimelineRun;
+/** One author's run: incoming runs show their author's face, the viewer's own need none. */
+export function RunSection({ run, children }: RunFrameProps<ChatEntry>) {
+  const { viewer } = useTimelineActions();
+  const item = run.items[0]?.entry.payload.item;
+  const author = item && (item.type === 'MESSAGE' ? item.author : item.startedBy);
+  const avatar = author && author.memberId !== viewer.memberId ? author : null;
+
+  return <HistoryRun avatar={avatar}>{children}</HistoryRun>;
 }
 
-/** One author's run, after the unread mark when the run starts what is new. */
-export const RunSection = memo(
-  function RunSection({ run }: RunSectionProps) {
-    const { viewer } = useTimelineActions();
-
-    return (
-      <>
-        {run.unreadBefore && <div className={styles.unread}>Нові повідомлення</div>}
-        <HistoryRun avatar={runAvatar(run, viewer.memberId)}>
-          {run.entries.map(({ key, display }) => (
-            <HistoryEntry key={key} {...display} />
-          ))}
-        </HistoryRun>
-      </>
-    );
-  },
-  (previous, next) => sameRun(previous.run, next.run),
-);
+/** Where what is new to the reader starts. */
+export function UnreadMark({ label }: UnreadMarkProps) {
+  return <div className={styles.unread}>{label}</div>;
+}

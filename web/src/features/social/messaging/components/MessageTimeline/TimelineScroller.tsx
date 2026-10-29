@@ -1,3 +1,4 @@
+import type { useScrollAnchoring } from '@ap-education/timeline/react';
 import { SWIPE_SETTLE_TRANSITION, useIsMobile } from '@ap-education/ui';
 import { ArrowDownIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
@@ -10,7 +11,6 @@ import { keyboardGlidePart } from '../../keyboard-glide-part';
 import { MEDIA_MAX_SIDE } from '../../media/media-fit';
 import { useDragDismissesKeyboard } from './useDragDismissesKeyboard';
 import { useMobileMessageSelection } from './useMobileMessageSelection';
-import type { useScrollAnchoring } from './useScrollAnchoring';
 
 const useStyles = createStyles(({ token, css }) => ({
   viewport: css`

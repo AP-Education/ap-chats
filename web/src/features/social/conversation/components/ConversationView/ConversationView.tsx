@@ -81,8 +81,7 @@ export function ConversationView({ currentMember, readOnlyFooter }: Conversation
     memberId: currentMember?.id,
     operations,
   });
-  const historyReady =
-    !navigation.history.isPending && !(navigation.history.isError && !navigation.history.data);
+  const historyReady = navigation.history.isLoaded;
   const surfaceRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);

@@ -1,11 +1,6 @@
-import type { InfiniteData } from '@tanstack/react-query';
-
-import type { PageCursor } from '../messaging/hooks/useMessageHistory';
-import { type HistoryPage, isMessageItem } from '../messaging/types';
+import type { ChatTimelineData } from '../messaging/timeline/chat-entry';
 import { MAX_FACES } from './reaction-display';
 import type { MessageReaction, ReactionSummary } from './types';
-
-export type HistoryData = InfiniteData<HistoryPage, PageCursor>;
 
 /** A reaction's new state; `reacted` only when the change was the viewer's own. */
 export type ReactionChange = ReactionSummary & { reacted?: boolean };
@@ -39,21 +34,17 @@ export function applyReactionChange(
 }
 
 export function withReactionChange(
-  history: HistoryData,
+  history: ChatTimelineData,
   messageId: string,
   change: ReactionChange,
-): HistoryData {
-  const pages = history.pages.map((page) => {
-    const holdsMessage = page.items.some((item) => item.id === messageId);
-    if (!holdsMessage) return page;
+): ChatTimelineData {
+  const entries = history.entries.map((entry) => {
+    if (entry.key !== messageId || entry.kind !== 'MESSAGE') return entry;
 
-    const items = page.items.map((item) =>
-      item.id === messageId && isMessageItem(item)
-        ? { ...item, reactions: applyReactionChange(item.reactions ?? [], change) }
-        : item,
-    );
-    return { ...page, items };
+    const { item } = entry.payload;
+    const reactions = applyReactionChange(item.reactions ?? [], change);
+    return { ...entry, payload: { ...entry.payload, item: { ...item, reactions } } };
   });
 
-  return { ...history, pages };
+  return { ...history, entries };
 }

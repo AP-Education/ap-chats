@@ -1,23 +1,18 @@
+import { removeEntries, replaceEntry } from '@ap-education/timeline';
 import { useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
-import { deleteMessages, editMessage } from '../api/messages-api';
+import { deleteMessages, editMessage, getEntry } from '../api/messages-api';
 import { messagingQueryKeys } from '../queryKeys';
 import { useConversationOutbox } from '../sending/hooks/useConversationOutbox';
 import { unsentRows } from '../sending/utils/unsent-rows';
-import type {
-  ComposedMessage,
-  DisplayItem,
-  HistoryItem,
-  Message,
-  MessageAuthor,
-  MessageEdit,
-} from '../types';
+import { type ChatTimelineData, toEntry } from '../timeline/chat-entry';
+import type { ComposedMessage, HistoryItem, Message, MessageAuthor, MessageEdit } from '../types';
 import { isMessageItem } from '../types';
 
-/** The conversation's history with its unsent messages below it, and the ways to change both. */
+/** The conversation's unsent messages for below its history, and the ways to change both. */
 export function useMessageOperations(
   workspaceId: string,
   channelId: string,
@@ -34,10 +29,18 @@ export function useMessageOperations(
   );
   const { outbox, snapshot, actions } = useConversationOutbox(workspaceId, channelId, delivered);
 
-  function refreshHistory() {
-    void queryClient.invalidateQueries({
-      queryKey: messagingQueryKeys.histories(identity, workspaceId, channelId),
-    });
+  // Only the changed messages are read again, so the older pages already scrolled through stay.
+  async function refreshMessages(messageIds: string[]) {
+    if (!token) return;
+
+    const histories = messagingQueryKeys.histories(identity, workspaceId, channelId);
+    for (const messageId of messageIds) {
+      const item = await getEntry(token, workspaceId, channelId, messageId).catch(() => null);
+      queryClient.setQueriesData<ChatTimelineData>({ queryKey: histories }, (history) => {
+        if (!history) return history;
+        return item ? replaceEntry(history, toEntry(item)) : removeEntries(history, [messageId]);
+      });
+    }
   }
 
   function send(input: ComposedMessage, nonce: string): Promise<Message> {
@@ -50,23 +53,20 @@ export function useMessageOperations(
       ...change,
       revision,
     });
-    refreshHistory();
+    await refreshMessages([messageId]);
     return result;
   }
 
   async function remove(messageIds: string[]) {
     if (!token) throw new Error('Not signed in');
     await deleteMessages(token, workspaceId, channelId, messageIds);
-    refreshHistory();
+    await refreshMessages(messageIds);
   }
 
-  const displayItems = useMemo<DisplayItem[]>(
-    () => [
-      ...items.map((item) => ({ item, delivery: undefined })),
-      ...unsentRows(snapshot, delivered, author, messages),
-    ],
-    [items, snapshot, delivered, author, messages],
+  const pending = useMemo(
+    () => unsentRows(snapshot, delivered, author, messages),
+    [snapshot, delivered, author, messages],
   );
 
-  return { displayItems, send, unsent: actions, edit, remove };
+  return { pending, send, unsent: actions, edit, remove };
 }

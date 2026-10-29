@@ -1,10 +1,12 @@
+import { createTimeline } from '@ap-education/timeline';
 import type { QueryClient } from '@tanstack/react-query';
 
 import { confirmDirectMessage } from '@/features/social/direct-messages/cache';
 
-import { getMessage, historyPage } from '../../api/messages-api';
-import { catchUpHistory, mergeHistoryItem } from '../../history-cache';
+import { getMessage } from '../../api/messages-api';
 import { messagingQueryKeys } from '../../queryKeys';
+import { toEntry } from '../../timeline/chat-entry';
+import { createChatSource } from '../../timeline/chat-source';
 import type { Message } from '../../types';
 import type { ConversationKey } from '../types';
 
@@ -16,7 +18,13 @@ export async function recordSentMessage(
   message: Message,
 ) {
   confirmDirectMessage(queryClient, identity, channelId, message);
-  const historyKey = messagingQueryKeys.history(identity, workspaceId, channelId);
+  // The window lives in the cache, so a timeline opened here writes where the screen reads.
+  const timeline = createTimeline({
+    cache: queryClient,
+    key: messagingQueryKeys.history(identity, workspaceId, channelId),
+    source: createChatSource(token, workspaceId, channelId),
+    anchor: { at: 'unread' },
+  });
 
   try {
     const item = await queryClient.fetchQuery({
@@ -28,17 +36,8 @@ export async function recordSentMessage(
       queryFn: () => getMessage(token, workspaceId, channelId, message.id),
       staleTime: 30_000,
     });
-    await catchUpHistory(
-      queryClient,
-      identity,
-      workspaceId,
-      channelId,
-      historyKey,
-      item.seq,
-      (cursor) => historyPage(token, workspaceId, channelId, 'after', cursor),
-    );
-    mergeHistoryItem(queryClient, identity, workspaceId, channelId, item);
+    await timeline.receive(toEntry(item));
   } catch {
-    await queryClient.invalidateQueries({ queryKey: historyKey, exact: true });
+    await timeline.refresh();
   }
 }
