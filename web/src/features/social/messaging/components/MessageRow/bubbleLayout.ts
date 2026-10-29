@@ -79,7 +79,11 @@ function bubbleContent(
 
   return {
     hasText: Boolean(markdown?.trim()) && !isOnlyGifLink,
-    hasImages: images.length > 0 || hasGif,
+    hasImages:
+      images.length > 0 ||
+      hasGif ||
+      (!pendingAttachments &&
+        attachments.some((file) => file.preview === 'video' && file.hasThumbnail)),
     hasGif,
     isLoneGif: hasGif && !hasAttachments && (!markdown?.trim() || isOnlyGifLink),
     hasFiles: pendingAttachments

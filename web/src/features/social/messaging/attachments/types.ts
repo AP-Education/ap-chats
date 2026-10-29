@@ -9,6 +9,8 @@ export interface Attachment {
   description: string | null;
   /** An image's ThumbHash: its colours and a blurred stand-in before it loads. */
   placeholder?: string;
+  hasThumbnail?: boolean;
+  duration?: number;
 }
 
 export interface AttachmentPolicy {

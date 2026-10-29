@@ -62,3 +62,13 @@ test('a lone GIF link shows the GIF alone, without a bubble; with words the word
 function pick(layout: ReturnType<typeof bubbleLayout>) {
   return [layout.meta, layout.reactions];
 }
+
+test('a video with a poster gets a media bubble while legacy videos keep their file layout', () => {
+  const message = (hasThumbnail: boolean) =>
+    ({
+      message: { markdown: '', attachments: [{ preview: 'video', hasThumbnail }] },
+    }) as unknown as MessageHistoryItem;
+  assert.equal(bubbleLayout(message(true), undefined, false).variant, 'media');
+  assert.equal(bubbleLayout(message(true), undefined, false).meta, 'block');
+  assert.equal(bubbleLayout(message(false), undefined, false).variant, 'text');
+});

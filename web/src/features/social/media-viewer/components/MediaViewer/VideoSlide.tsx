@@ -1,9 +1,12 @@
 import { LoadingIcon } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { Attachment } from '@/features/social/messaging/attachments/types';
-import { useAttachmentUrl } from '@/features/social/messaging/components/MessageAttachments/useAttachmentAccess';
+import {
+  useAttachmentDownload,
+  useAttachmentUrl,
+} from '@/features/social/messaging/components/MessageAttachments/useAttachmentAccess';
 
 const useStyles = createStyles(({ css }) => ({
   video: css`
@@ -35,6 +38,9 @@ export function VideoSlide({ messageId, attachment, active }: VideoSlideProps) {
   const access = useAttachmentUrl(messageId, attachment.id, 'preview', true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const url = access.data?.url;
+  const [failedUrl, setFailedUrl] = useState<string>();
+  const download = useAttachmentDownload(messageId, attachment);
+  const failed = Boolean(url && failedUrl === url);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -45,10 +51,19 @@ export function VideoSlide({ messageId, attachment, active }: VideoSlideProps) {
     else video.pause();
   }, [active, url]);
 
-  if (access.isError) {
+  if (access.isError || failed) {
     return (
       <div className={styles.status} role="status">
-        Не вдалося відкрити відео
+        <div>
+          <p>Не вдалося відтворити відео</p>
+          <button
+            type="button"
+            disabled={download.downloading}
+            onClick={() => void download.download()}
+          >
+            Завантажити відео
+          </button>
+        </div>
       </div>
     );
   }
@@ -70,6 +85,7 @@ export function VideoSlide({ messageId, attachment, active }: VideoSlideProps) {
       playsInline
       preload="metadata"
       aria-label={attachment.name}
+      onError={() => setFailedUrl(url)}
     />
   );
 }

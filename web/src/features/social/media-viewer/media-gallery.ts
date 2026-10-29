@@ -136,6 +136,7 @@ export class MediaGallery {
     this.bind();
     this.pswp.init();
     this.element.setAttribute('aria-label', 'Перегляд медіа');
+    this.element.setAttribute('role', 'dialog');
     this.element.setAttribute('aria-modal', 'true');
   }
 

@@ -13,6 +13,7 @@ import { StorageProvider } from '@/components/uploads/storage';
 
 import type { Attachment } from '../messages/types/message.types';
 import { imagePlaceholder } from './image-placeholder';
+import { MAX_VIDEO_PREVIEW_BYTES, videoPreview } from './video-preview';
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 // Phone cameras shoot 24 to 50 megapixels by default; JPEG decodes shrunk, so a preview stays cheap.
@@ -49,7 +50,7 @@ export async function identifyMedia(prefix: Buffer): Promise<{
 
 type InspectedMedia = Pick<
   Attachment,
-  'preview' | 'mediaType' | 'width' | 'height' | 'placeholder'
+  'preview' | 'mediaType' | 'width' | 'height' | 'placeholder' | 'hasThumbnail' | 'duration'
 >;
 
 @Injectable()
@@ -61,9 +62,44 @@ export class AttachmentPreviewService {
   async inspect(key: string, size: number): Promise<InspectedMedia> {
     const media = await identifyMedia(await this.readPrefix(key));
     const result = { ...media, width: null, height: null };
+    if (media.preview === 'video' && size <= MAX_VIDEO_PREVIEW_BYTES)
+      return this.withRenderSlot(() => this.videoThumbnail(key, size, result));
     if (media.preview !== 'image') return result;
     if (size > MAX_IMAGE_BYTES) return { ...result, preview: null };
     return this.withRenderSlot(() => this.thumbnail(key, size, result));
+  }
+
+  private async videoThumbnail(
+    key: string,
+    size: number,
+    fallback: InspectedMedia,
+  ): Promise<InspectedMedia> {
+    const directory = await mkdtemp(join(tmpdir(), 'ap-chat-video-'));
+    try {
+      const path = join(directory, 'original');
+      let bytes = 0;
+      const limit = new Transform({
+        transform(chunk: Buffer, _encoding, callback) {
+          bytes += chunk.length;
+          callback(bytes > size ? new Error('Video exceeds its declared size') : null, chunk);
+        },
+      });
+      let rendered: Awaited<ReturnType<typeof videoPreview>>;
+      try {
+        await pipeline(await this.storage.readObject(key), limit, createWriteStream(path), {
+          signal: AbortSignal.timeout(30_000),
+        });
+        rendered = await videoPreview(path);
+      } catch {
+        return fallback;
+      }
+      const { image, width, height, duration } = rendered;
+      const placeholder = await imagePlaceholder(image);
+      await this.storage.putPrivateObject(`${key}.preview.webp`, image, 'image/webp');
+      return { ...fallback, width, height, duration, placeholder, hasThumbnail: true };
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   }
 
   private async readPrefix(key: string): Promise<Buffer> {

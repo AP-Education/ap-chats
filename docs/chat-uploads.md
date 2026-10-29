@@ -31,7 +31,7 @@ Research checked on 2026-10-02:
 1. Select files, drag them anywhere in the conversation, or paste clipboard files.
 2. See local image previews, names, sizes, upload progress and processing status. Remove or retry individual files; text stays editable while files upload. Selection rejects oversized, empty and excessive files before transfer.
 3. Optionally add an image description for assistive technology. Send becomes available when all selected attachments are ready; a caption is optional.
-4. Messages show a responsive image grid and document download cards. Images open in a keyboard-accessible viewer. Recognized audio/video start only on explicit interaction; media uses `preload="none"` and native controls.
+4. Messages show a responsive image grid and document download cards. Images open in a keyboard-accessible viewer. Small videos show a private poster and duration; the original is fetched only when the person opens the media viewer. Audio starts only on explicit interaction and uses native controls.
 5. Mobile uses horizontally scrolling draft cards with visible actions and a viewer constrained to the viewport. Desktop keeps a compact strip above the existing composer.
 
 ## Ownership and architecture
@@ -69,8 +69,9 @@ sequenceDiagram
 
 - Original file bytes travel directly from browser to S3. API ingress contains only small JSON requests. Browser sends `File.slice()` blobs without `arrayBuffer()`/base64 conversion. Four slices may be active, irrespective of total file size; browser/network implementations can allocate additional internal buffers.
 - MIME is derived from a bounded 4,100-byte range via `file-type`'s signature detection, rather than trusting the filename or browser MIME. Inline preview for video/audio is further restricted to an explicit allowlist of formats browsers reliably play (`file-type` identifies far more containers than that).
-- Image thumbnails are limited to 20 MiB source bytes, 20 million pixels and 10,000 pixels per dimension. Source bytes stream to a temporary file; thumbnail output is bounded to 960 px. One render and at most four waiters are allowed per API process. Larger/unsupported files remain download cards.
+- Image thumbnails are limited to 20 MiB source bytes, 50 million pixels and 10,000 pixels per dimension. Source bytes stream to a temporary file; thumbnail output is bounded to 960 px. One render and at most four waiters are allowed per API process. Larger/unsupported files remain download cards.
 - Storage requests, image streaming and rendering have time limits. Completion processing does not hold a channel lock or a database connection during storage/thumbnail work. A database lease coordinates completion across API replicas. An interrupted process releases its lease after 30 minutes; storage completion is recovered through `NoSuchUpload` plus an authoritative HEAD check.
+- MP4/WebM up to 64 MiB can receive a private WebP poster, inspected display dimensions, duration and ThumbHash. FFprobe/FFmpeg operate on a bounded temporary file with network protocols disabled, a 50-million-pixel limit, timeouts and one shared render slot. Invalid, unsupported or larger videos keep their playable file card. See [ADR 0003](adr/0003-video-previews.md).
 - Part sizes/order/count are verified using S3 `ListParts`; final object size is verified using HEAD. The client does not supply authoritative ETags or sizes.
 - Automatic part retries use fresh signed URLs and exponential delays. Manual retry preserves successful chunks while the composer remains mounted. Removing/changing conversation cancels unfinished uploads and revokes local object URLs. Reload does not resume unsent file selection; already submitted outbox messages retain IDs for retry.
 - Message creation claims attachments atomically with nonce idempotency. Existing text-only message digests are unchanged, so pending text retries remain compatible after deployment.
