@@ -41,7 +41,9 @@ const item: MessageHistoryItem = {
     authorMemberId: 'member',
     clientNonce: null,
     markdown: '',
-    attachments: [attachment],
+    attachments: params.has('multiple')
+      ? [attachment, { ...attachment, id: 'second', name: 'Друге відео.mp4' }]
+      : [attachment],
     blocks: [],
     contentVersion: 1,
     revision: 1,
@@ -78,7 +80,7 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider
         client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
       >
-        <ThemeProvider appearance="light">
+        <ThemeProvider appearance={params.has('dark') ? 'dark' : 'light'}>
           <Layout className="fixture-layout">
             <ConversationProvider
               scope={{
@@ -90,7 +92,11 @@ createRoot(document.getElementById('root')!).render(
               }}
             >
               {params.has('chat') ? (
-                <ChatFixture video={item} ownVideo={params.has('own')}>
+                <ChatFixture
+                  video={item}
+                  ownVideo={params.has('own')}
+                  caption={!params.has('nocaption')}
+                >
                   {(items, content) => (
                     <MediaViewerProvider
                       items={items}

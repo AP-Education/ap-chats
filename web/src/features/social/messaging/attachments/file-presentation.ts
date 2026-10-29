@@ -1,3 +1,9 @@
+import type { Attachment } from './types';
+
+export function hasVisualPreview(file: Attachment): boolean {
+  return file.preview === 'image' || (file.preview === 'video' && Boolean(file.hasThumbnail));
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes < 1000) return `${bytes} B`;
   const units = ['KB', 'MB', 'GB'];

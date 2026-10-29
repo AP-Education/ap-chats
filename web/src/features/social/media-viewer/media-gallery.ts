@@ -46,8 +46,8 @@ type Quality = (typeof QUALITY)[number];
 // An image with nothing to show yet: a transparent pixel, so PhotoSwipe lays the slide out.
 const BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 
-// GIFs are small; like Telegram, the viewer scales one up until its longer side is this long.
-const GIF_SIDE = 720;
+// Small clips and GIFs still fill a phone's viewing area.
+const MIN_VIEWER_SIDE = 720;
 
 // Files stored before their size was known get common proportions; the picture stays whole
 // inside them.
@@ -101,7 +101,7 @@ function storedSize({ width, height }: Attachment, unknown: MediaSize): MediaSiz
 }
 
 function enlarged({ width, height }: MediaSize): MediaSize {
-  const scale = Math.max(1, GIF_SIDE / Math.max(width, height));
+  const scale = Math.max(1, MIN_VIEWER_SIDE / Math.max(width, height));
   return { width: Math.round(width * scale), height: Math.round(height * scale) };
 }
 
@@ -124,15 +124,27 @@ export class MediaGallery {
   private view: GalleryView = { current: undefined, mounted: [], zoomable: false, zoomedIn: false };
   private readonly listeners = new Set<() => void>();
   private readonly mounted = new Map<Content, MountedSlide>();
+  private readonly returnFocus =
+    document.activeElement instanceof HTMLElement ? document.activeElement : null;
   private mountedCount = 0;
   private closed = false;
+  private closeRequested = false;
+  private videoPadding = { top: 80, bottom: 80, left: 0, right: 0 };
 
   constructor(slides: ViewerMedia[], index: number, urls: MediaUrls, events: MediaGalleryEvents) {
     this.slides = slides;
     this.urls = urls;
     this.events = events;
     ensureStyles();
-    this.pswp = new PhotoSwipe({ ...OPTIONS, ...WITHOUT_SPINNER, index });
+    this.pswp = new PhotoSwipe({
+      ...OPTIONS,
+      ...WITHOUT_SPINNER,
+      index,
+      paddingFn: (_viewport, data) =>
+        (data.media as ViewerMedia).source.kind === 'video'
+          ? this.videoPadding
+          : { top: 0, bottom: 0, left: 0, right: 0 },
+    });
     this.bind();
     this.pswp.init();
     this.element.setAttribute('aria-label', 'Перегляд медіа');
@@ -155,12 +167,23 @@ export class MediaGallery {
   getView = () => this.view;
 
   close() {
+    this.closeRequested = true;
     this.pswp.close();
   }
 
   /** Between the whole picture and a closer look, as a click on it does. */
   toggleZoom() {
     this.pswp.currSlide?.toggleZoom();
+  }
+
+  /** Native video controls stay between the measured bars, including captions and safe areas. */
+  fitVideoBetweenBars(top: number, bottom: number) {
+    if (this.closed) return;
+    const padding = { top: Math.ceil(top) + 12, bottom: Math.ceil(bottom) + 12, left: 0, right: 0 };
+    if (padding.top === this.videoPadding.top && padding.bottom === this.videoPadding.bottom)
+      return;
+    this.videoPadding = padding;
+    this.pswp.updateSize(true);
   }
 
   /** Gone at once, without the closing animation: the conversation is leaving. */
@@ -185,6 +208,11 @@ export class MediaGallery {
     pswp.on('contentLoad', (event) => this.load(event));
     pswp.on('contentDestroy', ({ content }) => this.unmount(content));
     pswp.on('pointerDown', (event) => this.yieldToVideoControls(event));
+    pswp.on('openingAnimationEnd', () => {
+      pswp.updateSize(true);
+      // A fast tap on Close must survive the opening transition.
+      if (this.closeRequested) queueMicrotask(() => pswp.close());
+    });
     pswp.on('change', () => this.settle());
     pswp.on('zoomPanUpdate', ({ slide }) => {
       if (slide === pswp.currSlide) this.publishZoom();
@@ -193,6 +221,11 @@ export class MediaGallery {
       if (this.closed) return;
       this.closed = true;
       this.events.onClosed();
+      // Closing during the opening animation precedes PhotoSwipe's own focus trap.
+      queueMicrotask(() => {
+        if (this.returnFocus?.isConnected && document.activeElement === document.body)
+          this.returnFocus.focus({ preventScroll: true });
+      });
     });
   }
 
@@ -226,7 +259,7 @@ export class MediaGallery {
 
     const { attachment } = source;
     if (source.kind === 'video') {
-      return { ...base, ...storedSize(attachment, UNKNOWN_VIDEO), type: 'video' };
+      return { ...base, ...enlarged(storedSize(attachment, UNKNOWN_VIDEO)), type: 'video' };
     }
 
     const messageId = media.item.message.id;

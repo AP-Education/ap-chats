@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import type { Attachment } from '../../attachments/types';
 import { AudioFile } from './AudioFile';
 import { DocumentFile } from './DocumentFile';
@@ -7,6 +9,7 @@ export interface FileAttachmentProps {
   attachment: Attachment;
   messageId: string;
   available: boolean;
+  overlay?: ReactNode;
 }
 
 // The badge is the file's main action, as on Telegram: play what plays, download the rest.

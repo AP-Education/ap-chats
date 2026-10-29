@@ -58,10 +58,12 @@ function textMessage(
 export function ChatFixture({
   video,
   ownVideo,
+  caption = true,
   children,
 }: {
   video: MessageHistoryItem;
   ownVideo: boolean;
+  caption?: boolean;
   children: (items: MessageHistoryItem[], content: React.ReactNode) => React.ReactNode;
 }) {
   const [items, setItems] = useState(() => [
@@ -73,7 +75,7 @@ export function ChatFixture({
         ...video.message,
         seq: '2',
         authorMemberId: ownVideo ? 'member' : 'peer',
-        markdown: 'Поглянь, будь ласка. Деталі обговоримо в чаті.',
+        markdown: caption ? 'Поглянь, будь ласка. Деталі обговоримо в чаті.' : '',
       },
       author: {
         ...video.author,
