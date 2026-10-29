@@ -21,13 +21,7 @@ import { STAR_ME_STATUS_EVENT, StarMeStatusEvent } from './events/star-me-status
 import { StarMeRepository } from './repository';
 import { STAR_ME } from './star-me.identity';
 import { StarMeActivity } from './star-me-activity';
-import type {
-  AnswerFailure,
-  ConversationMessage,
-  PickedMessage,
-  Question,
-  StarMeState,
-} from './types';
+import type { AnswerFailure, ConversationMessage, Question, StarMeState } from './types';
 
 /** How much of a conversation StarMe reads when nobody picked the messages for it. */
 const RECENT_MESSAGES = 20;
@@ -62,9 +56,6 @@ export class StarMeService {
     await this.access.requirePostRight(asker, channelId);
     const starMe = await this.requireStarMe(asker.workspaceId);
     const question = await this.requireQuestion(asker, channelId, dto.questionId, starMe);
-    if (dto.contextMessageIds?.length) {
-      await this.repository.pick(question, dto.contextMessageIds);
-    }
 
     const clientNonce = answerNonce(question.id);
     const answered = await this.repository.answerId(channelId, starMe.id, clientNonce);
@@ -81,17 +72,6 @@ export class StarMeService {
   ): Promise<{ questions: StarMeStatusEvent[] }> {
     await this.access.requireViewAccess(reader, channelId);
     return { questions: this.activity.inChannel(channelId) };
-  }
-
-  /** The messages a question was asked about, for anyone who can read its channel. */
-  async picked(
-    reader: WorkspaceMember,
-    channelId: string,
-    questionId: string,
-  ): Promise<{ messages: PickedMessage[] }> {
-    await this.access.requireViewAccess(reader, channelId);
-    const picked = await this.repository.picked(channelId, questionId);
-    return { messages: picked.map(({ id, author, markdown }) => ({ id, author, markdown })) };
   }
 
   private async requireStarMe(workspaceId: string): Promise<WorkspaceMember> {
@@ -114,15 +94,15 @@ export class StarMeService {
     return question;
   }
 
-  // Picked messages when the person chose them, otherwise the latest ones; the question comes last.
+  // The messages the question is about when it names them, otherwise the latest ones; it comes last.
   private async conversation(question: Question): Promise<ConversationMessage[]> {
-    const picked = await this.repository.picked(question.channelId, question.id);
-    if (!picked.length) {
+    const context = await this.repository.context(question.channelId, question.id);
+    if (!context.length) {
       return this.repository.recent(question.channelId, question.seq, RECENT_MESSAGES);
     }
 
     const asked = await this.repository.selected(question.channelId, [question.id]);
-    return [...picked, ...asked];
+    return [...context, ...asked];
   }
 
   private async turns(

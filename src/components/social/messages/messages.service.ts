@@ -112,6 +112,9 @@ export class MessagesService {
     });
     const entry = await this.entries.append(channel.workspaceId, channel.id, created.id);
     await this.mentions.replace(this.mentionedBy(created), message.content.mentions);
+    if (message.contextMessageIds.length) {
+      await this.repository.addContext(created, entry.seq, message.contextMessageIds);
+    }
 
     return messageView(created, entry.seq, author.id);
   }

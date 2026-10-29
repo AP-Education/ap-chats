@@ -1,5 +1,5 @@
+import { ContextReference } from './ContextReference';
 import { ForwardedLabel } from './ForwardedLabel';
-import { MessageAddons } from './MessageAddons';
 import { MessageAuthorName } from './MessageAuthorName';
 import { ReplyReference } from './ReplyReference';
 
@@ -10,7 +10,7 @@ export function MessageHeader() {
       <MessageAuthorName />
       <ForwardedLabel />
       <ReplyReference />
-      <MessageAddons />
+      <ContextReference />
     </>
   );
 }

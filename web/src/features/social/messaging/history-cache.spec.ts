@@ -38,6 +38,7 @@ function item(id: string, seq: string): MessageHistoryItem {
       roleColor: null,
     },
     reply: null,
+    context: null,
     forwardedFrom: null,
     pin: null,
   };

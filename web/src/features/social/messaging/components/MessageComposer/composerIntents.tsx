@@ -15,7 +15,7 @@ type IntentOf<K extends IntentKind> = Extract<Intent, { kind: K }>;
 
 type IntentMessage = Pick<
   SendMessageCommand,
-  'markdown' | 'labels' | 'replyToMessageId' | 'quoteText'
+  'markdown' | 'labels' | 'replyToMessageId' | 'quoteText' | 'contextMessageIds'
 >;
 
 export interface IntentExcerptProps<T> {
@@ -64,7 +64,10 @@ const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>>
     speaksForItself: true,
     // StarMe hears a question only as it goes out, so the question cannot be put off.
     canWait: false,
-    compose: (intent, draft) => addressedTo(intent.member, draft),
+    compose: (intent, draft) => ({
+      ...addressedTo(intent.member, draft),
+      contextMessageIds: intent.messageIds,
+    }),
   },
 };
 

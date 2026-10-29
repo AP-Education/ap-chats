@@ -17,7 +17,7 @@ const ids = {
   workspace: '0b9d6f5e-4c3a-4b2d-8e1f-7a6b5c4d3e21',
   channel: '1c8e7d6f-5b4a-4c3d-9e2f-8b7a6c5d4e32',
   question: '2d7f8e9a-6c5b-4d4e-af3a-9c8b7d6e5f43',
-  picked: '3e6a9f8b-7d6c-4e5f-b04b-ad9c8e7f6a54',
+  earlier: '3e6a9f8b-7d6c-4e5f-b04b-ad9c8e7f6a54',
   ilya: '4f5b8a9c-8e7d-4f6a-81c5-be8d9f8a7b65',
   vlad: '5a4c7b8d-9f8e-4a7b-92d6-cf9eaf9b8c76',
   starMe: '6b3d6c7e-af9f-4b8c-a3e7-d0afb0ac9d87',
@@ -31,7 +31,7 @@ class FakeRepository extends StarMeRepository {
   answered: string | undefined;
   recentMessages: ConversationMessage[] = [];
   selectedMessages: ConversationMessage[] = [];
-  pickedIds: string[] = [];
+  contextIds: string[] = [];
   read: string[] = [];
 
   async saveIdentity() {}
@@ -50,11 +50,8 @@ class FakeRepository extends StarMeRepository {
     this.read.push(`selected:${messageIds.join(',')}`);
     return this.selectedMessages.filter((message) => messageIds.includes(message.id));
   }
-  async pick(_question: Question, messageIds: string[]) {
-    this.pickedIds.push(...messageIds);
-  }
-  async picked() {
-    return this.selectedMessages.filter((message) => this.pickedIds.includes(message.id));
+  async context() {
+    return this.selectedMessages.filter((message) => this.contextIds.includes(message.id));
   }
 }
 
@@ -125,17 +122,14 @@ beforeEach(() => {
   );
 });
 
-function ask(contextMessageIds?: string[]) {
-  const dto = contextMessageIds
-    ? { questionId: ids.question, contextMessageIds }
-    : { questionId: ids.question };
-  return starMeService.answer(vlad, ids.channel, dto, 'token');
+function ask() {
+  return starMeService.answer(vlad, ids.channel, { questionId: ids.question }, 'token');
 }
 
 test('a mention is answered in its channel from the latest messages', async () => {
   repository.question$ = question({ mentionsStarMe: true });
   repository.recentMessages = [
-    message(ids.picked, 1n, person(ids.ilya, 'Ілля'), 'Влад, глянь PR до пʼятниці'),
+    message(ids.earlier, 1n, person(ids.ilya, 'Ілля'), 'Влад, глянь PR до пʼятниці'),
     message(ids.question, 2n, person(ids.vlad, 'Влад'), `:member[${ids.starMe}] підсумуй`, [
       person(ids.starMe, 'StarMe'),
     ]),
@@ -163,7 +157,7 @@ test('a mention is answered in its channel from the latest messages', async () =
 test('StarMe reads its own earlier answers as its own turns', async () => {
   repository.question$ = question({ mentionsStarMe: true });
   repository.recentMessages = [
-    message(ids.picked, 1n, person(ids.starMe, 'StarMe', true), 'Поставив задачу на Влада'),
+    message(ids.earlier, 1n, person(ids.starMe, 'StarMe', true), 'Поставив задачу на Влада'),
     message(ids.question, 2n, person(ids.vlad, 'Влад'), 'а тепер на Іллю'),
   ];
 
@@ -176,17 +170,18 @@ test('StarMe reads its own earlier answers as its own turns', async () => {
   );
 });
 
-test('picked messages are read instead of the latest ones', async () => {
+test('the messages a question is about are read instead of the latest ones', async () => {
   repository.question$ = question({ mentionsStarMe: true });
   repository.selectedMessages = [
-    message(ids.picked, 1n, person(ids.ilya, 'Ілля'), 'Бюджет на квартал'),
+    message(ids.earlier, 1n, person(ids.ilya, 'Ілля'), 'Бюджет на квартал'),
     message(ids.question, 2n, person(ids.vlad, 'Влад'), 'що тут головне?'),
   ];
 
-  await ask([ids.picked]);
+  repository.contextIds = [ids.earlier];
+
+  await ask();
   await finished;
 
-  assert.deepEqual(repository.pickedIds, [ids.picked]);
   assert.deepEqual(repository.read, [`selected:${ids.question}`]);
   assert.deepEqual(
     assistant.turns.map(({ text }) => text),

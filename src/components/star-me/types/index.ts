@@ -20,13 +20,6 @@ export interface Question {
   repliesToStarMe: boolean;
 }
 
-/** A message the person picked when asking, as anyone reading the channel sees it. */
-export interface PickedMessage {
-  id: string;
-  author: MemberSummary;
-  markdown: string;
-}
-
 /** Why StarMe could not answer, as the asking person is told. */
 export type AnswerFailure = 'limited' | 'forbidden' | 'unavailable' | 'failed';
 

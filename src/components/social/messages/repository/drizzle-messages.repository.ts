@@ -2,10 +2,10 @@ import { randomUUID } from 'node:crypto';
 
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
-import { channelEntries, chatMessages } from '@/database/drizzle/schema';
+import { channelEntries, chatMessages, messageContext } from '@/database/drizzle/schema';
 
 import type { MessageGif } from '../../content/message-gif';
 import type {
@@ -103,6 +103,26 @@ export class DrizzleMessagesRepository extends MessagesRepository {
     const [row] = await this.txHost.tx.insert(chatMessages).values(data).returning();
     if (!row) throw new Error('Message insert failed');
     return row;
+  }
+
+  async addContext(message: MessageModel, seq: bigint, messageIds: string[]): Promise<void> {
+    const earlier = this.txHost.tx
+      .select({
+        workspaceId: chatMessages.workspaceId,
+        channelId: chatMessages.channelId,
+        messageId: sql<string>`${message.id}::uuid`.as('message_id'),
+        contextMessageId: chatMessages.id,
+      })
+      .from(chatMessages)
+      .innerJoin(channelEntries, eq(channelEntries.messageId, chatMessages.id))
+      .where(
+        and(
+          eq(chatMessages.channelId, message.channelId),
+          inArray(chatMessages.id, messageIds),
+          lt(channelEntries.seq, seq),
+        ),
+      );
+    await this.txHost.tx.insert(messageContext).select(earlier).onConflictDoNothing();
   }
 
   async insertForwarded(input: {

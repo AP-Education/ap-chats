@@ -150,6 +150,28 @@ test('posting messages on PostgreSQL', async (t) => {
     );
   });
 
+  await t.test('a message keeps the earlier messages of its channel it is about', async () => {
+    const chat = await team();
+    const elsewhere = await team();
+    const first = await chat.send(chat.author, 'Budget for the quarter');
+    const second = await chat.send(chat.reader, 'Deadlines move to May');
+    const foreign = await elsewhere.send(elsewhere.author, 'Another team entirely');
+    const question = await chat.send(chat.reader, 'What matters here?', {
+      contextMessageIds: [second.id, foreign.id, first.id],
+    });
+    const contextOf = async (messageId: string) => {
+      const item = await chat.services.history.entry(chat.reader, chat.channelId, messageId);
+      assert.ok(item.type === 'MESSAGE');
+      return item.context && { count: item.context.count, firstId: item.context.first.id };
+    };
+
+    assert.deepEqual(await contextOf(question.id), { count: 2, firstId: first.id });
+
+    await chat.remove(chat.author, first.id);
+    assert.deepEqual(await contextOf(question.id), { count: 1, firstId: second.id });
+    assert.equal(await contextOf(second.id), null);
+  });
+
   await t.test('only the author edits, and an edit of a stale revision conflicts', async () => {
     const chat = await team();
     const message = await chat.send(chat.author, 'Draft');

@@ -4,7 +4,6 @@ import type { ConversationExtension } from '@/features/social/conversation-scope
 
 import { askStarMeAction } from '../actions';
 import { StarMeActivity } from '../components/StarMeActivity/StarMeActivity';
-import { StarMeQuestionContext } from '../components/StarMeQuestionContext/StarMeQuestionContext';
 import { askRequest, asksStarMe } from '../questions';
 import { useAskStarMe } from './useAskStarMe';
 import { useStarMe } from './useStarMe';
@@ -20,7 +19,6 @@ export function useStarMeExtension(workspaceId: string): ConversationExtension |
     return {
       id: 'star-me',
       actions: [askStarMeAction(starMe)],
-      MessageAddon: StarMeQuestionContext,
       TimelineEnd: StarMeActivity,
       sent: (message) => {
         if (!asksStarMe(message, starMe.memberId)) return;
