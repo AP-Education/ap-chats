@@ -8,6 +8,7 @@ import {
   channelEntries,
   chatMessages,
   memberRolePresentation,
+  messageContext,
   messageMentions,
   messagePins,
   messageReactions,
@@ -20,6 +21,7 @@ import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional
 
 import type { MessageReaction } from '../../reactions/types/reaction.types';
 import type {
+  ContextPreview,
   HistoryPageQuery,
   HistoryRow,
   HistoryRowsPage,
@@ -80,6 +82,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     const forwardAuthorRoles = alias(memberRolePresentation, 'forward_author_roles');
     const startedByRoles = alias(memberRolePresentation, 'started_by_roles');
     const mentions = this.mentionsOfMessage();
+    const context = this.contextOfMessage();
     const reactions = this.reactionsOfMessage(viewerMemberId);
 
     const pageBound =
@@ -112,6 +115,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
           isBot: sql<boolean>`coalesce(${replyAuthors.isBot}, false)`,
           roleColor: replyAuthorRoles.roleColor,
         },
+        context: context.context,
         forwardAuthorProfile: {
           displayName: forwardAuthors.displayName,
           avatarPath: forwardAuthors.avatarPath,
@@ -157,6 +161,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         ),
       )
       .leftJoinLateral(mentions, sql`true`)
+      .leftJoinLateral(context, sql`true`)
       .leftJoinLateral(reactions, sql`true`)
       .leftJoin(calls, eq(calls.id, channelEntries.callId))
       .leftJoin(startedByMembers, eq(startedByMembers.id, calls.startedByMemberId))
@@ -199,6 +204,43 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         )
         .as('message_mention_list')
     );
+  }
+
+  // The first live message it is about, and how many there are, counted before the limit.
+  private contextOfMessage() {
+    const contextMessages = alias(chatMessages, 'context_messages');
+    const contextEntries = alias(channelEntries, 'context_entries');
+    const preview = sql<ContextPreview>`json_build_object(
+      'count', count(*) over (),
+      'first', json_build_object(
+        'id', ${contextMessages.id},
+        'authorMemberId', ${contextMessages.authorMemberId},
+        'contentMarkdown', ${contextMessages.contentMarkdown},
+        'gif', ${contextMessages.gif},
+        'author', json_build_object(
+          'displayName', ${userProfiles.displayName},
+          'avatarPath', ${userProfiles.avatarPath},
+          'isBot', ${userProfiles.isBot},
+          'roleColor', ${memberRolePresentation.roleColor}
+        )
+      )
+    )`;
+
+    return this.txHost.tx
+      .select({ context: preview.as('context') })
+      .from(messageContext)
+      .innerJoin(contextMessages, eq(contextMessages.id, messageContext.contextMessageId))
+      .innerJoin(contextEntries, eq(contextEntries.messageId, contextMessages.id))
+      .innerJoin(workspaceMembers, eq(workspaceMembers.id, contextMessages.authorMemberId))
+      .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
+      .leftJoin(
+        memberRolePresentation,
+        eq(memberRolePresentation.memberId, contextMessages.authorMemberId),
+      )
+      .where(and(eq(messageContext.messageId, chatMessages.id), isNull(contextMessages.deletedAt)))
+      .orderBy(asc(contextEntries.seq))
+      .limit(1)
+      .as('message_context_preview');
   }
 
   // Reached through @everyone the viewer is not among the tags, so it is asked on its own.
@@ -281,6 +323,7 @@ function toHistoryRow(
     authorProfile: row.authorProfile,
     reply: row.reply,
     replyAuthorProfile: row.replyAuthorProfile,
+    context: row.context ?? null,
     forwardAuthorProfile: row.forwardAuthorProfile,
     pin: row.pin,
     mentions: row.mentions ?? [],

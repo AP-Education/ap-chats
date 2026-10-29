@@ -1,0 +1,1 @@
+DROP TABLE "star_me_question_messages" CASCADE;

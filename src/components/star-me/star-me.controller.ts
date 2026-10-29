@@ -40,13 +40,4 @@ export class StarMeController {
   ) {
     return this.starMe.status(member, channelId);
   }
-
-  @Get('questions/:questionId/picked')
-  picked(
-    @CurrentWorkspaceMember() member: WorkspaceMember,
-    @Param('channelId', ParseUUIDPipe) channelId: string,
-    @Param('questionId', ParseUUIDPipe) questionId: string,
-  ) {
-    return this.starMe.picked(member, channelId, questionId);
-  }
 }

@@ -52,6 +52,17 @@ export interface MessageHistoryItem {
     markdown: string | null;
     blocks?: MessageBlock[];
   } | null;
+  /** The first of the earlier messages this one is about, and how many there are. */
+  context: {
+    count: number;
+    first: {
+      id: string;
+      authorMemberId: string;
+      author: MessageAuthor;
+      markdown: string | null;
+      blocks?: MessageBlock[];
+    };
+  } | null;
   forwardedFrom: MessageAuthor | null;
   pin: { pinnedAt: string; pinnedByMemberId: string } | null;
   mentions?: MemberSummary[];
@@ -141,6 +152,8 @@ export interface SendMessageCommand {
   clientNonce: string;
   replyToMessageId?: string;
   quoteText?: string;
+  /** Earlier messages of the conversation the message is about. */
+  contextMessageIds?: string[];
   attachments?: Attachment[];
   blocks?: MessageBlock[];
   /** The composer's names for its inline references, so the echo shows them before history does. */

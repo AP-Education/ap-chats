@@ -63,6 +63,7 @@ const item: MessageHistoryItem = {
     isBot: false,
   },
   reply: null,
+  context: null,
   forwardedFrom: null,
   pin: null,
 };

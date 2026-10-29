@@ -14,6 +14,12 @@ export interface ReplyPreview {
   deletedAt: Date | null;
 }
 
+/** The first of the earlier messages a message is about, and how many there are. */
+export interface ContextPreview {
+  count: number;
+  first: Omit<ReplyPreview, 'deletedAt'> & { author: Profile };
+}
+
 export interface Mention extends Person {
   memberId: string;
 }
@@ -26,6 +32,7 @@ export interface MessageHistoryRow {
   authorProfile: Profile;
   reply: ReplyPreview | null;
   replyAuthorProfile: Profile | null;
+  context: ContextPreview | null;
   forwardAuthorProfile: Profile | null;
   pin: {
     messageId: string;

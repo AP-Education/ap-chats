@@ -64,6 +64,8 @@ export interface NewMessage {
   gif: MessageGif | null;
   replyToMessageId: string | null;
   quoteText: string | null;
+  /** Earlier messages of its channel it is about. */
+  contextMessageIds: string[];
   clientNonce: string;
   requestDigest: string;
 }

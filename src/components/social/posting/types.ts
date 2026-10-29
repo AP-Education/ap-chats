@@ -9,6 +9,7 @@ export interface MessageDraft {
   gif: MessageGif | null;
   replyToMessageId: string | null;
   quoteText: string | null;
+  contextMessageIds: string[];
   clientNonce: string;
   /** Recognizes a retry of this exact request under the same nonce. */
   requestDigest: string;

@@ -42,7 +42,6 @@ function WritableConversationFooter({
       channelId,
       input,
       landed: send(input, nonce),
-      ...(intent?.kind === 'ask' ? { picked: intent.messageIds } : {}),
       ...(replyTarget ? { replyToAuthorId: replyTarget.author.memberId } : {}),
     };
     extensions.forEach((extension) => extension.sent?.(sent));

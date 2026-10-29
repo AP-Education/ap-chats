@@ -3,10 +3,12 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { runInNewContext } from 'node:vm';
 
+import { matchPath } from 'react-router-dom';
 import ts from 'typescript';
 
+import type { MessageNotificationSound } from '../src/features/notifications/components/MessageNotificationSound';
+import type { openConversationAt } from '../src/features/notifications/open-conversation';
 import type { UnreadMutation } from '../src/features/realtime/types';
-import type { useMessageNotificationSound } from '../src/features/social/read-state/hooks/useMessageNotificationSound';
 import type { getSharedAudioContext } from '../src/shared/audio/audio-context';
 
 function load<T>(
@@ -31,8 +33,9 @@ function load<T>(
 
 function fixture({
   native = false,
-  openChannelId,
-}: { native?: boolean; openChannelId?: string } = {}) {
+  pathname = '/channels',
+  chatsInFront = true,
+}: { native?: boolean; pathname?: string; chatsInFront?: boolean } = {}) {
   const window = new EventTarget();
   if (native) Object.assign(window, { ReactNativeWebView: {} });
   let userGesture = false;
@@ -55,11 +58,18 @@ function fixture({
   const page = { visible: true };
   const sounds: string[] = [];
   let listener: ((event: UnreadMutation) => void) | undefined;
-  const hook = load<{ useMessageNotificationSound: typeof useMessageNotificationSound }>(
-    '../src/features/social/read-state/hooks/useMessageNotificationSound.ts',
+  const routes = load<{ openConversationAt: typeof openConversationAt }>(
+    '../src/features/notifications/open-conversation.ts',
+    { 'react-router-dom': { matchPath } },
+    {},
+  );
+  const sound = load<{ MessageNotificationSound: typeof MessageNotificationSound }>(
+    '../src/features/notifications/components/MessageNotificationSound.tsx',
     {
       react: { useEffect: (effect: () => void) => effect() },
-      '@/features/notifications/hooks/usePush': { usePush: () => push },
+      'react-router-dom': { useLocation: () => ({ pathname }) },
+      '../hooks/usePush': { usePush: () => push },
+      '../open-conversation': routes,
       '@/features/realtime/hooks/useSocketEvent': {
         useSocketEvent: (event: string, handler: typeof listener) => {
           assert.equal(event, 'social:unread');
@@ -67,7 +77,10 @@ function fixture({
         },
       },
       '@/shared/audio/audio-context': audio,
-      '@ap-education/shell-sdk': { isNativeShell: () => native },
+      '@ap-education/shell-sdk': {
+        isNativeShell: () => native,
+        useIsAppActive: () => chatsInFront,
+      },
       '@/shared/hooks/useIsAttending': { isAttending: () => page.visible },
       '../sound/messageBloop': {
         playMessageBloop: () => {
@@ -77,7 +90,7 @@ function fixture({
     },
     { window },
   );
-  hook.useMessageNotificationSound(openChannelId);
+  sound.MessageNotificationSound();
   return {
     push,
     page,
@@ -117,7 +130,7 @@ test('the first interaction unlocks browser audio once, before any message arriv
 });
 
 test('a message plays only when the person is not reading that conversation', () => {
-  const f = fixture({ openChannelId: 'channel' });
+  const f = fixture({ pathname: '/channels/channel' });
 
   f.receive();
   f.page.visible = false;
@@ -148,7 +161,7 @@ test('muted messages never play', () => {
 
 // Presence silences the OS alert for every workspace, so the open app has to speak for them all.
 test('another workspace plays while a conversation is open here', () => {
-  const f = fixture({ openChannelId: 'channel' });
+  const f = fixture({ pathname: '/direct/channel' });
   f.push.enabled = true;
 
   f.receive({ workspaceId: 'another-workspace', channelId: 'another-channel' });
@@ -157,11 +170,20 @@ test('another workspace plays while a conversation is open here', () => {
 });
 
 test('an open conversation from another workspace stays quiet', () => {
-  const f = fixture({ openChannelId: 'channel' });
+  const f = fixture({ pathname: '/calls/channel' });
 
   f.receive({ workspaceId: 'another-workspace' });
 
   assert.deepEqual(f.sounds, []);
+});
+
+// The router keeps the last Chats page while another application is in front.
+test('a conversation left open behind another application plays', () => {
+  const f = fixture({ pathname: '/channels/channel', chatsInFront: false });
+
+  f.receive();
+
+  assert.equal(f.sounds.length, 1);
 });
 
 test('the native shell plays its own sound without creating Web Audio', () => {

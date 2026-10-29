@@ -13,6 +13,7 @@ function synthesize(
   createdAt: string,
   author: MessageAuthor,
   replyTarget: MessageHistoryItem | undefined,
+  context: MessageHistoryItem['context'],
 ): MessageHistoryItem {
   return {
     type: 'MESSAGE',
@@ -46,6 +47,7 @@ function synthesize(
           markdown: replyTarget.message.markdown,
         }
       : null,
+    context,
     forwardedFrom: null,
     pin: null,
     // Named from the composer's own labels so the row reads the same before and after history has it.
@@ -60,6 +62,27 @@ function synthesize(
 
 function findMessage(messages: readonly MessageHistoryItem[], messageId: string | undefined) {
   return messages.find((item) => item.message.id === messageId);
+}
+
+// The first of them the timeline holds, as history quotes it once the message is there.
+function contextOf(
+  messages: readonly MessageHistoryItem[],
+  messageIds: string[] = [],
+): MessageHistoryItem['context'] {
+  const first = messages.find((item) => messageIds.includes(item.message.id));
+  if (!first) return null;
+
+  const { message, author } = first;
+  return {
+    count: messageIds.length,
+    first: {
+      id: message.id,
+      authorMemberId: message.authorMemberId,
+      author,
+      markdown: message.markdown,
+      blocks: message.blocks,
+    },
+  };
 }
 
 function byCreatedAt(a: DisplayItem, b: DisplayItem) {
@@ -79,6 +102,7 @@ export function unsentRows(
       entry.createdAt,
       author,
       findMessage(messages, entry.input.replyToMessageId),
+      contextOf(messages, entry.input.contextMessageIds),
     ),
     delivery: entry.status,
     pendingAttachments: snapshot.files.get(entry.input.clientNonce),

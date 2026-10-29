@@ -141,6 +141,7 @@ export function fixtureApi(server: Pick<ViteDevServer, 'middlewares'>) {
           isBot: false,
         },
         reply: null,
+        context: null,
         forwardedFrom: null,
         pin: null,
       });
