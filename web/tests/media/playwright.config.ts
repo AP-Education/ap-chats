@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
@@ -25,6 +27,7 @@ export default defineConfig({
     },
   ],
   webServer: {
+    cwd: path.resolve(import.meta.dirname, '../..'),
     command: 'node node_modules/vite/bin/vite.js preview --config tests/media/vite.config.mts',
     url: 'http://127.0.0.1:5568',
     reuseExistingServer: !process.env.CI,
