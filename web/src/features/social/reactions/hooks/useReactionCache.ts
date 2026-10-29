@@ -4,8 +4,9 @@ import { useCallback } from 'react';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { messagingQueryKeys } from '@/features/social/messaging/queryKeys';
+import type { ChatTimelineData } from '@/features/social/messaging/timeline/chat-entry';
 
-import { type HistoryData, type ReactionChange, withReactionChange } from '../reaction-cache';
+import { type ReactionChange, withReactionChange } from '../reaction-cache';
 
 /** Writes a reaction's new state into every cached history window of the open conversation. */
 export function useReactionCache() {
@@ -16,7 +17,7 @@ export function useReactionCache() {
   return useCallback(
     (messageId: string, change: ReactionChange) => {
       const histories = messagingQueryKeys.histories(identity, workspaceId, channelId);
-      queryClient.setQueriesData<HistoryData>(
+      queryClient.setQueriesData<ChatTimelineData>(
         { queryKey: histories },
         (history) => history && withReactionChange(history, messageId, change),
       );

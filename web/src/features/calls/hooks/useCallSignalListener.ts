@@ -1,10 +1,12 @@
+import { replaceEntry } from '@ap-education/timeline';
 import { useQueryClient } from '@tanstack/react-query';
 import { message as toast } from 'antd';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { getCallEntry } from '@/features/social/messaging/api/messages-api';
-import { mergeHistoryItem } from '@/features/social/messaging/history-cache';
+import { messagingQueryKeys } from '@/features/social/messaging/queryKeys';
+import { type ChatTimelineData, toEntry } from '@/features/social/messaging/timeline/chat-entry';
 
 import type { CallView } from '../api/calls-api';
 import { liveCallAfter } from '../liveCall';
@@ -51,7 +53,12 @@ export function useCallSignalListener(): void {
     if (!token) return;
     void getCallEntry(token, signal.workspaceId, signal.channelId, signal.callId)
       .then((item) =>
-        mergeHistoryItem(queryClient, identity, signal.workspaceId, signal.channelId, item),
+        queryClient.setQueriesData<ChatTimelineData>(
+          {
+            queryKey: messagingQueryKeys.histories(identity, signal.workspaceId, signal.channelId),
+          },
+          (history) => history && replaceEntry(history, toEntry(item)),
+        ),
       )
       .catch(() => undefined);
   }

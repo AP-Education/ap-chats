@@ -3,12 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 
 import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
 import { flashMessage } from '@/features/social/messaging/flashMessage';
-import { useChannelRealtime } from '@/features/social/messaging/hooks/useChannelRealtime';
-import { useMessageHistory } from '@/features/social/messaging/hooks/useMessageHistory';
-import type { HistoryPage, HistoryWindow } from '@/features/social/messaging/types';
+import { itemsOf } from '@/features/social/messaging/timeline/chat-entry';
+import { useChatTimeline } from '@/features/social/messaging/timeline/useChatTimeline';
 import { useActiveConversationReadState } from '@/features/social/read-state/hooks/useActiveConversationReadState';
-
-const emptyPages: HistoryPage[] = [];
 
 export function useConversationHistoryNavigation() {
   const { workspaceId, channelId } = useConversationScope();
@@ -16,26 +13,10 @@ export function useConversationHistoryNavigation() {
   const targetMessageId = params.get('message') ?? undefined;
   const [historyTargetId, setHistoryTargetId] = useState(targetMessageId);
   const clearSelection = useConversation((state) => state.clearSelection);
-  const history = useMessageHistory(workspaceId, channelId, historyTargetId);
-  const pages = history.data?.pages ?? emptyPages;
-  const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
-  const historyWindow: HistoryWindow = {
-    pages,
-    targetMessageId,
-    older: {
-      available: history.hasPreviousPage,
-      loading: history.isFetchingPreviousPage,
-      load: () => history.fetchPreviousPage(),
-    },
-    newer: {
-      available: history.hasNextPage,
-      loading: history.isFetchingNextPage,
-      load: () => history.fetchNextPage(),
-    },
-  };
+  const history = useChatTimeline(workspaceId, channelId, historyTargetId);
+  const items = useMemo(() => itemsOf(history.entries), [history.entries]);
 
-  useActiveConversationReadState(workspaceId, channelId, history.data?.pages[0]);
-  useChannelRealtime(workspaceId, channelId, historyTargetId);
+  useActiveConversationReadState(workspaceId, channelId, history.known, history.meta?.readState);
 
   const onJump = useCallback(
     (messageId: string) => {
@@ -53,5 +34,5 @@ export function useConversationHistoryNavigation() {
     [clearSelection, setParams, targetMessageId],
   );
 
-  return { history, historyWindow, items, historyTargetId, onJump };
+  return { history, items, targetMessageId, historyTargetId, onJump };
 }

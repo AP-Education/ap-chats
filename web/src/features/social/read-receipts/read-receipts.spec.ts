@@ -1,53 +1,31 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import type { HistoryPage } from '../messaging/types.ts';
-import { isReadByPeer, peerReadSeqOf, withPeerRead } from './read-receipts.ts';
+import type { ChatTimelineData } from '../messaging/timeline/chat-entry.ts';
+import { isReadByPeer, withPeerRead } from './read-receipts.ts';
 
-function page(peerReadSeq: string | null): HistoryPage {
+function history(peerReadSeq: string | null): ChatTimelineData {
   return {
-    items: [],
-    snapshotSeq: '20',
-    firstUnreadSeq: null,
-    unreadCount: 0,
+    entries: [],
     hasOlder: false,
-    olderCursor: null,
     hasNewer: false,
-    newerCursor: null,
-    readState: null,
-    peerReadSeq,
+    firstUnread: null,
+    known: '20',
+    meta: { readState: null, peerReadSeq, unreadCount: 0 },
   };
 }
 
-function history(...pages: HistoryPage[]) {
-  return { pages, pageParams: pages.map(() => ({ mode: 'window' as const })) };
-}
-
-test('the furthest receipt among loaded pages wins, compared as numbers', () => {
-  assert.equal(peerReadSeqOf([page('9'), page('10'), page('2')]), '10');
-});
-
-test('a conversation without read receipts has no receipt to show', () => {
-  assert.equal(peerReadSeqOf([page(null), page(null)]), null);
-  assert.equal(peerReadSeqOf([]), null);
-});
-
-test('a newer receipt moves every page on', () => {
-  const moved = withPeerRead(history(page('3'), page('5')), '7');
-  assert.deepEqual(
-    moved.pages.map((entry) => entry.peerReadSeq),
-    ['7', '7'],
-  );
+test('a newer receipt moves the mark on, compared as numbers', () => {
+  assert.equal(withPeerRead(history('9'), '10').meta?.peerReadSeq, '10');
 });
 
 test('a late, older receipt changes nothing', () => {
-  const moved = withPeerRead(history(page('7')), '5');
-  assert.equal(moved.pages[0]?.peerReadSeq, '7');
+  const window = history('7');
+  assert.equal(withPeerRead(window, '5'), window);
 });
 
-test('a page without read receipts never gains them', () => {
-  const moved = withPeerRead(history(page(null)), '5');
-  assert.equal(moved.pages[0]?.peerReadSeq, null);
+test('a conversation without read receipts never gains them', () => {
+  assert.equal(withPeerRead(history(null), '5').meta?.peerReadSeq, null);
 });
 
 test('a message is read once the receipt reaches it', () => {

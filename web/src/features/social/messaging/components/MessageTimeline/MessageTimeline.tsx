@@ -1,41 +1,58 @@
+import { buildDays, type PendingEntry } from '@ap-education/timeline';
+import {
+  TimelineDays,
+  type TimelineLabels,
+  type TimelineParts,
+  type TimelineView,
+  UKRAINIAN_LABELS,
+  useScrollAnchoring,
+} from '@ap-education/timeline/react';
 import { ArrowDownIcon, ArrowUpIcon } from '@phosphor-icons/react';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
 
-import type { DisplayItem, HistoryWindow } from '../../types';
-import { isMessageItem } from '../../types';
+import { flashMessage } from '../../flashMessage';
+import type { ChatEntry, ChatMeta } from '../../timeline/chat-entry';
+import { chatRegistry } from '../../timeline/chat-registry';
 import { DaySection } from './DaySection';
 import { EmptyTimeline } from './EmptyTimeline';
 import { LoadMoreButton } from './LoadMoreButton';
-import { buildTimelineDays, formatDayLabel } from './timeline-days';
+import { RunSection, UnreadMark } from './RunSection';
 import { TimelineScroller } from './TimelineScroller';
-import { useScrollAnchoring } from './useScrollAnchoring';
+
+const LABELS: TimelineLabels = { ...UKRAINIAN_LABELS, unread: 'Нові повідомлення' };
+const PARTS: TimelineParts<ChatEntry> = { Day: DaySection, Run: RunSection, UnreadMark };
 
 interface MessageTimelineProps {
-  history: HistoryWindow;
-  displayItems: DisplayItem[];
+  view: TimelineView<ChatEntry, ChatMeta>;
+  /** The viewer's messages still on their way, drawn below the history. */
+  pending: readonly PendingEntry<ChatEntry>[];
+  targetMessageId?: string;
 }
 
-export function MessageTimeline({ history, displayItems }: MessageTimelineProps) {
+export function MessageTimeline({ view, pending, targetMessageId }: MessageTimelineProps) {
   const extensions = useConversationExtensions();
-  const { pages, older, newer } = history;
-  const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
-  const firstUnreadSeq = pages.find((page) => page.firstUnreadSeq !== null)?.firstUnreadSeq ?? null;
-  // A deleted message keeps its seq (read state, scroll anchoring, and reply
-  // excerpts elsewhere all still need it), but has nothing left worth a row —
-  // Telegram just removes it rather than leaving a "message deleted" ghost.
-  // Filtered only for what's rendered, so grouping recomputes around the gap
-  // instead of orphaning the next real message from the same author.
+  const { entries, firstUnread, older, newer } = view;
   const days = useMemo(
-    () =>
-      buildTimelineDays(
-        displayItems.filter(({ item }) => !isMessageItem(item) || item.message.markdown !== null),
-        firstUnreadSeq,
-      ),
-    [displayItems, firstUnreadSeq],
+    () => buildDays(entries, pending, firstUnread, chatRegistry.rules),
+    [entries, pending, firstUnread],
   );
-  const anchoring = useScrollAnchoring({ history, items, displayItems, firstUnreadSeq });
+  const lastKey = days.at(-1)?.runs.at(-1)?.items.at(-1)?.key;
+  const flashTarget = useCallback(() => {
+    if (targetMessageId) flashMessage(targetMessageId);
+  }, [targetMessageId]);
+  const anchoring = useScrollAnchoring({
+    older,
+    newer,
+    isReady: view.status === 'success',
+    content: days,
+    lastKey,
+    firstUnread,
+    targetKey: targetMessageId,
+    onTargetShown: flashTarget,
+  });
+  const isEmpty = entries.length === 0 && pending.length === 0;
 
   return (
     <TimelineScroller anchoring={anchoring} hasNewer={newer.available}>
@@ -44,10 +61,8 @@ export function MessageTimeline({ history, displayItems }: MessageTimelineProps)
           Раніші повідомлення
         </LoadMoreButton>
       )}
-      {!displayItems.length && <EmptyTimeline />}
-      {days.map((day) => (
-        <DaySection key={day.key} day={day} label={formatDayLabel(day.date)} />
-      ))}
+      {isEmpty && <EmptyTimeline />}
+      <TimelineDays days={days} registry={chatRegistry} labels={LABELS} parts={PARTS} />
       {/* Only the live end: what happens next has no place after an older stretch. */}
       {!newer.available &&
         extensions.map(({ id, TimelineEnd }) => TimelineEnd && <TimelineEnd key={id} />)}

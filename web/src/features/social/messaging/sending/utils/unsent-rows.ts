@@ -1,5 +1,8 @@
+import type { PendingEntry, PendingStatus } from '@ap-education/timeline';
+
+import { type ChatEntry, toEntry } from '../../timeline/chat-entry';
 import type {
-  DisplayItem,
+  DeliveryStatus,
   MessageAuthor,
   MessageHistoryItem,
   SendMessageCommand,
@@ -62,8 +65,14 @@ function findMessage(messages: readonly MessageHistoryItem[], messageId: string 
   return messages.find((item) => item.message.id === messageId);
 }
 
-function byCreatedAt(a: DisplayItem, b: DisplayItem) {
-  return a.item.createdAt.localeCompare(b.item.createdAt);
+const STATUS: Record<DeliveryStatus, PendingStatus> = {
+  uploading: 'preparing',
+  sending: 'sending',
+  failed: 'failed',
+};
+
+function byCreatedAt(a: PendingEntry<ChatEntry>, b: PendingEntry<ChatEntry>) {
+  return a.entry.at.localeCompare(b.entry.at);
 }
 
 // History is the truth: what it already holds is left out before the outbox lets it go.
@@ -72,17 +81,19 @@ export function unsentRows(
   delivered: ReadonlySet<string>,
   author: MessageAuthor,
   messages: readonly MessageHistoryItem[],
-): DisplayItem[] {
-  const rows = unsent(snapshot.entries, delivered).map((entry) => ({
-    item: synthesize(
-      entry.input,
-      entry.createdAt,
-      author,
-      findMessage(messages, entry.input.replyToMessageId),
-    ),
-    delivery: entry.status,
-    pendingAttachments: snapshot.files.get(entry.input.clientNonce),
-  }));
+): PendingEntry<ChatEntry>[] {
+  const rows = unsent(snapshot.entries, delivered).map((entry) => {
+    const nonce = entry.input.clientNonce;
+    const replyTarget = findMessage(messages, entry.input.replyToMessageId);
+    const item = synthesize(entry.input, entry.createdAt, author, replyTarget);
+    const pendingAttachments = snapshot.files.get(nonce);
+    const row: ChatEntry = {
+      ...toEntry(item),
+      kind: 'MESSAGE',
+      payload: { item, pendingAttachments },
+    };
+    return { nonce, entry: row, status: STATUS[entry.status] };
+  });
 
   return rows.sort(byCreatedAt);
 }

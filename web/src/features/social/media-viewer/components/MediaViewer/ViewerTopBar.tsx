@@ -1,9 +1,9 @@
+import { formatDayLabel } from '@ap-education/timeline';
 import { IconButton } from '@ap-education/ui';
 import { XIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
 
-import { formatDayLabel } from '@/features/social/messaging/components/MessageTimeline/timeline-days';
 import { Avatar } from '@/shared/ui/Avatar';
 
 import type { ViewerMedia } from '../../types';

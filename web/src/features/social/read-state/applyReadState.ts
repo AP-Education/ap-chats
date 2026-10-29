@@ -1,8 +1,8 @@
-import type { InfiniteData, QueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 
-import type { PageCursor } from '../messaging/hooks/useMessageHistory';
 import { messagingQueryKeys } from '../messaging/queryKeys';
-import type { HistoryPage, ReadState } from '../messaging/types';
+import type { ChatTimelineData } from '../messaging/timeline/chat-entry';
+import type { ReadState } from '../messaging/types';
 import type { ChannelUnread } from './hooks/useWorkspaceUnread';
 import { unreadDirectMessagesKey, workspaceUnreadKey } from './queryKeys';
 
@@ -72,23 +72,16 @@ function writeReadState(
       current?.filter((entry) => entry.id !== channelId),
     );
   }
-  queryClient.setQueriesData<InfiniteData<HistoryPage, PageCursor>>(
+  queryClient.setQueriesData<ChatTimelineData>(
     { queryKey: messagingQueryKeys.histories(identity, workspaceId, channelId) },
-    (current) =>
-      current && {
+    (current) => {
+      const known = current?.meta?.readState;
+      const isBehind = known && BigInt(state.lastReadEntrySeq) < BigInt(known.lastReadEntrySeq);
+      if (!current?.meta || isBehind) return current;
+      return {
         ...current,
-        pages: current.pages.map((page) => {
-          if (
-            page.readState &&
-            BigInt(state.lastReadEntrySeq) < BigInt(page.readState.lastReadEntrySeq)
-          )
-            return page;
-          return {
-            ...page,
-            unreadCount: state.unreadCount,
-            readState: state,
-          };
-        }),
-      },
+        meta: { ...current.meta, unreadCount: state.unreadCount, readState: state },
+      };
+    },
   );
 }

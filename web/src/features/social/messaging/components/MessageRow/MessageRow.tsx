@@ -1,3 +1,4 @@
+import type { EntryAnchor } from '@ap-education/timeline/react';
 import { memo, useRef } from 'react';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
@@ -20,12 +21,15 @@ interface MessageRowProps {
   item: MessageHistoryItem;
   delivery?: DeliveryStatus;
   pendingAttachments?: AttachmentDraft[];
+  /** Lets the timeline find the row when scrolling to it or noting it was seen. */
+  anchor?: EntryAnchor;
 }
 
 export const MessageRow = memo(function MessageRow({
   item,
   delivery,
   pendingAttachments,
+  anchor,
 }: MessageRowProps) {
   const { viewer } = useTimelineActions();
   const authorName = item.author.displayName ?? 'Ім’я недоступне';
@@ -55,6 +59,7 @@ export const MessageRow = memo(function MessageRow({
     >
       <MessageActions
         rowProps={{
+          ...anchor,
           id: `message-${item.message.id}`,
           'data-seq': delivery ? undefined : item.seq,
           'data-own': isOwnMessage || undefined,
