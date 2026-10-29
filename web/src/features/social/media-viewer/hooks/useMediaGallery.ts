@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { message } from 'antd';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
@@ -19,6 +20,9 @@ export function useMediaGallery(items: HistoryItem[]) {
   const scope = useConversationScope();
   const [gallery, setGallery] = useState<MediaGallery | null>(null);
   const opening = useRef(false);
+  const mounted = useRef(false);
+  // The imperative gallery can exist before React commits its state update.
+  const ownedGallery = useRef<MediaGallery | null>(null);
 
   // Read by the tap and PhotoSwipe's callbacks long after the render that set them up.
   const latest = useRef({ items, auth, scope });
@@ -26,11 +30,18 @@ export function useMediaGallery(items: HistoryItem[]) {
     latest.current = { items, auth, scope };
   });
 
-  useEffect(() => () => gallery?.dispose(), [gallery]);
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      ownedGallery.current?.dispose();
+      ownedGallery.current = null;
+    };
+  }, []);
 
   const open = useCallback(
     async (key: string) => {
-      if (opening.current) return;
+      if (!mounted.current || opening.current || ownedGallery.current) return;
       opening.current = true;
 
       const urlQuery = (messageId: string, attachmentId: string, variant: UrlVariant) => {
@@ -44,11 +55,22 @@ export function useMediaGallery(items: HistoryItem[]) {
 
       try {
         const { MediaGallery } = await import('../media-gallery');
+        if (!mounted.current) return;
         const media = conversationMedia(latest.current.items);
         const index = media.findIndex((entry) => entry.key === key);
         if (index < 0) return;
 
-        setGallery(new MediaGallery(media, index, urls, { onClosed: () => setGallery(null) }));
+        const next = new MediaGallery(media, index, urls, {
+          onClosed: () => {
+            ownedGallery.current = null;
+            if (mounted.current) setGallery(null);
+          },
+        });
+        ownedGallery.current = next;
+        setGallery(next);
+      } catch {
+        if (mounted.current)
+          void message.error('Не вдалося відкрити медіа. Перевірте з’єднання та спробуйте ще раз.');
       } finally {
         opening.current = false;
       }

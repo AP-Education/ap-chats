@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
+import { readFile } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 
 import { CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
@@ -13,6 +14,9 @@ import sharp from 'sharp';
 Object.assign(process.env, {
   NODE_ENV: 'test',
   LOG_LEVEL: 'fatal',
+  PUSH_ENABLED: 'false',
+  PUSH_WORKER_ENABLED: 'false',
+  VALKEY_URL: 'redis://127.0.0.1:6387/0',
   DATABASE_URL: 'postgresql://postgres:uploads-test@127.0.0.1:5437/uploads_test',
   DIGITAL_OCEAN_SPACES_ENDPOINT: 'http://127.0.0.1:9017',
   DIGITAL_OCEAN_SPACES_BUCKET: 'uploads-test',
@@ -84,6 +88,7 @@ await fastify.ready();
 let workspaceId: string | undefined;
 const actor = `upload-test-owner-${randomUUID()}`;
 const outsider = `upload-test-outsider-${randomUUID()}`;
+const viewer = `upload-test-viewer-${randomUUID()}`;
 async function request(
   method: string,
   path: string,
@@ -110,13 +115,13 @@ try {
   );
   workspaceId = workspace.rows[0].id;
   const members = [];
-  for (const user of [actor, outsider]) {
+  for (const user of [actor, outsider, viewer]) {
     const profile = await pool.query(
       'insert into user_profiles(oidc_user_id, display_name) values ($1, $2) returning id',
       [user, user],
     );
     const member = await pool.query(
-      'insert into workspace_members(workspace_id, user_profile_id, role) values ($1, $2, $3) returning id',
+      'insert into workspace_members(workspace_id, user_profile_id, access_level) values ($1, $2, $3) returning id',
       [workspaceId, profile.rows[0].id, user === actor ? 'owner' : 'member'],
     );
     members.push(member.rows[0].id);
@@ -124,7 +129,7 @@ try {
   const channelIds = [];
   for (const name of ['uploads-source', 'uploads-forward']) {
     const result = await pool.query(
-      "insert into channels(workspace_id, kind, name, created_by_member_id) values ($1, 'private', $2, $3) returning id",
+      "insert into channels(workspace_id, kind, name, created_by_member_id) values ($1, 'channel', $2, $3) returning id",
       [workspaceId, name, members[0]],
     );
     const id = result.rows[0].id;
@@ -133,14 +138,27 @@ try {
       'insert into channel_memberships(workspace_id, channel_id, member_id) values ($1, $2, $3)',
       [workspaceId, id, members[0]],
     );
+    await pool.query(
+      "insert into channel_grants(workspace_id, channel_id, capability, principal, member_id) values ($1, $2, 'manage', 'member', $3)",
+      [workspaceId, id, members[0]],
+    );
   }
   const source = `/workspaces/${workspaceId}/channels/${channelIds[0]}`;
   const target = `/workspaces/${workspaceId}/channels/${channelIds[1]}`;
+  await pool.query(
+    'insert into channel_memberships(workspace_id, channel_id, member_id) values ($1, $2, $3)',
+    [workspaceId, channelIds[0], members[2]],
+  );
+  await pool.query(
+    "insert into channel_grants(workspace_id, channel_id, capability, principal, member_id) values ($1, $2, 'view', 'member', $3)",
+    [workspaceId, channelIds[0], members[2]],
+  );
   const policy = await request('GET', `${source}/uploads/policy`);
   assert.equal(policy.maxFileBytes, 1_000_000_000);
   await request('POST', `${source}/uploads`, { name: 'too-big.zip', size: 1_000_000_001 }, 400);
   await request('POST', `${source}/uploads`, { name: 'empty.txt', size: 0 }, 400);
-  await request('POST', `${source}/uploads`, { name: 'private.txt', size: 10 }, 403, outsider);
+  await request('POST', `${source}/uploads`, { name: 'private.txt', size: 10 }, 404, outsider);
+  await request('POST', `${source}/uploads`, { name: 'view-only.txt', size: 10 }, 403, viewer);
   const boundary = await request(
     'POST',
     `${source}/uploads`,
@@ -315,6 +333,154 @@ try {
     (await sharp(Buffer.from(await thumbnailResponse.arrayBuffer())).metadata()).width,
     640,
   );
+
+  const video = await readFile(
+    new URL('../web/tests/media/public/media/sample.mp4', import.meta.url),
+  );
+  const videoSession = await request(
+    'POST',
+    `${source}/uploads`,
+    { name: 'meeting.mp4', size: video.length },
+    201,
+  );
+  const videoPart = await request(
+    'POST',
+    `${source}/uploads/${videoSession.id}/part`,
+    { number: 1 },
+    201,
+  );
+  assert.equal((await fetch(videoPart.url, { method: 'PUT', body: video })).status, 200);
+  const inspected = await request('POST', `${source}/uploads/${videoSession.id}/complete`, {}, 201);
+  assert.equal(inspected.preview, 'video');
+  assert.equal(inspected.hasThumbnail, true);
+  assert.equal(inspected.width, 320);
+  assert.equal(inspected.height, 180);
+  assert.equal(inspected.duration, 2);
+  assert.ok(inspected.placeholder);
+  const videoInput = {
+    markdown: 'Video caption',
+    clientNonce: randomUUID(),
+    attachments: [{ id: inspected.id }],
+  };
+  await request(
+    'POST',
+    `${source}/messages`,
+    {
+      ...videoInput,
+      attachments: [{ id: inspected.id, hasThumbnail: true, objectKey: 'another-object' }],
+    },
+    400,
+  );
+  const videoMessage = await request('POST', `${source}/messages`, videoInput, 201);
+  assert.deepEqual(videoMessage.attachments, [inspected]);
+  assert.equal((await request('POST', `${source}/messages`, videoInput, 201)).id, videoMessage.id);
+  const storedVideo = await request('GET', `${source}/messages/${videoMessage.id}`);
+  assert.equal(storedVideo.type, 'MESSAGE');
+  assert.deepEqual(storedVideo.message.attachments, [inspected]);
+  assert.equal(storedVideo.message.markdown, videoInput.markdown);
+  for (const variant of ['thumbnail', 'preview', 'download'])
+    await request(
+      'GET',
+      `${source}/uploads/${inspected.id}/messages/${videoMessage.id}/url?variant=${variant}`,
+      undefined,
+      404,
+      outsider,
+    );
+  const videoPoster = await request(
+    'GET',
+    `${source}/uploads/${inspected.id}/messages/${videoMessage.id}/url?variant=thumbnail`,
+  );
+  await request(
+    'GET',
+    `${source}/uploads/${inspected.id}/messages/${videoMessage.id}/url?variant=preview`,
+    undefined,
+    200,
+    viewer,
+  );
+  await pool.query('delete from channel_grants where channel_id = $1 and member_id = $2', [
+    channelIds[0],
+    members[2],
+  ]);
+  await pool.query('delete from channel_memberships where channel_id = $1 and member_id = $2', [
+    channelIds[0],
+    members[2],
+  ]);
+  await request(
+    'GET',
+    `${source}/uploads/${inspected.id}/messages/${videoMessage.id}/url?variant=preview`,
+    undefined,
+    404,
+    viewer,
+  );
+  const posterResponse = await fetch(videoPoster.url);
+  assert.equal(posterResponse.headers.get('content-type'), 'image/webp');
+  assert.match(posterResponse.headers.get('content-disposition'), /^inline;/);
+  const posterImage = await sharp(Buffer.from(await posterResponse.arrayBuffer())).metadata();
+  assert.equal(posterImage.width, 320);
+  const publicPoster = new URL(videoPoster.url);
+  publicPoster.search = '';
+  const deniedPoster = await fetch(publicPoster);
+  assert.equal(deniedPoster.status, 403);
+  await deniedPoster.body?.cancel();
+  const previewLink = await request(
+    'GET',
+    `${source}/uploads/${inspected.id}/messages/${videoMessage.id}/url?variant=preview`,
+  );
+  const videoRange = await fetch(previewLink.url, { headers: { Range: 'bytes=0-127' } });
+  assert.equal(videoRange.status, 206);
+  assert.equal(videoRange.headers.get('content-type'), 'video/mp4');
+  assert.match(videoRange.headers.get('content-disposition'), /^inline;/);
+  assert.deepEqual(Buffer.from(await videoRange.arrayBuffer()), video.subarray(0, 128));
+  const downloadLink = await request(
+    'GET',
+    `${source}/uploads/${inspected.id}/messages/${videoMessage.id}/url?variant=download`,
+  );
+  const downloadedVideo = await fetch(downloadLink.url);
+  assert.match(downloadedVideo.headers.get('content-disposition'), /^attachment;/);
+  assert.deepEqual(Buffer.from(await downloadedVideo.arrayBuffer()), video);
+  const forwardedVideo = await request(
+    'POST',
+    `/workspaces/${workspaceId}/messages/forward`,
+    {
+      sourceChannelId: channelIds[0],
+      target: { kind: 'channel', id: channelIds[1] },
+      batchNonce: randomUUID(),
+      messageIds: [videoMessage.id],
+    },
+    201,
+  );
+  assert.deepEqual(forwardedVideo.messages[0].attachments, [inspected]);
+  await request('DELETE', `${source}/messages/${videoMessage.id}`, undefined, 204);
+  await request(
+    'GET',
+    `${source}/uploads/${inspected.id}/messages/${videoMessage.id}/url?variant=thumbnail`,
+    undefined,
+    404,
+  );
+  await pool.query(
+    "update chat_uploads set expires_at = now() - interval '1 minute' where id = $1",
+    [inspected.id],
+  );
+  await app.get(UploadCleanupService).sweep();
+  const forwardedPoster = await request(
+    'GET',
+    `${target}/uploads/${inspected.id}/messages/${forwardedVideo.messages[0].id}/url?variant=thumbnail`,
+  );
+  const retainedPoster = await fetch(forwardedPoster.url);
+  assert.equal(retainedPoster.status, 200);
+  await retainedPoster.body?.cancel();
+  await request('DELETE', `${target}/messages/${forwardedVideo.messages[0].id}`, undefined, 204);
+  await pool.query(
+    "update chat_uploads set expires_at = now() - interval '1 minute' where id = $1",
+    [inspected.id],
+  );
+  await app.get(UploadCleanupService).sweep();
+  const removedPoster = await fetch(forwardedPoster.url);
+  assert.equal(removedPoster.status, 404);
+  await removedPoster.body?.cancel();
+  const removedOriginal = await fetch(previewLink.url);
+  assert.equal(removedOriginal.status, 404);
+  await removedOriginal.body?.cancel();
   await pool.query('delete from channels where id = $1', [channelIds[1]]);
   await pool.query(
     "update chat_uploads set expires_at = now() - interval '1 minute' where workspace_id = $1",
@@ -330,7 +496,7 @@ try {
       uploadedBytes: size,
       peakRssIncreaseBytes: peak - initialMemory,
       checks:
-        'multipart, 1 GB limit, private access, idempotency, forwarding, thumbnails, completion leases/recovery, nonblocking preview, channel deletion cleanup',
+        'multipart, 1 GB limit, private access, idempotency, forwarding, image/video thumbnails, video byte ranges and downloads, completion leases/recovery, nonblocking preview, live-forward retention and original/poster cleanup',
     }),
   );
 } finally {
@@ -338,9 +504,10 @@ try {
     if (workspaceId) {
       await pool.query('delete from channels where workspace_id = $1', [workspaceId]);
       await pool.query('delete from workspaces where id = $1', [workspaceId]);
-      await pool.query('delete from user_profiles where oidc_user_id in ($1, $2)', [
+      await pool.query('delete from user_profiles where oidc_user_id in ($1, $2, $3)', [
         actor,
         outsider,
+        viewer,
       ]);
     }
   } finally {

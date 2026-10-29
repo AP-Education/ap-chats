@@ -62,3 +62,25 @@ test('a lone GIF link shows the GIF alone, without a bubble; with words the word
 function pick(layout: ReturnType<typeof bubbleLayout>) {
   return [layout.meta, layout.reactions];
 }
+
+test('a video with a poster gets a media bubble while legacy videos keep their file layout', () => {
+  const message = (hasThumbnail: boolean) =>
+    ({
+      message: { markdown: '', attachments: [{ preview: 'video', hasThumbnail }] },
+    }) as unknown as MessageHistoryItem;
+  assert.equal(bubbleLayout(message(true), undefined, false).variant, 'media');
+  assert.equal(bubbleLayout(message(true), undefined, false).meta, 'overlay');
+  assert.equal(bubbleLayout(message(false), undefined, false).variant, 'text');
+  assert.equal(bubbleLayout(message(false), undefined, false).meta, 'block');
+});
+
+test('video captions keep the time in text and mixed documents keep it outside the poster', () => {
+  const video = { preview: 'video', hasThumbnail: true };
+  const layout = (markdown: string, attachments: object[]) =>
+    bubbleLayout({ message: { markdown, attachments } } as MessageHistoryItem, undefined, false);
+
+  assert.equal(layout('Дивись', [video]).meta, 'inline');
+  assert.equal(layout('', [video, video]).meta, 'overlay');
+  assert.equal(layout('', [{ preview: 'image' }, video]).meta, 'overlay');
+  assert.equal(layout('', [video, { preview: 'file' }]).meta, 'block');
+});

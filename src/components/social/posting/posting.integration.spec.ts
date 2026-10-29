@@ -21,6 +21,7 @@ import { socialServices } from '@/testing/social';
 import { FORWARD_BATCH_CREATED_EVENT } from '../forwarding/events/forward-batch-created.event';
 import { MESSAGE_CREATED_EVENT } from '../messages/events/message-created.event';
 import { MESSAGE_DELETED_EVENT } from '../messages/events/message-deleted.event';
+import type { Attachment } from '../messages/types/message.types';
 import { BatchDeleteMessagesDto, SendMessageDto } from './dto/send-message.dto';
 
 test('a quote needs the message it replies to, and a batch delete names each message once', () => {
@@ -276,6 +277,51 @@ test('posting messages on PostgreSQL', async (t) => {
       chat.services.forwarding.forward(chat.author, { ...forward, messageIds: [other.id] }),
       ConflictException,
     );
+  });
+
+  await t.test('video poster metadata survives posting, history and forwarding', async () => {
+    const chat = await team();
+    const id = randomUUID();
+    const metadata: Attachment = {
+      id,
+      name: 'clip.mp4',
+      size: 12000,
+      mediaType: 'video/mp4',
+      preview: 'video',
+      width: 320,
+      height: 180,
+      description: null,
+      hasThumbnail: true,
+      duration: 2.5,
+      placeholder: '3OcRJYB4d3h/iIeHeEh3eIhw+j3A',
+    };
+    await db.insert(schema.chatUploads).values({
+      id,
+      workspaceId: chat.workspaceId,
+      channelId: chat.channelId,
+      ownerMemberId: chat.author.id,
+      name: metadata.name,
+      size: metadata.size,
+      objectKey: `test/${id}`,
+      multipartId: 'test-upload',
+      state: 'ready',
+      metadata,
+      expiresAt: new Date(Date.now() + 3_600_000),
+    });
+    const posted = await chat.send(chat.author, 'Video caption', { attachments: [{ id }] });
+    assert.deepEqual(posted.attachments, [metadata]);
+    const history = await chat.services.history.window(chat.reader, chat.channelId, {});
+    const item = history.items.find((entry) => entry.type === 'MESSAGE');
+    assert.ok(item && item.type === 'MESSAGE');
+    assert.deepEqual(item.message.attachments, [metadata]);
+    const { channelId: targetId } = await seed.channel(chat.creator, 'public', [chat.author]);
+    const forwarded = await chat.services.forwarding.forward(chat.author, {
+      target: { kind: 'channel', id: targetId },
+      sourceChannelId: chat.channelId,
+      batchNonce: randomUUID(),
+      messageIds: [posted.id],
+    });
+    assert.deepEqual(forwarded.messages[0]?.attachments, [metadata]);
   });
 
   await t.test(

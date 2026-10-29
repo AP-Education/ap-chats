@@ -1,6 +1,6 @@
 import { useShellAppearance } from '@ap-education/shell-sdk';
 import { AppearanceScope, useIsMobile } from '@ap-education/ui';
-import { useSyncExternalStore } from 'react';
+import { useLayoutEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { MediaGallery } from '../../media-gallery';
@@ -25,6 +25,20 @@ export function MediaViewer({ gallery, actions }: MediaViewerProps) {
     zoomable,
     zoomedIn,
   } = useSyncExternalStore(gallery.subscribe, gallery.getView);
+
+  useLayoutEffect(() => {
+    if (media?.source.kind !== 'video') return;
+    const bars = gallery.element.querySelectorAll('header, footer');
+    const measure = () => {
+      const top = gallery.element.querySelector('header')?.getBoundingClientRect().height ?? 0;
+      const bottom = gallery.element.querySelector('footer')?.getBoundingClientRect().height ?? 0;
+      gallery.fitVideoBetweenBars(top, bottom);
+    };
+    const observer = new ResizeObserver(measure);
+    bars.forEach((bar) => observer.observe(bar));
+    measure();
+    return () => observer.disconnect();
+  }, [gallery, media]);
   // Tools sit by the close button on a wide screen, as on Discord, and under the thumb on a phone.
   const toolsEdge = isMobile ? 'bottom' : 'top';
   const zoom = !isMobile && zoomable ? { zoomedIn, toggle: () => gallery.toggleZoom() } : undefined;

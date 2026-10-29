@@ -29,7 +29,11 @@ export class AttachmentDownloadsService {
     const isStored = upload?.state === 'attached' && upload.workspaceId === member.workspaceId;
     if (!isStored) throw new NotFoundException('Attachment not found');
 
-    const isThumbnail = variant === 'thumbnail' && file.preview === 'image';
+    const isThumbnail =
+      variant === 'thumbnail' &&
+      (file.preview === 'image' || (file.preview === 'video' && file.hasThumbnail === true));
+    if (variant === 'thumbnail' && !isThumbnail)
+      throw new NotFoundException('Attachment thumbnail not found');
     const isInline = isThumbnail || (variant === 'preview' && file.preview !== null);
     const key = isThumbnail ? `${upload.objectKey}.preview.webp` : upload.objectKey;
     const contentType = isThumbnail
