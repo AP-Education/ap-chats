@@ -228,6 +228,27 @@ test('access changes invalidate an open search and remove revoked results', asyn
   await expect(page.getByText('Нічого не знайдено. Спробуйте інше ім’я або назву.')).toBeVisible();
 });
 
+test('keyboard selection stays consistent when a refreshed result list shrinks', async ({
+  page,
+}) => {
+  const input = await openSearch(page);
+  await input.fill('design');
+  await expect(page.getByRole('option')).toHaveCount(3);
+  await input.press('ArrowDown');
+  await input.press('ArrowDown');
+  await expect(page.getByRole('option').last()).toHaveAttribute('aria-selected', 'true');
+  await page.route('**/search?q=*', async (route) => {
+    const response = await route.fetch();
+    const data = await response.json();
+    await route.fulfill({ json: { ...data, people: [] } });
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event('fixture:access-changed')));
+  await expect(page.getByRole('option')).toHaveCount(2);
+  await expect(page.getByRole('option').last()).toHaveAttribute('aria-selected', 'true');
+  await input.press('ArrowUp');
+  await expect(page.getByRole('option').first()).toHaveAttribute('aria-selected', 'true');
+});
+
 test('Back closes search; a directly linked search can also close without leaving the app', async ({
   page,
 }) => {
@@ -239,6 +260,17 @@ test('Back closes search; a directly linked search can also close without leavin
   await page.keyboard.press('Escape');
   await expect(page).toHaveURL('http://127.0.0.1:5570/?dark=1');
   await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('a short landscape viewport keeps the dialog and results reachable', async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await (await openSearch(page)).fill('design');
+  await expect(page.getByRole('option')).toHaveCount(3);
+  const box = await page.getByRole('dialog').boundingBox();
+  expect(box!.y).toBeGreaterThanOrEqual(0);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(390);
+  await page.getByRole('option').filter({ hasText: 'Design new person' }).click();
+  await expect(page).toHaveURL(/\/direct\/dm-opened$/);
 });
 
 test('phone search remains readable above the native keyboard inset without horizontal overflow', async ({
@@ -254,4 +286,6 @@ test('phone search remains readable above the native keyboard inset without hori
   expect(input!.y + input!.height).toBeLessThan(844 - 280);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('option').filter({ hasText: 'Design new person' }).click();
+  await expect(page).toHaveURL(/\/direct\/dm-opened$/);
 });

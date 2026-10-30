@@ -38,7 +38,7 @@ export function SearchDialog({
       onCancel={onClose}
       footer={null}
       destroyOnHidden
-      bodyHeight="480px"
+      bodyHeight="min(480px, calc(100dvh - 240px))"
       afterOpenChange={(visible) => {
         if (visible) input.current?.focus();
       }}
@@ -151,7 +151,10 @@ function SearchContent({
             event.preventDefault();
             setSelected(
               (current) =>
-                (current + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length,
+                (Math.min(current, items.length - 1) +
+                  (event.key === 'ArrowDown' ? 1 : -1) +
+                  items.length) %
+                items.length,
             );
           } else if (event.key === 'Enter') {
             event.preventDefault();
