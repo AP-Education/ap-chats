@@ -10,13 +10,12 @@ export const NATIVE_WEB_SCENARIO = `
     throw new Error('Timed out waiting for voice UI');
   };
   const button = label => document.querySelector('button[aria-label="' + label + '"]');
-  const textButton = text => Array.from(document.querySelectorAll('button')).find(element => element.textContent.trim() === text);
+  const textButton = text => button(text) || Array.from(document.querySelectorAll('button')).find(element => element.textContent.trim() === text);
   try {
     const mic = await wait(() => { const element = button('Записати голосове повідомлення'); return element && !element.disabled && element; });
     mic.click();
-    (await wait(() => textButton('Почати запис'))).click();
     await wait(() => document.querySelector('[aria-label="Тривалість запису"]')?.textContent === '0:02');
-    checks.push('WebView composer starts native microphone');
+    checks.push('one tap on WebView microphone starts native recording without a dialog');
     (await wait(() => textButton('Пауза запису'))).click();
     (await wait(() => textButton('Продовжити запис'))).click();
     await new Promise(resolve => setTimeout(resolve, 700));

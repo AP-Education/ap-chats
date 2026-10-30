@@ -156,7 +156,9 @@ async function backend(page: Page, failFirst = false) {
 
 async function start(page: Page) {
   await page.getByRole('button', { name: 'Записати голосове повідомлення' }).click();
-  await page.getByRole('button', { name: 'Почати запис', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Почати запис', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: 'Повідомлення' })).toHaveCount(0);
   await expect(page.getByText('Триває запис', { exact: true })).toBeVisible();
   await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
 }
@@ -167,11 +169,23 @@ test('record, pause, preview and send a real audio file through the composer, up
   const data = await backend(page);
   await page.goto('/');
   await start(page);
+  await page.screenshot({ path: test.info().outputPath('recording.png') });
   await page.getByRole('button', { name: 'Пауза запису', exact: true }).click();
   await expect(page.getByText('Запис на паузі')).toBeVisible();
   await page.getByRole('button', { name: 'Продовжити запис', exact: true }).click();
   await page.getByRole('button', { name: 'Завершити запис', exact: true }).click();
   await expect(page.getByLabel('Прослухати запис')).toBeVisible();
+  const sendColors = await page
+    .getByRole('button', { name: 'Надіслати голосове' })
+    .evaluate((button) => {
+      const style = getComputedStyle(button);
+      return { foreground: style.color, background: style.backgroundColor };
+    });
+  expect(sendColors.foreground).not.toBe(sendColors.background);
+  await page.screenshot({ path: test.info().outputPath('review.png') });
+  await page.getByRole('button', { name: 'Прослухати запис', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Пауза прослуховування' })).toBeVisible();
+  await page.getByRole('button', { name: 'Пауза прослуховування' }).click();
   await expect
     .poll(() =>
       page.evaluate(
@@ -196,7 +210,8 @@ test('cancel releases the microphone without uploading or sending', async ({ pag
   await page.goto('/');
   await start(page);
   await page.getByRole('button', { name: 'Скасувати запис', exact: true }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Запис голосового повідомлення' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Записати голосове повідомлення' })).toBeFocused();
   await expect
     .poll(() =>
       page.evaluate(
@@ -241,7 +256,6 @@ test('denied microphone permission has a readable error and never queues a file'
     };
   });
   await page.getByRole('button', { name: 'Записати голосове повідомлення' }).click();
-  await page.getByRole('button', { name: 'Почати запис', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Немає дозволу');
   expect(data.posts).toHaveLength(0);
   expect(data.uploads.size).toBe(0);
@@ -291,7 +305,6 @@ test('a browser without a supported recording format explains the limitation bef
     MediaRecorder.isTypeSupported = () => false;
   });
   await page.getByRole('button', { name: 'Записати голосове повідомлення' }).click();
-  await page.getByRole('button', { name: 'Почати запис', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('підтримку запису');
   expect(
     await page.evaluate(
@@ -299,4 +312,93 @@ test('a browser without a supported recording format explains the limitation bef
     ),
   ).toBe(0);
   expect(data.uploads.size).toBe(0);
+});
+
+test('permission failure can be retried directly without closing the composer', async ({
+  page,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  await page.evaluate(() => {
+    const devices = navigator.mediaDevices;
+    const original = devices.getUserMedia.bind(devices);
+    devices.getUserMedia = async () => {
+      devices.getUserMedia = original;
+      throw new DOMException('Denied', 'NotAllowedError');
+    };
+  });
+  await page.getByRole('button', { name: 'Записати голосове повідомлення' }).click();
+  await expect(page.getByRole('alert')).toContainText('Немає дозволу');
+  await page.getByRole('button', { name: 'Повторити запис' }).click();
+  await expect(page.getByText('Триває запис', { exact: true })).toBeVisible();
+  await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Записати голосове повідомлення' })).toBeFocused();
+  expect(data.posts).toHaveLength(0);
+});
+
+test('cancel is available while permission is pending and a late grant cannot revive recording', async ({
+  page,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  await page.evaluate(() => {
+    const devices = navigator.mediaDevices;
+    const original = devices.getUserMedia.bind(devices);
+    devices.getUserMedia = () => {
+      devices.getUserMedia = original;
+      return new Promise((resolve) => {
+        (
+          window as unknown as { grantFixtureMicrophone: () => Promise<void> }
+        ).grantFixtureMicrophone = async () => resolve(await original({ audio: true }));
+      });
+    };
+  });
+  await page.getByRole('button', { name: 'Записати голосове повідомлення' }).click();
+  await expect(page.getByText('Підключаємо мікрофон…')).toBeVisible();
+  await page.getByRole('button', { name: 'Скасувати запис' }).click();
+  await page.evaluate(() =>
+    (window as unknown as { grantFixtureMicrophone: () => Promise<void> }).grantFixtureMicrophone(),
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => (window as unknown as { testActiveMicrophones: number }).testActiveMicrophones,
+      ),
+    )
+    .toBe(0);
+  await expect(page.getByRole('region', { name: 'Запис голосового повідомлення' })).toHaveCount(0);
+  expect(data.uploads.size).toBe(0);
+  await start(page);
+  await page.getByRole('button', { name: 'Скасувати запис' }).click();
+});
+
+test('rapid repeated taps acquire one microphone and keep the recording toolbar inside the viewport', async ({
+  page,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  await page
+    .getByRole('button', { name: 'Записати голосове повідомлення' })
+    .evaluate((button: HTMLButtonElement) => {
+      button.click();
+      button.click();
+    });
+  await expect(page.getByText('Триває запис', { exact: true })).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { testActiveMicrophones: number }).testActiveMicrophones,
+    ),
+  ).toBe(1);
+  const toolbar = page.getByRole('region', { name: 'Запис голосового повідомлення' });
+  const bounds = await toolbar.boundingBox();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  for (const button of await toolbar.getByRole('button').all()) {
+    const bounds = await button.boundingBox();
+    expect(bounds!.width).toBeGreaterThanOrEqual(44);
+    expect(bounds!.height).toBeGreaterThanOrEqual(44);
+  }
+  await page.keyboard.press('Escape');
+  expect(data.posts).toHaveLength(0);
 });
