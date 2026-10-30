@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'test/search.integration.mts'
+      - 'infra/docker-compose.search-test.yml'
       - '*.json'
       - '*.yaml'
       - '*.mjs'
@@ -15,6 +17,8 @@ on:
   pull_request:
     paths:
       - 'src/**'
+      - 'test/search.integration.mts'
+      - 'infra/docker-compose.search-test.yml'
       - '*.json'
       - '*.yaml'
       - '*.mjs'
@@ -50,4 +54,8 @@ jobs:
         env:
           VALKEY_SERVER_BIN: redis-server
       - run: pnpm build
+      - run: docker compose --env-file /dev/null -f infra/docker-compose.search-test.yml up -d --wait
+      - run: node --import tsx test/search.integration.mts
+      - if: always()
+        run: docker compose --env-file /dev/null -f infra/docker-compose.search-test.yml down
       - run: pnpm exec prettier --check src package.json eslint.config.mjs

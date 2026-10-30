@@ -1,6 +1,9 @@
 import { Panel, PanelBody, useIsMobile } from '@ap-education/ui';
 import { useLocation } from 'react-router-dom';
 
+import { ConversationSearch } from '@/features/social/conversation-search/ConversationSearch';
+import { useActiveWorkspace } from '@/features/workspaces/hooks/useActiveWorkspace';
+
 import { RefreshablePanelBody } from './RefreshablePanelBody';
 import { SectionList } from './SectionList';
 import { chatsSections, sectionAt } from './sections';
@@ -11,10 +14,14 @@ export function ChatsPanel() {
   const { pathname } = useLocation();
   const isMobile = useIsMobile();
   const section = sectionAt(pathname);
+  const { workspace } = useActiveWorkspace();
 
   return (
     <Panel>
       {section === 'channels' && <TeamHeader />}
+      {workspace && (
+        <ConversationSearch workspaceId={workspace.id} workspaceName={workspace.name} />
+      )}
       {isMobile ? (
         chatsSections.map((each) => (
           <RefreshablePanelBody key={each} hidden={each !== section}>

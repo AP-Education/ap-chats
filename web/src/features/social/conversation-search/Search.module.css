@@ -1,0 +1,112 @@
+.triggerWrap {
+  padding: 0 12px 10px;
+}
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  background: var(--ant-color-fill-tertiary);
+  color: var(--ant-color-text-secondary);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.trigger:hover {
+  background: var(--ant-color-fill-secondary);
+  color: var(--ant-color-text);
+}
+.trigger:focus-visible,
+.result:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 2px;
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+}
+.results {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.heading {
+  margin: 16px 8px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ant-color-text-secondary);
+}
+.result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: var(--ant-border-radius);
+  background: transparent;
+  color: var(--ant-color-text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.result:hover,
+.result[aria-selected='true'] {
+  background: var(--ant-color-fill-tertiary);
+}
+.result:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.channelIcon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--ant-border-radius);
+  background: var(--ant-color-primary-bg);
+  color: var(--ant-color-primary);
+  flex-shrink: 0;
+}
+.label {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+.name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.description,
+.hint {
+  color: var(--ant-color-text-secondary);
+  font-size: 13px;
+}
+.hint {
+  padding: 12px 8px;
+  margin: 0;
+  line-height: 1.6;
+}
+@media (max-width: 767px) {
+  .trigger {
+    min-height: 44px;
+  }
+  .result {
+    min-height: 64px;
+  }
+  .name {
+    font-size: 16px;
+  }
+}
