@@ -1,3 +1,4 @@
+import type { Attachment } from '@/features/social/messaging/attachments/types';
 import type { MessageBlock } from '@/features/social/messaging/types';
 import type { MemberSummary } from '@/features/workspaces/types';
 import { apiRequest, jsonInit } from '@/shared/api/http';
@@ -19,6 +20,7 @@ export interface DirectMessage {
     id: string;
     markdown: string | null;
     blocks?: MessageBlock[];
+    attachments?: Attachment[];
     authorMemberId: string;
     createdAt: string;
   } | null;

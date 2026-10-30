@@ -42,7 +42,11 @@ export class MessageNotificationContentService extends NotificationContent {
         kind: conversation.kind === 'dm' ? 'dm' : 'channel',
       },
       title: clip(titleFor(conversation, message.actorName), 100),
-      body: body || 'Нове вкладення',
+      body:
+        body ||
+        (message.attachments?.some((file) => file.voice)
+          ? 'Голосове повідомлення'
+          : 'Нове вкладення'),
     };
   }
 

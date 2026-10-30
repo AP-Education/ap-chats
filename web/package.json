@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "node --import tsx --test \"src/**/*.spec.ts\" \"tests/*.spec.ts\"",
     "test:browser": "playwright test",
-    "icons": "pnpm dlx @vite-pwa/assets-generator@2.0.0 && pnpm dlx @vite-pwa/assets-generator@2.0.0 -c pwa-assets.favicon.mjs"
+    "icons": "pnpm dlx @vite-pwa/assets-generator@2.0.0 && pnpm dlx @vite-pwa/assets-generator@2.0.0 -c pwa-assets.favicon.mjs",
+    "test:voice": "tsc --noEmit -p tests/voice/tsconfig.json && vite build --config tests/voice/vite.config.mts && playwright test --config tests/voice/playwright.config.ts"
   },
   "dependencies": {
     "@ap-education/shell-sdk": "^0.1.1-beta.3",

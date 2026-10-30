@@ -83,6 +83,7 @@ function messageItemView(row: MessageHistoryRow, viewerMemberId: string) {
       author: row.replyAuthorProfile && personView(reply.authorMemberId, row.replyAuthorProfile),
       markdown: reply.deletedAt ? null : reply.contentMarkdown,
       blocks: reply.deletedAt ? [] : messageBlocks(reply),
+      attachments: reply.deletedAt ? [] : (reply.attachments ?? []),
     },
     context: context && {
       count: context.count,
@@ -92,6 +93,7 @@ function messageItemView(row: MessageHistoryRow, viewerMemberId: string) {
         author: personView(context.first.authorMemberId, context.first.author),
         markdown: context.first.contentMarkdown,
         blocks: messageBlocks(context.first),
+        attachments: context.first.attachments ?? [],
       },
     },
     forwardedFrom:

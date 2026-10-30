@@ -2,7 +2,7 @@
   "name": "@ap-chats/api",
   "version": "0.0.0",
   "private": true,
-  "description": "\u041a\u043e\u043c\u0430\u043d\u0434\u043d\u0456 \u0447\u0430\u0442\u0438 \u0439 \u0434\u0437\u0432\u0456\u043d\u043a\u0438 \u0437\u0456 \u0441\u043f\u0456\u043b\u044c\u043d\u0438\u043c \u0432\u0445\u043e\u0434\u043e\u043c AP.",
+  "description": "Командні чати й дзвінки зі спільним входом AP.",
   "packageManager": "pnpm@11.17.0",
   "engines": {
     "node": ">=24.15 <25"
@@ -65,6 +65,7 @@
     "ioredis": "^5.11.1",
     "jose": "6.2.12",
     "livekit-server-sdk": "^2.19.1",
+    "mediabunny": "^1.63.0",
     "nestjs-cls": "^7.0.1",
     "nestjs-pino": "5.2.0",
     "pg": "^8.23.0",

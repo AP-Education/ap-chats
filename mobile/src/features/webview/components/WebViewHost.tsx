@@ -34,6 +34,11 @@ import { dismissPresentedNotifications } from '../../push/api/presented-notifica
 import { getPushPermissionStatus } from '../../push/api/push-token';
 import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
 import { useNotificationStore } from '../../push/store/notification-store';
+import {
+  VoiceMessageRuntime,
+  type VoiceRuntimeHandle,
+} from '../../voice-messages/components/VoiceMessageRuntime';
+import { isVoiceRequest } from '../../voice-messages/types';
 import { forgetLastLocation, loadLastLocation, rememberLocation } from '../api/last-location';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
 import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
@@ -51,6 +56,7 @@ const inspectable = __DEV__ || process.env.EXPO_PUBLIC_WEBVIEW_INSPECTABLE === '
 export function WebViewHost() {
   // 13.17 defaults WebView's extra props to `undefined`, which leaves it accepting none.
   const webViewRef = useRef<WebView<object>>(null);
+  const voiceRuntime = useRef<VoiceRuntimeHandle>(null);
   const auth = useAuthStore();
   const pendingNotification = useNotificationStore((state) => state.pending);
   const webReady = useNotificationStore((state) => state.webReady);
@@ -181,6 +187,7 @@ export function WebViewHost() {
 
   // Android reports the page's own history steps as loads too, so the page says when it starts.
   function startPage() {
+    voiceRuntime.current?.reset();
     input.close();
     // Hidden rather than dropped: the page lives inside a tab's host until it reloads.
     setTabBar((current) => current && { ...current, visible: false });
@@ -203,7 +210,9 @@ export function WebViewHost() {
     } catch {
       return;
     }
-    if (isComposerInputRequest(message)) {
+    if (isVoiceRequest(message)) {
+      voiceRuntime.current?.handle(message);
+    } else if (isComposerInputRequest(message)) {
       input.request(message);
     } else if (message.type === 'page/started') {
       startPage();
@@ -317,6 +326,10 @@ export function WebViewHost() {
       }}
     >
       <MessageNotificationSound request={messageSoundRequest} />
+      <VoiceMessageRuntime
+        ref={voiceRuntime}
+        send={(message) => webViewRef.current?.injectJavaScript(buildBridgeScript(message))}
+      />
       <SystemBack onBack={() => input.back() || sendBackToPage()} />
       <View style={styles.webviewWrapper}>
         {startUrl && (

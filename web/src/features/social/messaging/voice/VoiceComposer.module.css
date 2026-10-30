@@ -1,0 +1,42 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 0;
+}
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ant-color-text-secondary);
+  text-align: center;
+}
+.time {
+  font-size: 40px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  color: var(--ant-color-text);
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ant-color-error);
+}
+.hint {
+  margin: 0;
+  color: var(--ant-color-text-tertiary);
+  font-size: 12px;
+  text-align: center;
+}
+.controls {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.audio {
+  width: 100%;
+  max-width: 350px;
+}

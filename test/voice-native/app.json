@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "AP Voice Tests",
+    "slug": "ap-voice-tests",
+    "version": "1.0.0",
+    "ios": { "bundleIdentifier": "com.apeducation.voiceqa" },
+    "android": { "package": "com.apeducation.voiceqa" }
+  }
+}

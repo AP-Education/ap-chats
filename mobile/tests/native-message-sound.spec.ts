@@ -119,7 +119,7 @@ async function flush() {
 test('message sound is routed to native instead of Web Audio in the RN shell', () => {
   const messages: unknown[] = [];
   const { playMessageBloop } = load<WebSoundModule>(
-    '../../web/src/features/social/read-state/sound/messageBloop.ts',
+    '../../web/src/features/notifications/sound/messageBloop.ts',
     {
       '@/shared/audio/audio-context': {
         getSharedAudioContext: () => {
@@ -144,7 +144,7 @@ test('browser keeps the same two-note message sound', () => {
   const node = () => ({ connect() {}, disconnect() {}, gain: {}, delayTime: {} });
   const context = { createGain: node, createDelay: node, currentTime: 3, destination: {} };
   const { playMessageBloop } = load<WebSoundModule>(
-    '../../web/src/features/social/read-state/sound/messageBloop.ts',
+    '../../web/src/features/notifications/sound/messageBloop.ts',
     {
       '@/shared/audio/audio-context': { getSharedAudioContext: () => context },
       '@/shared/audio/tone': {

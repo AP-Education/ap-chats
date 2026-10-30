@@ -1,0 +1,31 @@
+name: ap-chats-voice-tests
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: voice-test
+      POSTGRES_DB: voice_test
+    ports: ['127.0.0.1:5439:5432']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d voice_test']
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  valkey:
+    image: valkey/valkey:8.1.9-alpine
+    ports: ['127.0.0.1:6389:6379']
+    command: ['valkey-server', '--save', '', '--appendonly', 'no']
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  storage:
+    image: chrislusf/seaweedfs@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
+    command: ['mini', '-dir=/data']
+    environment:
+      AWS_ACCESS_KEY_ID: voice-test
+      AWS_SECRET_ACCESS_KEY: voice-test-secret
+      S3_BUCKET: voice-test
+    ports: ['127.0.0.1:9019:8333']

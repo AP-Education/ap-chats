@@ -12,6 +12,8 @@ export interface Attachment {
   description: string | null;
   /** An image's ThumbHash, base64: its colours and a blurred stand-in before it loads. */
   placeholder?: string;
+  /** A recorded voice note; duration is derived from the stored audio by the API. */
+  voice?: { durationMs: number };
 }
 
 // What a fresh post and a forward of it both carry unmodified: what's

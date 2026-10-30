@@ -1,0 +1,46 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+.fixture-shell {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  max-width: 800px;
+  margin: 0 auto;
+  background: #f3f7f6;
+}
+header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px;
+  background: white;
+  border-bottom: 1px solid #dde7e4;
+}
+h1 {
+  flex: 1;
+  margin: 0;
+  font-size: 18px;
+}
+.fixture-history {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px 12px;
+}
+.fixture-bubble {
+  width: fit-content;
+  max-width: 100%;
+  margin: 14px 0 14px auto;
+  padding: 6px 10px;
+  border-radius: 18px;
+  background: #d9f1e8;
+}

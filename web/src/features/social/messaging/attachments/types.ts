@@ -9,6 +9,8 @@ export interface Attachment {
   description: string | null;
   /** An image's ThumbHash: its colours and a blurred stand-in before it loads. */
   placeholder?: string;
+  /** A recorded voice note; duration is derived from the stored audio by the API. */
+  voice?: { durationMs: number };
 }
 
 export interface AttachmentPolicy {
@@ -39,4 +41,13 @@ export interface UploadSession {
   id: string;
   partBytes: number;
   expiresAt: string;
+}
+
+/** A native recording is an opaque local handle, never bytes or a device file URL. */
+export interface UploadFile extends Pick<
+  File,
+  'name' | 'size' | 'type' | 'lastModified' | 'slice'
+> {
+  voice?: true;
+  nativeRecordingId?: string;
 }

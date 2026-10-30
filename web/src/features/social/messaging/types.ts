@@ -51,6 +51,7 @@ export interface MessageHistoryItem {
     author: MessageAuthor | null;
     markdown: string | null;
     blocks?: MessageBlock[];
+    attachments?: Attachment[];
   } | null;
   /** The first of the earlier messages this one is about, and how many there are. */
   context: {
@@ -61,6 +62,7 @@ export interface MessageHistoryItem {
       author: MessageAuthor;
       markdown: string | null;
       blocks?: MessageBlock[];
+      attachments?: Attachment[];
     };
   } | null;
   forwardedFrom: MessageAuthor | null;

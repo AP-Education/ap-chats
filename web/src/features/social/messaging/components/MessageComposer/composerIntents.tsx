@@ -25,7 +25,7 @@ export interface IntentExcerptProps<T> {
   replyPreview?: ReplyPreview;
 }
 
-export type ReplyPreview = Pick<Message, 'markdown' | 'blocks'>;
+export type ReplyPreview = Pick<Message, 'markdown' | 'blocks' | 'attachments'>;
 
 interface ComposerIntentBehaviour<T> {
   Excerpt: ComponentType<IntentExcerptProps<T>>;
@@ -45,6 +45,7 @@ const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>>
         title={intent.quoteText ? 'Цитата' : `Відповідь для ${replyAuthor ?? 'учасника'}`}
         markdown={replyPreview?.markdown ?? 'Повідомлення'}
         blocks={replyPreview?.blocks}
+        attachments={replyPreview?.attachments}
         quoteText={intent.quoteText}
       />
     ),

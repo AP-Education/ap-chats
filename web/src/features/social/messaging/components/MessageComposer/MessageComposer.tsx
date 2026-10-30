@@ -28,12 +28,14 @@ import type {
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
 import { randomId } from '@/shared/lib/random-id';
 
+import type { UploadFile } from '../../attachments/types';
 import { useAttachments } from '../../attachments/useAttachments';
 import { gifBlock } from '../../gifs/klipy-items';
 import { withPlaceholder } from '../../gifs/linked-gif';
 import type { PickedGif } from '../../gifs/types';
 import { useLinkedGif } from '../../gifs/useLinkedGif';
 import type { ComposedMessage, GifBlock } from '../../types';
+import { VoiceComposer } from '../../voice/VoiceComposer';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
 import { useAttachmentDrop } from './AttachmentDropZone';
@@ -151,8 +153,7 @@ export function MessageComposer({
     setIntent(null);
   }, [clearDraft, setIntent]);
 
-  const handleSend = useCallback(() => {
-    if (!canSend) return;
+  const dispatchMessage = useCallback(() => {
     const input = readMessage();
     const nonce = randomId();
     uploads.commit(nonce);
@@ -164,7 +165,17 @@ export function MessageComposer({
     clearSent();
     // Sending keeps the active input surface, including an open emoji panel.
     if (!activeTab) editableRef.current?.focus();
-  }, [canSend, readMessage, uploads, onSend, clearSent, activeTab, linkedGif]);
+  }, [readMessage, uploads, onSend, clearSent, activeTab, linkedGif]);
+
+  const handleSend = useCallback(() => {
+    if (canSend) dispatchMessage();
+  }, [canSend, dispatchMessage]);
+
+  function sendVoice(file: UploadFile): boolean {
+    if (!uploads.addVoice(file)) return false;
+    dispatchMessage();
+    return true;
+  }
 
   const handleDraftChange = useCallback(
     (draft: ComposerDraft) => {
@@ -439,13 +450,22 @@ export function MessageComposer({
             <MessageEditorSlotProvider slot={slot}>{children}</MessageEditorSlotProvider>
           </div>
         </MessageInputSurface>
-        <ComposerAction
-          hasContent={canSend}
-          onSend={handleSend}
-          options={sendOptions}
-          draft={draftState}
-          composer={commands}
+        <VoiceComposer
+          key={draftKey}
+          scope={{ workspaceId, channelId }}
+          visible={!canSend}
+          disabled={!uploads.policy}
+          onSend={sendVoice}
         />
+        {canSend && (
+          <ComposerAction
+            hasContent={canSend}
+            onSend={handleSend}
+            options={sendOptions}
+            draft={draftState}
+            composer={commands}
+          />
+        )}
       </div>
       {isCompact && activeTab && !isNativeShell() && (
         <div className={styles.mobileSheet} style={{ height: keyboardHeight }}>
