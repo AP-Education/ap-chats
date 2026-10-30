@@ -14,28 +14,17 @@ import { useWorkspaceUnreadStore } from '@/features/social/read-state/workspace-
 import { useDirectMessages } from '../../hooks/useDirectMessages';
 import { DirectMessageListSkeleton } from './DirectMessageListSkeleton';
 import { DirectMessageRow } from './DirectMessageRow';
-import { PeopleSearchResults } from './PeopleSearchResults';
 
-const useStyles = createStyles(({ token, css }) => ({
+const useStyles = createStyles(({ css }) => ({
   error: css`
     padding: 12px 16px;
-  `,
-  heading: css`
-    padding: 12px 16px 4px;
-    color: ${token.colorTextSecondary};
-    font-size: 12px;
-    font-weight: 600;
   `,
 }));
 
 export function DirectMessageResults({
-  workspaceId,
-  filter,
   onCompose,
   onNavigate,
 }: {
-  workspaceId: string;
-  filter: string;
   onCompose: () => void;
   onNavigate?: () => void;
 }) {
@@ -55,18 +44,13 @@ export function DirectMessageResults({
     );
 
   const items = conversations.data.pages.flatMap((page) => page.items);
-  const visible = items.filter((item) =>
-    (item.participant.displayName ?? '').toLocaleLowerCase().includes(filter.toLocaleLowerCase()),
-  );
-  if (visible.length === 0 && !filter.trim()) {
+  if (items.length === 0) {
     return (
       <ContentState compact>
         <ContentStateIcon>
           <ChatTextIcon />
         </ContentStateIcon>
-        <ContentStateDescription>
-          {filter ? 'Розмову не знайдено' : 'Поки немає розмов'}
-        </ContentStateDescription>
+        <ContentStateDescription>Поки немає розмов</ContentStateDescription>
         <ContentStateActions>
           <Button onClick={onCompose}>Написати колезі</Button>
         </ContentStateActions>
@@ -75,8 +59,7 @@ export function DirectMessageResults({
   }
   return (
     <>
-      {filter.trim() && visible.length > 0 && <div className={styles.heading}>Розмови</div>}
-      {visible.map((item) => (
+      {items.map((item) => (
         <DirectMessageRow
           key={item.id}
           item={item}
@@ -92,15 +75,6 @@ export function DirectMessageResults({
         >
           Показати ще
         </Button>
-      )}
-      {filter.trim() && (
-        <PeopleSearchResults
-          workspaceId={workspaceId}
-          query={filter}
-          excludedMemberIds={new Set(items.map((item) => item.participant.memberId))}
-          showEmpty={visible.length === 0}
-          onNavigate={onNavigate}
-        />
       )}
     </>
   );

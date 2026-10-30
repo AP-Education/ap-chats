@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.apeducation.searchqa">
+  <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="36" />
+  <uses-permission android:name="android.permission.INTERNET" />
+  <application android:label="AP Search Tests" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:usesCleartextTraffic="true" android:debuggable="true">
+    <activity android:name=".MainActivity" android:windowSoftInputMode="adjustNothing" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+    </activity>
+  </application>
+  <instrumentation android:name=".SearchInstrumentation" android:targetPackage="com.apeducation.searchqa" />
+</manifest>

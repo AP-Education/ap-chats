@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AttachmentsModule } from './attachments';
 import { ContentModule } from './content';
+import { ConversationSearchModule } from './conversation-search/conversation-search.module';
 import { EntriesModule } from './entries';
 import { ForwardingModule } from './forwarding';
 import { HistoryModule } from './history';
@@ -18,6 +19,7 @@ import { SchedulingModule } from './scheduling';
   imports: [
     EntriesModule,
     ContentModule,
+    ConversationSearchModule,
     MentionsModule,
     MessagesModule,
     AttachmentsModule,

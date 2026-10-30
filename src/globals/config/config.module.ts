@@ -7,7 +7,11 @@ import { AppConfigService } from './config.service';
 @Global()
 @Module({
   imports: [
-    ConfigModule.forRoot({ envFilePath: ['.env.local', '.env'], validate: validateConfig }),
+    ConfigModule.forRoot({
+      envFilePath: ['.env.local', '.env'],
+      ignoreEnvFile: process.env.NODE_ENV === 'test',
+      validate: validateConfig,
+    }),
   ],
   providers: [AppConfigService],
   exports: [AppConfigService],
