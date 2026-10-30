@@ -4,6 +4,7 @@ import { MicrophoneIcon, PauseIcon, PlayIcon, StopIcon } from '@phosphor-icons/r
 import { Button } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 
+import { useCallStore } from '@/features/calls/store/call-store';
 import { AdaptiveModal } from '@/shared/ui/AdaptiveModal';
 
 import type { UploadFile, UploadScope } from '../attachments/types';
@@ -25,29 +26,35 @@ export function VoiceComposer({
   onSend: (file: UploadFile) => boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const busy = useCallStore((state) => Boolean(state.active || state.incoming));
   return (
     <>
       {visible && (
         <IconButton
           size={44}
           aria-label="Записати голосове повідомлення"
-          disabled={disabled}
+          disabled={disabled || busy}
+          title={busy ? 'Запис недоступний під час дзвінка' : undefined}
           onClick={() => setOpen(true)}
         >
           <MicrophoneIcon size={23} />
         </IconButton>
       )}
-      {open && <VoiceRecording scope={scope} onCancel={() => setOpen(false)} onSend={onSend} />}
+      {open && (
+        <VoiceRecording scope={scope} busy={busy} onCancel={() => setOpen(false)} onSend={onSend} />
+      )}
     </>
   );
 }
 
 function VoiceRecording({
   scope,
+  busy,
   onCancel,
   onSend,
 }: {
   scope: UploadScope;
+  busy: boolean;
   onCancel: () => void;
   onSend: (file: UploadFile) => boolean;
 }) {
@@ -66,6 +73,9 @@ function VoiceRecording({
     recorder.current = instance;
     return () => instance.dispose();
   }, [scope.workspaceId, scope.channelId]);
+  useEffect(() => {
+    if (busy && recorder.current instanceof BrowserVoiceRecorder) recorder.current.interrupt();
+  }, [busy]);
   useEffect(() => {
     const audio = preview.current;
     return () => audio?.pause();
@@ -102,6 +112,7 @@ function VoiceRecording({
         <output className={styles.time} aria-label="Тривалість запису">
           {voiceTime(state.durationMs)}
         </output>
+        {busy && <p role="status">Під час дзвінка запис недоступний.</p>}
         {state.error && <p role="alert">{state.error}</p>}
         <p className={styles.hint}>
           До 10 хвилин · запис надішлеться лише після вашого підтвердження
@@ -129,6 +140,7 @@ function VoiceRecording({
             <Button
               type="primary"
               icon={<MicrophoneIcon />}
+              disabled={busy}
               onClick={() => void recorder.current?.start()}
             >
               Почати запис
@@ -138,6 +150,7 @@ function VoiceRecording({
             <>
               <Button
                 icon={paused ? <MicrophoneIcon /> : <PauseIcon />}
+                disabled={paused && busy}
                 onClick={() => (paused ? recorder.current?.resume() : recorder.current?.pause())}
               >
                 {paused ? 'Продовжити запис' : 'Пауза запису'}

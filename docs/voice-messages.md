@@ -23,3 +23,5 @@ docker compose --env-file /dev/null -f infra/docker-compose.voice-test.yml down
 ```
 
 Браузерні тести використовують синтетичний аудіопотік і справжній MediaRecorder, composer, чергу, outbox та серверний parser. Є desktop, 390 px і 320 px із 4× CPU та WebKit phone. Нативний стенд і процедура локального Android/iOS тестування описані в [test/voice-native](../test/voice-native/README.md). Переривання справжнім телефонним дзвінком і фізичні аудіомаршрути перевіряються окремо на пристроях.
+
+У CI Chromium працює на Linux, а WebKit MediaRecorder — в окремому macOS job із медіастеком Apple. Це відповідає [рекомендації Playwright для Safari та медіа](https://playwright.dev/docs/browsers#webkit). Відсутність підтримуваного формату перевіряється окремим UI-сценарієм до запиту мікрофона.

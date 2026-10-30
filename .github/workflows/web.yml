@@ -45,7 +45,24 @@ jobs:
       - run: pnpm lint:web
       - run: pnpm typecheck:web
       - run: pnpm test:web
-      - run: pnpm --filter @ap-chats/web exec playwright install --with-deps chromium webkit
-      - run: pnpm --filter @ap-chats/web test:voice
+      - run: pnpm --filter @ap-chats/web exec playwright install --with-deps chromium
+      - run: pnpm --filter @ap-chats/web test:voice --project=desktop --project=phone --project=narrow-phone
       - run: pnpm build:web
       - run: pnpm exec prettier --check web
+
+  safari-voice:
+    runs-on: macos-15
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - run: echo '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}' >> ~/.npmrc
+      - uses: pnpm/setup@v3
+        with:
+          require-lockfile: true
+          cache: true
+      # MediaRecorder coverage needs Apple's media stack, as on Safari and WKWebView.
+      - run: pnpm --filter @ap-chats/web exec playwright install webkit
+      - run: pnpm --filter @ap-chats/web test:voice --project=webkit-phone

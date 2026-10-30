@@ -178,3 +178,32 @@ test('starting another audio player pauses the previous one and release cannot c
   assert.equal(secondPaused, 1);
   releaseAudioPlayback(first);
 });
+
+test('an incoming call during a browser permission prompt cancels late microphone acquisition', async (t) => {
+  const f = fixture(t);
+  let grant!: (value: Awaited<ReturnType<Parameters<typeof f.media>[0]>>) => void;
+  f.media(
+    () =>
+      new Promise((resolve) => {
+        grant = resolve;
+      }),
+  );
+  const started = f.recorder.start();
+  f.recorder.interrupt();
+  grant({ getTracks: () => [f.track], getAudioTracks: () => [f.track] });
+  await started;
+  assert.equal(f.states.at(-1)!.phase, 'error');
+  assert.equal(f.track.stops, 1);
+  assert.equal(f.recorder.take(), undefined);
+});
+
+test('an incoming browser call stops the recording for review and retains its voice draft', async (t) => {
+  const f = fixture(t);
+  await f.recorder.start();
+  f.advance(1500);
+  f.recorder.interrupt();
+  f.advance(0);
+  assert.equal(f.states.at(-1)!.phase, 'ready');
+  assert.equal(f.track.stops, 1);
+  assert.equal(f.recorder.take()!.voice, true);
+});

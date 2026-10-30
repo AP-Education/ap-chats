@@ -140,6 +140,16 @@ export class BrowserVoiceRecorder implements VoiceRecorder {
 
   preview() {}
 
+  interrupt() {
+    if (this.phase === 'requesting') {
+      this.disposed = true;
+      this.phase = 'error';
+      this.publish('Запис перервано дзвінком. Спробуйте після його завершення.');
+      return;
+    }
+    void this.stop();
+  }
+
   take() {
     const file = this.file;
     this.file = undefined;

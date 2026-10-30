@@ -8,6 +8,8 @@ import { StrictMode, useEffect, useState, useSyncExternalStore } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 
+import type { CallSignal } from '@/features/calls/schemas';
+import { useCallStore } from '@/features/calls/store/call-store';
 import { RealtimeContext } from '@/features/realtime/stores/realtime-context';
 import type { RealtimeSocketClient } from '@/features/realtime/types';
 import {
@@ -39,9 +41,13 @@ function Fixture() {
   useEffect(() => {
     const changeChat = () => setChannel((value) => (value === first ? second : first));
     const changeAccount = () => setIdentity((value) => `${value}-next`);
+    const incoming = () =>
+      useCallStore.setState({ incoming: { callId: 'fixture-call' } as CallSignal });
+    window.addEventListener('fixture:incoming-call', incoming);
     window.addEventListener('fixture:change-chat', changeChat);
     window.addEventListener('fixture:change-account', changeAccount);
     return () => {
+      window.removeEventListener('fixture:incoming-call', incoming);
       window.removeEventListener('fixture:change-chat', changeChat);
       window.removeEventListener('fixture:change-account', changeAccount);
     };

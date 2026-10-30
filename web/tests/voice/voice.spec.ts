@@ -261,3 +261,42 @@ test('failed completion retries the same voice upload and sends one message', as
   expect(data.posts).toHaveLength(1);
   expect(data.uploads.size).toBe(1);
 });
+
+test('an incoming call releases capture, keeps the draft for review and blocks another recording', async ({
+  page,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  await start(page);
+  await page.evaluate(() => window.dispatchEvent(new Event('fixture:incoming-call')));
+  await expect(page.getByLabel('Прослухати запис')).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => (window as unknown as { testActiveMicrophones: number }).testActiveMicrophones,
+      ),
+    )
+    .toBe(0);
+  expect(data.posts).toHaveLength(0);
+  await page.getByRole('button', { name: 'Скасувати запис', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Записати голосове повідомлення' })).toBeDisabled();
+});
+
+test('a browser without a supported recording format explains the limitation before asking for a microphone', async ({
+  page,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  await page.evaluate(() => {
+    MediaRecorder.isTypeSupported = () => false;
+  });
+  await page.getByRole('button', { name: 'Записати голосове повідомлення' }).click();
+  await page.getByRole('button', { name: 'Почати запис', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('підтримку запису');
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { testActiveMicrophones: number }).testActiveMicrophones,
+    ),
+  ).toBe(0);
+  expect(data.uploads.size).toBe(0);
+});
