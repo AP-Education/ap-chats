@@ -123,7 +123,7 @@ async function backend(page: Page, failFirst = false) {
     if (url.pathname.endsWith('/messages') && request.method() === 'POST') {
       const body = request.postDataJSON();
       posts.push(body);
-      const attachments = body.attachments.map(
+      const attachments = (body.attachments ?? []).map(
         (ref: { id: string }) => uploads.get(ref.id)!.attachment,
       );
       return route.fulfill({
@@ -136,7 +136,7 @@ async function backend(page: Page, failFirst = false) {
           attachments,
           contentVersion: 1,
           revision: 1,
-          markdown: '',
+          markdown: body.markdown ?? '',
           authorMemberId: 'fixture',
         },
       });
@@ -567,6 +567,81 @@ test('keyboard recording uses hands-free controls and send works without a point
   await expect(page.getByRole('button', { name: 'Пауза запису' })).toBeVisible();
   await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
   await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
+  expect(data.posts).toHaveLength(1);
+});
+
+async function pressSend(page: Page, label: string) {
+  const button = page.getByRole('button', { name: label, exact: true });
+  if (test.info().project.name === 'desktop') await button.click();
+  else await button.tap();
+}
+
+test('text and voice use one consistent primary action and a tap sends text once', async ({
+  page,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  const microphone = page.getByRole('button', { name: 'Записати голосове повідомлення' });
+  await expect(microphone).toBeEnabled();
+  const microphoneBox = (await microphone.boundingBox())!;
+  await page.getByRole('textbox', { name: 'Повідомлення' }).fill('Перевірка кнопки надсилання');
+  const send = page.getByRole('button', { name: 'Надіслати', exact: true });
+  await expect(send).toBeEnabled();
+  const sendBox = (await send.boundingBox())!;
+  await page.screenshot({ path: test.info().outputPath('text-send.png') });
+  expect(sendBox.width).toBe(microphoneBox.width);
+  expect(sendBox.height).toBe(microphoneBox.height);
+  expect(Math.abs(sendBox.x - microphoneBox.x)).toBeLessThanOrEqual(1);
+  const colors = await send.evaluate((button) => {
+    const style = getComputedStyle(button);
+    return { foreground: style.color, background: style.backgroundColor };
+  });
+  expect(colors.foreground).toBe('rgb(255, 255, 255)');
+  expect(colors.foreground).not.toBe(colors.background);
+  await pressSend(page, 'Надіслати');
+  await expect(page.getByText('Перевірка кнопки надсилання', { exact: true })).toBeVisible();
+  await expect(microphone).toBeVisible();
+  expect(data.posts).toHaveLength(1);
+  expect(data.posts[0]!.markdown).toBe('Перевірка кнопки надсилання');
+});
+
+test('the first touch on Send finalizes a hands-free voice note and restores text sending', async ({
+  page,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  await pressSend(page, 'Записати голосове повідомлення');
+  await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
+  await pressSend(page, 'Надіслати голосове');
+  await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => (window as unknown as { testActiveMicrophones: number }).testActiveMicrophones,
+      ),
+    )
+    .toBe(0);
+  expect(data.posts).toHaveLength(1);
+  await page.getByRole('textbox', { name: 'Повідомлення' }).fill('Текст після голосового');
+  await pressSend(page, 'Надіслати');
+  await expect(page.getByText('Текст після голосового', { exact: true })).toBeVisible();
+  expect(data.posts).toHaveLength(2);
+});
+
+test('a locked hold can be reviewed and sent with the first touch', async ({
+  page,
+  browserName,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  const pointer = await holdMicrophone(page, browserName);
+  await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
+  await pointer.move(0, -90);
+  await pointer.up();
+  await pressSend(page, 'Завершити запис');
+  await expect(page.getByRole('button', { name: 'Прослухати запис' })).toBeVisible();
+  await pressSend(page, 'Надіслати голосове');
   await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
   expect(data.posts).toHaveLength(1);
 });

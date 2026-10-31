@@ -113,6 +113,7 @@ function Fixture() {
                 .filter((message) => message.channelId === channelId)
                 .map((message) => (
                   <article key={message.id} className="fixture-bubble">
+                    {message.markdown && <p>{message.markdown}</p>}
                     <MessageAttachments
                       attachments={message.attachments ?? []}
                       messageId={message.id}

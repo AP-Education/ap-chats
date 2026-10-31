@@ -67,11 +67,11 @@ export function VoiceRecordAction({
 
   function down(event: PointerEvent<HTMLButtonElement>) {
     if (!event.isPrimary || event.button !== 0) return;
-    event.preventDefault();
     if (active) {
       ignoreClick.current = false;
       return;
     }
+    event.preventDefault();
     if (unavailable || hold.current || !onStart()) return;
     ignoreClick.current = true;
     hold.current = {

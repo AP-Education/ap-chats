@@ -114,7 +114,7 @@ const server = createServer(async (request, response) => {
           seq: '1',
           createdAt: new Date().toISOString(),
           markdown: value.markdown,
-          attachments: value.attachments.map(
+          attachments: (value.attachments ?? []).map(
             (file: { id: string }) => files.get(file.id)?.metadata,
           ),
           contentVersion: 1,
