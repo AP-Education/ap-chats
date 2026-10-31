@@ -10,7 +10,11 @@ export function getUploadPolicy(token: string, scope: UploadScope): Promise<Atta
   return apiRequest(`${uploadsUrl(scope)}/policy`, token);
 }
 
-export function beginUpload(token: string, scope: UploadScope, file: File): Promise<UploadSession> {
+export function beginUpload(
+  token: string,
+  scope: UploadScope,
+  file: Pick<File, 'name' | 'size'>,
+): Promise<UploadSession> {
   return apiRequest(
     uploadsUrl(scope),
     token,
@@ -27,8 +31,17 @@ export function signUploadPart(
   return apiRequest(`${uploadsUrl(scope)}/${id}/part`, token, jsonInit('POST', { number }));
 }
 
-export function completeUpload(token: string, scope: UploadScope, id: string): Promise<Attachment> {
-  return apiRequest(`${uploadsUrl(scope)}/${id}/complete`, token, jsonInit('POST', {}));
+export function completeUpload(
+  token: string,
+  scope: UploadScope,
+  id: string,
+  voice?: true,
+): Promise<Attachment> {
+  return apiRequest(
+    `${uploadsUrl(scope)}/${id}/complete`,
+    token,
+    jsonInit('POST', voice ? { kind: 'voice' } : {}),
+  );
 }
 
 export function cancelUpload(token: string, scope: UploadScope, id: string): Promise<void> {

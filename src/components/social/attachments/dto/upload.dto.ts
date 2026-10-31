@@ -20,6 +20,12 @@ export class SignPartDto {
   number!: number;
 }
 
+export class CompleteUploadDto {
+  @IsOptional()
+  @IsIn(['voice'])
+  kind?: 'voice';
+}
+
 export class DownloadQueryDto {
   @IsOptional()
   @IsIn(['download', 'preview', 'thumbnail'])

@@ -11,6 +11,7 @@ export interface ReplyPreview {
   authorMemberId: string;
   contentMarkdown: string;
   gif: MessageModel['gif'];
+  attachments?: MessageModel['attachments'];
   deletedAt: Date | null;
 }
 

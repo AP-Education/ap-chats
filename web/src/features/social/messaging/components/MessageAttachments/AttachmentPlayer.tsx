@@ -3,6 +3,7 @@ import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import type { Attachment } from '../../attachments/types';
+import { claimAudioPlayback } from '../../voice/playback';
 import { useAttachmentUrl } from './useAttachmentAccess';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -80,6 +81,7 @@ export function AttachmentPlayer({ attachment, messageId }: AttachmentPlayerProp
         controls
         preload="none"
         aria-label={attachment.name}
+        onPlay={(event) => claimAudioPlayback(event.currentTarget)}
         onError={() => setMediaFailed(true)}
       />
     </div>

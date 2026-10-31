@@ -7,6 +7,7 @@ playwright-report/
 .turbo/
 *.tsbuildinfo
 .vite/
+web/dist-voice/
 web/test-results/
 web/playwright-report/
 .husky/_/
@@ -41,6 +42,7 @@ infra/ansible/**/__pycache__/
 
 # SSH private keys someone drops at repo root for local deploy use
 keys/
+key/
 # Apple APNs / App Store Connect API keys
 *.p8
 brag

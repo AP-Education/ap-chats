@@ -1,5 +1,6 @@
 import type { ChannelKind } from '@/components/communities/channels/types';
 import type { MessageGif } from '@/components/social/content';
+import type { Attachment } from '@/components/social/messages/types/message.types';
 
 import type { MemberNotificationSettings } from '../../preferences/types';
 import type { ConversationRange, ConversationScope } from '../types';
@@ -22,6 +23,7 @@ export interface PushRecipient extends MemberNotificationSettings {
 export interface PushMessagePreview {
   contentMarkdown: string;
   gif: MessageGif | null;
+  attachments?: Attachment[];
   actorName: string | null;
 }
 

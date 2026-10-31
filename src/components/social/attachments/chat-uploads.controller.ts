@@ -16,7 +16,7 @@ import { WorkspaceMemberGuard } from '@/components/workspaces/members/guards';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { AttachmentDownloadsService } from './attachment-downloads.service';
-import { BeginUploadDto, DownloadQueryDto, SignPartDto } from './dto/upload.dto';
+import { BeginUploadDto, CompleteUploadDto, DownloadQueryDto, SignPartDto } from './dto/upload.dto';
 import { UploadCompletionService } from './upload-completion.service';
 import { UploadsService } from './uploads.service';
 
@@ -58,8 +58,9 @@ export class ChatUploadsController {
     @CurrentWorkspaceMember() member: WorkspaceMember,
     @Param('channelId', ParseUUIDPipe) channelId: string,
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CompleteUploadDto,
   ) {
-    return this.completion.complete(member, channelId, id);
+    return this.completion.complete(member, channelId, id, dto.kind);
   }
 
   @Delete(':id')

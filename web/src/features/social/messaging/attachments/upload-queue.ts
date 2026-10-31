@@ -1,12 +1,13 @@
 import { ApiError } from '@/shared/api/http';
 import { randomId } from '@/shared/lib/random-id';
 
+import { releaseNativeVoice } from '../voice/native-recorder';
 import { formatFileSize } from './file-presentation';
 import { MultipartUploader, type UploadResumeState } from './multipart-uploader';
-import type { AttachmentDraft, AttachmentPolicy, UploadScope } from './types';
+import type { AttachmentDraft, AttachmentPolicy, UploadFile, UploadScope } from './types';
 
 interface UploadJob extends UploadResumeState {
-  file: File;
+  file: UploadFile;
   draft: AttachmentDraft;
   controller?: AbortController;
   /** Set once a send commits this job: it keeps uploading, but drops out of the composer's own snapshot. */
@@ -34,7 +35,7 @@ export class UploadQueue {
     };
   };
 
-  add(files: File[], policy: AttachmentPolicy): string[] {
+  add(files: UploadFile[], policy: AttachmentPolicy): string[] {
     const errors: string[] = [];
     // Committed jobs belong to a message already on its way out, not this
     // one in progress — they shouldn't count against its own limits.
@@ -64,7 +65,7 @@ export class UploadQueue {
       const key = randomId();
       const previewUrl =
         /^(image\/(jpeg|png|webp|gif))$/.test(file.type) && file.size <= 20 * 1024 * 1024
-          ? URL.createObjectURL(file)
+          ? URL.createObjectURL(file as File)
           : undefined;
       const draft: AttachmentDraft = {
         key,
@@ -89,6 +90,7 @@ export class UploadQueue {
     if (!job) return;
     this.jobs.delete(key);
     job.controller?.abort();
+    if (job.file.nativeRecordingId) releaseNativeVoice(job.file.nativeRecordingId, true);
     if (job.draft.previewUrl) URL.revokeObjectURL(job.draft.previewUrl);
     this.uploader.cancel(this.token(), job.session);
     this.publish();
@@ -144,6 +146,7 @@ export class UploadQueue {
     for (const [key, job] of this.jobs) {
       if (job.committedTo !== clientNonce) continue;
       if (job.draft.previewUrl) URL.revokeObjectURL(job.draft.previewUrl);
+      if (job.file.nativeRecordingId) releaseNativeVoice(job.file.nativeRecordingId);
       this.jobs.delete(key);
     }
     this.publish();

@@ -1,4 +1,4 @@
-import { PaperPlaneRightIcon } from '@phosphor-icons/react';
+import { PaperPlaneTiltIcon } from '@phosphor-icons/react';
 import { Dropdown, type MenuProps } from 'antd';
 import { type PointerEvent, useRef, useState } from 'react';
 
@@ -87,7 +87,7 @@ export function ComposerAction({
       onPointerCancel={endPress}
       onClick={handleClick}
     >
-      <PaperPlaneRightIcon size={22} weight={hasContent ? 'fill' : 'regular'} />
+      <PaperPlaneTiltIcon size={24} weight="fill" />
     </button>
   );
 

@@ -70,6 +70,7 @@ export class DrizzlePushAudienceRepository extends PushAudienceRepository {
       .select({
         contentMarkdown: chatMessages.contentMarkdown,
         gif: chatMessages.gif,
+        attachments: chatMessages.attachments,
         actorName: userProfiles.displayName,
       })
       .from(channelEntries)

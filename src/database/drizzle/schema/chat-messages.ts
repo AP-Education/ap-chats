@@ -27,6 +27,8 @@ export interface StoredAttachment {
   description: string | null;
   /** An image's ThumbHash, base64; files stored before it was kept have none. */
   placeholder?: string;
+  /** A recorded voice note; duration is derived from the stored audio by the API. */
+  voice?: { durationMs: number };
 }
 
 /** A GIF as a message keeps it: the media URL exactly as its service serves it, never a copy. */

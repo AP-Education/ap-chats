@@ -7,6 +7,7 @@ import { useConversationScope } from '@/features/social/conversation-scope/store
 
 import { useConversationSending } from '../sending/hooks/useConversationSending';
 import { getUploadPolicy } from './attachments-api';
+import type { UploadFile } from './types';
 
 // The files belong to the conversation, so they wait here and keep uploading in another chat.
 export function useAttachments() {
@@ -35,6 +36,12 @@ export function useAttachments() {
     policyError: policy.isError,
     reloadPolicy: () => void policy.refetch(),
     addFiles,
+    addVoice: (file: UploadFile) => {
+      if (!policy.data) return false;
+      const errors = uploads.add([file], policy.data);
+      for (const error of errors) void message.error(error);
+      return errors.length === 0;
+    },
     remove: (key: string) => uploads.remove(key),
     retry: (key: string) => uploads.retry(key),
     describe: (key: string, text: string) => uploads.describe(key, text),

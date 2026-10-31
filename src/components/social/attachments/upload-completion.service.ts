@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
 
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
 import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
@@ -13,12 +18,14 @@ import { ChatUploadsRepository } from './repository/chat-uploads.repository';
 import { type ChatUpload, READY_LIFETIME_MS } from './types';
 import { isFinished, requireOwnUpload } from './upload-lifecycle';
 import { validateParts } from './upload-policy';
+import { inspectVoice, MAX_VOICE_BYTES } from './voice-inspection';
 
 const COMPLETION_LEASE_MS = 30 * 60 * 1000;
 
 /** Storage work runs between two short transactions, under a lease against a racing completion. */
 @Injectable()
 export class UploadCompletionService {
+  private inspectingVoice = 0;
   constructor(
     private readonly access: ChannelAccessPolicy,
     private readonly repository: ChatUploadsRepository,
@@ -26,12 +33,21 @@ export class UploadCompletionService {
     private readonly preview: AttachmentPreviewService,
   ) {}
 
-  async complete(member: WorkspaceMember, channelId: string, id: string): Promise<Attachment> {
+  async complete(
+    member: WorkspaceMember,
+    channelId: string,
+    id: string,
+    kind?: 'voice',
+  ): Promise<Attachment> {
     const upload = await this.lease(member, channelId, id);
-    if (isFinished(upload)) return upload.metadata;
+    if (isFinished(upload)) {
+      if (kind === 'voice' && !upload.metadata.voice)
+        throw new BadRequestException('Upload was completed as a regular file');
+      return upload.metadata;
+    }
 
     try {
-      const metadata = await this.assemble(upload);
+      const metadata = await this.assemble(upload, kind);
       await this.finish(member, channelId, upload, metadata);
       return metadata;
     } catch (error) {
@@ -40,7 +56,9 @@ export class UploadCompletionService {
     }
   }
 
-  private async assemble(upload: ChatUpload): Promise<Attachment> {
+  private async assemble(upload: ChatUpload, kind?: 'voice'): Promise<Attachment> {
+    if (kind === 'voice' && upload.size > MAX_VOICE_BYTES)
+      throw new BadRequestException('Voice recording is too large');
     try {
       const parts = await this.storage.listParts(upload.objectKey, upload.multipartId);
       validateParts(upload.size, parts);
@@ -54,13 +72,49 @@ export class UploadCompletionService {
     if (storedSize !== upload.size)
       throw new BadRequestException('Stored file size does not match');
 
+    const media =
+      kind === 'voice'
+        ? await this.inspectRecording(upload)
+        : await this.preview.inspect(upload.objectKey, upload.size);
     return {
       id: upload.id,
       name: upload.name,
       size: upload.size,
       description: null,
-      ...(await this.preview.inspect(upload.objectKey, upload.size)),
+      ...media,
     };
+  }
+
+  private async inspectRecording(upload: ChatUpload) {
+    if (this.inspectingVoice >= 2)
+      throw new ServiceUnavailableException('Voice processing is busy; retry completion');
+    this.inspectingVoice++;
+    try {
+      return await this.readRecording(upload);
+    } finally {
+      this.inspectingVoice--;
+    }
+  }
+
+  private async readRecording(upload: ChatUpload) {
+    const input = await this.storage.readObject(upload.objectKey);
+    const chunks: Buffer[] = [];
+    let size = 0;
+    const timer = setTimeout(() => input.destroy(new Error('Voice inspection timed out')), 30_000);
+    try {
+      for await (const value of input) {
+        const chunk = Buffer.from(value as Uint8Array);
+        size += chunk.length;
+        if (size > upload.size || size > MAX_VOICE_BYTES)
+          throw new BadRequestException('Voice recording exceeds its declared size');
+        chunks.push(chunk);
+      }
+      if (size !== upload.size) throw new BadRequestException('Voice recording is incomplete');
+      return await inspectVoice(Buffer.concat(chunks));
+    } finally {
+      clearTimeout(timer);
+      input.destroy();
+    }
   }
 
   @Transactional()

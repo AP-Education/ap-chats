@@ -28,12 +28,14 @@ import type {
 import { useHasCoarsePointer } from '@/shared/hooks/useHasCoarsePointer';
 import { randomId } from '@/shared/lib/random-id';
 
+import type { UploadFile } from '../../attachments/types';
 import { useAttachments } from '../../attachments/useAttachments';
 import { gifBlock } from '../../gifs/klipy-items';
 import { withPlaceholder } from '../../gifs/linked-gif';
 import type { PickedGif } from '../../gifs/types';
 import { useLinkedGif } from '../../gifs/useLinkedGif';
 import type { ComposedMessage, GifBlock } from '../../types';
+import { VoiceComposer } from '../../voice/VoiceComposer';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 import { AttachmentDrafts } from './AttachmentDrafts/AttachmentDrafts';
 import { useAttachmentDrop } from './AttachmentDropZone';
@@ -151,20 +153,32 @@ export function MessageComposer({
     setIntent(null);
   }, [clearDraft, setIntent]);
 
-  const handleSend = useCallback(() => {
-    if (!canSend) return;
-    const input = readMessage();
-    const nonce = randomId();
-    uploads.commit(nonce);
-    sendQueue.current = sendQueue.current.then(async () => {
-      const blocks = await linkedGif.blocksFor(input.markdown);
-      onSend({ ...input, ...(blocks ? { blocks } : {}) }, nonce);
-    });
+  const dispatchMessage = useCallback(
+    (focusInput = true) => {
+      const input = readMessage();
+      const nonce = randomId();
+      uploads.commit(nonce);
+      sendQueue.current = sendQueue.current.then(async () => {
+        const blocks = await linkedGif.blocksFor(input.markdown);
+        onSend({ ...input, ...(blocks ? { blocks } : {}) }, nonce);
+      });
 
-    clearSent();
-    // Sending keeps the active input surface, including an open emoji panel.
-    if (!activeTab) editableRef.current?.focus();
-  }, [canSend, readMessage, uploads, onSend, clearSent, activeTab, linkedGif]);
+      clearSent();
+      // Sending keeps the active input surface, including an open emoji panel.
+      if (focusInput && !activeTab) editableRef.current?.focus();
+    },
+    [readMessage, uploads, onSend, clearSent, activeTab, linkedGif],
+  );
+
+  const handleSend = useCallback(() => {
+    if (canSend) dispatchMessage();
+  }, [canSend, dispatchMessage]);
+
+  function sendVoice(file: UploadFile): boolean {
+    if (!uploads.addVoice(file)) return false;
+    dispatchMessage(false);
+    return true;
+  }
 
   const handleDraftChange = useCallback(
     (draft: ComposerDraft) => {
@@ -349,103 +363,117 @@ export function MessageComposer({
       <div ref={setSuggestionsHost} className={styles.suggestions} />
       <div className={styles.shell} ref={bindTarget}>
         {overlay}
-        <input
-          ref={fileInput}
-          type="file"
-          multiple
-          hidden
-          onChange={(event) => {
-            uploads.addFiles(Array.from(event.target.files ?? []));
-            event.target.value = '';
-          }}
-        />
-        <IconButton
-          size={44}
-          className={`${styles.toolbarButton} ${styles.mobileAttach}`}
-          aria-label="Додати файл"
+        <VoiceComposer
+          key={draftKey}
+          scope={{ workspaceId, channelId }}
+          visible={!canSend}
           disabled={!uploads.policy}
-          onClick={() => fileInput.current?.click()}
+          onStart={() => {
+            closePicker();
+            editableRef.current?.blur();
+          }}
+          onSend={sendVoice}
         >
-          <PaperclipIcon size={22} />
-        </IconButton>
-        <MessageInputSurface
-          context={
-            (intent || uploads.drafts.length > 0 || uploads.policyError) && (
-              <>
-                <AttachmentDrafts
-                  drafts={uploads.drafts}
-                  onRemove={uploads.remove}
-                  onRetry={uploads.retry}
-                  onDescribe={uploads.describe}
-                />
-                {uploads.policyError && (
-                  <div role="alert">
-                    Не вдалося завантажити ліміти файлів.{' '}
-                    <Button type="link" size="small" onClick={uploads.reloadPolicy}>
-                      Повторити
-                    </Button>
-                  </div>
-                )}
-                {intent && (
-                  <div className={styles.reply}>
-                    <IntentExcerpt
-                      intent={intent}
-                      replyAuthor={replyAuthor}
-                      replyPreview={replyPreview}
-                    />
-                    <IconButton
-                      size={28}
-                      aria-label={composerIntent(intent.kind).cancelLabel}
-                      onClick={() => setIntent(null)}
-                    >
-                      <XIcon size={16} />
-                    </IconButton>
-                  </div>
-                )}
-              </>
-            )
-          }
-          leading={
-            <span className={styles.mobileHidden}>
-              <IconButton
-                size={toolbarActionSize}
-                className={styles.toolbarButton}
-                aria-label="Додати файл"
-                disabled={!uploads.policy}
-                onClick={() => fileInput.current?.click()}
-              >
-                <PaperclipIcon size={22} />
-              </IconButton>
-            </span>
-          }
-          trailing={
-            isCompact ? (
-              compactToolbarButton
-            ) : (
-              <DesktopPickerPopover
-                activeTab={activeTab}
-                onTabChange={selectTab}
-                onPickEmoji={insertEmoji}
-                onPickGif={pickGif}
-                onClose={closePicker}
-                className={styles.toolbarRight}
-              >
-                {pickerButtons}
-              </DesktopPickerPopover>
-            )
-          }
-        >
-          <div onPointerDownCapture={handleEditorPointerDown} style={{ display: 'contents' }}>
-            <MessageEditorSlotProvider slot={slot}>{children}</MessageEditorSlotProvider>
-          </div>
-        </MessageInputSurface>
-        <ComposerAction
-          hasContent={canSend}
-          onSend={handleSend}
-          options={sendOptions}
-          draft={draftState}
-          composer={commands}
-        />
+          <input
+            ref={fileInput}
+            type="file"
+            multiple
+            hidden
+            onChange={(event) => {
+              uploads.addFiles(Array.from(event.target.files ?? []));
+              event.target.value = '';
+            }}
+          />
+          <IconButton
+            size={44}
+            className={`${styles.toolbarButton} ${styles.mobileAttach}`}
+            aria-label="Додати файл"
+            disabled={!uploads.policy}
+            onClick={() => fileInput.current?.click()}
+          >
+            <PaperclipIcon size={22} />
+          </IconButton>
+          <MessageInputSurface
+            context={
+              (intent || uploads.drafts.length > 0 || uploads.policyError) && (
+                <>
+                  <AttachmentDrafts
+                    drafts={uploads.drafts}
+                    onRemove={uploads.remove}
+                    onRetry={uploads.retry}
+                    onDescribe={uploads.describe}
+                  />
+                  {uploads.policyError && (
+                    <div role="alert">
+                      Не вдалося завантажити ліміти файлів.{' '}
+                      <Button type="link" size="small" onClick={uploads.reloadPolicy}>
+                        Повторити
+                      </Button>
+                    </div>
+                  )}
+                  {intent && (
+                    <div className={styles.reply}>
+                      <IntentExcerpt
+                        intent={intent}
+                        replyAuthor={replyAuthor}
+                        replyPreview={replyPreview}
+                      />
+                      <IconButton
+                        size={28}
+                        aria-label={composerIntent(intent.kind).cancelLabel}
+                        onClick={() => setIntent(null)}
+                      >
+                        <XIcon size={16} />
+                      </IconButton>
+                    </div>
+                  )}
+                </>
+              )
+            }
+            leading={
+              <span className={styles.mobileHidden}>
+                <IconButton
+                  size={toolbarActionSize}
+                  className={styles.toolbarButton}
+                  aria-label="Додати файл"
+                  disabled={!uploads.policy}
+                  onClick={() => fileInput.current?.click()}
+                >
+                  <PaperclipIcon size={22} />
+                </IconButton>
+              </span>
+            }
+            trailing={
+              isCompact ? (
+                compactToolbarButton
+              ) : (
+                <DesktopPickerPopover
+                  activeTab={activeTab}
+                  onTabChange={selectTab}
+                  onPickEmoji={insertEmoji}
+                  onPickGif={pickGif}
+                  onClose={closePicker}
+                  className={styles.toolbarRight}
+                >
+                  {pickerButtons}
+                </DesktopPickerPopover>
+              )
+            }
+          >
+            <div onPointerDownCapture={handleEditorPointerDown} style={{ display: 'contents' }}>
+              <MessageEditorSlotProvider slot={slot}>{children}</MessageEditorSlotProvider>
+            </div>
+          </MessageInputSurface>
+          {canSend && (
+            <ComposerAction
+              hasContent={canSend}
+              onSend={handleSend}
+              options={sendOptions}
+              draft={draftState}
+              composer={commands}
+            />
+          )}
+        </VoiceComposer>
       </div>
       {isCompact && activeTab && !isNativeShell() && (
         <div className={styles.mobileSheet} style={{ height: keyboardHeight }}>

@@ -1,7 +1,8 @@
 import { ApiError } from '@/shared/api/http';
 
+import { uploadNativeVoice } from '../voice/native-recorder';
 import { beginUpload, cancelUpload, completeUpload, signUploadPart } from './attachments-api';
-import type { Attachment, UploadScope, UploadSession } from './types';
+import type { Attachment, UploadFile, UploadScope, UploadSession } from './types';
 import { PartUploadError, uploadPart } from './upload-part';
 
 /**
@@ -43,11 +44,14 @@ export class MultipartUploader {
   }
 
   async upload(
-    file: File,
+    file: UploadFile,
     resume: UploadResumeState,
     signal: AbortSignal,
     { onProgress, onProcessing }: MultipartUploadHandlers,
   ): Promise<{ session: UploadSession; attachment: Attachment }> {
+    if (file.nativeRecordingId) {
+      return uploadNativeVoice(file.nativeRecordingId, this.scope, signal, onProgress);
+    }
     resume.session ??= await beginUpload(this.token(), this.scope, file);
     const session = resume.session;
     if (signal.aborted) {
@@ -105,7 +109,7 @@ export class MultipartUploader {
       if (signal.aborted) throw new DOMException('Upload cancelled', 'AbortError');
 
       onProcessing();
-      const attachment = await completeUpload(this.token(), this.scope, session.id);
+      const attachment = await completeUpload(this.token(), this.scope, session.id, file.voice);
       return { session, attachment };
     } finally {
       signal.removeEventListener('abort', abortInternal);
