@@ -33,10 +33,9 @@ const server = createServer(async (request, response) => {
     const body = Buffer.concat(chunks);
     if (url.pathname.includes('/test-part/')) {
       const file = files.get(url.pathname.split('/').at(-1)!);
-      if (!file || body.length !== file.size) {
-        json({}, 400);
-        return;
-      }
+      if (!file) throw new Error('Unknown QA upload');
+      if (body.length !== file.size)
+        throw new Error(`QA part size: expected ${file.size}, received ${body.length}`);
       file.bytes = body;
       json({});
       return;
@@ -137,6 +136,12 @@ const server = createServer(async (request, response) => {
     }
     json([]);
   } catch (error) {
+    console.warn(
+      'VOICE_QA_ERROR',
+      request.method,
+      url.pathname,
+      error instanceof Error ? error.message : error,
+    );
     json({ message: error instanceof Error ? error.message : 'Test API error' }, 400);
   }
 });

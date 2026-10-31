@@ -402,3 +402,171 @@ test('rapid repeated taps acquire one microphone and keep the recording toolbar 
   await page.keyboard.press('Escape');
   expect(data.posts).toHaveLength(0);
 });
+
+async function holdMicrophone(page: Page, browserName: string) {
+  await page.evaluate(() =>
+    window.addEventListener(
+      'pointerdown',
+      (event) => {
+        (window as unknown as { heldPointerId: number }).heldPointerId = event.pointerId;
+      },
+      { once: true, capture: true },
+    ),
+  );
+  const microphone = page.getByRole('button', { name: 'Записати голосове повідомлення' });
+  const box = (await microphone.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  const touch = browserName === 'chromium' && test.info().project.name.includes('phone');
+  const cdp = touch ? await page.context().newCDPSession(page) : undefined;
+  if (cdp)
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x, y, id: 1 }],
+    });
+  else {
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+  }
+  const move = async (dx: number, dy: number) => {
+    if (cdp)
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x: x + dx, y: y + dy, id: 1 }],
+      });
+    else await page.mouse.move(x + dx, y + dy, { steps: 6 });
+  };
+  const up = async () => {
+    if (cdp) await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    else await page.mouse.up();
+  };
+  return { move, up };
+}
+
+test('hold and release sends one real voice note and keeps pointer capture across the composer change', async ({
+  page,
+  browserName,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  const pointer = await holdMicrophone(page, browserName);
+  await expect(page.getByRole('button', { name: 'Утримуйте для запису' })).toBeVisible();
+  await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
+  expect(data.posts).toHaveLength(0);
+  await page.screenshot({ path: test.info().outputPath('hold.png') });
+  await pointer.up();
+  await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
+  expect(data.posts).toHaveLength(1);
+  expect(data.uploads.size).toBe(1);
+});
+
+test('sliding left cancels capture and releasing afterwards cannot send', async ({
+  page,
+  browserName,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  const pointer = await holdMicrophone(page, browserName);
+  await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
+  await pointer.move(-110, 0);
+  await pointer.up();
+  await expect(page.getByRole('region', { name: 'Запис голосового повідомлення' })).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => (window as unknown as { testActiveMicrophones: number }).testActiveMicrophones,
+      ),
+    )
+    .toBe(0);
+  expect(data.posts).toHaveLength(0);
+  expect(data.uploads.size).toBe(0);
+});
+
+test('sliding up locks capture, release keeps recording, and send finalizes the note once', async ({
+  page,
+  browserName,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  const pointer = await holdMicrophone(page, browserName);
+  await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
+  await pointer.move(0, -90);
+  await pointer.up();
+  await expect(page.getByRole('button', { name: 'Пауза запису' })).toBeVisible();
+  expect(data.posts).toHaveLength(0);
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { testActiveMicrophones: number }).testActiveMicrophones,
+    ),
+  ).toBe(1);
+  await page.getByRole('button', { name: 'Надіслати голосове', exact: true }).click();
+  await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
+  expect(data.posts).toHaveLength(1);
+});
+
+test('an interrupted pointer keeps the recording for review instead of sending on release', async ({
+  page,
+  browserName,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  const pointer = await holdMicrophone(page, browserName);
+  await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
+  await page.getByRole('button', { name: 'Утримуйте для запису' }).dispatchEvent('pointercancel', {
+    pointerId: await page.evaluate(
+      () => (window as unknown as { heldPointerId: number }).heldPointerId,
+    ),
+  });
+  await pointer.up();
+  await expect(page.getByRole('button', { name: 'Прослухати запис', exact: true })).toBeVisible();
+  expect(data.posts).toHaveLength(0);
+});
+
+test('a held gesture released before permission resolves cannot start or send later', async ({
+  page,
+  browserName,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  await page.evaluate(() => {
+    const devices = navigator.mediaDevices;
+    const original = devices.getUserMedia.bind(devices);
+    devices.getUserMedia = () =>
+      new Promise((resolve) => {
+        (window as unknown as { grantHeldMicrophone: () => Promise<void> }).grantHeldMicrophone =
+          async () => resolve(await original({ audio: true }));
+      });
+  });
+  const pointer = await holdMicrophone(page, browserName);
+  await expect(page.getByText('Підключаємо мікрофон…')).toBeVisible();
+  await page.waitForTimeout(400);
+  await pointer.up();
+  await page.evaluate(() =>
+    (window as unknown as { grantHeldMicrophone: () => Promise<void> }).grantHeldMicrophone(),
+  );
+  await expect(page.getByRole('region', { name: 'Запис голосового повідомлення' })).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => (window as unknown as { testActiveMicrophones: number }).testActiveMicrophones,
+      ),
+    )
+    .toBe(0);
+  expect(data.posts).toHaveLength(0);
+  expect(data.uploads.size).toBe(0);
+});
+
+test('keyboard recording uses hands-free controls and send works without a pointer gesture', async ({
+  page,
+}) => {
+  const data = await backend(page);
+  await page.goto('/');
+  const microphone = page.getByRole('button', { name: 'Записати голосове повідомлення' });
+  await microphone.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Пауза запису' })).toBeVisible();
+  await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
+  expect(data.posts).toHaveLength(1);
+});

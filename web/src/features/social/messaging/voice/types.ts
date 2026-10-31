@@ -1,5 +1,7 @@
 import type { UploadFile } from '../attachments/types';
 
+export type VoiceGestureMode = 'holding' | 'cancelling' | 'locking' | 'locked';
+
 export type VoicePhase =
   'idle' | 'requesting' | 'recording' | 'paused' | 'stopping' | 'ready' | 'error';
 
