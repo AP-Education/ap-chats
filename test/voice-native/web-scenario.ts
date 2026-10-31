@@ -9,6 +9,11 @@ export const NATIVE_WEB_SCENARIO = `
     }
     throw new Error('Timed out waiting for voice UI');
   };
+  const recorded = seconds => {
+    const value = document.querySelector('[aria-label="Тривалість запису"]')?.textContent || '';
+    const parts = value.split(':');
+    return parts.length === 2 && Number(parts[0]) * 60 + Number(parts[1]) >= seconds;
+  };
   const button = label => document.querySelector('button[aria-label="' + label + '"]');
   const textButton = text => button(text) || Array.from(document.querySelectorAll('button')).find(element => element.textContent.trim() === text);
   try {
@@ -17,7 +22,7 @@ export const NATIVE_WEB_SCENARIO = `
     const point = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
     const pointer = (element, type, x, y) => element.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 71, pointerType: 'touch', isPrimary: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, clientX: x, clientY: y }));
     pointer(mic, 'pointerdown', point.x, point.y);
-    await wait(() => document.querySelector('[aria-label="Тривалість запису"]')?.textContent === '0:02');
+    await wait(() => recorded(2));
     pointer(mic, 'pointermove', point.x, point.y - 90);
     pointer(mic, 'pointerup', point.x, point.y - 90);
     await wait(() => button('Пауза запису'));
@@ -39,7 +44,7 @@ export const NATIVE_WEB_SCENARIO = `
     checks.push('chat audio URL resolves');
     const cancelledMic = await wait(() => button('Записати голосове повідомлення'));
     pointer(cancelledMic, 'pointerdown', point.x, point.y);
-    await wait(() => document.querySelector('[aria-label="Тривалість запису"]')?.textContent === '0:01');
+    await wait(() => recorded(1));
     pointer(cancelledMic, 'pointermove', point.x - 110, point.y);
     pointer(cancelledMic, 'pointerup', point.x - 110, point.y);
     await wait(() => !document.querySelector('[aria-label="Запис голосового повідомлення"]'));
@@ -47,13 +52,13 @@ export const NATIVE_WEB_SCENARIO = `
     checks.push('slide-left cancellation releases native capture without posting');
     const heldMic = await wait(() => button('Записати голосове повідомлення'));
     pointer(heldMic, 'pointerdown', point.x, point.y);
-    await wait(() => document.querySelector('[aria-label="Тривалість запису"]')?.textContent === '0:01');
+    await wait(() => recorded(1));
     pointer(heldMic, 'pointerup', point.x, point.y);
     await wait(() => document.querySelectorAll('.fixture-bubble').length === 2);
     checks.push('held release finalizes and sends native voice once');
     await fetch('/api/qa-result', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer fixture-only' }, body: JSON.stringify({ platform: navigator.userAgent, scenario: 'web-native-bridge', checks }) });
   } catch (error) {
-    await fetch('/api/qa-result', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer fixture-only' }, body: JSON.stringify({ scenario: 'web-native-bridge', checks, error: error.message }) });
+    await fetch('/api/qa-result', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer fixture-only' }, body: JSON.stringify({ platform: navigator.userAgent, scenario: 'web-native-bridge', checks, error: error.message, status: document.querySelector('[aria-label="Запис голосового повідомлення"]')?.textContent }) });
   }
 })(); true;
 `;
