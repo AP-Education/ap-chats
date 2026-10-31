@@ -14,6 +14,7 @@ import { AppState, Platform } from 'react-native';
 import { useAuthStore } from '../../auth';
 import { useNativeCallStore } from '../../calls/store/native-call-store';
 import { type VoiceRequest, type VoiceStateMessage, type VoiceUploadResult } from '../types';
+import { VoiceAudioMode } from '../utils/audio-mode';
 import {
   cancelRecordingUpload,
   type RecordingUpload,
@@ -22,6 +23,11 @@ import {
 import { VoiceSession } from '../utils/voice-session';
 
 const VOICE_OPTIONS = { ...RecordingPresets.HIGH_QUALITY, numberOfChannels: 1, bitRate: 64_000 };
+const audioMode = new VoiceAudioMode(
+  (allowsRecording) =>
+    setAudioModeAsync({ allowsRecording, playsInSilentMode: true, shouldPlayInBackground: false }),
+  () => Boolean(useNativeCallStore.getState().call),
+);
 
 export interface VoiceRuntimeHandle {
   handle(message: VoiceRequest): void;
@@ -65,6 +71,7 @@ export function VoiceMessageRuntime({
           ...VOICE_OPTIONS,
           ...(Platform.OS === 'android' ? VOICE_OPTIONS.android : VOICE_OPTIONS.ios),
         });
+        const audio = audioMode.acquire();
         let disposed = false;
         let completed = false;
         const subscription = recorder.addListener('recordingStatusUpdate', (status) => {
@@ -77,11 +84,7 @@ export function VoiceMessageRuntime({
             if (!permission.granted)
               throw new Error('Немає дозволу на мікрофон. Дозвольте його в налаштуваннях AP App.');
             if (disposed) return;
-            await setAudioModeAsync({
-              allowsRecording: true,
-              playsInSilentMode: true,
-              shouldPlayInBackground: false,
-            });
+            await audio.enable();
             if (disposed) return;
             await recorder.prepareToRecordAsync(VOICE_OPTIONS);
           },
@@ -108,8 +111,7 @@ export function VoiceMessageRuntime({
                 /* An interrupted recorder may have removed it. */
               }
             }
-            if (!useNativeCallStore.getState().call)
-              void setAudioModeAsync({ allowsRecording: false }).catch(() => undefined);
+            void audio.release().catch(() => undefined);
           },
         };
       },
@@ -205,7 +207,8 @@ export function VoiceMessageRuntime({
           playback.current.pause();
         } else {
           if (!playback.current) {
-            playback.current = createAudioPlayer(recording.uri);
+            // Pausing a preview must not schedule session deactivation over the next recording.
+            playback.current = createAudioPlayer(recording.uri, { keepAudioSessionActive: true });
             playback.current.addListener('playbackStatusUpdate', (status) =>
               sendRef.current({
                 type: 'voice/state',
