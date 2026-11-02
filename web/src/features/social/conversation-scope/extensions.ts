@@ -1,5 +1,8 @@
+import type { PendingEntry } from '@ap-education/timeline';
+import type { EntryKind } from '@ap-education/timeline/react';
 import { type ComponentType, createContext, type ReactNode, useContext } from 'react';
 
+import type { ConversationEntry } from '../messaging/timeline/chat-entry';
 import type {
   ConversationAction,
   Message,
@@ -63,8 +66,13 @@ export interface ConversationExtension {
   actions?: ConversationAction[];
   /** The feature's own part of a message, shown in its bubble above the text. */
   MessageAddon?: ComponentType<MessageAddonProps>;
-  /** Shown after the last message, where what happens next appears. */
-  TimelineEnd?: ComponentType;
+  /** The kinds of entry it adds to the timeline, each with its view. */
+  kinds?: EntryKind<ConversationEntry>[];
+  /**
+   * What it has on its way, drawn after the history at the live end and turning into the entry
+   * with the same nonce once the history holds it; told which nonces it already holds.
+   */
+  usePending?: (landed: ReadonlySet<string>) => readonly PendingEntry<ConversationEntry>[];
   /** Hears of every message the person sends. */
   sent?: (message: SentMessage) => void;
   /** Other ways to send, offered on the send button's long press and right click. */

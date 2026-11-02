@@ -3,7 +3,15 @@ import { test } from 'node:test';
 
 import type { SentMessage } from '@/features/social/conversation-scope/extensions';
 
-import { askRequest, asksStarMe, lastFailure, withStatus } from './questions.ts';
+import {
+  askRequest,
+  asksStarMe,
+  lastFailure,
+  type OpenQuestion,
+  withoutLanded,
+  withSnapshot,
+  withStatus,
+} from './questions.ts';
 import type { QuestionStatus } from './types';
 
 const starMe = 'b0b0b0b0-0000-4000-8000-000000000001';
@@ -60,11 +68,43 @@ test('picked messages go along with the question', () => {
   assert.deepEqual(askRequest(sent(''), 'q1'), { channelId: 'channel', questionId: 'q1' });
 });
 
-test('a reported status replaces the question it is about, and an answer closes it', () => {
-  const open = [status('q1', 'thinking'), status('q2', 'thinking')];
+function shown(question: QuestionStatus, since: string): OpenQuestion {
+  return { ...question, shownSince: since };
+}
 
-  assert.deepEqual(withStatus(open, failed('q1')), [status('q2', 'thinking'), failed('q1')]);
-  assert.deepEqual(withStatus(open, status('q2', 'answered')), [status('q1', 'thinking')]);
+test('a reported status replaces the question it is about, which keeps the time it first showed', () => {
+  const open = [shown(status('q1', 'thinking'), '10:00'), shown(status('q2', 'thinking'), '10:01')];
+
+  assert.deepEqual(withStatus(open, failed('q1'), '10:05'), [
+    shown(status('q2', 'thinking'), '10:01'),
+    shown(failed('q1'), '10:00'),
+  ]);
+  assert.deepEqual(withStatus([], status('q3', 'thinking'), '10:05'), [
+    shown(status('q3', 'thinking'), '10:05'),
+  ]);
+});
+
+test('an answered question stays until the history holds its answer', () => {
+  const open = [shown(status('q1', 'thinking'), '10:00'), shown(status('q2', 'thinking'), '10:01')];
+  const answered = withStatus(open, status('q2', 'answered'), '10:02');
+
+  assert.deepEqual(answered, [
+    shown(status('q1', 'thinking'), '10:00'),
+    shown(status('q2', 'answered'), '10:01'),
+  ]);
+  assert.equal(withoutLanded(answered, new Set(['answer-q1'])), answered);
+  assert.deepEqual(withoutLanded(answered, new Set(['answer-q2'])), [
+    shown(status('q1', 'thinking'), '10:00'),
+  ]);
+});
+
+test('a snapshot keeps only what StarMe still reports, each at the time it first showed', () => {
+  const open = [shown(status('q1', 'thinking'), '10:00'), shown(status('q2', 'answered'), '10:01')];
+
+  assert.deepEqual(withSnapshot(open, [failed('q1'), status('q3', 'thinking')], '10:09'), [
+    shown(failed('q1'), '10:00'),
+    shown(status('q3', 'thinking'), '10:09'),
+  ]);
 });
 
 test('only the asker sees their own latest failure', () => {

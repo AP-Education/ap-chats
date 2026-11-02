@@ -1,5 +1,7 @@
 import type { TimelineData, TimelineEntry } from '@ap-education/timeline';
 
+import type { MemberSummary } from '@/features/workspaces/types';
+
 import type { AttachmentDraft } from '../attachments/types';
 import type {
   CallHistoryItem,
@@ -26,6 +28,20 @@ export type ChatEntry =
 
 export type MessageEntry = Extract<ChatEntry, { kind: 'MESSAGE' }>;
 export type CallEntry = Extract<ChatEntry, { kind: 'CALL' }>;
+
+/** Whose run an extension's entry joins, with their face beside it. */
+export interface ExtensionPayload {
+  author: MemberSummary;
+}
+
+/** An entry a conversation extension adds after the history, such as an answer on its way. */
+export type ExtensionEntry<
+  Kind extends string = string,
+  Payload extends ExtensionPayload = ExtensionPayload,
+> = TimelineEntry<`extension:${Kind}`, Payload>;
+
+/** What the conversation's timeline draws: its history and what extensions add after it. */
+export type ConversationEntry = ChatEntry | ExtensionEntry;
 
 /** What a history window says besides its entries. */
 export interface ChatMeta {

@@ -33,3 +33,26 @@
   outline: 2px solid var(--ant-color-primary);
   outline-offset: 2px;
 }
+
+/* An entry marked to arrive, such as StarMe's answer on its way, stands in a run of its own,
+   and that run rises in once with its face, the way the answer always came in. */
+.run:has([data-arrives]) {
+  animation: arrive 200ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run:has([data-arrives]) {
+    animation: none;
+  }
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

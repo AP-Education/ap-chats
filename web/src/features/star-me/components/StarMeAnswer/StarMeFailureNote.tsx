@@ -1,6 +1,5 @@
+import { TimelineEntryRetry } from '@ap-education/timeline/react';
 import { createStyles } from 'antd-style';
-
-import { BubbleRetry } from '@/features/social/messaging/components/Bubble/BubbleRetry';
 
 import type { AnswerFailure } from '../../types';
 
@@ -32,7 +31,7 @@ export function StarMeFailureNote({ failure, onRetry }: StarMeFailureNoteProps) 
   return (
     <div className={styles.note}>
       {FAILURE_TEXT[failure]}
-      <BubbleRetry status="Бачите лише ви" onRetry={canRetry ? onRetry : undefined} />
+      <TimelineEntryRetry notice="Бачите лише ви" onRetry={canRetry ? onRetry : undefined} />
     </div>
   );
 }
