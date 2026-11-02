@@ -155,8 +155,12 @@ test('a mention is answered in its channel from the latest messages', async () =
   assert.equal(answers[0]?.replyToMessageId, ids.question);
   assert.equal(answers[0]?.clientNonce, answerNonce(ids.question));
   assert.deepEqual(
-    statuses.map(({ state }) => state),
-    ['thinking', 'answered'],
+    statuses.map(({ state, answerNonce: nonce }) => ({ state, nonce })),
+    [
+      { state: 'thinking', nonce: answers[0]?.clientNonce },
+      { state: 'answered', nonce: answers[0]?.clientNonce },
+    ],
+    'the status names the nonce the answer carries',
   );
 });
 

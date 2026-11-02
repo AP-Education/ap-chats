@@ -27,6 +27,7 @@ function status(
     channelId: 'c',
     questionId,
     askedByMemberId: askedBy,
+    answerNonce: `answer-${questionId}`,
     state,
     failure: null,
   };
@@ -38,6 +39,7 @@ function failed(questionId: string, askedBy = 'vlad'): QuestionStatus {
     channelId: 'c',
     questionId,
     askedByMemberId: askedBy,
+    answerNonce: `answer-${questionId}`,
     state: 'failed',
     failure: 'limited',
   };
