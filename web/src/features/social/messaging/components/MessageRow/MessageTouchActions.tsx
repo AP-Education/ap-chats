@@ -1,3 +1,4 @@
+import { TimelineEntry } from '@ap-education/timeline/react';
 import {
   type CSSProperties,
   type MouseEvent,
@@ -78,15 +79,17 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
         <span className={styles.replyHint} aria-hidden="true">
           <ReplyIcon size={20} />
         </span>
-        <div
-          {...rowProps}
-          className={`${rowProps.className ?? ''} ${styles.touchTarget}`}
-          data-message-readonly={!scope.editing || undefined}
-          {...swipe.gesture}
-          onContextMenu={openSheetFromContextMenu}
-        >
-          {children}
-        </div>
+        <TimelineEntry asChild side={scope.isOwn ? 'end' : 'start'}>
+          <div
+            {...rowProps}
+            className={`${rowProps.className ?? ''} ${styles.touchTarget}`}
+            data-message-readonly={!scope.editing || undefined}
+            {...swipe.gesture}
+            onContextMenu={openSheetFromContextMenu}
+          >
+            {children}
+          </div>
+        </TimelineEntry>
       </div>
 
       {sheetOpen && (
@@ -120,7 +123,9 @@ function useRunAvatarFollow(
   useLayoutEffect(() => {
     const area = areaRef.current;
     const run = area?.closest<HTMLElement>('[data-history-run]');
-    if (!area || !run || run.querySelector('[data-run-entries] > :last-child') !== area) return;
+    if (!area || !run || run.querySelector('[data-timeline-run-entries] > :last-child') !== area) {
+      return;
+    }
 
     run.style.setProperty('--run-swipe-offset', `${offset}px`);
     run.toggleAttribute('data-swiping', dragging);

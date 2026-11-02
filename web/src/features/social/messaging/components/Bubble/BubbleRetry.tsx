@@ -6,14 +6,14 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--bubble-meta);
+    color: var(--timeline-bubble-meta);
     font-size: ${token.fontSizeSM}px;
   `,
   button: css`
     padding: 0;
     border: 0;
     background: transparent;
-    color: var(--bubble-link);
+    color: var(--timeline-bubble-link);
     font: inherit;
     font-weight: 600;
     cursor: pointer;

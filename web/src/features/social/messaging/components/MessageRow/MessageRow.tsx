@@ -1,5 +1,4 @@
-import type { EntryAnchor } from '@ap-education/timeline/react';
-import { memo, useRef } from 'react';
+import { memo } from 'react';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
 
@@ -21,15 +20,12 @@ interface MessageRowProps {
   item: MessageHistoryItem;
   delivery?: DeliveryStatus;
   pendingAttachments?: AttachmentDraft[];
-  /** Lets the timeline find the row when scrolling to it or noting it was seen. */
-  anchor?: EntryAnchor;
 }
 
 export const MessageRow = memo(function MessageRow({
   item,
   delivery,
   pendingAttachments,
-  anchor,
 }: MessageRowProps) {
   const { viewer } = useTimelineActions();
   const authorName = item.author.displayName ?? 'Ім’я недоступне';
@@ -43,12 +39,9 @@ export const MessageRow = memo(function MessageRow({
   const editing = useConversation((state) => state.editingId === item.message.id);
   const setEditingId = useConversation((state) => state.setEditingId);
   const layout = bubbleLayout(item, pendingAttachments, editing);
-  const tone = delivery === 'failed' ? 'failed' : highlighted ? 'attention' : undefined;
-  const contentRef = useRef<HTMLDivElement>(null);
 
   return (
     <MessageActionProvider
-      contentRef={contentRef}
       value={{
         item,
         author: authorName,
@@ -59,12 +52,9 @@ export const MessageRow = memo(function MessageRow({
     >
       <MessageActions
         rowProps={{
-          ...anchor,
           id: `message-${item.message.id}`,
           'data-seq': delivery ? undefined : item.seq,
-          'data-own': isOwnMessage || undefined,
           'data-selected': isSelected || undefined,
-          'data-failed': delivery === 'failed' || undefined,
           'data-mentions-me': highlighted || undefined,
           'data-sending': delivery === 'sending' || delivery === 'uploading' || undefined,
           tabIndex: delivery ? -1 : 0,
@@ -103,13 +93,9 @@ export const MessageRow = memo(function MessageRow({
             onChange={() => toggleSelected(item.message.id)}
           />
         )}
-        <Bubble own={isOwnMessage} variant={layout.variant} tone={tone} wide={editing}>
+        <Bubble variant={layout.variant} wide={editing}>
           <MessageHeader />
-          <MessageBody
-            layout={layout}
-            contentRef={contentRef}
-            onCloseEdit={() => setEditingId(null)}
-          />
+          <MessageBody layout={layout} onCloseEdit={() => setEditingId(null)} />
           {delivery === 'failed' && <UnsentNotice rowId={item.id} />}
         </Bubble>
       </MessageActions>

@@ -1,56 +1,10 @@
+import { TimelineEntryStatus } from '@ap-education/timeline/react';
+
 import { useIsReadByPeer } from '@/features/social/read-receipts/stores/peer-read-context';
 
-import type { DeliveryStatus } from '../../types';
-import styles from './DeliveryMark.module.css';
-
-type MarkState = 'failed' | 'sending' | 'sent' | 'read';
-
-const labels: Record<MarkState, string> = {
-  failed: 'Не надіслано',
-  sending: 'Надсилається',
-  sent: 'Надіслано',
-  read: 'Прочитано',
-};
-
-/** Telegram's marks as one glyph: a clock while sending, one check once sent, two once read. */
-export function DeliveryMark({
-  delivery,
-  seq,
-}: {
-  delivery: DeliveryStatus | undefined;
-  seq: string;
-}) {
+/** One's own message's mark: the timeline shows it on its way or failed, and it is read once the
+ * others have read up to it. */
+export function DeliveryMark({ seq }: { seq: string }) {
   const isRead = useIsReadByPeer(seq);
-  const state = markState(delivery, isRead);
-
-  return (
-    <svg
-      className={styles.mark}
-      data-state={state}
-      viewBox="0 0 18 12"
-      width={18}
-      height={12}
-      role="img"
-      aria-label={labels[state]}
-    >
-      <g data-part="alert">
-        <circle cx="9" cy="6" r="4.75" />
-        <path d="M9 3.75v2.5M9 8.25v.01" />
-      </g>
-      <g data-part="clock">
-        <circle cx="9" cy="6" r="4.75" />
-        <path d="M9 6h2" />
-        <path data-hand d="M9 6V3" />
-      </g>
-      <path data-part="first" pathLength={1} d="M1.5 6.75l3 3 6.5-7.5" />
-      <path data-part="second" pathLength={1} d="M7.95 8.2l1.55 1.55 6.5-7.5" />
-    </svg>
-  );
-}
-
-function markState(delivery: DeliveryStatus | undefined, isRead: boolean): MarkState {
-  if (delivery === 'failed') return 'failed';
-  if (delivery) return 'sending';
-
-  return isRead ? 'read' : 'sent';
+  return <TimelineEntryStatus delivery={isRead ? 'read' : 'sent'} />;
 }

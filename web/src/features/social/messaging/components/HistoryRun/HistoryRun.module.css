@@ -1,27 +1,11 @@
+/* The timeline package lays the run out and keeps its avatar riding along; a chat adds the
+   selection gutter, the face as a button and the swipe it follows. */
 .run {
   /* How far the run's rows start past its padding: they keep their checks in the gutter. */
   --run-lead: 0px;
   /* Room at the screen edge for each row's check while messages are being selected. */
   --selection-gutter: 40px;
-  display: flex;
-  align-items: flex-end;
-  gap: var(--ant-padding-xxs);
-  padding-inline: var(--ant-padding-xs);
   transition: padding-left 0.18s ease;
-}
-
-/* A run paints inside its own box, with room for the bubbles' shadows, so the sticky avatar of one
-   run doesn't push every run after it onto a compositing layer of its own. Where the room can't be
-   given, nothing is clipped and runs paint as before. */
-@supports (overflow-clip-margin: 1px) {
-  .run {
-    contain: paint;
-    overflow-clip-margin: var(--ant-margin-xs);
-  }
-}
-
-.run + .run {
-  margin-top: var(--ant-margin-xs);
 }
 
 .run[data-has-avatar] {
@@ -32,15 +16,9 @@
   padding-left: calc(var(--ant-padding-xs) + var(--selection-gutter));
 }
 
-/* Rides along the bottom of the viewport while a long run scrolls past. */
 .avatar {
-  position: sticky;
-  bottom: calc(var(--chat-inset-bottom, 0px) + var(--ant-padding-xxs));
-  display: inline-flex;
-  flex-shrink: 0;
   padding: 0;
   border: 0;
-  border-radius: 50%;
   background: transparent;
   cursor: pointer;
   transform: translateX(calc(-1 * var(--run-swipe-offset, 0px)));
@@ -54,24 +32,4 @@
 .avatar:focus-visible {
   outline: 2px solid var(--ant-color-primary);
   outline-offset: 2px;
-}
-
-/* Each row learns its place in the run: inner joints round less, only the first bubble names
-   the author and only the last one carries the tail. */
-.entries {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.entries > :not(:first-child) {
-  --run-top-radius: var(--ant-border-radius-sm);
-  --run-author: none;
-}
-
-.entries > :not(:last-child) {
-  --run-bottom-radius: var(--ant-border-radius-sm);
-  --run-tail: none;
 }

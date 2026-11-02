@@ -1,3 +1,4 @@
+import { TimelineEntry } from '@ap-education/timeline/react';
 import { Dropdown } from 'antd';
 import { useState } from 'react';
 
@@ -45,25 +46,27 @@ export function DesktopMessageActions({ rowProps, children }: MessageActionsProp
         </>
       )}
     >
-      <div
-        {...rowProps}
-        onMouseUp={scope.captureSelection}
-        onContextMenu={scope.captureSelection}
-        onKeyDown={(event) => {
-          rowProps.onKeyDown?.(event);
-          handleShortcut(event);
-        }}
-      >
-        {children}
-        {picking && (
-          <ReactionPicker
-            item={scope.item}
-            viewerMemberId={scope.context.memberId}
-            own={scope.isOwn}
-            onClose={() => setPicking(false)}
-          />
-        )}
-      </div>
+      <TimelineEntry asChild side={scope.isOwn ? 'end' : 'start'}>
+        <div
+          {...rowProps}
+          onMouseUp={scope.captureSelection}
+          onContextMenu={scope.captureSelection}
+          onKeyDown={(event) => {
+            rowProps.onKeyDown?.(event);
+            handleShortcut(event);
+          }}
+        >
+          {children}
+          {picking && (
+            <ReactionPicker
+              item={scope.item}
+              viewerMemberId={scope.context.memberId}
+              own={scope.isOwn}
+              onClose={() => setPicking(false)}
+            />
+          )}
+        </div>
+      </TimelineEntry>
     </Dropdown>
   );
 }

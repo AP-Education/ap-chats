@@ -12,19 +12,19 @@ const DELIVERY: Record<PendingStatus, DeliveryStatus> = {
   failed: 'failed',
 };
 
-function MessageEntryView({ entry, status, anchor }: EntryViewProps<MessageEntry>) {
+// The rows' parts read the entry's anchor, status and place in its run from the view's context.
+function MessageEntryView({ entry, status }: EntryViewProps<MessageEntry>) {
   return (
     <MessageRow
       item={entry.payload.item}
       delivery={status && DELIVERY[status]}
       pendingAttachments={entry.payload.pendingAttachments}
-      anchor={anchor}
     />
   );
 }
 
-function CallEntryView({ entry, anchor }: EntryViewProps<CallEntry>) {
-  return <CallLogRow item={entry.payload.item} anchor={anchor} />;
+function CallEntryView({ entry }: EntryViewProps<CallEntry>) {
+  return <CallLogRow item={entry.payload.item} />;
 }
 
 // A kind this client does not know yet shows nothing rather than breaking the timeline.

@@ -26,7 +26,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--bubble-text);
+  color: var(--timeline-bubble-text);
   font: inherit;
   font-size: var(--ant-font-size);
   font-weight: 600;
@@ -59,7 +59,7 @@ button.name:disabled {
 
 .meta {
   overflow: hidden;
-  color: var(--bubble-meta);
+  color: var(--timeline-bubble-meta);
   font-size: 12px;
   line-height: 1.4;
   text-overflow: ellipsis;
@@ -71,7 +71,7 @@ button.name:disabled {
   color: var(--ant-color-error);
 }
 
-[data-side='own'] .meta[data-tone='error'] {
+[data-side='end'] .meta[data-tone='error'] {
   color: inherit;
 }
 
@@ -79,5 +79,5 @@ button.name:disabled {
   display: flex;
   flex-shrink: 0;
   gap: 2px;
-  color: var(--bubble-muted);
+  color: var(--timeline-bubble-muted);
 }

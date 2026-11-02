@@ -1,19 +1,12 @@
-import type { ReactNode, RefObject } from 'react';
+import { TimelineEntryText } from '@ap-education/timeline/react';
+import type { ReactNode } from 'react';
 
 import { MessageMarkdown } from '@/features/social/mentions/components/MessageMarkdown/MessageMarkdown';
 
 import { useMessageActionScope } from './MessageActionScope';
 import styles from './MessageReadContent.module.css';
 
-export function MessageReadContent({
-  contentRef,
-  jumboEmoji,
-  meta,
-}: {
-  contentRef: RefObject<HTMLDivElement | null>;
-  jumboEmoji: number;
-  meta: ReactNode;
-}) {
+export function MessageReadContent({ jumboEmoji, meta }: { jumboEmoji: number; meta: ReactNode }) {
   const { item, context } = useMessageActionScope();
 
   if (item.message.markdown === null) {
@@ -21,8 +14,7 @@ export function MessageReadContent({
   }
 
   return (
-    <div
-      ref={contentRef}
+    <TimelineEntryText
       className={styles.markdown}
       data-jumbo={jumboEmoji || undefined}
       data-message-text
@@ -37,6 +29,6 @@ export function MessageReadContent({
         }}
       />
       {meta}
-    </div>
+    </TimelineEntryText>
   );
 }

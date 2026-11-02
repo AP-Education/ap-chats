@@ -7,7 +7,7 @@
   width: 100%;
   overflow: hidden;
   border-radius: calc(
-    var(--bubble-radius, calc(var(--ant-border-radius) * 2)) - var(--ant-padding-xxs)
+    var(--timeline-bubble-radius, calc(var(--ant-border-radius) * 2)) - var(--ant-padding-xxs)
   );
   background: var(--ant-color-fill-secondary) center / cover no-repeat;
 }

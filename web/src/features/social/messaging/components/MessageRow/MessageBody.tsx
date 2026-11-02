@@ -1,5 +1,3 @@
-import type { RefObject } from 'react';
-
 import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { MessageReactions } from '@/features/social/reactions/components/MessageReactions/MessageReactions';
 
@@ -15,13 +13,12 @@ import { MessageReadContent } from './MessageReadContent';
 
 interface MessageBodyProps {
   layout: BubbleLayout;
-  contentRef: RefObject<HTMLDivElement | null>;
   onCloseEdit: () => void;
 }
 
 // Attachments come first and the caption after them, so the time can close its last line; blocks
 // like a GIF go under the text, as on Discord.
-export function MessageBody({ layout, contentRef, onCloseEdit }: MessageBodyProps) {
+export function MessageBody({ layout, onCloseEdit }: MessageBodyProps) {
   const { editing, item, delivery, pendingAttachments, canReact, context } =
     useMessageActionScope();
   const { saveEdit } = useTimelineActions();
@@ -51,11 +48,7 @@ export function MessageBody({ layout, contentRef, onCloseEdit }: MessageBodyProp
         </MessageEditor>
       )}
       {!editing && layout.hasText && (
-        <MessageReadContent
-          contentRef={contentRef}
-          jumboEmoji={layout.jumboEmoji}
-          meta={textMeta}
-        />
+        <MessageReadContent jumboEmoji={layout.jumboEmoji} meta={textMeta} />
       )}
       <MessageBlocks
         blocks={blocks}

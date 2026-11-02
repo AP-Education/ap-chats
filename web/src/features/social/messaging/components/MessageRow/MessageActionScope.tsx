@@ -1,5 +1,11 @@
 import { useIsMobile } from '@ap-education/ui';
-import { createContext, type PropsWithChildren, type RefObject, useContext, useState } from 'react';
+import {
+  createContext,
+  type MouseEvent,
+  type PropsWithChildren,
+  useContext,
+  useState,
+} from 'react';
 
 import type { AttachmentDraft } from '../../attachments/types';
 import { unsentActions } from '../../sending/actions';
@@ -28,19 +34,15 @@ interface MessageActionScope extends MessageActionInput {
   textTarget: ActionTarget;
   available: (target: ActionTarget) => ConversationAction[];
   action: (id: string) => ConversationAction | undefined;
-  captureSelection: () => void;
+  captureSelection: (event: MouseEvent<HTMLElement>) => void;
 }
 
 const MessageActionContext = createContext<MessageActionScope | null>(null);
 
 export function MessageActionProvider({
   value,
-  contentRef,
   children,
-}: PropsWithChildren<{
-  value: MessageActionInput;
-  contentRef: RefObject<HTMLDivElement | null>;
-}>) {
+}: PropsWithChildren<{ value: MessageActionInput }>) {
   const isMobile = useIsMobile();
   const { viewer, actions, run } = useTimelineActions();
   const unsent = useUnsentMessages();
@@ -52,9 +54,10 @@ export function MessageActionProvider({
     selectedText,
   };
 
-  function captureSelection() {
+  // The row is the event's target, and its text is the part a selection is quoted from.
+  function captureSelection(event: MouseEvent<HTMLElement>) {
     const selection = window.getSelection();
-    const content = contentRef.current;
+    const content = event.currentTarget.querySelector('[data-message-text]');
     if (!selection || !content || !selection.anchorNode || !selection.focusNode) return;
     const within = content.contains(selection.anchorNode) && content.contains(selection.focusNode);
     setSelectedText(within ? selection.toString().trim().slice(0, 2048) : '');

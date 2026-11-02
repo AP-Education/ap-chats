@@ -1,6 +1,6 @@
 /* A soft accent tag with a hairline edge; inside a bubble it takes the bubble's checked accent. */
 .badge {
-  --badge-ink: var(--bubble-accent, var(--ant-color-primary-text-active));
+  --badge-ink: var(--timeline-bubble-accent, var(--ant-color-primary-text-active));
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;

@@ -1,6 +1,6 @@
 .excerpt {
-  --excerpt-accent: var(--bubble-accent);
-  --excerpt-muted: var(--bubble-muted);
+  --excerpt-accent: var(--timeline-bubble-accent);
+  --excerpt-muted: var(--timeline-bubble-muted);
   position: relative;
   display: block;
   /* A button sizes to its content, and iOS WebKit stretches none, so a long quote would push past

@@ -1,37 +1,5 @@
-/* Floated after the last line of text: it shares that line while there is room and drops to its
-   own line otherwise, the way chat bubbles keep the time in the corner. */
-.meta {
-  position: relative;
-  top: 6px;
-  float: right;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--ant-padding-xxs);
-  height: 1.5em;
-  margin: 0 calc(-1 * var(--ant-padding-xxs)) 0 var(--ant-padding-sm);
-  color: var(--bubble-meta);
-  /* The smallest text in a bubble: weight and a little tracking keep it legible on a fill. */
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.5;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-/* Trimmed to the cap height, the digits centre on the icons beside them instead of riding
-   above them on the room the line keeps for descenders. */
-.meta > time,
-.meta > span {
-  text-box: trim-both cap alphabetic;
-}
-
-.meta > svg {
-  flex-shrink: 0;
-}
-
+/* The timeline package floats the meta into the corner of the text's last line; the other
+   placements below take it to the files, the reactions or over a photo. */
 .meta[data-placement='block'] {
   top: 0;
   float: none;
