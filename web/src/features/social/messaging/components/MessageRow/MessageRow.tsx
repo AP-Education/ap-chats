@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useRef } from 'react';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
 
@@ -39,9 +39,11 @@ export const MessageRow = memo(function MessageRow({
   const editing = useConversation((state) => state.editingId === item.message.id);
   const setEditingId = useConversation((state) => state.setEditingId);
   const layout = bubbleLayout(item, pendingAttachments, editing);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   return (
     <MessageActionProvider
+      contentRef={contentRef}
       value={{
         item,
         author: authorName,
@@ -95,7 +97,11 @@ export const MessageRow = memo(function MessageRow({
         )}
         <Bubble variant={layout.variant} wide={editing}>
           <MessageHeader />
-          <MessageBody layout={layout} onCloseEdit={() => setEditingId(null)} />
+          <MessageBody
+            layout={layout}
+            contentRef={contentRef}
+            onCloseEdit={() => setEditingId(null)}
+          />
           {delivery === 'failed' && <UnsentNotice rowId={item.id} />}
         </Bubble>
       </MessageActions>
