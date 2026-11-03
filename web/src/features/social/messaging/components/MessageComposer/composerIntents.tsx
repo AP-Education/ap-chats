@@ -1,8 +1,8 @@
+import type { ComposerDraft } from '@ap-education/timeline/composer';
 import type { ComponentType } from 'react';
 
 import type { ComposerIntent } from '@/features/social/conversation-scope/store';
 import { writeToken } from '@/features/social/mentions/mention-tokens';
-import type { ComposerDraft } from '@/features/social/mentions/types';
 import type { MemberSummary } from '@/features/workspaces/types';
 
 import type { Message, SendMessageCommand } from '../../types';

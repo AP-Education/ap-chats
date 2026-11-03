@@ -3,11 +3,9 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import ts from 'typescript';
 
+// The composer's caret mechanics live in the timeline package, beside its composer entry.
 const editorSource = readFileSync(
-  new URL(
-    '../../src/features/social/mentions/components/ComposerEditor/composer-editor-selection.ts',
-    import.meta.url,
-  ),
+  new URL('./editable-selection.js', import.meta.resolve('@ap-education/timeline/composer')),
   'utf8',
 );
 const editorScript = ts.transpileModule(editorSource, {
@@ -31,10 +29,10 @@ test('consecutive emoji inserts preserve position without refocusing the editor'
     const operations = (
       window as unknown as {
         editorOperations: {
-          captureEditorSelection: (root: HTMLElement) => Range;
-          setEditorInputEnabled: (root: HTMLElement, enabled: boolean) => void;
+          captureSelection: (root: HTMLElement) => Range;
+          setInputEnabled: (root: HTMLElement, enabled: boolean) => void;
           insertAtSavedRange: (root: HTMLElement, text: string, range: Range) => Range;
-          restoreEditorSelection: (root: HTMLElement, range: Range) => void;
+          restoreSelection: (root: HTMLElement, range: Range) => void;
         };
       }
     ).editorOperations;
@@ -44,8 +42,8 @@ test('consecutive emoji inserts preserve position without refocusing the editor'
     range.collapse(true);
     window.getSelection()!.removeAllRanges();
     window.getSelection()!.addRange(range);
-    let saved = operations.captureEditorSelection(root);
-    operations.setEditorInputEnabled(root, false);
+    let saved = operations.captureSelection(root);
+    operations.setInputEnabled(root, false);
     let focuses = 0;
     root.addEventListener('focus', () => {
       focuses++;
@@ -54,9 +52,9 @@ test('consecutive emoji inserts preserve position without refocusing the editor'
     saved = operations.insertAtSavedRange(root, '🚀', saved);
     const didFocusDuringInsertion = focuses > 0;
     const text = root.textContent;
-    operations.setEditorInputEnabled(root, true);
+    operations.setInputEnabled(root, true);
     root.focus({ preventScroll: true });
-    operations.restoreEditorSelection(root, saved);
+    operations.restoreSelection(root, saved);
     return {
       text,
       didFocusDuringInsertion,
@@ -74,8 +72,8 @@ test('replacing a saved selection leaves picker search focused', async ({ page }
     const operations = (
       window as unknown as {
         editorOperations: {
-          captureEditorSelection: (root: HTMLElement) => Range;
-          setEditorInputEnabled: (root: HTMLElement, enabled: boolean) => void;
+          captureSelection: (root: HTMLElement) => Range;
+          setInputEnabled: (root: HTMLElement, enabled: boolean) => void;
           insertAtSavedRange: (root: HTMLElement, text: string, range: Range) => Range;
         };
       }
@@ -86,8 +84,8 @@ test('replacing a saved selection leaves picker search focused', async ({ page }
     range.setEnd(root.firstChild!, 8);
     window.getSelection()!.removeAllRanges();
     window.getSelection()!.addRange(range);
-    const saved = operations.captureEditorSelection(root);
-    operations.setEditorInputEnabled(root, false);
+    const saved = operations.captureSelection(root);
+    operations.setInputEnabled(root, false);
     document.getElementById('search')!.focus();
     operations.insertAtSavedRange(root, '🙂', saved);
     return { text: root.textContent, focus: document.activeElement?.id };
@@ -102,12 +100,12 @@ test('saved insertion preserves mention chips and supports a cleared draft', asy
       window as unknown as {
         editorOperations: {
           insertAtSavedRange: (root: HTMLElement, text: string, range: Range | null) => Range;
-          setEditorInputEnabled: (root: HTMLElement, enabled: boolean) => void;
+          setInputEnabled: (root: HTMLElement, enabled: boolean) => void;
         };
       }
     ).editorOperations;
     root.innerHTML = 'Привіт <span contenteditable="false" data-member-id="member">@Оля</span>!';
-    operations.setEditorInputEnabled(root, false);
+    operations.setInputEnabled(root, false);
     const saved = operations.insertAtSavedRange(root, '🙂', null);
     const mention = root.querySelector('[data-member-id]')?.textContent;
     const text = root.textContent;
