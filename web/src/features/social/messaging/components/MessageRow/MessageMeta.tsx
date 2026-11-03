@@ -1,7 +1,10 @@
-import { TimelineEntryMeta, TimelineEntryTime } from '@ap-education/timeline/react';
+import {
+  TimelineEntryMeta,
+  TimelineEntryStatus,
+  TimelineEntryTime,
+} from '@ap-education/timeline/react';
 import { PushPinIcon } from '@phosphor-icons/react';
 
-import { DeliveryMark } from './DeliveryMark';
 import { useMessageActionScope } from './MessageActionScope';
 import styles from './MessageMeta.module.css';
 
@@ -10,7 +13,7 @@ const fullFormat = new Intl.DateTimeFormat('uk-UA', { dateStyle: 'long', timeSty
 export type MessageMetaPlacement = 'inline' | 'block' | 'overlay' | 'emoji' | 'reactions';
 
 export function MessageMeta({ placement }: { placement: MessageMetaPlacement }) {
-  const { item, isOwn } = useMessageActionScope();
+  const { item } = useMessageActionScope();
   const editedAt = item.message.editedAt ? new Date(item.message.editedAt) : null;
 
   return (
@@ -18,7 +21,7 @@ export function MessageMeta({ placement }: { placement: MessageMetaPlacement }) 
       {item.pin && <PushPinIcon size={12} weight="fill" aria-label="Закріплено" />}
       {editedAt && <span title={`Відредаговано ${fullFormat.format(editedAt)}`}>ред.</span>}
       <TimelineEntryTime />
-      {isOwn && <DeliveryMark seq={item.seq} />}
+      <TimelineEntryStatus />
     </TimelineEntryMeta>
   );
 }

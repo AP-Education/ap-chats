@@ -9,10 +9,12 @@ import type { MessageActionsProps } from './MessageActions';
 import { useMessageActionScope } from './MessageActionScope';
 import { useMessageMenu } from './useMessageMenu';
 import { useMessageShortcuts } from './useMessageShortcuts';
+import { useOwnMessageStatus } from './useOwnMessageStatus';
 
 /** A message row on a pointer device: actions through the context menu and shortcuts. */
 export function DesktopMessageActions({ rowProps, children }: MessageActionsProps) {
   const scope = useMessageActionScope();
+  const status = useOwnMessageStatus();
   const menu = useMessageMenu();
   const handleShortcut = useMessageShortcuts();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -46,7 +48,7 @@ export function DesktopMessageActions({ rowProps, children }: MessageActionsProp
         </>
       )}
     >
-      <TimelineEntry asChild side={scope.isOwn ? 'end' : 'start'}>
+      <TimelineEntry asChild side={scope.isOwn ? 'end' : 'start'} status={status}>
         <div
           {...rowProps}
           onMouseUp={scope.captureSelection}

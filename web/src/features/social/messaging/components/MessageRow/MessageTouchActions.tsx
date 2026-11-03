@@ -18,9 +18,11 @@ import { useMessageActionScope } from './MessageActionScope';
 import { MessageActionSheet } from './MessageActionSheet';
 import styles from './MessageTouchActions.module.css';
 import { useMessageReplySwipe } from './useMessageReplySwipe';
+import { useOwnMessageStatus } from './useOwnMessageStatus';
 
 export function MessageTouchActions({ rowProps, children }: MessageActionsProps) {
   const scope = useMessageActionScope();
+  const status = useOwnMessageStatus();
   const areaRef = useRef<HTMLDivElement>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -79,7 +81,7 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
         <span className={styles.replyHint} aria-hidden="true">
           <ReplyIcon size={20} />
         </span>
-        <TimelineEntry asChild side={scope.isOwn ? 'end' : 'start'}>
+        <TimelineEntry asChild side={scope.isOwn ? 'end' : 'start'} status={status}>
           <div
             {...rowProps}
             className={`${rowProps.className ?? ''} ${styles.touchTarget}`}
