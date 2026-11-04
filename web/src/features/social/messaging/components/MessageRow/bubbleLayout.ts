@@ -35,7 +35,6 @@ export interface BubbleLayout {
 
 interface BubbleContent {
   hasText: boolean;
-  hasImages: boolean;
   hasFiles: boolean;
   /** A GIF under the text closes the bubble, as on Discord. */
   hasGif: boolean;
@@ -79,7 +78,6 @@ function bubbleContent(
 
   return {
     hasText: Boolean(markdown?.trim()) && !isOnlyGifLink,
-    hasImages: images.length > 0 || hasGif,
     hasGif,
     isLoneGif: hasGif && !hasAttachments && (!markdown?.trim() || isOnlyGifLink),
     hasFiles: pendingAttachments
@@ -90,9 +88,9 @@ function bubbleContent(
   };
 }
 
-function bubbleVariant({ jumboEmoji, isLoneGif, hasImages }: BubbleContent): BubbleVariant {
-  if (jumboEmoji || isLoneGif) return 'bare';
-  return hasImages ? 'media' : 'text';
+// A bubble with photos or a GIF lays them edge to edge through the timeline's media part.
+function bubbleVariant({ jumboEmoji, isLoneGif }: BubbleContent): BubbleVariant {
+  return jumboEmoji || isLoneGif ? 'bare' : 'text';
 }
 
 // The time closes whatever ends the bubble: the last line of text, the files, the reaction row,

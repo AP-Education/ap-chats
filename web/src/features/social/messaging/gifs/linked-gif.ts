@@ -1,4 +1,5 @@
-import { loadReadableImage, readPlaceholder } from '../media/placeholder';
+import { loadReadableImage, readThumbHash } from '@ap-education/ui/thumbhash';
+
 import type { GifBlock } from '../types';
 import { readGifLink } from './gif-links';
 import { findGif, isGifSearchConfigured } from './klipy-api';
@@ -45,7 +46,7 @@ export async function withPlaceholder(
   if (block.media.placeholder) return block;
 
   const timeout = new Promise<null>((resolve) => setTimeout(resolve, PLACEHOLDER_TIMEOUT_MS, null));
-  const read = loadReadableImage(source).then(readPlaceholder);
+  const read = loadReadableImage(source).then(readThumbHash);
   const placeholder = await Promise.race([read, timeout]).catch(() => null);
 
   return placeholder ? { ...block, media: { ...block.media, placeholder } } : block;

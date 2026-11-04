@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import type { MemberSummary } from '@/features/workspaces/types';
 
 import type { MessageReaction } from '../reactions/types';
-import type { Attachment } from './attachments/types';
+import type { Attachment, MessageAttachment } from './attachments/types';
 
 /** A GIF for a GIF link its message makes, loaded straight from its service's CDN. */
 export interface GifBlock {
@@ -25,7 +25,7 @@ export interface Message {
   authorMemberId: string;
   clientNonce: string | null;
   markdown: string | null;
-  attachments?: Attachment[];
+  attachments?: MessageAttachment[];
   blocks?: MessageBlock[];
   contentVersion: number;
   revision: number;

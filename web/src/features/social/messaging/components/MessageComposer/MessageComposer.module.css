@@ -1,29 +1,3 @@
-/* On a phone the files come in through a round control of their own beside the field, on the same
-   glass as the send button; elsewhere through one inside the field. */
-.besideField {
-  display: none;
-}
-
-.inField {
-  display: inline-flex;
-}
-
-@media (max-width: 768px) {
-  .besideField {
-    display: inline-flex;
-    flex-shrink: 0;
-    border-radius: var(--composer-control-radius);
-    background: var(--glass, rgba(255, 255, 255, 0.86));
-    backdrop-filter: var(--glass-blur, blur(24px) saturate(1.5));
-    box-shadow: 0 1px 2px rgba(23, 46, 42, 0.12);
-    color: var(--ant-color-text-secondary);
-  }
-
-  .inField {
-    display: none;
-  }
-}
-
 .toolbar {
   display: flex;
   align-items: center;

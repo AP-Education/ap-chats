@@ -215,7 +215,7 @@ function Fixture() {
           }}
         >
           <ConversationPane title="# Дизайн і продукт">
-            <div className={styles.body} data-conversation-drop-target>
+            <div className={styles.body} data-composer-drop-target>
               <div className={styles.history} role="log">
                 {messages.map((message) => (
                   <MessageRow

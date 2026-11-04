@@ -1,9 +1,14 @@
 import {
   Composer,
+  ComposerAttach,
   type ComposerDraft,
+  ComposerDropZone,
   ComposerField,
   ComposerHeader,
+  ComposerUploads,
+  ComposerUploadTray,
 } from '@ap-education/timeline/composer';
+import { Button, message } from 'antd';
 import { type ReactNode, useMemo, useRef } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
@@ -12,8 +17,6 @@ import { useConversationScope } from '@/features/social/conversation-scope/store
 import { useAttachments } from '../../attachments/useAttachments';
 import { useLinkedGif } from '../../gifs/useLinkedGif';
 import type { ComposedMessage } from '../../types';
-import { useAttachmentDrop } from './AttachmentDropZone';
-import { AttachFiles, ComposerAttachments } from './ComposerAttachments';
 import { ComposerIntent } from './ComposerIntent';
 import type { ReplyPreview } from './composerIntents';
 import { MessageInput } from './MessageInput';
@@ -41,8 +44,7 @@ export function MessageComposer({
     () => ({ field: composer.ariaLabel, placeholder: composer.placeholder }),
     [composer.ariaLabel, composer.placeholder],
   );
-  const uploads = useAttachments();
-  const { bindTarget, overlay } = useAttachmentDrop(uploads.addFiles);
+  const attachments = useAttachments();
   const linkedGif = useLinkedGif();
   // Sends leave in the order written, though finding a GIF may hold one back for a moment.
   const sendQueue = useRef(Promise.resolve());
@@ -60,7 +62,6 @@ export function MessageComposer({
 
   return (
     <Composer<ComposerDraft & ComposedMessage>
-      ref={bindTarget}
       draftKey={draftKey}
       labels={labels}
       autoFocus={composer.autoFocus}
@@ -68,17 +69,40 @@ export function MessageComposer({
       onChange={(draft) => linkedGif.prefetch(draft.markdown)}
       onSend={send}
     >
-      {overlay}
-      <AttachFiles uploads={uploads} placement="beside" />
-      <ComposerField>
-        <ComposerHeader>
-          <ComposerAttachments uploads={uploads} />
-          <ComposerIntent replyAuthor={replyAuthor} replyPreview={replyPreview} />
-        </ComposerHeader>
-        <AttachFiles uploads={uploads} placement="field" />
-        <MessageInput sendInTurn={sendInTurn}>{children}</MessageInput>
-      </ComposerField>
-      <SendButton hasAttachments={uploads.drafts.length > 0} />
+      <ComposerUploads
+        queue={attachments.queue}
+        policy={attachments.policy}
+        onReject={showRejections}
+      >
+        <ComposerDropZone />
+        <ComposerAttach placement="beside" />
+        <ComposerField>
+          <ComposerHeader>
+            <ComposerUploadTray />
+            {attachments.policyError && <UploadPolicyAlert onRetry={attachments.reloadPolicy} />}
+            <ComposerIntent replyAuthor={replyAuthor} replyPreview={replyPreview} />
+          </ComposerHeader>
+          <ComposerAttach placement="field" />
+          <MessageInput sendInTurn={sendInTurn}>{children}</MessageInput>
+        </ComposerField>
+        <SendButton />
+      </ComposerUploads>
     </Composer>
+  );
+}
+
+function showRejections(reasons: string[]) {
+  reasons.forEach((reason) => void message.error(reason));
+}
+
+/** Without the limits no file can be picked, so the person can ask for them again. */
+function UploadPolicyAlert({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div role="alert">
+      Не вдалося завантажити ліміти файлів.{' '}
+      <Button type="link" size="small" onClick={onRetry}>
+        Повторити
+      </Button>
+    </div>
   );
 }
