@@ -2,7 +2,7 @@
   "name": "@ap-chats/api",
   "version": "0.0.0",
   "private": true,
-  "description": "\u041a\u043e\u043c\u0430\u043d\u0434\u043d\u0456 \u0447\u0430\u0442\u0438 \u0439 \u0434\u0437\u0432\u0456\u043d\u043a\u0438 \u0437\u0456 \u0441\u043f\u0456\u043b\u044c\u043d\u0438\u043c \u0432\u0445\u043e\u0434\u043e\u043c AP.",
+  "description": "Командні чати й дзвінки зі спільним входом AP.",
   "packageManager": "pnpm@11.17.0",
   "engines": {
     "node": ">=24.15 <25"
@@ -43,8 +43,7 @@
     "test:uploads:integration": "pnpm build && node --import tsx test/uploads.integration.mts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1139.0",
-    "@aws-sdk/s3-request-presigner": "^3.1144.0",
+    "@ap-education/storage": "^0.1.0",
     "@fastify/multipart": "^10.1.2",
     "@nestjs-cls/transactional": "^4.0.1",
     "@nestjs-cls/transactional-adapter-drizzle-orm": "^2.0.1",
@@ -82,6 +81,7 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1139.0",
     "@commitlint/cli": "21.2.3",
     "@commitlint/config-conventional": "21.2.3",
     "@electric-sql/pglite": "^0.5.8",
