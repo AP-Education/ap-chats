@@ -1,14 +1,13 @@
+import { ObjectStorage } from '@ap-education/storage';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
-import { StorageProvider } from '@/components/uploads/storage';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { MessagesService } from '../messages';
 import type { MessageRef } from '../messages/types/message.types';
+import { type DownloadVariant, linkOf } from './attachment-links';
 import { ChatUploadsRepository } from './repository/chat-uploads.repository';
-
-export type DownloadVariant = 'download' | 'preview' | 'thumbnail';
 
 @Injectable()
 export class AttachmentDownloadsService {
@@ -16,9 +15,10 @@ export class AttachmentDownloadsService {
     private readonly access: ChannelAccessPolicy,
     private readonly messages: MessagesService,
     private readonly repository: ChatUploadsRepository,
-    private readonly storage: StorageProvider,
+    private readonly storage: ObjectStorage,
   ) {}
 
+  /** A file saved or played once opened, or an image whose link from the history lapsed. */
   async link(member: WorkspaceMember, message: MessageRef, id: string, variant: DownloadVariant) {
     await this.access.requireViewAccess(member, message.channelId);
     const { attachments } = await this.messages.requireLive(message);
@@ -29,15 +29,10 @@ export class AttachmentDownloadsService {
     const isStored = upload?.state === 'attached' && upload.workspaceId === member.workspaceId;
     if (!isStored) throw new NotFoundException('Attachment not found');
 
-    const isThumbnail = variant === 'thumbnail' && file.preview === 'image';
-    const isInline = isThumbnail || (variant === 'preview' && file.preview !== null);
-    const key = isThumbnail ? `${upload.objectKey}.preview.webp` : upload.objectKey;
-    const contentType = isThumbnail
-      ? 'image/webp'
-      : isInline
-        ? file.mediaType
-        : 'application/octet-stream';
+    const link = linkOf(upload.objectKey, file, variant);
+    if (!link) throw new NotFoundException('Attachment is not read that way');
 
-    return { url: await this.storage.signDownload(key, file.name, contentType, isInline) };
+    const url = await this.storage.signLink(link.key, link.options);
+    return { url };
   }
 }

@@ -1,3 +1,6 @@
+import { StorageModule } from '@ap-education/storage';
+import { MediaModule } from '@ap-education/storage/media';
+import { ThumbHashPlaceholder } from '@ap-education/storage/thumbhash';
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 
@@ -16,7 +19,7 @@ import { VoipPushModule } from '@/components/voip-push';
 import { WorkspacesModule } from '@/components/workspaces';
 import { DrizzleModule } from '@/database/drizzle';
 import { TransactionalDrizzleModule } from '@/database/drizzle/transactional-drizzle.module';
-import { AppConfigModule } from '@/globals/config';
+import { AppConfigModule, AppConfigService } from '@/globals/config';
 import { HttpExceptionFilter } from '@/globals/filters/http-exception.filter';
 import { LoggerModule } from '@/globals/logger';
 import { PublisherModule } from '@/globals/publisher';
@@ -29,6 +32,17 @@ import { HealthController } from '@/health/health.controller';
     DrizzleModule,
     TransactionalDrizzleModule,
     PublisherModule,
+    StorageModule.forRootAsync({
+      isGlobal: true,
+      inject: [AppConfigService],
+      useFactory: (config: AppConfigService) => ({
+        bucket: config.get('DIGITAL_OCEAN_SPACES_BUCKET'),
+        endpoint: config.get('DIGITAL_OCEAN_SPACES_ENDPOINT'),
+        accessKey: config.get('DIGITAL_OCEAN_SPACES_ACCESS_KEY'),
+        secretKey: config.get('DIGITAL_OCEAN_SPACES_SECRET_KEY'),
+      }),
+    }),
+    MediaModule.forRoot({ isGlobal: true, placeholder: new ThumbHashPlaceholder() }),
     AuthModule,
     UserProfilesModule,
     DevicesModule,

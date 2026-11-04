@@ -1,7 +1,7 @@
 import { messageBlocks } from '../messages/message-blocks';
 import { messageView } from '../messages/message-view';
 import type { ReadPosition } from '../read-state/types';
-import type { CallHistoryRow, HistoryRow, MessageHistoryRow } from './types/history.types';
+import type { CallHistoryRow, ShownHistoryRow, ShownMessageRow } from './types/history.types';
 
 type Profile = {
   displayName: string | null;
@@ -11,7 +11,7 @@ type Profile = {
 };
 
 interface HistoryPageInput {
-  rows: HistoryRow[];
+  rows: ShownHistoryRow[];
   viewerMemberId: string;
   snapshotSeq: bigint;
   position: ReadPosition;
@@ -44,7 +44,7 @@ export function historyPageView({
   };
 }
 
-export function historyItemView(row: HistoryRow, viewerMemberId: string) {
+export function historyItemView(row: ShownHistoryRow, viewerMemberId: string) {
   return row.type === 'CALL' ? callItemView(row) : messageItemView(row, viewerMemberId);
 }
 
@@ -66,7 +66,7 @@ function callItemView({ seq, createdAt, call, startedByProfile }: CallHistoryRow
   };
 }
 
-function messageItemView(row: MessageHistoryRow, viewerMemberId: string) {
+function messageItemView(row: ShownMessageRow, viewerMemberId: string) {
   const { seq, createdAt, message, reply, pin } = row;
   const forwardedFromMemberId = message.forwardedFromMemberId;
 

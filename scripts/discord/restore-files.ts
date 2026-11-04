@@ -1,24 +1,22 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import type { ObjectStorage } from '@ap-education/storage';
+import { identifyMedia, MediaInspector } from '@ap-education/storage/media';
+import { ThumbHashPlaceholder } from '@ap-education/storage/thumbhash';
 import { and, inArray, isNotNull } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
-import {
-  AttachmentPreviewService,
-  identifyMedia,
-} from '../../src/components/social/attachments/attachment-preview.service';
+import { attachmentObjectKey } from '../../src/components/social/attachments/attachment-links';
+import { attachmentMedia } from '../../src/components/social/attachments/attachment-media';
 import { normalizeFilename } from '../../src/components/social/attachments/upload-policy';
-import type { StorageProvider } from '../../src/components/uploads/storage';
 import { chatUploads, type StoredAttachment } from '../../src/database/drizzle/schema';
 import type { ChannelHistory, DumpedAttachment, DumpedPerson } from './dump-format';
 import { importedId, inBatches } from './restore-ids';
 
-// The preview service renders one image at a time and turns away a fifth caller in line.
+// The media inspector renders one image at a time and turns away a fifth caller in line.
 const CONCURRENCY = 4;
 
-export const attachmentObjectKey = (workspaceId: string, uploadId: string) =>
-  `chat-attachments/${workspaceId}/${uploadId}`;
 const avatarKey = (file: string) => `uploads/discord/${path.basename(file)}`;
 
 async function eachWithin<T>(items: T[], work: (item: T) => Promise<void>): Promise<void> {
@@ -29,7 +27,7 @@ async function eachWithin<T>(items: T[], work: (item: T) => Promise<void>): Prom
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, items.length) }, worker));
 }
 
-async function storedSize(storage: StorageProvider, key: string): Promise<number | null> {
+async function storedSize(storage: ObjectStorage, key: string): Promise<number | null> {
   try {
     return await storage.objectSize(key);
   } catch (error) {
@@ -64,7 +62,7 @@ function progress(label: string, done: number, total: number): void {
  */
 export async function storeAttachments(
   db: NodePgDatabase,
-  storage: StorageProvider | null,
+  storage: ObjectStorage | null,
   workspaceId: string,
   dumpDir: string,
   histories: ChannelHistory[],
@@ -74,7 +72,7 @@ export async function storeAttachments(
   );
   const uploadIdOf = (attachment: DumpedAttachment) => importedId(workspaceId, attachment.id);
   const known = await knownAttachments(db, dumped.map(uploadIdOf));
-  const preview = storage && new AttachmentPreviewService(storage);
+  const media = storage && new MediaInspector(storage, { placeholder: new ThumbHashPlaceholder() });
 
   const stored = new Map<string, StoredAttachment>();
   const pending = dumped.filter((attachment) => {
@@ -92,7 +90,7 @@ export async function storeAttachments(
       size: attachment.size,
       description: null,
     };
-    if (!storage || !preview) {
+    if (!storage || !media) {
       stored.set(attachment.id, {
         ...described,
         mediaType: 'application/octet-stream',
@@ -108,7 +106,8 @@ export async function storeAttachments(
       const body = await readFile(path.join(dumpDir, attachment.file));
       await storage.putPrivateObject(key, body, 'application/octet-stream');
     }
-    stored.set(attachment.id, { ...described, ...(await preview.inspect(key, attachment.size)) });
+    const inspected = await media.inspect(key, attachment.size);
+    stored.set(attachment.id, { ...described, ...attachmentMedia(inspected) });
     progress('files', ++done, pending.length);
   });
 
@@ -120,7 +119,7 @@ export async function storeAttachments(
  * sent once. Gives each person's avatar URL by their Discord id; none on a dry run.
  */
 export async function storeAvatars(
-  storage: StorageProvider | null,
+  storage: ObjectStorage | null,
   dumpDir: string,
   people: DumpedPerson[],
 ): Promise<Map<string, string>> {

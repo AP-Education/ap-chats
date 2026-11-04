@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 
 import { and, eq, gte, inArray, max, sql } from 'drizzle-orm';
 
+import { attachmentObjectKey } from '../../src/components/social/attachments/attachment-links';
 import { linkedGif, type MessageGif } from '../../src/components/social/content/message-gif';
 import { MessageMarkdownService } from '../../src/components/social/content/message-markdown';
 import type { MentionTargets } from '../../src/components/social/mentions/types';
@@ -21,7 +22,6 @@ import {
   workspaceMembers,
 } from '../../src/database/drizzle/schema';
 import { type ChannelHistory, DISCORD_REFERENCE, type DumpedMessage } from './dump-format';
-import { attachmentObjectKey } from './restore-files';
 import { importedId, inBatches, newTally, type Tally, type Tx } from './restore-ids';
 import type { RestoredIds } from './restore-structure';
 
