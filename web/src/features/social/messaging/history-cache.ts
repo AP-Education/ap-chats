@@ -1,10 +1,28 @@
-import { type InfiniteData, type QueryClient, replaceEqualDeep } from '@tanstack/react-query';
+import {
+  hashKey,
+  type InfiniteData,
+  type QueryClient,
+  replaceEqualDeep,
+} from '@tanstack/react-query';
 
 import type { PageCursor } from './hooks/useMessageHistory';
 import { messagingQueryKeys } from './queryKeys';
 import type { HistoryItem, HistoryPage } from './types';
 
 type HistoryData = InfiniteData<HistoryPage, PageCursor>;
+
+// When each conversation's opening window was last asked for, and when it was last left unwatched.
+const windowRequestedAt = new Map<string, number>();
+const unwatchedAt = new Map<string, number>();
+
+export function noteWindowRequested(key: readonly unknown[]) {
+  windowRequestedAt.set(hashKey(key), Date.now());
+}
+
+/** Events stop reaching a conversation that is left, so from here on its cache may fall behind. */
+export function noteUnwatched(key: readonly unknown[]) {
+  unwatchedAt.set(hashKey(key), Date.now());
+}
 
 export function mergeHistoryItem(
   queryClient: QueryClient,
@@ -87,6 +105,24 @@ export function refreshHistoryWindow(queryClient: QueryClient, key: readonly unk
     });
   }
   void queryClient.invalidateQueries({ queryKey: key, exact: true });
+}
+
+/**
+ * Once watched again, the opening window is asked for anew unless it was asked for since the
+ * conversation was last left and already reaches where the channel ended when watching began.
+ */
+export function refreshHistoryWindowIfBehind(
+  queryClient: QueryClient,
+  key: readonly unknown[],
+  lastEntrySeq: string,
+) {
+  const id = hashKey(key);
+  const isRequestedSinceLeft = (windowRequestedAt.get(id) ?? 0) > (unwatchedAt.get(id) ?? 0);
+  const tail = queryClient.getQueryData<HistoryData>(key)?.pages.at(-1);
+  const isComplete = tail !== undefined && BigInt(tail.snapshotSeq) >= BigInt(lastEntrySeq);
+  if (isRequestedSinceLeft && isComplete) return;
+
+  refreshHistoryWindow(queryClient, key);
 }
 
 /**

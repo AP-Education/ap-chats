@@ -3,6 +3,7 @@ import { infiniteQueryOptions, useInfiniteQuery } from '@tanstack/react-query';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
 import { historyPage, openHistory } from '../api/messages-api';
+import { noteWindowRequested } from '../history-cache';
 import { shareHistory } from '../history-cache';
 import { messagingQueryKeys } from '../queryKeys';
 
@@ -20,10 +21,12 @@ export function historyQuery(
   return infiniteQueryOptions({
     queryKey: messagingQueryKeys.history(identity, workspaceId, channelId, messageId),
     initialPageParam: { mode: 'window', messageId } as PageCursor,
-    queryFn: ({ pageParam }) => {
+    queryFn: ({ pageParam, queryKey }) => {
       if (!token) throw new Error('Not signed in');
-      if (pageParam.mode === 'window')
+      if (pageParam.mode === 'window') {
+        noteWindowRequested(queryKey);
         return openHistory(token, workspaceId, channelId, pageParam.messageId);
+      }
       return historyPage(
         token,
         workspaceId,

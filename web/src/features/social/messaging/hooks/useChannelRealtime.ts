@@ -6,7 +6,13 @@ import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { useConnection } from '@/features/realtime/stores/realtime-context';
 
 import { getEntry, historyPage } from '../api/messages-api';
-import { catchUpHistory, mergeHistoryItem, refreshHistoryWindow } from '../history-cache';
+import {
+  catchUpHistory,
+  mergeHistoryItem,
+  noteUnwatched,
+  refreshHistoryWindow,
+  refreshHistoryWindowIfBehind,
+} from '../history-cache';
 import { messagingQueryKeys } from '../queryKeys';
 import type { HistoryPage } from '../types';
 import type { PageCursor } from './useMessageHistory';
@@ -47,11 +53,13 @@ export function useChannelRealtime(
     // Joined before refreshing: an entry created in between reaches the cache one way or the other.
     socket
       .timeout(WATCH_ACK_MS)
-      .emit('social:watch', { workspaceId, channelId }, () =>
-        refreshHistoryWindow(queryClient, key),
-      );
+      .emit('social:watch', { workspaceId, channelId }, (error, watched) => {
+        if (error) refreshHistoryWindow(queryClient, key);
+        else refreshHistoryWindowIfBehind(queryClient, key, watched.lastEntrySeq);
+      });
     return () => {
       socket.emit('social:unwatch', { workspaceId, channelId });
+      noteUnwatched(key);
     };
   }, [socket, status, workspaceId, channelId, queryClient, key]);
 
