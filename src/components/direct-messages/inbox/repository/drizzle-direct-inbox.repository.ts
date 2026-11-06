@@ -165,12 +165,14 @@ export class DrizzleDirectInboxRepository extends DirectInboxRepository {
           status: first.status,
           displayName: firstProfile.displayName,
           avatarPath: firstProfile.avatarPath,
+          isBot: firstProfile.isBot,
         },
         second: {
           id: second.id,
           status: second.status,
           displayName: secondProfile.displayName,
           avatarPath: secondProfile.avatarPath,
+          isBot: secondProfile.isBot,
         },
         lastMessage: {
           id: chatMessages.id,

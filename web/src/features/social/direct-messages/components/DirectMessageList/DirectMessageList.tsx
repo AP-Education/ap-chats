@@ -5,6 +5,7 @@ import { createStyles } from 'antd-style';
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
+import { StarMeDirectButton } from '@/features/star-me/components/StarMeDirectButton';
 import { PanelHeaderActions } from '@/shared/ui/PanelHeaderActions';
 
 import { DirectMessageResults } from './DirectMessageResults';
@@ -59,6 +60,9 @@ export function DirectMessageList({
           />
         </PanelHeaderActions>
       </PanelHeader>
+      <div className={styles.search}>
+        <StarMeDirectButton workspaceId={workspaceId} onNavigate={onNavigate} />
+      </div>
       <div className={styles.search}>
         <Input
           prefix={<MagnifyingGlassIcon size={20} />}

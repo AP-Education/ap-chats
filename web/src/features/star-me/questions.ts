@@ -4,9 +4,13 @@ import { writeToken } from '../social/mentions/mention-tokens';
 import type { AskRequest, FailedQuestion, QuestionStatus } from './types';
 
 /** A message asks StarMe when it mentions StarMe or replies to it; asking about picked messages mentions it too. */
-export function asksStarMe(message: SentMessage, starMeId: string): boolean {
+export function asksStarMe(message: SentMessage, starMeId: string, direct = false): boolean {
   const mention = writeToken({ kind: 'member', id: starMeId });
-  return message.replyToAuthorId === starMeId || message.input.markdown.includes(mention);
+  return (
+    (direct && Boolean(message.input.markdown.trim())) ||
+    message.replyToAuthorId === starMeId ||
+    message.input.markdown.includes(mention)
+  );
 }
 
 export function askRequest(message: SentMessage, questionId: string): AskRequest {
