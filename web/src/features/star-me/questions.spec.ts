@@ -56,6 +56,12 @@ test('a reported status replaces the question it is about, and an answer closes 
   assert.deepEqual(withStatus(open, status('q2', 'answered')), [status('q1', 'thinking')]);
 });
 
+test('a text in the private StarMe conversation asks without a mention', () => {
+  assert.equal(asksStarMe(sent('Допоможи з планом'), starMe, true), true);
+  assert.equal(asksStarMe(sent('Допоможи з планом'), starMe, false), false);
+  assert.equal(asksStarMe(sent('   '), starMe, true), false);
+});
+
 test('only the asker sees their own latest failure', () => {
   const statuses = [failed('q1'), failed('q2', 'ilya'), status('q3', 'thinking'), failed('q4')];
 

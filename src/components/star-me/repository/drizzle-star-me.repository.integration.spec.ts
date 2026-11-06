@@ -4,11 +4,17 @@ import { test } from 'node:test';
 
 import { and, eq } from 'drizzle-orm';
 
+import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
+import { DrizzleChannelAccessRepository } from '@/components/communities/channel-access/channel-access/repository/drizzle-channel-access.repository';
 import { DrizzleMentionsRepository } from '@/components/social/mentions/repository/drizzle-mentions.repository';
+import { DrizzleWorkspaceMembersRepository } from '@/components/workspaces/members/repository';
 import * as schema from '@/database/drizzle/schema';
 import { migratedDatabase, type TestDatabase, transactionHost } from '@/testing/pglite';
+import { socialServices } from '@/testing/social';
 
 import { STAR_ME } from '../star-me.identity';
+import { answerNonce, StarMeService } from '../star-me.service';
+import { StarMeActivity } from '../star-me-activity';
 import { DrizzleStarMeRepository } from './drizzle-star-me.repository';
 
 // Embedded PostgreSQL with the real migrations: no application database is contacted.
@@ -152,6 +158,105 @@ test('StarMe on PostgreSQL', async (t) => {
     assert.equal(await repository.answerId(general, starMe, answer.nonce), answer.id);
     assert.equal(await repository.answerId(general, vlad, answer.nonce), undefined);
   });
+
+  await t.test('only the asker and StarMe pair qualifies as a private question', async () => {
+    const direct = await seed.direct(office, vlad, starMe);
+    const otherPerson = await seed.member(office, await seed.person('Інша людина'));
+    const otherDirect = await seed.direct(office, vlad, otherPerson);
+    const question = await seed.post(direct, vlad, 'Привіт');
+    const otherQuestion = await seed.post(otherDirect, vlad, 'Привіт');
+    assert.equal(
+      (await repository.question(vlad, direct, question.id, starMe))?.directWithStarMe,
+      true,
+    );
+    assert.equal(
+      (await repository.question(vlad, otherDirect, otherQuestion.id, starMe))?.directWithStarMe,
+      false,
+    );
+    assert.equal(await repository.question(ilya, direct, question.id, starMe), undefined);
+    assert.equal(await repository.question(vlad, otherDirect, question.id, starMe), undefined);
+    assert.deepEqual(
+      (await repository.recent(direct, question.seq, 20)).map(({ id }) => id),
+      [question.id],
+    );
+    assert.deepEqual(await repository.selected(direct, [otherQuestion.id]), []);
+    await db
+      .update(schema.chatMessages)
+      .set({ deletedAt: new Date() })
+      .where(eq(schema.chatMessages.id, question.id));
+    assert.equal(await repository.question(vlad, direct, question.id, starMe), undefined);
+  });
+
+  await t.test(
+    'private answers use real posting, deduplicate concurrent requests and recheck revoked access',
+    async () => {
+      const personId = await seed.member(office, await seed.person('Олена'));
+      const channelId = await seed.direct(office, personId, starMe);
+      const people = new DrizzleWorkspaceMembersRepository(txHost as never);
+      const asker = (await people.findById(office, personId))!;
+      const social = socialServices(txHost);
+      const activity = new StarMeActivity();
+      let resolve: (value: string) => void = () => {};
+      let answer = new Promise<string>((settle) => {
+        resolve = settle;
+      });
+      const calls: string[] = [];
+      const service = new StarMeService(
+        people,
+        new ChannelAccessPolicy(new DrizzleChannelAccessRepository(txHost as never)),
+        social.sending,
+        repository,
+        {
+          reply: async (_turns: unknown, token: string) => {
+            calls.push(token);
+            return answer;
+          },
+        },
+        activity,
+        social.events,
+        { error() {} } as never,
+      );
+      const question = await social.sending.send(asker, channelId, {
+        markdown: 'План на тиждень',
+        clientNonce: randomUUID(),
+      });
+      const ask = (questionId: string) =>
+        service.answer(asker, channelId, { questionId }, 'asker-token');
+      await Promise.all([ask(question.id), ask(question.id)]);
+      resolve('Ось план');
+      const settle = async (id: string) => {
+        const deadline = Date.now() + 5000;
+        while (activity.isThinking(id)) {
+          if (Date.now() > deadline) throw new Error('Answer did not finish');
+          await new Promise((done) => setTimeout(done, 10));
+        }
+      };
+      await settle(question.id);
+      await ask(question.id);
+      assert.deepEqual(calls, ['asker-token']);
+      const answerId = await repository.answerId(channelId, starMe, answerNonce(question.id));
+      assert.ok(answerId);
+      const item = await social.history.entry(asker, channelId, answerId);
+      assert.equal(item.type, 'MESSAGE');
+
+      const second = await social.sending.send(asker, channelId, {
+        markdown: 'Ще питання',
+        clientNonce: randomUUID(),
+      });
+      answer = new Promise<string>((done) => {
+        resolve = done;
+      });
+      await ask(second.id);
+      await db
+        .update(schema.workspaceMembers)
+        .set({ status: 'removed' })
+        .where(eq(schema.workspaceMembers.id, personId));
+      resolve('Не можна публікувати');
+      await settle(second.id);
+      assert.equal(await repository.answerId(channelId, starMe, answerNonce(second.id)), undefined);
+      assert.equal(activity.inChannel(channelId).at(-1)?.state, 'failed');
+    },
+  );
 });
 
 function seeder(db: TestDatabase) {

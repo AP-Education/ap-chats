@@ -38,9 +38,11 @@ export function DirectProfilePanel({ participant, member }: DirectProfilePanelPr
   const { styles } = useStyles();
   const name = member?.profile.displayName ?? participant.displayName ?? 'Ім’я недоступне';
   const avatarPath = member?.profile.avatarPath ?? participant.avatarPath;
-  const role = participant.active
-    ? accessLevelLabels[member?.accessLevel ?? 'member']
-    : 'Більше не в просторі';
+  const role = participant.isBot
+    ? 'AI-асистент'
+    : participant.active
+      ? accessLevelLabels[member?.accessLevel ?? 'member']
+      : 'Більше не в просторі';
 
   return (
     <div className={styles.shell}>

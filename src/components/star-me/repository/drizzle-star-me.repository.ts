@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, asc, desc, eq, inArray, isNull, lte, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, lte, or, type SQL } from 'drizzle-orm';
 
 import type { MemberSummary } from '@/components/workspaces/members/types';
 import {
   channelEntries,
   chatMessages,
+  directMessages,
   messageContext,
   messageMentions,
   userProfiles,
@@ -79,6 +80,26 @@ export class DrizzleStarMeRepository extends StarMeRepository {
       );
     if (!row) return undefined;
 
+    const [direct] = await this.txHost.tx
+      .select({ id: directMessages.channelId })
+      .from(directMessages)
+      .where(
+        and(
+          eq(directMessages.channelId, channelId),
+          eq(directMessages.workspaceId, row.workspaceId),
+          or(
+            and(
+              eq(directMessages.firstMemberId, askedByMemberId),
+              eq(directMessages.secondMemberId, starMeMemberId),
+            ),
+            and(
+              eq(directMessages.secondMemberId, askedByMemberId),
+              eq(directMessages.firstMemberId, starMeMemberId),
+            ),
+          ),
+        ),
+      );
+
     const [mention] = await this.txHost.tx
       .select({ memberId: messageMentions.memberId })
       .from(messageMentions)
@@ -105,6 +126,7 @@ export class DrizzleStarMeRepository extends StarMeRepository {
       seq: row.seq,
       mentionsStarMe: Boolean(mention),
       repliesToStarMe: Boolean(repliedAnswer),
+      directWithStarMe: Boolean(direct),
     };
   }
 

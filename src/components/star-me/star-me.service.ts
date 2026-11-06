@@ -88,7 +88,7 @@ export class StarMeService {
   ): Promise<Question> {
     const question = await this.repository.question(asker.id, channelId, messageId, starMe.id);
     if (!question) throw new NotFoundException('Message not found');
-    if (!question.mentionsStarMe && !question.repliesToStarMe) {
+    if (!question.directWithStarMe && !question.mentionsStarMe && !question.repliesToStarMe) {
       throw new BadRequestException('The message does not ask StarMe');
     }
     return question;

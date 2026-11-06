@@ -1,0 +1,200 @@
+import './fixture.css';
+
+import { CurrentUserContext } from '@ap-education/shell-sdk';
+import { ThemeProvider } from '@ap-education/ui';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Button } from 'antd';
+import { StrictMode, useEffect, useMemo, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
+
+import { RealtimeContext } from '@/features/realtime/stores/realtime-context';
+import type { RealtimeSocketClient } from '@/features/realtime/types';
+import { ConversationFooter } from '@/features/social/conversation/components/ConversationView/ConversationFooter';
+import { ConversationProvider } from '@/features/social/conversation-scope/store';
+import { sendMessage } from '@/features/social/messaging/api/messages-api';
+import { UploadQueue } from '@/features/social/messaging/attachments/upload-queue';
+import { ConversationOutbox } from '@/features/social/messaging/sending/stores/conversation-outbox';
+import type {
+  ConversationSending,
+  Outboxes,
+} from '@/features/social/messaging/sending/stores/outboxes';
+import { OutboxesContext } from '@/features/social/messaging/sending/stores/outboxes-context';
+import { MemberSheetProvider } from '@/features/social/people/providers/MemberSheetProvider';
+import { StarMeActivity } from '@/features/star-me/components/StarMeActivity/StarMeActivity';
+import { StarMeDirectButton } from '@/features/star-me/components/StarMeDirectButton';
+import { useStarMeExtension } from '@/features/star-me/hooks/useStarMeExtension';
+import type { WorkspaceMember } from '@/features/workspaces/types';
+
+import { runNativeScenario } from './native-scenario';
+
+const token = `fixture-only:${new URLSearchParams(location.search).get('session') ?? 'demo'}`;
+const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+const listeners = new Map<string, Set<(event: unknown) => void>>();
+const socket = {
+  on(name: string, fn: (event: unknown) => void) {
+    let set = listeners.get(name);
+    if (!set) {
+      set = new Set();
+      listeners.set(name, set);
+    }
+    set.add(fn);
+  },
+  off(name: string, fn: (event: unknown) => void) {
+    listeners.get(name)?.delete(fn);
+  },
+} as unknown as RealtimeSocketClient;
+async function api<T>(path: string): Promise<T> {
+  const response = await fetch(`/api${path}`, { headers: { authorization: `Bearer ${token}` } });
+  if (!response.ok) throw new Error(`QA API ${response.status}`);
+  return response.json();
+}
+interface Session {
+  workspaceId: string;
+  user: WorkspaceMember;
+  starMe: WorkspaceMember;
+  other: { id: string; participant: { memberId: string } };
+}
+interface KeptMessage {
+  id: string;
+  authorMemberId: string;
+  contentMarkdown: string;
+}
+
+function Chat({ state, channelId, peerId }: { state: Session; channelId: string; peerId: string }) {
+  const [messages, setMessages] = useState<KeptMessage[]>([]);
+  const extension = useStarMeExtension(state.workspaceId, peerId);
+  const extensions = useMemo(() => (extension ? [extension] : []), [extension]);
+  const [sending] = useState<ConversationSending>(() => {
+    const uploads = new UploadQueue({ workspaceId: state.workspaceId, channelId }, () => token);
+    const outbox = new ConversationOutbox({
+      uploads,
+      storage: { read: () => [], write() {} },
+      post: (input, signal) => sendMessage(token, state.workspaceId, channelId, input, signal),
+      recordSent: async () => {},
+    });
+    return { uploads, outbox };
+  });
+  const outboxes = useMemo<Outboxes>(() => ({ setSession() {}, for: () => sending }), [sending]);
+  useEffect(() => {
+    let active = true;
+    const update = async () => {
+      const rows = await api<KeptMessage[]>(
+        `/workspaces/${state.workspaceId}/channels/${channelId}/qa-history`,
+      );
+      if (active) setMessages(rows);
+    };
+    void update();
+    const timer = setInterval(() => void update(), 200);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [state.workspaceId, channelId]);
+  return (
+    <MemberSheetProvider>
+      <OutboxesContext.Provider value={outboxes}>
+        <ConversationProvider
+          extensions={extensions}
+          scope={{
+            workspaceId: state.workspaceId,
+            channelId,
+            title: peerId === state.starMe.id ? 'StarMe' : 'Іван Петренко',
+            composer: { ariaLabel: 'Повідомлення', placeholder: 'Написати повідомлення…' },
+            permissions: { canPost: true, canReact: true, canManage: false, canPin: false },
+          }}
+        >
+          <section className="history" aria-label="Історія чату">
+            {messages.map((message) => (
+              <article
+                key={message.id}
+                className={`bubble${message.authorMemberId === state.user.id ? ' own' : ''}`}
+              >
+                {message.contentMarkdown}
+              </article>
+            ))}
+            {extension && <StarMeActivity />}
+          </section>
+          <ConversationFooter
+            items={[]}
+            send={(input, nonce) => sending.outbox.send(input, nonce)}
+          />
+        </ConversationProvider>
+      </OutboxesContext.Provider>
+    </MemberSheetProvider>
+  );
+}
+function Fixture({ state }: { state: Session }) {
+  const path = useLocation().pathname;
+  const navigate = useNavigate();
+  const channelId = path.split('/direct/')[1];
+  const isStarMe = channelId !== state.other.id;
+  useEffect(() => {
+    let count = 0;
+    let active = true;
+    const timer = setInterval(
+      () =>
+        void api<{ name: string; event: unknown }[]>('/qa/events').then((events) => {
+          if (!active) return;
+          for (const event of events.slice(count)) {
+            listeners
+              .get('social:changed')
+              ?.forEach((listener) => listener({ ...(event.event as object), type: event.name }));
+          }
+          count = events.length;
+        }),
+      150,
+    );
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+  return (
+    <main className="fixture">
+      <header>
+        <h1>{channelId ? (isStarMe ? 'StarMe' : 'Іван Петренко') : 'Особисті'}</h1>
+        {channelId && <Button onClick={() => navigate('/')}>До розмов</Button>}
+      </header>
+      {channelId ? (
+        <Chat
+          key={channelId}
+          state={state}
+          channelId={channelId}
+          peerId={isStarMe ? state.starMe.id : state.other.participant.memberId}
+        />
+      ) : (
+        <section className="welcome">
+          <p>Ваш приватний AI-асистент у робочому просторі.</p>
+          <StarMeDirectButton workspaceId={state.workspaceId} />
+          <Button onClick={() => navigate(`/direct/${state.other.id}`)}>Написати Івану</Button>
+        </section>
+      )}
+    </main>
+  );
+}
+const state = await api<Session>('/qa/session');
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <ThemeProvider appearance="light">
+      <QueryClientProvider client={client}>
+        <CurrentUserContext.Provider
+          value={{
+            status: 'signed-in',
+            accessToken: token,
+            queryIdentity: token,
+            profile: { sub: state.user.profile.oidcUserId },
+            signOut() {},
+          }}
+        >
+          <RealtimeContext.Provider value={{ status: 'connected', socket, error: null }}>
+            <BrowserRouter>
+              <Fixture state={state} />
+            </BrowserRouter>
+          </RealtimeContext.Provider>
+        </CurrentUserContext.Provider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  </StrictMode>,
+);
+if (new URLSearchParams(location.search).has('native')) void runNativeScenario(token);

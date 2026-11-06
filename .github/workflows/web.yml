@@ -47,3 +47,21 @@ jobs:
       - run: pnpm test:web
       - run: pnpm build:web
       - run: pnpm exec prettier --check web
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright test --config web/tests/starme/playwright.config.ts --project desktop --project phone --project narrow
+
+  safari-starme:
+    runs-on: macos-15
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - run: echo '//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}' >> ~/.npmrc
+      - uses: pnpm/setup@v3
+        with:
+          require-lockfile: true
+          cache: true
+      - run: pnpm exec playwright install webkit
+      - run: pnpm exec playwright test --config web/tests/starme/playwright.config.ts --project safari

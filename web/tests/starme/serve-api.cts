@@ -1,0 +1,133 @@
+import '../../../src/testing/test-env.ts';
+
+import { HttpException } from '@nestjs/common';
+import { eq } from 'drizzle-orm';
+import Fastify from 'fastify';
+
+import { ChannelAccessPolicy } from '../../../src/components/communities/channel-access/channel-access';
+import { DrizzleChannelAccessRepository } from '../../../src/components/communities/channel-access/channel-access/repository/drizzle-channel-access.repository';
+import {
+  Assistant,
+  AssistantFailure,
+  type AssistantTurn,
+} from '../../../src/components/star-me/assistant';
+import { DrizzleStarMeRepository } from '../../../src/components/star-me/repository';
+import { STAR_ME } from '../../../src/components/star-me/star-me.identity';
+import { StarMeService } from '../../../src/components/star-me/star-me.service';
+import { StarMeActivity } from '../../../src/components/star-me/star-me-activity';
+import { DrizzleWorkspaceMembersRepository } from '../../../src/components/workspaces/members/repository';
+import * as schema from '../../../src/database/drizzle/schema';
+import { seedConversations } from '../../../src/testing/conversations';
+import { directMessageServices } from '../../../src/testing/direct-messages';
+import { migratedDatabase, transactionHost } from '../../../src/testing/pglite';
+import { socialServices } from '../../../src/testing/social';
+
+// Local disposable database and deterministic agent; never loads application dotenv files.
+async function main() {
+  const { pg, db } = await migratedDatabase();
+  const host = transactionHost(db);
+  const seed = seedConversations(db);
+  const social = socialServices(host);
+  const direct = directMessageServices(host);
+  const repository = new DrizzleStarMeRepository(host as never);
+  const members = new DrizzleWorkspaceMembersRepository(host as never);
+  const access = new ChannelAccessPolicy(new DrizzleChannelAccessRepository(host as never));
+  const attempts = new Map<string, number>();
+  const activity = new StarMeActivity();
+  class FixtureAssistant extends Assistant {
+    async reply(turns: AssistantTurn[], token: string) {
+      const text = turns.at(-1)?.text ?? '';
+      const key = `${token}:${text}`;
+      const count = attempts.get(key) ?? 0;
+      attempts.set(key, count + 1);
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      if (text.includes('Помилка') && count === 0) throw new AssistantFailure('unavailable');
+      return `Привіт! Допоможу з вашим запитом: ${text}`;
+    }
+  }
+  const service = new StarMeService(
+    members,
+    access,
+    social.sending,
+    repository,
+    new FixtureAssistant(),
+    activity,
+    social.events,
+    { error() {} } as never,
+  );
+  await repository.saveIdentity(STAR_ME);
+
+  async function createSession() {
+    const workspaceId = await seed.workspace();
+    const user = await seed.join(workspaceId, await seed.person('Олена Коваль'));
+    const peer = await seed.join(workspaceId, await seed.person('Іван Петренко'));
+    await repository.enrol(STAR_ME, workspaceId);
+    const starMe = (await members.findForUser(workspaceId, STAR_ME.subject))!;
+    const other = await direct.conversations.open(user, peer.id);
+    return { workspaceId, user, starMe, other };
+  }
+  type Session = Awaited<ReturnType<typeof createSession>>;
+  const sessions = new Map<string, Promise<Session>>();
+  const results = new Map<string, unknown>();
+  const api = Fastify();
+  api.setErrorHandler((error, _request, reply) => {
+    reply
+      .code(error instanceof HttpException ? error.getStatus() : 500)
+      .send({ message: error.message });
+  });
+  api.addHook('onRequest', async (request, reply) => {
+    if (!/^Bearer fixture-only:[a-zA-Z0-9_-]{1,80}$/u.test(request.headers.authorization ?? ''))
+      return reply.code(401).send({ message: 'Disposable QA authorization required' });
+  });
+  function session(token: string) {
+    let value = sessions.get(token);
+    if (!value) {
+      value = createSession();
+      sessions.set(token, value);
+    }
+    return value;
+  }
+  api.all('/api/*', async (request, reply) => {
+    const token = request.headers.authorization!.slice(7);
+    const state = await session(token);
+    const path = request.url.split('?')[0]!;
+    const body = request.body as Record<string, string> | undefined;
+    const channelId = path.match(/\/channels\/([^/]+)/u)?.[1];
+    if (path === '/api/qa/session') return state;
+    if (path === '/api/qa/result' && request.method === 'POST') {
+      results.set(token, request.body);
+      return { ok: true };
+    }
+    if (path === '/api/qa/results') return Object.fromEntries(results);
+    if (path.endsWith('/members')) return members.findAllForWorkspace(state.workspaceId);
+    if (path.endsWith('/direct-messages') && request.method === 'POST')
+      return direct.conversations.open(state.user, body!.memberId!);
+    if (path.endsWith('/uploads/policy'))
+      return {
+        maxFileBytes: 20 * 1024 * 1024,
+        maxMessageBytes: 20 * 1024 * 1024,
+        maxFiles: 10,
+        partBytes: 5 * 1024 * 1024,
+      };
+    if (channelId && path.endsWith('/messages') && request.method === 'POST')
+      return social.sending.send(state.user, channelId, body as never);
+    if (channelId && path.endsWith('/star-me/answers')) {
+      await service.answer(state.user, channelId, body as never, token);
+      return reply.code(204).send();
+    }
+    if (channelId && path.endsWith('/star-me/status')) return service.status(state.user, channelId);
+    if (channelId && path.endsWith('/qa-history')) {
+      await access.requireViewAccess(state.user, channelId);
+      return db
+        .select()
+        .from(schema.chatMessages)
+        .where(eq(schema.chatMessages.channelId, channelId));
+    }
+    if (path === '/api/qa/events') return social.published;
+    return reply.code(404).send({ message: 'Not in the isolated fixture API' });
+  });
+  api.addHook('onClose', () => pg.close());
+  await api.listen({ port: 5576, host: '127.0.0.1' });
+  console.log('StarMe disposable QA API: http://127.0.0.1:5576');
+}
+void main();
