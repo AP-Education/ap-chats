@@ -1,7 +1,8 @@
+import { ObjectStorage } from '@ap-education/storage';
+import { previewKeyOf } from '@ap-education/storage/media';
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { StorageProvider } from '@/components/uploads/storage';
 import { Logger } from '@/globals/logger';
 
 import { ChatUploadsRepository } from './repository/chat-uploads.repository';
@@ -27,7 +28,7 @@ export class UploadCleanupService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly repository: ChatUploadsRepository,
-    private readonly storage: StorageProvider,
+    private readonly storage: ObjectStorage,
     private readonly logger: Logger,
   ) {}
 
@@ -74,7 +75,7 @@ export class UploadCleanupService implements OnModuleInit, OnModuleDestroy {
 
     await this.storage.abortMultipart(upload.objectKey, upload.multipartId);
     await this.storage.deleteObject(upload.objectKey);
-    await this.storage.deleteObject(`${upload.objectKey}.preview.webp`);
+    await this.storage.deleteObject(previewKeyOf(upload.objectKey));
     await this.repository.remove(id);
   }
 

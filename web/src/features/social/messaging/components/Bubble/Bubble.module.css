@@ -20,32 +20,16 @@
   width: min(560px, 85%);
 }
 
-.bubble[data-wide] {
+/* The timeline lays media edge to edge by the bubble's attribute and :has(), so the rules that
+   undo it name that attribute too. */
+[data-timeline-bubble].bubble[data-wide] {
   width: 100%;
+  max-width: 100%;
   padding: 4px;
-}
-
-/* No wider than its media box (the timeline's --media-max-side), so a caption wraps under the
-   photo, as in Telegram. */
-.bubble[data-variant='media'] {
-  max-width: min(var(--media-max-side), 100%);
-  padding: 4px;
-}
-
-.bubble[data-variant='media'] > :not([data-attachment-media]) {
-  margin-inline: 8px;
-}
-
-.bubble[data-variant='media'] > :first-child:not([data-attachment-media]) {
-  margin-top: 2px;
-}
-
-.bubble[data-variant='media'] > :last-child:not([data-attachment-media]) {
-  margin-bottom: var(--ant-margin-xxs);
 }
 
 /* Large emoji and a lone GIF sit on the wallpaper without a bubble or its tail, as in Telegram. */
-.bubble[data-variant='bare'] {
+[data-timeline-bubble].bubble[data-variant='bare'] {
   padding: 0;
   background: none;
   box-shadow: none;

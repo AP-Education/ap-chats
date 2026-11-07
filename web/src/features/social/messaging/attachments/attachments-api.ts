@@ -1,6 +1,8 @@
+import type { UploadSession, UploadTransport } from '@ap-education/timeline/composer';
+
 import { apiRequest, jsonInit } from '@/shared/api/http';
 
-import type { Attachment, AttachmentPolicy, UploadScope, UploadSession } from './types';
+import type { Attachment, AttachmentPolicy, UploadScope } from './types';
 
 function uploadsUrl({ workspaceId, channelId }: UploadScope) {
   return `/api/workspaces/${workspaceId}/channels/${channelId}/uploads`;
@@ -10,29 +12,35 @@ export function getUploadPolicy(token: string, scope: UploadScope): Promise<Atta
   return apiRequest(`${uploadsUrl(scope)}/policy`, token);
 }
 
-export function beginUpload(token: string, scope: UploadScope, file: File): Promise<UploadSession> {
-  return apiRequest(
-    uploadsUrl(scope),
-    token,
-    jsonInit('POST', { name: file.name, size: file.size }),
-  );
-}
-
-export function signUploadPart(
-  token: string,
+/**
+ * A conversation's files through the Chats API, as the composer's queue sends them. Each call is
+ * async, so a missing token rejects it like any failed request instead of throwing at the caller.
+ */
+export function uploadTransport(
   scope: UploadScope,
-  id: string,
-  number: number,
-): Promise<{ url: string }> {
-  return apiRequest(`${uploadsUrl(scope)}/${id}/part`, token, jsonInit('POST', { number }));
-}
+  token: () => string,
+): UploadTransport<Attachment> {
+  const url = uploadsUrl(scope);
 
-export function completeUpload(token: string, scope: UploadScope, id: string): Promise<Attachment> {
-  return apiRequest(`${uploadsUrl(scope)}/${id}/complete`, token, jsonInit('POST', {}));
-}
-
-export function cancelUpload(token: string, scope: UploadScope, id: string): Promise<void> {
-  return apiRequest(`${uploadsUrl(scope)}/${id}`, token, { method: 'DELETE' });
+  return {
+    begin: async (file) =>
+      apiRequest<UploadSession>(
+        url,
+        token(),
+        jsonInit('POST', { name: file.name, size: file.size }),
+      ),
+    signPart: async (id, number) => {
+      const part = await apiRequest<{ url: string }>(
+        `${url}/${id}/part`,
+        token(),
+        jsonInit('POST', { number }),
+      );
+      return part.url;
+    },
+    complete: async (id) =>
+      apiRequest<Attachment>(`${url}/${id}/complete`, token(), jsonInit('POST', {})),
+    cancel: async (id) => apiRequest<void>(`${url}/${id}`, token(), { method: 'DELETE' }),
+  };
 }
 
 export function attachmentUrl(

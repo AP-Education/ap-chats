@@ -51,7 +51,7 @@ test('a lone GIF link shows the GIF alone, without a bubble; with words the word
   };
 
   assert.deepEqual(layout(link), ['bare', false, 'overlay'], 'a lone GIF shows without a bubble');
-  assert.deepEqual(layout(`привіт ${link}`), ['media', true, 'overlay']);
+  assert.deepEqual(layout(`привіт ${link}`), ['text', true, 'overlay']);
   assert.deepEqual(
     layout(link, []),
     ['text', true, 'inline'],

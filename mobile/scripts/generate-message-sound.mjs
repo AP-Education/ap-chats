@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 
-// Offline rendering of web/src/features/social/read-state/sound/messageBloop.ts.
+// Offline rendering of web/src/features/notifications/sound/messageBloop.ts.
 const sampleRate = 44100;
 const samples = new Float64Array(Math.round(sampleRate * 1.1));
 const partials = [

@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 
+import { ObjectStorage } from '@ap-education/storage';
 import { Injectable } from '@nestjs/common';
 
 import { ImageSanitizerService } from './image-sanitizer.service';
-import { StorageProvider } from './storage';
 
 export interface UploadedFileResult {
   path: string;
@@ -13,7 +13,7 @@ export interface UploadedFileResult {
 @Injectable()
 export class UploadsService {
   constructor(
-    private readonly storage: StorageProvider,
+    private readonly storage: ObjectStorage,
     private readonly imageSanitizer: ImageSanitizerService,
   ) {}
 

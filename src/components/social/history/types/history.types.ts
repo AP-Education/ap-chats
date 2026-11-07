@@ -1,3 +1,4 @@
+import type { ShownAttachment } from '../../attachments/types';
 import type { MessageModel } from '../../messages/types/message.types';
 import type { MessageReaction } from '../../reactions/types/reaction.types';
 
@@ -62,6 +63,13 @@ export interface CallHistoryRow {
 // One row per channel_entries position; the query joins both subject kinds,
 // but a row is exactly one of them, never a grab-bag of optional fields.
 export type HistoryRow = MessageHistoryRow | CallHistoryRow;
+
+/** A message row as its reader gets it: each image it carries comes with the links it shows by. */
+export type ShownMessageRow = Omit<MessageHistoryRow, 'message'> & {
+  message: Omit<MessageModel, 'attachments'> & { attachments: ShownAttachment[] };
+};
+
+export type ShownHistoryRow = ShownMessageRow | CallHistoryRow;
 
 /** One page of a channel's history as one member sees it. */
 export interface HistoryPageQuery {

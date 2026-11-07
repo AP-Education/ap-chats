@@ -1,9 +1,15 @@
+import { MediaInspector } from '@ap-education/storage/media';
+import { MemoryStorage } from '@ap-education/storage/testing';
+import { ThumbHashPlaceholder } from '@ap-education/storage/thumbhash';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import { DrizzleChannelAccessRepository } from '@/components/communities/channel-access/channel-access/repository/drizzle-channel-access.repository';
+import { AttachmentDownloadsService } from '@/components/social/attachments/attachment-downloads.service';
+import { AttachmentLinksService } from '@/components/social/attachments/attachment-links.service';
 import { DrizzleChatUploadsRepository } from '@/components/social/attachments/repository/drizzle-chat-uploads.repository';
+import { UploadCompletionService } from '@/components/social/attachments/upload-completion.service';
 import { UploadPolicy } from '@/components/social/attachments/upload-policy';
 import { UploadsService } from '@/components/social/attachments/uploads.service';
 import { MessageMarkdownService } from '@/components/social/content';
@@ -79,12 +85,10 @@ export function socialServices(
     mentions,
   );
   const config = new AppConfigService(new ConfigService(validateConfig(process.env)));
-  const uploads = new UploadsService(
-    access,
-    new DrizzleChatUploadsRepository(txHost),
-    {} as never,
-    new UploadPolicy(config),
-  );
+  const storage = new MemoryStorage();
+  const uploadLedger = new DrizzleChatUploadsRepository(txHost);
+  const uploads = new UploadsService(access, uploadLedger, storage, new UploadPolicy(config));
+  const media = new MediaInspector(storage, { placeholder: new ThumbHashPlaceholder() });
   const pins = new PinsService(access, messages, new DrizzlePinsRepository(txHost), events);
   const composer = new MessageComposer(markdown, messages, uploads);
   const sending = new SendMessageService(access, composer, messages, events);
@@ -97,7 +101,16 @@ export function socialServices(
     messages,
     pins,
     readState,
-    history: new HistoryService(access, new DrizzleHistoryRepository(txHost), readState),
+    storage,
+    uploads,
+    completion: new UploadCompletionService(access, uploadLedger, storage, media),
+    downloads: new AttachmentDownloadsService(access, messages, uploadLedger, storage),
+    history: new HistoryService(
+      access,
+      new DrizzleHistoryRepository(txHost),
+      readState,
+      new AttachmentLinksService(storage),
+    ),
     sending,
     editing: new EditMessageService(access, markdown, messages, events),
     deleting: new DeleteMessagesService(access, messages, pins, events),

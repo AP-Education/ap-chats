@@ -1,5 +1,6 @@
 import type { useScrollAnchoring } from '@ap-education/timeline/react';
 import { SWIPE_SETTLE_TRANSITION, useIsMobile } from '@ap-education/ui';
+import { MEDIA_MAX_SIDE } from '@ap-education/ui/media';
 import { ArrowDownIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
@@ -8,7 +9,6 @@ import { useConversation } from '@/features/social/conversation-scope/store';
 import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 import { keyboardGlidePart } from '../../keyboard-glide-part';
-import { MEDIA_MAX_SIDE } from '../../media/media-fit';
 import { useDragDismissesKeyboard } from './useDragDismissesKeyboard';
 import { useMobileMessageSelection } from './useMobileMessageSelection';
 

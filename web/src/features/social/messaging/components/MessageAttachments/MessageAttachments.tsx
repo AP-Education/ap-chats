@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react';
 
-import type { Attachment } from '../../attachments/types';
-import { AttachmentAlbum } from './AttachmentAlbum';
+import type { MessageAttachment } from '../../attachments/types';
 import { FileAttachment } from './FileAttachment';
-import { ImageAttachment } from './ImageAttachment';
+import { ImageAlbum, ImageAttachment } from './ImageAttachment';
 
 export function MessageAttachments({
   attachments,
@@ -11,7 +10,7 @@ export function MessageAttachments({
   available = true,
   overlay,
 }: {
-  attachments: Attachment[];
+  attachments: MessageAttachment[];
   messageId: string;
   available?: boolean;
   /** The time, when the photos close the bubble. */
@@ -31,12 +30,7 @@ export function MessageAttachments({
         />
       )}
       {images.length > 1 && (
-        <AttachmentAlbum
-          images={images}
-          messageId={messageId}
-          available={available}
-          overlay={overlay}
-        />
+        <ImageAlbum images={images} messageId={messageId} available={available} overlay={overlay} />
       )}
       {files.map((file) => (
         <FileAttachment
