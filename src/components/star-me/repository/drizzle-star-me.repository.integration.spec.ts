@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 
 import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
@@ -110,21 +111,51 @@ test('StarMe on PostgreSQL', async (t) => {
     },
   );
 
-  await t.test(
-    'a bot is summoned in any group channel, a person only where they belong',
-    async () => {
-      const team = await seed.channel(office, vlad);
-      const direct = await seed.direct(office, vlad, ilya);
+  await t.test('only StarMe can be summoned in a human DM without joining it', async () => {
+    const team = await seed.channel(office, vlad);
+    const direct = await seed.direct(office, vlad, ilya);
 
-      assert.equal(await mentions.allActiveInChannel(office, team, [starMe]), true);
-      assert.equal(await mentions.allActiveInChannel(office, team, [ilya]), false);
-      assert.equal(await mentions.allActiveInChannel(office, direct, [starMe]), false);
-      assert.deepEqual(
-        (await mentions.candidates(office, team, '')).map(({ displayName }) => displayName),
-        ['StarMe', 'Влад'],
-      );
-    },
-  );
+    assert.equal(await mentions.allActiveInChannel(office, team, [starMe]), true);
+    assert.equal(await mentions.allActiveInChannel(office, team, [ilya]), false);
+    assert.equal(await mentions.allActiveInChannel(office, direct, [starMe]), true);
+    assert.deepEqual(
+      (await mentions.candidates(office, team, '')).map(({ displayName }) => displayName),
+      ['StarMe', 'Влад'],
+    );
+    const candidates = await mentions.candidates(office, direct, '');
+    assert.deepEqual(
+      new Set(candidates.map(({ memberId }) => memberId)),
+      new Set([vlad, ilya, starMe]),
+    );
+    const impostorProfile = await seed.person('StarMe');
+    await db
+      .update(schema.userProfiles)
+      .set({ isBot: true })
+      .where(eq(schema.userProfiles.id, impostorProfile));
+    const impostor = await seed.member(office, impostorProfile);
+    assert.equal(await mentions.allActiveInChannel(office, direct, [impostor]), false);
+    assert.equal(
+      (await mentions.candidates(office, direct, 'StarMe')).some(
+        ({ memberId }) => memberId === impostor,
+      ),
+      false,
+    );
+    const memberships = await db
+      .select({ memberId: schema.channelMemberships.memberId })
+      .from(schema.channelMemberships)
+      .where(eq(schema.channelMemberships.channelId, direct));
+    assert.deepEqual(new Set(memberships.map(({ memberId }) => memberId)), new Set([vlad, ilya]));
+    await db
+      .update(schema.workspaceMembers)
+      .set({ status: 'removed' })
+      .where(eq(schema.workspaceMembers.id, starMe));
+    assert.equal(await mentions.allActiveInChannel(office, direct, [starMe]), false);
+    assert.deepEqual(await mentions.candidates(office, direct, 'StarMe'), []);
+    await db
+      .update(schema.workspaceMembers)
+      .set({ status: 'active' })
+      .where(eq(schema.workspaceMembers.id, starMe));
+  });
 
   await t.test('reads the live messages a question is about, oldest first', async () => {
     const general = await seed.channel(office, vlad);
@@ -159,71 +190,47 @@ test('StarMe on PostgreSQL', async (t) => {
     assert.equal(await repository.answerId(general, vlad, answer.nonce), undefined);
   });
 
-  await t.test('only the asker and StarMe pair qualifies as a private question', async () => {
-    const direct = await seed.direct(office, vlad, starMe);
-    const otherPerson = await seed.member(office, await seed.person('Інша людина'));
-    const otherDirect = await seed.direct(office, vlad, otherPerson);
-    const question = await seed.post(direct, vlad, 'Привіт');
-    const otherQuestion = await seed.post(otherDirect, vlad, 'Привіт');
-    assert.equal(
-      (await repository.question(vlad, direct, question.id, starMe))?.directWithStarMe,
-      true,
-    );
-    assert.equal(
-      (await repository.question(vlad, otherDirect, otherQuestion.id, starMe))?.directWithStarMe,
-      false,
-    );
-    assert.equal(await repository.question(ilya, direct, question.id, starMe), undefined);
-    assert.equal(await repository.question(vlad, otherDirect, question.id, starMe), undefined);
-    assert.deepEqual(
-      (await repository.recent(direct, question.seq, 20)).map(({ id }) => id),
-      [question.id],
-    );
-    assert.deepEqual(await repository.selected(direct, [otherQuestion.id]), []);
-    await db
-      .update(schema.chatMessages)
-      .set({ deletedAt: new Date() })
-      .where(eq(schema.chatMessages.id, question.id));
-    assert.equal(await repository.question(vlad, direct, question.id, starMe), undefined);
-  });
-
   await t.test(
-    'private answers use real posting, deduplicate concurrent requests and recheck revoked access',
+    'both people summon StarMe in their DM, without opening their conversation to the bot',
     async () => {
-      const personId = await seed.member(office, await seed.person('Олена'));
-      const channelId = await seed.direct(office, personId, starMe);
+      const vlad = await seed.member(office, await seed.person('Влад у DM'));
+      const ilya = await seed.member(office, await seed.person('Ілля у DM'));
+      const channelId = await seed.direct(office, vlad, ilya);
+      const otherChannel = await seed.direct(
+        office,
+        vlad,
+        await seed.member(office, await seed.person('Інша людина')),
+      );
       const people = new DrizzleWorkspaceMembersRepository(txHost as never);
-      const asker = (await people.findById(office, personId))!;
+      const asker = (await people.findById(office, vlad))!;
+      const peer = (await people.findById(office, ilya))!;
+      const bot = (await people.findById(office, starMe))!;
+      const outsider = (await people.findById(
+        office,
+        await seed.member(office, await seed.person('Сторонній')),
+      ))!;
+      const access = new ChannelAccessPolicy(new DrizzleChannelAccessRepository(txHost as never));
       const social = socialServices(txHost);
       const activity = new StarMeActivity();
-      let resolve: (value: string) => void = () => {};
-      let answer = new Promise<string>((settle) => {
-        resolve = settle;
-      });
-      const calls: string[] = [];
+      const calls: { token: string; texts: string[] }[] = [];
+      let response: Promise<string> = Promise.resolve('Відповідь StarMe');
       const service = new StarMeService(
         people,
-        new ChannelAccessPolicy(new DrizzleChannelAccessRepository(txHost as never)),
+        access,
         social.sending,
         repository,
         {
-          reply: async (_turns: unknown, token: string) => {
-            calls.push(token);
-            return answer;
+          reply: async (turns, token) => {
+            calls.push({ token, texts: turns.map(({ text }) => text) });
+            return response;
           },
         },
         activity,
         social.events,
         { error() {} } as never,
       );
-      const question = await social.sending.send(asker, channelId, {
-        markdown: 'План на тиждень',
-        clientNonce: randomUUID(),
-      });
-      const ask = (questionId: string) =>
-        service.answer(asker, channelId, { questionId }, 'asker-token');
-      await Promise.all([ask(question.id), ask(question.id)]);
-      resolve('Ось план');
+      const post = (person: typeof asker, markdown: string, extra = {}) =>
+        social.sending.send(person, channelId, { markdown, clientNonce: randomUUID(), ...extra });
       const settle = async (id: string) => {
         const deadline = Date.now() + 5000;
         while (activity.isThinking(id)) {
@@ -231,30 +238,76 @@ test('StarMe on PostgreSQL', async (t) => {
           await new Promise((done) => setTimeout(done, 10));
         }
       };
-      await settle(question.id);
-      await ask(question.id);
-      assert.deepEqual(calls, ['asker-token']);
-      const answerId = await repository.answerId(channelId, starMe, answerNonce(question.id));
-      assert.ok(answerId);
-      const item = await social.history.entry(asker, channelId, answerId);
-      assert.equal(item.type, 'MESSAGE');
-
-      const second = await social.sending.send(asker, channelId, {
-        markdown: 'Ще питання',
+      const plain = await post(asker, 'Привіт, Ілля');
+      await assert.rejects(
+        service.answer(asker, channelId, { questionId: plain.id }, 'owner-token'),
+        BadRequestException,
+      );
+      assert.equal(calls.length, 0);
+      const peersMessage = await post(peer, 'Терміни до п’ятниці');
+      await social.sending.send(asker, otherChannel, {
+        markdown: 'Секрет іншого DM',
         clientNonce: randomUUID(),
       });
-      answer = new Promise<string>((done) => {
+      const question = await post(asker, `:member[${starMe}] підсумуй`, {
+        contextMessageIds: [plain.id, peersMessage.id],
+      });
+      await assert.rejects(
+        service.answer(outsider, channelId, { questionId: question.id }, 'outsider-token'),
+        NotFoundException,
+      );
+      await assert.rejects(
+        service.answer(peer, channelId, { questionId: question.id }, 'peer-token'),
+        NotFoundException,
+      );
+      await assert.rejects(service.status(outsider, channelId), NotFoundException);
+      await assert.rejects(access.requireViewAccess(bot, channelId), NotFoundException);
+      await Promise.all([
+        service.answer(asker, channelId, { questionId: question.id }, 'owner-token'),
+        service.answer(asker, channelId, { questionId: question.id }, 'owner-token'),
+      ]);
+      await settle(question.id);
+      await service.answer(asker, channelId, { questionId: question.id }, 'owner-token');
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0]?.token, 'owner-token');
+      assert.deepEqual(calls[0]?.texts.slice(0, 2), ['Привіт, Ілля', 'Терміни до п’ятниці']);
+      assert.ok(
+        calls.every(({ texts }) => texts.every((text) => !text.includes('Секрет іншого DM'))),
+      );
+      const answerId = (await repository.answerId(channelId, starMe, answerNonce(question.id)))!;
+      assert.ok(answerId);
+      assert.equal((await social.history.entry(peer, channelId, answerId)).type, 'MESSAGE');
+      assert.deepEqual((await service.status(peer, channelId)).questions, []);
+      const foreignContext = await post(asker, `:member[${starMe}] інший контекст`, {
+        contextMessageIds: [(await repository.recent(otherChannel, 100n, 1))[0]!.id],
+      });
+      assert.deepEqual(await repository.context(channelId, foreignContext.id), []);
+      const followUp = await post(peer, 'А детальніше?', { replyToMessageId: answerId });
+      await service.answer(peer, channelId, { questionId: followUp.id }, 'peer-token');
+      await settle(followUp.id);
+      assert.equal(calls.at(-1)?.token, 'peer-token');
+      assert.ok(await repository.answerId(channelId, starMe, answerNonce(followUp.id)));
+      const memberships = await db
+        .select({ memberId: schema.channelMemberships.memberId })
+        .from(schema.channelMemberships)
+        .where(eq(schema.channelMemberships.channelId, channelId));
+      assert.deepEqual(new Set(memberships.map(({ memberId }) => memberId)), new Set([vlad, ilya]));
+
+      let resolve!: (value: string) => void;
+      response = new Promise<string>((done) => {
         resolve = done;
       });
-      await ask(second.id);
+      const late = await post(asker, `:member[${starMe}] пізніше`);
+      await service.answer(asker, channelId, { questionId: late.id }, 'owner-token');
       await db
         .update(schema.workspaceMembers)
         .set({ status: 'removed' })
-        .where(eq(schema.workspaceMembers.id, personId));
-      resolve('Не можна публікувати');
-      await settle(second.id);
-      assert.equal(await repository.answerId(channelId, starMe, answerNonce(second.id)), undefined);
+        .where(eq(schema.workspaceMembers.id, ilya));
+      resolve('Не публікувати після відключення співрозмовника');
+      await settle(late.id);
+      assert.equal(await repository.answerId(channelId, starMe, answerNonce(late.id)), undefined);
       assert.equal(activity.inChannel(channelId).at(-1)?.state, 'failed');
+      await assert.rejects(post(asker, `:member[${starMe}] недоступно`), ForbiddenException);
     },
   );
 });

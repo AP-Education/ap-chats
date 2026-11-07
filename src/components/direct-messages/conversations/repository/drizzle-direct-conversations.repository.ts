@@ -24,7 +24,7 @@ export class DrizzleDirectConversationsRepository extends DirectConversationsRep
 
   async findActiveMember(workspaceId: string, memberId: string) {
     const [row] = await this.txHost.tx
-      .select({ isBot: userProfiles.isBot, subject: userProfiles.oidcUserId })
+      .select({ isBot: userProfiles.isBot })
       .from(workspaceMembers)
       .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
       .where(

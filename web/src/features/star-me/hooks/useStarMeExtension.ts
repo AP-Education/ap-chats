@@ -8,29 +8,24 @@ import { askRequest, asksStarMe } from '../questions';
 import { useAskStarMe } from './useAskStarMe';
 import { useStarMe } from './useStarMe';
 
-/** StarMe in the workspace's channel conversations: asked from messages, answering below them. */
-export function useStarMeExtension(
-  workspaceId: string,
-  directMemberId?: string,
-): ConversationExtension | undefined {
+/** StarMe in a channel or human DM, summoned by a mention or reply to its answer. */
+export function useStarMeExtension(workspaceId: string): ConversationExtension | undefined {
   const starMe = useStarMe(workspaceId);
   const ask = useAskStarMe(workspaceId);
 
   return useMemo(() => {
     if (!starMe) return undefined;
-    if (directMemberId && directMemberId !== starMe.memberId) return undefined;
-    const direct = directMemberId === starMe.memberId;
 
     return {
       id: 'star-me',
-      actions: direct ? [] : [askStarMeAction(starMe)],
+      actions: [askStarMeAction(starMe)],
       TimelineEnd: StarMeActivity,
       sent: (message) => {
-        if (!asksStarMe(message, starMe.memberId, direct)) return;
+        if (!asksStarMe(message, starMe.memberId)) return;
         void message.landed
           .then((question) => ask(askRequest(message, question.id)))
           .catch(() => {});
       },
     };
-  }, [starMe, ask, directMemberId]);
+  }, [starMe, ask]);
 }

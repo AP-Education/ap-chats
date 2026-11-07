@@ -4,7 +4,6 @@ import { test } from 'node:test';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 
-import { STAR_ME } from '@/components/star-me/star-me.identity';
 import { DrizzleWorkspaceMembersRepository } from '@/components/workspaces/members/repository/drizzle-workspace-members.repository';
 import * as schema from '@/database/drizzle/schema';
 import { seedConversations } from '@/testing/conversations';
@@ -177,39 +176,4 @@ test('direct messages across workspaces on PostgreSQL', async (t) => {
       ['Bob'],
     );
   });
-
-  await t.test(
-    'only the reserved StarMe identity opens a private workspace-scoped dialog',
-    async () => {
-      const person = await seed.person('Owner');
-      const outsider = await seed.person('Outsider');
-      const bot = await seed.person('StarMe', { isBot: true });
-      await db
-        .update(schema.userProfiles)
-        .set({ oidcUserId: STAR_ME.subject })
-        .where(eq(schema.userProfiles.id, bot.id));
-      const office = await seed.workspace();
-      const client = await seed.workspace();
-      const owner = await seed.join(office, person);
-      const otherOwner = await seed.join(client, person);
-      const starMe = await seed.join(office, bot);
-      const otherStarMe = await seed.join(client, bot);
-      await seed.join(office, outsider);
-
-      const opened = await conversations.open(owner, starMe.id);
-      const repeated = await conversations.open(owner, starMe.id);
-      const other = await conversations.open(otherOwner, otherStarMe.id);
-      assert.equal(opened.id, repeated.id);
-      assert.equal(opened.participant.isBot, true);
-      assert.notEqual(opened.id, other.id);
-      assert.equal(other.workspaceId, client);
-      await assert.rejects(inbox.get(outsider.oidcUserId, opened.id), NotFoundException);
-      await assert.rejects(conversations.open(owner, otherStarMe.id), NotFoundException);
-      await db
-        .update(schema.workspaceMembers)
-        .set({ status: 'removed' })
-        .where(eq(schema.workspaceMembers.id, starMe.id));
-      await assert.rejects(conversations.open(owner, starMe.id), NotFoundException);
-    },
-  );
 });

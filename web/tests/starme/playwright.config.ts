@@ -3,8 +3,7 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: '.',
   testMatch: 'starme.spec.ts',
-  fullyParallel: true,
-  workers: 2,
+  workers: 1,
   timeout: 45_000,
   outputDir: '../../../test-results/starme',
   use: { baseURL: 'http://127.0.0.1:5575', headless: true, trace: 'retain-on-failure' },

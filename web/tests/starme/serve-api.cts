@@ -1,11 +1,11 @@
 import '../../../src/testing/test-env.ts';
 
 import { HttpException } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
 import Fastify from 'fastify';
 
 import { ChannelAccessPolicy } from '../../../src/components/communities/channel-access/channel-access';
 import { DrizzleChannelAccessRepository } from '../../../src/components/communities/channel-access/channel-access/repository/drizzle-channel-access.repository';
+import { DrizzleMentionsRepository } from '../../../src/components/social/mentions/repository/drizzle-mentions.repository';
 import {
   Assistant,
   AssistantFailure,
@@ -16,7 +16,6 @@ import { STAR_ME } from '../../../src/components/star-me/star-me.identity';
 import { StarMeService } from '../../../src/components/star-me/star-me.service';
 import { StarMeActivity } from '../../../src/components/star-me/star-me-activity';
 import { DrizzleWorkspaceMembersRepository } from '../../../src/components/workspaces/members/repository';
-import * as schema from '../../../src/database/drizzle/schema';
 import { seedConversations } from '../../../src/testing/conversations';
 import { directMessageServices } from '../../../src/testing/direct-messages';
 import { migratedDatabase, transactionHost } from '../../../src/testing/pglite';
@@ -30,6 +29,7 @@ async function main() {
   const social = socialServices(host);
   const direct = directMessageServices(host);
   const repository = new DrizzleStarMeRepository(host as never);
+  const mentions = new DrizzleMentionsRepository(host as never);
   const members = new DrizzleWorkspaceMembersRepository(host as never);
   const access = new ChannelAccessPolicy(new DrizzleChannelAccessRepository(host as never));
   const attempts = new Map<string, number>();
@@ -64,7 +64,7 @@ async function main() {
     await repository.enrol(STAR_ME, workspaceId);
     const starMe = (await members.findForUser(workspaceId, STAR_ME.subject))!;
     const other = await direct.conversations.open(user, peer.id);
-    return { workspaceId, user, starMe, other };
+    return { workspaceId, user, starMe, other, peer };
   }
   type Session = Awaited<ReturnType<typeof createSession>>;
   const sessions = new Map<string, Promise<Session>>();
@@ -100,6 +100,14 @@ async function main() {
     }
     if (path === '/api/qa/results') return Object.fromEntries(results);
     if (path.endsWith('/members')) return members.findAllForWorkspace(state.workspaceId);
+    if (channelId && path.endsWith('/mention-candidates')) {
+      await access.requireViewAccess(state.user, channelId);
+      return mentions.candidates(
+        state.workspaceId,
+        channelId,
+        new URL(request.url, 'http://fixture.test').searchParams.get('q') ?? '',
+      );
+    }
     if (path.endsWith('/direct-messages') && request.method === 'POST')
       return direct.conversations.open(state.user, body!.memberId!);
     if (path.endsWith('/uploads/policy'))
@@ -117,11 +125,7 @@ async function main() {
     }
     if (channelId && path.endsWith('/star-me/status')) return service.status(state.user, channelId);
     if (channelId && path.endsWith('/qa-history')) {
-      await access.requireViewAccess(state.user, channelId);
-      return db
-        .select()
-        .from(schema.chatMessages)
-        .where(eq(schema.chatMessages.channelId, channelId));
+      return (await social.history.window(state.user, channelId, {})).items;
     }
     if (path === '/api/qa/events') return social.published;
     return reply.code(404).send({ message: 'Not in the isolated fixture API' });

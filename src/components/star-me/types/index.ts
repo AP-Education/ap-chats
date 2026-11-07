@@ -18,7 +18,6 @@ export interface Question {
   seq: bigint;
   mentionsStarMe: boolean;
   repliesToStarMe: boolean;
-  directWithStarMe: boolean;
 }
 
 /** Why StarMe could not answer, as the asking person is told. */

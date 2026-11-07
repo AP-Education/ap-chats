@@ -111,16 +111,14 @@ export function DirectMessageActions({ workspaceId, conversation }: DirectMessag
           {isMuted ? <BellSlashIcon size={22} /> : <BellIcon size={22} />}
         </PageAction>
       </Popover>
-      {!conversation.participant.isBot && (
-        <PageAction
-          active={call.inCall || call.joinable}
-          aria-label={callTitle}
-          disabled={call.busy || call.pending || !conversation.participant.active}
-          onClick={call.onClick}
-        >
-          {call.pending ? <LoadingIcon size={22} /> : <CallIcon size={22} />}
-        </PageAction>
-      )}
+      <PageAction
+        active={call.inCall || call.joinable}
+        aria-label={callTitle}
+        disabled={call.busy || call.pending || !conversation.participant.active}
+        onClick={call.onClick}
+      >
+        {call.pending ? <LoadingIcon size={22} /> : <CallIcon size={22} />}
+      </PageAction>
       <PageActionDivider />
       <PageAsideTrigger aria-label="Профіль співрозмовника">
         <UserCircleIcon size={22} />

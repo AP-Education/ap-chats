@@ -6,7 +6,7 @@ import type { MemberSummary } from '@/features/workspaces/types';
 import { STAR_ME_SUBJECT } from '../types';
 
 /** StarMe as a member of the workspace, while the workspace has it. */
-export function useStarMe(workspaceId: string | undefined): MemberSummary | undefined {
+export function useStarMe(workspaceId: string): MemberSummary | undefined {
   const { data: members } = useWorkspaceMembers(workspaceId);
 
   return useMemo(() => {

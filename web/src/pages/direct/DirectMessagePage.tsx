@@ -83,10 +83,7 @@ export default function DirectMessagePage() {
   );
   // A conversation belongs to people rather than to the active workspace, so it names its own.
   const { byId, currentMember } = useWorkspaceMemberLabels(conversation.data?.workspaceId);
-  const starMe = useStarMeExtension(
-    conversation.data?.workspaceId ?? activeWorkspaceId,
-    conversation.data?.participant.memberId,
-  );
+  const starMe = useStarMeExtension(conversation.data?.workspaceId ?? activeWorkspaceId);
   const directExtensions = useMemo(
     () => (starMe ? [schedulingExtension, starMe] : [schedulingExtension]),
     [starMe],

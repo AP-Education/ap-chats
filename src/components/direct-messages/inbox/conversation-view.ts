@@ -14,7 +14,6 @@ export function conversationView(row: ConversationRow, isMuted: boolean) {
       memberId: other.id,
       displayName: other.displayName,
       avatarPath: other.avatarPath,
-      isBot: other.isBot,
       active: other.status === 'active',
     },
     notification: { isMuted, mutedUntil: row.notification.mutedUntil },

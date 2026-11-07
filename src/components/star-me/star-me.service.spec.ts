@@ -211,8 +211,8 @@ test('a message that does not ask StarMe gets no answer', async () => {
   assert.deepEqual(statuses, []);
 });
 
-test('a private StarMe question needs no mention and uses the asker token', async () => {
-  repository.question$ = question({ directWithStarMe: true });
+test('a question mentioning StarMe uses only the asker token', async () => {
+  repository.question$ = question({ mentionsStarMe: true });
   repository.recentMessages = [
     message(ids.question, 2n, person(ids.vlad, 'Влад'), 'Допоможи з планом'),
   ];
@@ -230,7 +230,7 @@ test('a missing or foreign question never starts the assistant', async () => {
 });
 
 test('revoked access prevents reading the question or invoking the assistant', async () => {
-  repository.question$ = question({ directWithStarMe: true });
+  repository.question$ = question({ mentionsStarMe: true });
   const service = starMeService as unknown as { access: { requirePostRight: () => Promise<void> } };
   service.access.requirePostRight = async () => {
     throw new ForbiddenException();
@@ -239,8 +239,8 @@ test('revoked access prevents reading the question or invoking the assistant', a
   assert.equal(assistant.token, undefined);
 });
 
-test('a failed private question can be retried without replacing the user message', async () => {
-  repository.question$ = question({ directWithStarMe: true });
+test('a failed question can be retried without replacing the user message', async () => {
+  repository.question$ = question({ mentionsStarMe: true });
   assistant.failure = new AssistantFailure('unavailable');
   await ask();
   await finished;
@@ -311,9 +311,7 @@ test('a refused run tells the channel and the asker why, also to whoever looks l
   );
 });
 
-function question(
-  how: Partial<Pick<Question, 'mentionsStarMe' | 'repliesToStarMe' | 'directWithStarMe'>>,
-): Question {
+function question(how: Partial<Pick<Question, 'mentionsStarMe' | 'repliesToStarMe'>>): Question {
   return {
     id: ids.question,
     workspaceId: ids.workspace,
@@ -321,7 +319,6 @@ function question(
     seq: 2n,
     mentionsStarMe: false,
     repliesToStarMe: false,
-    directWithStarMe: false,
     ...how,
   };
 }

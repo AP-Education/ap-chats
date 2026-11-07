@@ -10,7 +10,6 @@ export interface DirectMessage {
     displayName: string | null;
     avatarPath: string | null;
     active: boolean;
-    isBot?: boolean;
   };
   notification: {
     isMuted: boolean;

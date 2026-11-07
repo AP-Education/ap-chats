@@ -6,7 +6,6 @@ interface ConversationPerson {
   status: string;
   displayName: string | null;
   avatarPath: string | null;
-  isBot: boolean;
 }
 
 export interface ConversationRow {
