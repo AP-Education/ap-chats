@@ -1,9 +1,9 @@
 import { useTimelineMediaActions, useTimelineMediaItem } from '@ap-education/timeline/media';
+import { groupActions, messageActionOrder } from '@ap-education/ui';
 import { MediaViewerAction, useMediaViewer } from '@ap-education/ui/media';
 import { ChatCircleTextIcon, DotsThreeIcon } from '@phosphor-icons/react';
 import { Dropdown, type MenuProps } from 'antd';
 
-import { groupMessageActions } from '@/features/social/messaging/components/MessageRow/messageActionGroups';
 import type { ChatMedia } from '@/features/social/messaging/message-media';
 import type { MessageEntry } from '@/features/social/messaging/timeline/chat-entry';
 import type { ActionTarget } from '@/features/social/messaging/types';
@@ -28,7 +28,7 @@ export function ViewerMenu({ actions }: { actions: ViewerActions }) {
     { key: SHOW_IN_CHAT, label: 'Показати в чаті', icon: <ChatCircleTextIcon size={18} /> },
   ];
 
-  for (const group of groupMessageActions(available)) {
+  for (const group of groupActions(available, messageActionOrder)) {
     items.push({ type: 'divider' });
     for (const action of group) {
       items.push({

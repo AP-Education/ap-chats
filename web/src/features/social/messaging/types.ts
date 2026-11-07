@@ -1,3 +1,4 @@
+import type { Action } from '@ap-education/ui';
 import type { ReactNode } from 'react';
 
 import type { MemberSummary } from '@/features/workspaces/types';
@@ -181,14 +182,8 @@ export interface ActionCommands {
   markUnread: (item: MessageHistoryItem) => void;
 }
 
-/** How an action stands out: a destructive one warns, an assistant's leads on its own sky. */
-export type ActionAccent = 'danger' | 'ai';
+export type { ActionAccent } from '@ap-education/ui';
 
-export interface ConversationAction {
-  id: string;
+export type ConversationAction = Action<ActionTarget, ActionContext, ActionCommands> & {
   icon: ReactNode;
-  accent?: ActionAccent;
-  label: (target: ActionTarget) => string;
-  available: (target: ActionTarget, context: ActionContext) => boolean;
-  execute: (target: ActionTarget, commands: ActionCommands) => void;
-}
+};

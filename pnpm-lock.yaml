@@ -343,11 +343,11 @@ importers:
         specifier: ^0.1.1
         version: 0.1.1(react@19.2.8)
       '@ap-education/timeline':
-        specifier: ^0.1.0
-        version: 0.1.0(@ap-education/ui@0.2.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1))(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        specifier: ^0.1.3
+        version: 0.1.3(@ap-education/ui@0.5.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)))(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@ap-education/ui':
-        specifier: ^0.2.0
-        version: 0.2.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)
+        specifier: ^0.5.0
+        version: 0.5.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
       '@emoji-mart/data':
         specifier: ^1.2.1
         version: 1.2.1
@@ -517,17 +517,17 @@ packages:
       sharp: ^0.35.0
       thumbhash: ^0.1.1
 
-  '@ap-education/timeline@0.1.0':
-    resolution: {integrity: sha512-eguIOkqNuL9RjbvcoHuhz1yk8AgW7Z0lbMuYj9gzx9jetyO5bTD45HZDPTRhNVQ8Y7yb4F6leT/5aeZFz4pqKw==, tarball: https://npm.pkg.github.com/download/@ap-education/timeline/0.1.0/cd0446dd9aad6be889a036f273b0b345ebbf3b89}
+  '@ap-education/timeline@0.1.3':
+    resolution: {integrity: sha512-yJVPyZ78eQ6K/YVIagzCZgquXRcas/J14OWq4N4guZJjAXnUY71+R8j6Pnix/jx2q0Zo7T1wbKl10dO/5i/LyA==, tarball: https://npm.pkg.github.com/download/@ap-education/timeline/0.1.3/ccaa21904ba62115d34da9fa3650b1d173b5b32e}
     peerDependencies:
-      '@ap-education/ui': ^0.2.0
+      '@ap-education/ui': ^0.5.0
       '@phosphor-icons/react': ^2.1.10
       '@tanstack/react-query': ^5.0.0
       react: ^19.0.0
       react-dom: ^19.0.0
 
-  '@ap-education/ui@0.2.0':
-    resolution: {integrity: sha512-kL9hLoBsGnWyzym2dohcUJ2kK+L4YrisEZTSbf3RVbmCg7LsohvUVSGt0p4vb86VJm2nGZXVB6FB9uaxijITFw==, tarball: https://npm.pkg.github.com/download/@ap-education/ui/0.2.0/d9430a73edd6021518e6215c2114973cad51d336}
+  '@ap-education/ui@0.5.0':
+    resolution: {integrity: sha512-chV35da2veF0oY/tGbW4VaRO9WMjskrdC7igjr6aPkovA5AejH7035csCCEv9iRUCX/fX45bt37Yudkg+SImiA==, tarball: https://npm.pkg.github.com/download/@ap-education/ui/0.5.0/df22b7cb75e5947985e9bd80ccf39adde6fbea54}
     peerDependencies:
       '@phosphor-icons/react': ^2.1.10
       antd: ^6.5.4
@@ -536,6 +536,7 @@ packages:
       react: ^19.0.0
       react-dom: ^19.0.0
       thumbhash: ^0.1.1
+      vaul: ^1.1.2
 
   '@aws-sdk/checksums@3.1001.1':
     resolution: {integrity: sha512-x12Q17KYlJAd3nKf8LV5LV0vt8sh8/6YfQLGPtrGnQf/tW4jqxPGq5GPpuVitpQYM3eUR4XB7CbxZf751NMbLw==}
@@ -7634,9 +7635,9 @@ snapshots:
       sharp: 0.35.4(@types/node@24.13.6)
       thumbhash: 0.1.1
 
-  '@ap-education/timeline@0.1.0(@ap-education/ui@0.2.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1))(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@ap-education/timeline@0.1.3(@ap-education/ui@0.5.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)))(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@ap-education/ui': 0.2.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)
+      '@ap-education/ui': 0.5.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
       '@phosphor-icons/react': 2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@radix-ui/react-slot': 1.5.0(@types/react@19.2.18)(react@19.2.8)
       '@tanstack/react-query': 5.101.4(react@19.2.8)
@@ -7645,7 +7646,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@ap-education/ui@0.2.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)':
+  '@ap-education/ui@0.5.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))':
     dependencies:
       '@phosphor-icons/react': 2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@radix-ui/react-slot': 1.5.0(@types/react@19.2.18)(react@19.2.8)
@@ -7655,6 +7656,7 @@ snapshots:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
       thumbhash: 0.1.1
+      vaul: 1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     transitivePeerDependencies:
       - '@types/react'
 

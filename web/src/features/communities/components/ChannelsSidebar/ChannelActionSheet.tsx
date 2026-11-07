@@ -1,7 +1,6 @@
+import { BottomSheet } from '@ap-education/ui/sheet';
 import { GearSixIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
-
-import { BottomSheet } from '@/shared/ui/BottomSheet';
 
 import type { Channel } from '../../channels/types';
 
