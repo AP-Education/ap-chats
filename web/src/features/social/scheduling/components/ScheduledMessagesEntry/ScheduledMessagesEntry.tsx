@@ -1,9 +1,8 @@
 import { IconButton, useIsMobile } from '@ap-education/ui';
+import { BottomSheet } from '@ap-education/ui/sheet';
 import { CalendarDotsIcon } from '@phosphor-icons/react';
 import { message as toast, Popover } from 'antd';
 import { useState } from 'react';
-
-import { BottomSheet } from '@/shared/ui/BottomSheet';
 
 import { useCountRises } from '../../hooks/useCountRises';
 import { useScheduledMessages } from '../../hooks/useScheduledMessages';

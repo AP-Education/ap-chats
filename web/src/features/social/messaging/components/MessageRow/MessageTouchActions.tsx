@@ -1,4 +1,5 @@
 import { TimelineEntry } from '@ap-education/timeline/react';
+import { ActionSheet } from '@ap-education/ui/sheet';
 import {
   type CSSProperties,
   type MouseEvent,
@@ -12,10 +13,9 @@ import { QuickReactions } from '@/features/social/reactions/components/QuickReac
 import { ReactionPicker } from '@/features/social/reactions/components/ReactionPicker/ReactionPicker';
 
 import { ReplyIcon } from '../../actionIcons';
-import { groupMessageActions } from './messageActionGroups';
+import { messageActionItems } from './messageActionItems';
 import type { MessageActionsProps } from './MessageActions';
 import { useMessageActionScope } from './MessageActionScope';
-import { MessageActionSheet } from './MessageActionSheet';
 import styles from './MessageTouchActions.module.css';
 import { useMessageReplySwipe } from './useMessageReplySwipe';
 import { useOwnMessageStatus } from './useOwnMessageStatus';
@@ -95,14 +95,18 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
       </div>
 
       {sheetOpen && (
-        <MessageActionSheet
+        <ActionSheet
           open
           onClose={closeSheet}
-          header={quickReactions}
-          target={scope.messageTarget}
-          groups={groupMessageActions(available)}
-          onAction={scope.onAction}
-        />
+          aria-label="Дії з повідомленням"
+          groups={messageActionItems(available, scope.messageTarget)}
+          onSelect={(id) => {
+            const action = available.find((entry) => entry.id === id);
+            if (action) scope.onAction(action, scope.messageTarget);
+          }}
+        >
+          {quickReactions}
+        </ActionSheet>
       )}
       {picking && (
         <ReactionPicker

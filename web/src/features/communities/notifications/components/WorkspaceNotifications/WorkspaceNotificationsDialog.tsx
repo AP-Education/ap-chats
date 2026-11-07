@@ -1,8 +1,8 @@
 import { useIsMobile } from '@ap-education/ui';
+import { BottomSheet } from '@ap-education/ui/sheet';
 import { createStyles } from 'antd-style';
 
 import { AdaptiveModal } from '@/shared/ui/AdaptiveModal';
-import { BottomSheet } from '@/shared/ui/BottomSheet';
 
 import { NotificationsMenu } from '../NotificationsMenu/NotificationsMenu';
 import { workspaceSubject } from '../NotificationsMenu/subjects';

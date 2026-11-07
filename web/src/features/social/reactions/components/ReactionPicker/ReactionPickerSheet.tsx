@@ -1,7 +1,6 @@
+import { BottomSheet } from '@ap-education/ui/sheet';
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
-
-import { BottomSheet } from '@/shared/ui/BottomSheet';
 
 const useStyles = createStyles(({ css }) => ({
   panel: css`
