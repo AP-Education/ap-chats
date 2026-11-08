@@ -132,6 +132,7 @@ export async function runNativeScenario(token: string) {
       throw new Error('Private continuation reached the peer');
     passed.push('private follow-up remains hidden from peer');
     button('Повернутися до чату')!.click();
+    await wait('public mode indicator clears', () => !button('Повернутися до чату'));
     write('Тепер для всіх');
     await send();
     await wait(

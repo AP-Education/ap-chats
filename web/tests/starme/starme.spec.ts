@@ -177,22 +177,19 @@ for (const kind of ['dm', 'group'] as const) {
     const answerId = await answer.getAttribute('data-message-id');
     for (const peer of peers) {
       await expect(peer.locator('article')).toHaveCount(1);
-      const result = await peer.evaluate(
-        async ({ channelId, ids }) => {
-          const headers = {
-            authorization: `Bearer fixture-only:${sessionStorage.getItem('starme-qa-session')}`,
-          };
-          const state = await fetch('/api/qa/session', { headers }).then((r) => r.json());
-          const root = `/api/workspaces/${state.workspaceId}/channels/${channelId}/messages`;
-          const statuses = await Promise.all(
-            ids.map(async (id) => (await fetch(`${root}/${id}`, { headers })).status),
-          );
-          const history = await fetch(`${root}/window`, { headers }).then((r) => r.text());
-          const events = await fetch('/api/qa/events', { headers }).then((r) => r.text());
-          return { statuses, history, events };
-        },
-        { channelId, ids: privateIds },
+      const peerSession = await peer.evaluate(() => sessionStorage.getItem('starme-qa-session'));
+      const options = {
+        headers: { authorization: `Bearer fixture-only:${peerSession}` },
+        timeout: 10_000,
+      };
+      const state = await (await peer.request.get('/api/qa/session', options)).json();
+      const root = `/api/workspaces/${state.workspaceId}/channels/${channelId}/messages`;
+      const statuses = await Promise.all(
+        privateIds.map(async (id) => (await peer.request.get(`${root}/${id}`, options)).status()),
       );
+      const history = await (await peer.request.get(`${root}/window`, options)).text();
+      const events = await (await peer.request.get('/api/qa/events', options)).text();
+      const result = { statuses, history, events };
       expect(result.statuses).toEqual([404, 404]);
       expect(result.history).not.toContain('Секретний план');
       for (const id of privateIds) expect(result.events).not.toContain(id);

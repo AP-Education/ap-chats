@@ -62,6 +62,25 @@ async function api<T>(path: string): Promise<T> {
   if (!response.ok) throw new Error(`QA API ${response.status}`);
   return response.json();
 }
+/** The disposable realtime transport never overlaps requests from the same poller. */
+function poll(update: () => Promise<void>, delay: number) {
+  let active = true;
+  let timer: ReturnType<typeof setTimeout>;
+  async function run() {
+    try {
+      await update();
+    } catch (error) {
+      if (active) console.error(error);
+    }
+    if (active) timer = setTimeout(() => void run(), delay);
+  }
+  void run();
+  return () => {
+    active = false;
+    clearTimeout(timer);
+  };
+}
+
 interface Session {
   workspaceId: string;
   group: { channelId: string };
@@ -92,11 +111,10 @@ function Chat({ state, channelId }: { state: Session; channelId: string }) {
       );
       if (active) setMessages(rows);
     };
-    void update();
-    const timer = setInterval(() => void update(), 200);
+    const stop = poll(update, 300);
     return () => {
       active = false;
-      clearInterval(timer);
+      stop();
     };
   }, [state.workspaceId, channelId]);
   return (
@@ -194,22 +212,19 @@ function Fixture({ state }: { state: Session }) {
   useEffect(() => {
     let count = 0;
     let active = true;
-    const timer = setInterval(
-      () =>
-        void api<{ name: string; event: unknown }[]>('/qa/events').then((events) => {
-          if (!active) return;
-          for (const event of events.slice(count)) {
-            listeners
-              .get('social:changed')
-              ?.forEach((listener) => listener({ ...(event.event as object), type: event.name }));
-          }
-          count = events.length;
-        }),
-      150,
-    );
+    const stop = poll(async () => {
+      const events = await api<{ name: string; event: unknown }[]>('/qa/events');
+      if (!active) return;
+      for (const event of events.slice(count)) {
+        listeners
+          .get('social:changed')
+          ?.forEach((listener) => listener({ ...(event.event as object), type: event.name }));
+      }
+      count = events.length;
+    }, 250);
     return () => {
       active = false;
-      clearInterval(timer);
+      stop();
     };
   }, []);
   return (
