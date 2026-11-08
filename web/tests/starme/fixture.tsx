@@ -18,6 +18,7 @@ import { sendMessage } from '@/features/social/messaging/api/messages-api';
 import { UploadQueue } from '@/features/social/messaging/attachments/upload-queue';
 import { MessageActions } from '@/features/social/messaging/components/MessageRow/MessageActions';
 import { MessageActionProvider } from '@/features/social/messaging/components/MessageRow/MessageActionScope';
+import { PrivateMessageLabel } from '@/features/social/messaging/components/MessageRow/PrivateMessageLabel';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import { ConversationOutbox } from '@/features/social/messaging/sending/stores/conversation-outbox';
 import type {
@@ -63,6 +64,7 @@ async function api<T>(path: string): Promise<T> {
 }
 interface Session {
   workspaceId: string;
+  group: { channelId: string };
   user: WorkspaceMember;
   starMe: WorkspaceMember;
   other: { id: string; participant: { memberId: string } };
@@ -105,7 +107,7 @@ function Chat({ state, channelId }: { state: Session; channelId: string }) {
           scope={{
             workspaceId: state.workspaceId,
             channelId,
-            title: 'Іван Петренко',
+            title: channelId === state.group.channelId ? 'Команда' : 'Іван Петренко',
             composer: { ariaLabel: 'Повідомлення', placeholder: 'Написати повідомлення…' },
             permissions: { canPost: true, canReact: true, canManage: false, canPin: false },
           }}
@@ -171,8 +173,15 @@ function HistoryRow({ item, own }: { item: MessageHistoryItem; own: boolean }) {
       contentRef={contentRef}
     >
       <MessageActions
-        rowProps={{ className: `bubble${own ? ' own' : ''}`, 'data-message-id': item.message.id }}
+        rowProps={{
+          className: `bubble${own ? ' own' : ''}`,
+          'data-message-id': item.message.id,
+          'data-private': String(Boolean(item.message.privateToMe)),
+          'data-author': item.author.memberId,
+          'data-assistant-answer': String(Boolean(item.message.assistantAnswer)),
+        }}
       >
+        <PrivateMessageLabel />
         <article ref={contentRef}>{item.message.markdown}</article>
       </MessageActions>
     </MessageActionProvider>
@@ -206,7 +215,13 @@ function Fixture({ state }: { state: Session }) {
   return (
     <main className="fixture">
       <header>
-        <h1>{channelId ? 'Іван Петренко' : 'Особисті'}</h1>
+        <h1>
+          {channelId === state.group.channelId
+            ? 'Команда'
+            : channelId
+              ? 'Іван Петренко'
+              : 'Особисті'}
+        </h1>
         {channelId && <Button onClick={() => navigate('/')}>До розмов</Button>}
       </header>
       {channelId ? (
@@ -215,6 +230,9 @@ function Fixture({ state }: { state: Session }) {
         <section className="welcome">
           <p>Пишіть колезі та запрошуйте StarMe допомогти у вашій переписці.</p>
           <Button onClick={() => navigate(`/direct/${state.other.id}`)}>Написати Івану</Button>
+          <Button onClick={() => navigate(`/direct/${state.group.channelId}`)}>
+            Відкрити групу
+          </Button>
         </section>
       )}
     </main>

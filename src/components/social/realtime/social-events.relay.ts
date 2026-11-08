@@ -10,18 +10,22 @@ import {
 import {
   MESSAGE_CREATED_EVENT,
   MessageCreatedEvent,
+  PRIVATE_MESSAGE_CREATED_EVENT,
 } from '../messages/events/message-created.event';
 import {
   MESSAGE_DELETED_EVENT,
   MessageDeletedEvent,
+  PRIVATE_MESSAGE_DELETED_EVENT,
 } from '../messages/events/message-deleted.event';
 import {
   MESSAGE_UPDATED_EVENT,
   MessageUpdatedEvent,
+  PRIVATE_MESSAGE_UPDATED_EVENT,
 } from '../messages/events/message-updated.event';
 import {
   MESSAGES_BATCH_DELETED_EVENT,
   MessagesBatchDeletedEvent,
+  PRIVATE_MESSAGES_BATCH_DELETED_EVENT,
 } from '../messages/events/messages-batch-deleted.event';
 import { PIN_ADDED_EVENT, PinAddedEvent } from '../pins/events/pin-added.event';
 import { PIN_REMOVED_EVENT, PinRemovedEvent } from '../pins/events/pin-removed.event';
@@ -69,6 +73,30 @@ export class SocialEventsRelay {
 
   @OnEvent(MESSAGES_BATCH_DELETED_EVENT)
   onMessagesDeleted(event: MessagesBatchDeletedEvent) {
+    return this.channels.changed(MESSAGES_BATCH_DELETED_EVENT, event);
+  }
+
+  @OnEvent(PRIVATE_MESSAGE_CREATED_EVENT)
+  onPrivateMessageCreated(event: MessageCreatedEvent) {
+    if (!event.privateToUserId) return Promise.resolve();
+    return this.channels.changed(MESSAGE_CREATED_EVENT, event);
+  }
+
+  @OnEvent(PRIVATE_MESSAGE_UPDATED_EVENT)
+  onPrivateMessageUpdated(event: MessageUpdatedEvent) {
+    if (!event.privateToUserId) return Promise.resolve();
+    return this.channels.changed(MESSAGE_UPDATED_EVENT, event);
+  }
+
+  @OnEvent(PRIVATE_MESSAGE_DELETED_EVENT)
+  onPrivateMessageDeleted(event: MessageDeletedEvent) {
+    if (!event.privateToUserId) return Promise.resolve();
+    return this.channels.changed(MESSAGE_DELETED_EVENT, event);
+  }
+
+  @OnEvent(PRIVATE_MESSAGES_BATCH_DELETED_EVENT)
+  onPrivateBatchDeleted(event: MessagesBatchDeletedEvent) {
+    if (!event.privateToUserId) return Promise.resolve();
     return this.channels.changed(MESSAGES_BATCH_DELETED_EVENT, event);
   }
 

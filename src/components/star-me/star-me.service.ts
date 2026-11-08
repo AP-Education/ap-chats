@@ -1,11 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import { SendMessageService } from '@/components/social/posting';
@@ -58,7 +53,7 @@ export class StarMeService {
     const question = await this.requireQuestion(asker, channelId, dto.questionId, starMe);
 
     const clientNonce = answerNonce(question.id);
-    const answered = await this.repository.answerId(channelId, starMe.id, clientNonce);
+    const answered = await this.repository.answerId(channelId, starMe.id, clientNonce, question.id);
     if (answered || this.activity.isThinking(question.id)) return;
 
     this.announce(question, asker, 'thinking');
@@ -71,7 +66,11 @@ export class StarMeService {
     channelId: string,
   ): Promise<{ questions: StarMeStatusEvent[] }> {
     await this.access.requireViewAccess(reader, channelId);
-    return { questions: this.activity.inChannel(channelId) };
+    return {
+      questions: this.activity
+        .inChannel(channelId)
+        .filter((question) => question.askedByMemberId === reader.id),
+    };
   }
 
   private async requireStarMe(workspaceId: string): Promise<WorkspaceMember> {
@@ -88,20 +87,32 @@ export class StarMeService {
   ): Promise<Question> {
     const question = await this.repository.question(asker.id, channelId, messageId, starMe.id);
     if (!question) throw new NotFoundException('Message not found');
-    if (!question.mentionsStarMe && !question.repliesToStarMe) {
+    if (
+      question.assistantOwnerMemberId !== asker.id &&
+      !question.mentionsStarMe &&
+      !question.repliesToStarMe
+    ) {
       throw new BadRequestException('The message does not ask StarMe');
     }
     return question;
   }
 
   // The messages the question is about when it names them, otherwise the latest ones; it comes last.
-  private async conversation(question: Question): Promise<ConversationMessage[]> {
-    const context = await this.repository.context(question.channelId, question.id);
+  private async conversation(
+    question: Question,
+    viewerMemberId: string,
+  ): Promise<ConversationMessage[]> {
+    const context = await this.repository.context(question.channelId, question.id, viewerMemberId);
     if (!context.length) {
-      return this.repository.recent(question.channelId, question.seq, RECENT_MESSAGES);
+      return this.repository.recent(
+        question.channelId,
+        question.seq,
+        RECENT_MESSAGES,
+        viewerMemberId,
+      );
     }
 
-    const asked = await this.repository.selected(question.channelId, [question.id]);
+    const asked = await this.repository.selected(question.channelId, [question.id], viewerMemberId);
     return [...context, ...asked];
   }
 
@@ -112,7 +123,8 @@ export class StarMeService {
     const turns = await Promise.all(
       conversation.map(async (message): Promise<AssistantTurn> => {
         const text = await readableText(message.markdown, message.mentions);
-        if (message.author.memberId === starMe.id) return { role: 'assistant', text };
+        if (message.assistant || message.author.memberId === starMe.id)
+          return { role: 'assistant', text };
 
         return {
           role: 'user',
@@ -133,7 +145,7 @@ export class StarMeService {
     accessToken: string,
   ): Promise<void> {
     try {
-      const conversation = await this.conversation(question);
+      const conversation = await this.conversation(question, asker.id);
       const turns = await this.turns(conversation, starMe);
       const reply = await this.assistant.reply(turns, accessToken);
       await this.reply(asker, starMe, question, reply, clientNonce);
@@ -166,15 +178,19 @@ export class StarMeService {
           markdown: Array.from(answer.trim()).slice(0, MAX_ANSWER_CHARACTERS).join(''),
           clientNonce,
           replyToMessageId: question.id,
+          assistant: true,
         },
         asker,
       );
       return sent.id;
     } catch (error) {
       // A second request for the same question may finish first; its answer stands.
-      const answered =
-        error instanceof ConflictException &&
-        (await this.repository.answerId(question.channelId, starMe.id, clientNonce));
+      const answered = await this.repository.answerId(
+        question.channelId,
+        starMe.id,
+        clientNonce,
+        question.id,
+      );
       if (answered) return answered;
       throw error;
     }
@@ -193,6 +209,7 @@ export class StarMeService {
       asker.id,
       state,
       failure,
+      asker.profile.oidcUserId,
     );
 
     this.activity.record(status);

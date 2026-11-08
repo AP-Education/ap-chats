@@ -80,7 +80,7 @@ export function MessageActionProvider({
         onAction: run,
         isMobile,
         isOwn: value.item.message.authorMemberId === viewer.memberId,
-        canReact: !value.delivery && viewer.canReact,
+        canReact: !value.delivery && !value.item.message.privateToMe && viewer.canReact,
         messageTarget,
         textTarget,
         selectedText,

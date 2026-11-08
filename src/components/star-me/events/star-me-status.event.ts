@@ -11,5 +11,6 @@ export class StarMeStatusEvent {
     public readonly askedByMemberId: string,
     public readonly state: StarMeState,
     public readonly failure: AnswerFailure | null = null,
+    public readonly privateToUserId?: string,
   ) {}
 }

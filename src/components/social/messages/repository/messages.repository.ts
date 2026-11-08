@@ -21,9 +21,18 @@ export abstract class MessagesRepository {
     workspaceId: string,
     channelId: string,
     id: string,
+    viewerMemberId: string,
   ): Promise<MessageModel | null>;
-  abstract findMany(channelId: string, ids: string[]): Promise<MessageModel[]>;
-  abstract findWithEntries(channelId: string, ids: string[]): Promise<MessageWithSeq[]>;
+  abstract findMany(
+    channelId: string,
+    ids: string[],
+    viewerMemberId: string,
+  ): Promise<MessageModel[]>;
+  abstract findWithEntries(
+    channelId: string,
+    ids: string[],
+    viewerMemberId: string,
+  ): Promise<MessageWithSeq[]>;
   abstract entrySeq(messageId: string): Promise<bigint>;
   abstract insert(data: CreateMessageRecord): Promise<MessageModel>;
   /** Records the listed messages of its channel posted before it as what the message is about. */
@@ -39,5 +48,6 @@ export abstract class MessagesRepository {
     id: string,
     content: { markdown: string; gif: MessageGif | null; revision: number },
   ): Promise<MessageModel>;
+  abstract makeOwn(messageId: string, memberId: string, originalSeq: bigint): Promise<MessageModel>;
   abstract tombstone(ids: string[]): Promise<void>;
 }

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, asc, desc, eq, inArray, isNull, lte, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, lte, or, type SQL, sql } from 'drizzle-orm';
 
+import { messageVisibleTo, publicMessage } from '@/components/social/messages/visibility';
 import type { MemberSummary } from '@/components/workspaces/members/types';
 import {
   channelEntries,
@@ -66,6 +67,7 @@ export class DrizzleStarMeRepository extends StarMeRepository {
         channelId: chatMessages.channelId,
         seq: channelEntries.seq,
         replyToMessageId: chatMessages.replyToMessageId,
+        assistantOwnerMemberId: chatMessages.assistantOwnerMemberId,
       })
       .from(chatMessages)
       .innerJoin(channelEntries, eq(channelEntries.messageId, chatMessages.id))
@@ -74,6 +76,8 @@ export class DrizzleStarMeRepository extends StarMeRepository {
           eq(chatMessages.id, messageId),
           eq(chatMessages.channelId, channelId),
           eq(chatMessages.authorMemberId, askedByMemberId),
+          isNull(chatMessages.assistantQuestionId),
+          messageVisibleTo(askedByMemberId),
           isNull(chatMessages.deletedAt),
         ),
       );
@@ -103,58 +107,96 @@ export class DrizzleStarMeRepository extends StarMeRepository {
       workspaceId: row.workspaceId,
       channelId: row.channelId,
       seq: row.seq,
+      assistantOwnerMemberId: row.assistantOwnerMemberId,
       mentionsStarMe: Boolean(mention),
       repliesToStarMe: Boolean(repliedAnswer),
     };
   }
 
-  async answerId(channelId: string, starMeMemberId: string, clientNonce: string) {
+  async answerId(
+    channelId: string,
+    starMeMemberId: string,
+    clientNonce: string,
+    questionId?: string,
+  ) {
     const [row] = await this.txHost.tx
       .select({ id: chatMessages.id })
       .from(chatMessages)
       .where(
         and(
           eq(chatMessages.channelId, channelId),
-          eq(chatMessages.authorMemberId, starMeMemberId),
-          eq(chatMessages.clientNonce, clientNonce),
+          or(
+            and(
+              eq(chatMessages.authorMemberId, starMeMemberId),
+              eq(chatMessages.clientNonce, clientNonce),
+            ),
+            questionId ? eq(chatMessages.assistantQuestionId, questionId) : undefined,
+          ),
         ),
       );
     return row?.id;
   }
 
-  async recent(channelId: string, seq: bigint, limit: number): Promise<ConversationMessage[]> {
+  async recent(
+    channelId: string,
+    seq: bigint,
+    limit: number,
+    viewerMemberId?: string,
+  ): Promise<ConversationMessage[]> {
     const rows = await this.messages(
-      and(eq(chatMessages.channelId, channelId), lte(channelEntries.seq, seq)),
+      and(eq(chatMessages.channelId, channelId), lte(this.logicalSeq(viewerMemberId), seq)),
+      viewerMemberId,
     )
-      .orderBy(desc(channelEntries.seq))
+      .orderBy(desc(this.logicalSeq(viewerMemberId)))
       .limit(limit);
     return this.withMentions(rows.reverse());
   }
 
-  async selected(channelId: string, messageIds: string[]): Promise<ConversationMessage[]> {
+  async selected(
+    channelId: string,
+    messageIds: string[],
+    viewerMemberId?: string,
+  ): Promise<ConversationMessage[]> {
     if (!messageIds.length) return [];
     const rows = await this.messages(
       and(eq(chatMessages.channelId, channelId), inArray(chatMessages.id, messageIds)),
-    ).orderBy(asc(channelEntries.seq));
+      viewerMemberId,
+    ).orderBy(asc(this.logicalSeq(viewerMemberId)));
     return this.withMentions(rows);
   }
 
-  async context(channelId: string, questionId: string): Promise<ConversationMessage[]> {
+  async context(
+    channelId: string,
+    questionId: string,
+    viewerMemberId?: string,
+  ): Promise<ConversationMessage[]> {
     const contextIds = this.txHost.tx
       .select({ id: messageContext.contextMessageId })
       .from(messageContext)
       .where(eq(messageContext.messageId, questionId));
     const rows = await this.messages(
       and(eq(chatMessages.channelId, channelId), inArray(chatMessages.id, contextIds)),
-    ).orderBy(asc(channelEntries.seq));
+      viewerMemberId,
+    ).orderBy(asc(this.logicalSeq(viewerMemberId)));
     return this.withMentions(rows);
   }
 
-  private messages(condition: SQL | undefined) {
+  private logicalSeq(viewerMemberId?: string) {
+    return viewerMemberId
+      ? sql<bigint>`case when ${chatMessages.assistantOwnerMemberId} = ${viewerMemberId} then coalesce(${chatMessages.assistantOriginalSeq}, ${channelEntries.seq}) else ${channelEntries.seq} end`.mapWith(
+          BigInt,
+        )
+      : sql<bigint>`${channelEntries.seq}`.mapWith(BigInt);
+  }
+
+  private messages(condition: SQL | undefined, viewerMemberId?: string) {
     return this.txHost.tx
       .select({
         id: chatMessages.id,
-        seq: channelEntries.seq,
+        seq: this.logicalSeq(viewerMemberId),
+        assistant: viewerMemberId
+          ? sql<boolean>`coalesce(${chatMessages.assistantOwnerMemberId} = ${viewerMemberId} and ${chatMessages.assistantQuestionId} is not null, false)`
+          : sql<boolean>`false`,
         markdown: chatMessages.contentMarkdown,
         createdAt: chatMessages.createdAt,
         author: {
@@ -168,7 +210,13 @@ export class DrizzleStarMeRepository extends StarMeRepository {
       .innerJoin(channelEntries, eq(channelEntries.messageId, chatMessages.id))
       .innerJoin(workspaceMembers, eq(workspaceMembers.id, chatMessages.authorMemberId))
       .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
-      .where(and(condition, isNull(chatMessages.deletedAt)))
+      .where(
+        and(
+          condition,
+          isNull(chatMessages.deletedAt),
+          viewerMemberId ? messageVisibleTo(viewerMemberId) : publicMessage(),
+        ),
+      )
       .$dynamic();
   }
 

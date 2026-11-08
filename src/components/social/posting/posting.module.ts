@@ -12,6 +12,7 @@ import { DeleteMessagesService } from './delete-messages.service';
 import { EditMessageService } from './edit-message.service';
 import { MessageComposer } from './message-composer';
 import { MessagesController } from './messages.controller';
+import { PublishAssistantMessageService } from './publish-assistant-message.service';
 import { SendMessageService } from './send-message.service';
 
 @Module({
@@ -25,7 +26,13 @@ import { SendMessageService } from './send-message.service';
     PinsModule,
   ],
   controllers: [MessagesController],
-  providers: [MessageComposer, SendMessageService, EditMessageService, DeleteMessagesService],
+  providers: [
+    MessageComposer,
+    SendMessageService,
+    EditMessageService,
+    DeleteMessagesService,
+    PublishAssistantMessageService,
+  ],
   exports: [MessageComposer, SendMessageService],
 })
 export class PostingModule {}

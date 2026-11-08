@@ -1,7 +1,13 @@
 import type { ChannelEntry, EntryPosition } from '../types/entry.types';
 
 export abstract class EntriesRepository {
-  abstract append(workspaceId: string, channelId: string, messageId: string): Promise<ChannelEntry>;
+  abstract append(
+    workspaceId: string,
+    channelId: string,
+    messageId: string,
+    privateEntry?: boolean,
+  ): Promise<ChannelEntry>;
+  abstract moveToEnd(workspaceId: string, channelId: string, messageId: string): Promise<bigint>;
   abstract appendMany(
     workspaceId: string,
     channelId: string,

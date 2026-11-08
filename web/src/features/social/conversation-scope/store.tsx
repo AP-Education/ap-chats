@@ -7,7 +7,7 @@ import type { MemberSummary } from '@/features/workspaces/types';
 import { type ConversationExtension, ConversationExtensionsContext } from './extensions';
 
 export type ComposerIntent =
-  | { kind: 'reply'; messageId: string; quoteText?: string }
+  | { kind: 'reply'; messageId: string; quoteText?: string; privateAssistant?: boolean }
   /** Asks a member, such as an assistant, about the picked messages: the message mentions them. */
   | { kind: 'ask'; member: MemberSummary; messageIds: string[] }
   | null;

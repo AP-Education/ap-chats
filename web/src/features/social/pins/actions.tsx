@@ -8,7 +8,10 @@ export const pinActions: ConversationAction[] = [
     icon: <PushPinIcon size={18} />,
     label: (target) => (target.items[0]?.pin ? 'Відкріпити' : 'Закріпити'),
     available: (target, context) =>
-      target.kind === 'message' && context.canPin && target.items[0].message.markdown !== null,
+      target.kind === 'message' &&
+      context.canPin &&
+      !target.items[0].message.privateToMe &&
+      target.items[0].message.markdown !== null,
     execute: (target, commands) => commands.pin(target.items[0]!, !target.items[0]!.pin),
   },
 ];

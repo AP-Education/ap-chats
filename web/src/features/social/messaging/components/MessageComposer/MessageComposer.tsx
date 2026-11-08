@@ -1,6 +1,12 @@
 import { isNativeShell } from '@ap-education/shell-sdk';
 import { IconButton, useIsMobile } from '@ap-education/ui';
-import { KeyboardIcon, PaperclipIcon, SmileyIcon, XIcon } from '@phosphor-icons/react';
+import {
+  KeyboardIcon,
+  LockSimpleIcon,
+  PaperclipIcon,
+  SmileyIcon,
+  XIcon,
+} from '@phosphor-icons/react';
 import { Button } from 'antd';
 import {
   type PointerEvent,
@@ -19,6 +25,7 @@ import {
   useConversationExtensions,
 } from '@/features/social/conversation-scope/extensions';
 import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
+import { writeToken } from '@/features/social/mentions/mention-tokens';
 import { MessageEditorSlotProvider } from '@/features/social/mentions/MessageEditorSlot';
 import type {
   ComposerDraft,
@@ -94,9 +101,33 @@ export function MessageComposer({
   const {
     initialDraft,
     hasContent,
+    assistant: savedPrivateAssistant,
     sync: syncHasContent,
     clear: clearDraft,
   } = useComposerDraft(draftKey);
+  const assistantMemberId = extensions.find(
+    (extension) => extension.privateAssistantMemberId,
+  )?.privateAssistantMemberId;
+  const privateIntent =
+    intent?.kind === 'ask' || (intent?.kind === 'reply' && intent.privateAssistant);
+  const privateAssistant = savedPrivateAssistant || Boolean(privateIntent);
+  useLayoutEffect(() => {
+    if (privateIntent && !savedPrivateAssistant) {
+      syncHasContent(editableRef.current?.draft() ?? initialDraft, true);
+    }
+  }, [privateIntent, savedPrivateAssistant, syncHasContent, initialDraft]);
+
+  function leaveAssistant() {
+    const draft = editableRef.current?.draft() ?? initialDraft;
+    const markdown = assistantMemberId
+      ? draft.markdown.replaceAll(writeToken({ kind: 'member', id: assistantMemberId }), '').trim()
+      : draft.markdown;
+    const next = { ...draft, markdown };
+    editableRef.current?.replaceDraft(next);
+    setIntent(null);
+    syncHasContent(next, false);
+  }
+
   const [suggestionsHost, setSuggestionsHost] = useState<HTMLDivElement | null>(null);
   const [webActiveTab, setActiveTab] = useState<PickerTab | null>(null);
   const [lastActiveTab, setLastActiveTab] = useState<PickerTab>(readLastPickerTab);
@@ -142,14 +173,21 @@ export function MessageComposer({
   const readMessage = useCallback((): ComposedMessage => {
     const draft = editableRef.current?.draft();
     const composed = { markdown: draft?.markdown.trim() ?? '', labels: draft?.labels ?? {} };
-    return intent ? composerIntent(intent.kind).compose(intent, composed) : composed;
-  }, [intent]);
+    const message = intent ? composerIntent(intent.kind).compose(intent, composed) : composed;
+    const namesAssistant =
+      assistantMemberId &&
+      message.markdown.includes(writeToken({ kind: 'member', id: assistantMemberId }));
+    return { ...message, ...(privateAssistant || namesAssistant ? { assistant: true } : {}) };
+  }, [intent, privateAssistant, assistantMemberId]);
 
-  const clearSent = useCallback(() => {
-    editableRef.current?.clear();
-    clearDraft();
-    setIntent(null);
-  }, [clearDraft, setIntent]);
+  const clearSent = useCallback(
+    (keepPrivate = privateAssistant) => {
+      editableRef.current?.clear();
+      clearDraft(keepPrivate);
+      setIntent(null);
+    },
+    [clearDraft, setIntent, privateAssistant],
+  );
 
   const handleSend = useCallback(() => {
     if (!canSend) return;
@@ -161,17 +199,20 @@ export function MessageComposer({
       onSend({ ...input, ...(blocks ? { blocks } : {}) }, nonce);
     });
 
-    clearSent();
+    clearSent(Boolean(input.assistant));
     // Sending keeps the active input surface, including an open emoji panel.
     if (!activeTab) editableRef.current?.focus();
   }, [canSend, readMessage, uploads, onSend, clearSent, activeTab, linkedGif]);
 
   const handleDraftChange = useCallback(
     (draft: ComposerDraft) => {
-      syncHasContent(draft);
+      const namesAssistant =
+        assistantMemberId &&
+        draft.markdown.includes(writeToken({ kind: 'member', id: assistantMemberId }));
+      syncHasContent(draft, privateAssistant || Boolean(namesAssistant));
       linkedGif.prefetch(draft.markdown);
     },
-    [syncHasContent, linkedGif],
+    [syncHasContent, linkedGif, privateAssistant, assistantMemberId],
   );
 
   // Other ways to send take the draft over through these, and decide its fate themselves.
@@ -181,7 +222,7 @@ export function MessageComposer({
   );
   const draftState = {
     hasAttachments: uploads.drafts.length > 0,
-    canWait: !intent || composerIntent(intent.kind).canWait,
+    canWait: !privateAssistant && (!intent || composerIntent(intent.kind).canWait),
   };
 
   function insertEmoji(emoji: string) {
@@ -195,13 +236,17 @@ export function MessageComposer({
   // A picked GIF goes out as its link with the GIF already found, as on Discord.
   function sendGif(prepare: () => Promise<GifBlock>) {
     const sentIntent = intent;
+    const sentPrivately = privateAssistant;
     sendQueue.current = sendQueue.current.then(async () => {
       const block = await prepare();
       const composed = { markdown: block.link, labels: {} };
       const input = sentIntent
         ? composerIntent(sentIntent.kind).compose(sentIntent, composed)
         : composed;
-      onSend({ ...input, blocks: [block] }, randomId());
+      onSend(
+        { ...input, ...(sentPrivately ? { assistant: true } : {}), blocks: [block] },
+        randomId(),
+      );
     });
     setIntent(null);
     closePicker();
@@ -370,8 +415,18 @@ export function MessageComposer({
         </IconButton>
         <MessageInputSurface
           context={
-            (intent || uploads.drafts.length > 0 || uploads.policyError) && (
+            (privateAssistant || intent || uploads.drafts.length > 0 || uploads.policyError) && (
               <>
+                {privateAssistant && (
+                  <div className={styles.privateAssistant} role="status">
+                    <span>
+                      <LockSimpleIcon size={16} /> Приватно зі StarMe · Лише для вас
+                    </span>
+                    <Button size="small" type="text" onClick={leaveAssistant}>
+                      Повернутися до чату
+                    </Button>
+                  </div>
+                )}
                 <AttachmentDrafts
                   drafts={uploads.drafts}
                   onRemove={uploads.remove}

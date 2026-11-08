@@ -110,6 +110,14 @@ export function MentionEditor() {
 
   useImperativeHandle(editorRef, () => ({
     draft: currentDraft,
+    replaceDraft: (draft) => {
+      const root = composerRef.current?.rootElement();
+      if (!root) return;
+      labels.current = draft.labels;
+      restoreEditor(root, draft, styles.chip);
+      setQuery(null);
+      onChange?.(draft);
+    },
     clear: () => {
       composerRef.current?.clear();
       labels.current = {};

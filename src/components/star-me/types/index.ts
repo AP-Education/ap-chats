@@ -6,6 +6,7 @@ export interface ConversationMessage {
   seq: bigint;
   author: MemberSummary;
   markdown: string;
+  assistant?: boolean;
   mentions: MemberSummary[];
   createdAt: Date;
 }
@@ -16,6 +17,7 @@ export interface Question {
   workspaceId: string;
   channelId: string;
   seq: bigint;
+  assistantOwnerMemberId?: string | null;
   mentionsStarMe: boolean;
   repliesToStarMe: boolean;
 }

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 
 import type { ConversationExtension } from '@/features/social/conversation-scope/extensions';
 
-import { askStarMeAction } from '../actions';
+import { askStarMeAction, makeStarMeAnswerOwnAction } from '../actions';
 import { StarMeActivity } from '../components/StarMeActivity/StarMeActivity';
 import { askRequest, asksStarMe } from '../questions';
 import { useAskStarMe } from './useAskStarMe';
@@ -18,7 +18,8 @@ export function useStarMeExtension(workspaceId: string): ConversationExtension |
 
     return {
       id: 'star-me',
-      actions: [askStarMeAction(starMe)],
+      privateAssistantMemberId: starMe.memberId,
+      actions: [askStarMeAction(starMe), makeStarMeAnswerOwnAction],
       TimelineEnd: StarMeActivity,
       sent: (message) => {
         if (!asksStarMe(message, starMe.memberId)) return;

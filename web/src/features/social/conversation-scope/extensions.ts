@@ -46,6 +46,8 @@ export interface SendOption {
 /** What a feature adds to a conversation, declared by the page that composes it. */
 export interface ConversationExtension {
   id: string;
+  /** The assistant whose private mode the composer can enter. */
+  privateAssistantMemberId?: string;
   /** Message actions, offered after the built-in ones. */
   actions?: ConversationAction[];
   /** Shown after the last message, where what happens next appears. */

@@ -14,6 +14,7 @@ import {
   workspaceMembers,
 } from '@/database/drizzle/schema';
 
+import { publicMessage } from '../../../social/messages/visibility';
 import type { ConversationRange, ConversationScope } from '../types';
 import {
   PushAudienceRepository,
@@ -49,12 +50,18 @@ export class DrizzlePushAudienceRepository extends PushAudienceRepository {
 
   async latestMessageAt(scope: ConversationRange): Promise<Date | undefined> {
     const [row] = await this.txHost.tx
-      .select({ createdAt: chatMessages.createdAt })
+      .select({
+        createdAt:
+          sql<Date>`coalesce(${chatMessages.publishedAt}, ${chatMessages.createdAt})`.mapWith(
+            chatMessages.createdAt,
+          ),
+      })
       .from(channelEntries)
       .innerJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
       .where(
         and(
           eq(channelEntries.channelId, scope.channelId),
+          publicMessage(),
           gte(channelEntries.seq, BigInt(scope.firstSeq)),
           lte(channelEntries.seq, BigInt(scope.lastSeq)),
           isNull(chatMessages.deletedAt),
@@ -79,6 +86,7 @@ export class DrizzlePushAudienceRepository extends PushAudienceRepository {
       .where(
         and(
           eq(channelEntries.channelId, scope.channelId),
+          publicMessage(),
           eq(channelEntries.workspaceId, scope.workspaceId),
           gte(channelEntries.seq, BigInt(scope.firstSeq)),
           lte(channelEntries.seq, BigInt(scope.lastSeq)),
@@ -145,5 +153,6 @@ function unreadFromOthers(scope: ConversationRange, { mentionsOnly }: { mentions
     and ${channelEntries.seq} between ${scope.firstSeq}::bigint and ${scope.lastSeq}::bigint
     and ${channelEntries.seq} > ${channelMemberships.lastReadEntrySeq}
     and ${chatMessages.deletedAt} is null
+    and ${publicMessage()}
     and ${chatMessages.authorMemberId} <> ${channelMemberships.memberId} ${mention})`;
 }

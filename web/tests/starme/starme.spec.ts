@@ -141,3 +141,101 @@ test('a batch selection can ask StarMe about both messages inside the human DM',
   expect((await posted).postDataJSON().contextMessageIds).toEqual(ids);
   await expect(page.locator('article')).toHaveCount(4);
 });
+
+for (const kind of ['dm', 'group'] as const) {
+  test(`${kind}: private conversation survives reload and Make mine replaces the answer for every participant`, async ({
+    page,
+  }) => {
+    if (kind === 'group') {
+      await press(page, 'До розмов');
+      await press(page, 'Відкрити групу');
+    }
+    const session = await page.evaluate(() => sessionStorage.getItem('starme-qa-session'));
+    const channelId = new URL(page.url()).pathname.split('/direct/')[1]!;
+    const peers = [];
+    for (const role of kind === 'group' ? ['peer', 'manager'] : ['peer']) {
+      const peer = await page.context().newPage();
+      await peer.goto(`/direct/${channelId}?session=${session}_${role}`);
+      await expect(peer.getByRole('textbox', { name: 'Повідомлення', exact: true })).toBeVisible();
+      peers.push(peer);
+    }
+    const editor = page.getByRole('textbox', { name: 'Повідомлення', exact: true });
+    await editor.fill('Повідомлення для всіх');
+    await press(page, 'Надіслати');
+    for (const peer of peers) await expect(peer.locator('article')).toHaveCount(1);
+    await mention(page, 'Секретний план');
+    await expect(page.getByText('Думаю над відповіддю')).toBeVisible();
+    for (const peer of peers) await expect(peer.getByText('Думаю над відповіддю')).toHaveCount(0);
+    await expect(page.locator('article')).toHaveCount(3);
+    await expect(
+      page.getByText('Приватно зі StarMe · Лише для вас', { exact: true }),
+    ).toBeVisible();
+    const privateIds = await page
+      .locator('[data-private="true"]')
+      .evaluateAll((rows) => rows.map((row) => row.getAttribute('data-message-id')!));
+    const answer = page.locator('[data-assistant-answer="true"]').first();
+    const answerId = await answer.getAttribute('data-message-id');
+    for (const peer of peers) {
+      await expect(peer.locator('article')).toHaveCount(1);
+      const result = await peer.evaluate(
+        async ({ channelId, ids }) => {
+          const headers = {
+            authorization: `Bearer fixture-only:${sessionStorage.getItem('starme-qa-session')}`,
+          };
+          const state = await fetch('/api/qa/session', { headers }).then((r) => r.json());
+          const root = `/api/workspaces/${state.workspaceId}/channels/${channelId}/messages`;
+          const statuses = await Promise.all(
+            ids.map(async (id) => (await fetch(`${root}/${id}`, { headers })).status),
+          );
+          const history = await fetch(`${root}/window`, { headers }).then((r) => r.text());
+          const events = await fetch('/api/qa/events', { headers }).then((r) => r.text());
+          return { statuses, history, events };
+        },
+        { channelId, ids: privateIds },
+      );
+      expect(result.statuses).toEqual([404, 404]);
+      expect(result.history).not.toContain('Секретний план');
+      for (const id of privateIds) expect(result.events).not.toContain(id);
+    }
+    await editor.fill('Приватне продовження');
+    await page.reload();
+    await expect(editor).toHaveText('Приватне продовження');
+    const sent = page.waitForRequest(
+      (request) => request.method() === 'POST' && request.url().endsWith('/messages'),
+    );
+    await press(page, 'Надіслати');
+    expect((await sent).postDataJSON().assistant).toBe(true);
+    await expect(page.locator('article')).toHaveCount(5);
+    for (const peer of peers) await expect(peer.locator('article')).toHaveCount(1);
+    await openActions(page, page.locator(`[data-message-id="${answerId}"]`));
+    await expect(messageAction(page, 'Переслати')).toHaveCount(0);
+    await messageAction(page, 'Зробити моїм').click();
+    await expect(page.locator(`[data-message-id="${answerId}"]`)).toHaveAttribute(
+      'data-private',
+      'false',
+    );
+    await expect(page.locator('article')).toHaveCount(5);
+    const myAuthor = await page
+      .locator(`[data-message-id="${answerId}"]`)
+      .getAttribute('data-author');
+    for (const peer of peers) {
+      await expect(peer.locator('article')).toHaveCount(2);
+      await expect(peer.locator(`[data-message-id="${answerId}"]`)).toHaveAttribute(
+        'data-author',
+        myAuthor!,
+      );
+      await expect(peer.locator(`[data-message-id="${privateIds[0]}"]`)).toHaveCount(0);
+    }
+    await press(page, 'Повернутися до чату');
+    await editor.fill('Знову для всіх');
+    await press(page, 'Надіслати');
+    for (const peer of peers) await expect(peer.locator('article')).toHaveCount(3);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({
+      path: `test-results/starme/${test.info().project.name}-${kind}-private.png`,
+    });
+    for (const peer of peers) await peer.close();
+  });
+}

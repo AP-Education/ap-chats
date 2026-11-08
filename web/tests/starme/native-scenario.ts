@@ -92,6 +92,54 @@ export async function runNativeScenario(token: string) {
       'history restored in same human DM',
       () => location.pathname === path && document.querySelectorAll('article').length === 7,
     );
+    const headers = { authorization: `Bearer ${token}` };
+    const state = await fetch('/api/qa/session', { headers }).then((response) => response.json());
+    const channelId = path.split('/direct/')[1];
+    const peerHeaders = { authorization: `Bearer ${token}_peer` };
+    const historyPath = `/api/workspaces/${state.workspaceId}/channels/${channelId}/qa-history`;
+    const peerHistory = async () =>
+      fetch(historyPath, { headers: peerHeaders }).then((response) => response.json());
+    if ((await peerHistory()).length !== 1) throw new Error('Private exchange reached the peer');
+    passed.push('peer cannot see private prompts or answers');
+    const answer = document.querySelector<HTMLElement>('[data-assistant-answer="true"]')!;
+    const answerId = answer.dataset.messageId;
+    answer.dispatchEvent(
+      new MouseEvent('contextmenu', { bubbles: true, cancelable: true, view: window }),
+    );
+    await wait('Make mine action available on private answer', () => button('Зробити моїм'));
+    button('Зробити моїм')!.click();
+    await wait('same answer becomes public from me', () => {
+      const row = document.querySelector<HTMLElement>(`[data-message-id="${answerId}"]`);
+      return row?.dataset.private === 'false' && row.dataset.author === state.user.id;
+    });
+    const published = await peerHistory();
+    if (
+      published.length !== 2 ||
+      published.at(-1).id !== answerId ||
+      published.at(-1).author.memberId !== state.user.id
+    )
+      throw new Error('Publication did not replace the original');
+    if (document.querySelectorAll(`[data-message-id="${answerId}"]`).length !== 1)
+      throw new Error('Duplicate answer after publication');
+    passed.push('peer sees one public replacement and no private question');
+    write('Продовження лише для мене');
+    await send();
+    await wait(
+      'private mode continues after publishing',
+      () => document.querySelectorAll('article').length === 9,
+    );
+    if ((await peerHistory()).length !== 2)
+      throw new Error('Private continuation reached the peer');
+    passed.push('private follow-up remains hidden from peer');
+    button('Повернутися до чату')!.click();
+    write('Тепер для всіх');
+    await send();
+    await wait(
+      'public composer restored explicitly',
+      () => document.querySelectorAll('article').length === 10,
+    );
+    if ((await peerHistory()).length !== 3) throw new Error('Public mode was not restored');
+    passed.push('explicit exit restores public delivery');
     if (document.documentElement.scrollWidth > innerWidth) throw new Error('Horizontal overflow');
     passed.push('fits phone viewport');
   } catch (failure) {

@@ -41,7 +41,9 @@ export class ReactionsService {
     emoji: string | undefined,
   ): Promise<Reactor[]> {
     await this.access.requireViewAccess(member, channelId);
-    await this.messages.requireLive(this.messageOf(member, channelId, messageId));
+    this.messages.requireShared(
+      await this.messages.requireLive(this.messageOf(member, channelId, messageId), member.id),
+    );
 
     return this.repository.reactors(messageId, { emoji, limit: LISTED_REACTORS });
   }
@@ -81,7 +83,7 @@ export class ReactionsService {
     emoji: string,
   ): Promise<ReactionChange> {
     await this.access.requireParticipant(member, message.channelId);
-    await this.messages.requireLive(message);
+    this.messages.requireShared(await this.messages.requireLive(message, member.id));
     await this.requireRoomFor(message.messageId, emoji);
 
     const changed = await this.repository.add(message, emoji, member.id);
@@ -96,7 +98,7 @@ export class ReactionsService {
     emoji: string,
   ): Promise<ReactionChange> {
     await this.access.requireParticipant(member, message.channelId);
-    await this.messages.requireLive(message);
+    this.messages.requireShared(await this.messages.requireLive(message, member.id));
 
     const changed = await this.repository.remove(message.messageId, emoji, member.id);
     const summary = await this.repository.summary(message.messageId, emoji);

@@ -21,7 +21,7 @@ export function MessageMeta({ placement }: { placement: MessageMetaPlacement }) 
       <time dateTime={item.message.createdAt} title={fullFormat.format(createdAt)}>
         {timeFormat.format(createdAt)}
       </time>
-      {isOwn && <DeliveryMark delivery={delivery} seq={item.seq} />}
+      {isOwn && !item.message.privateToMe && <DeliveryMark delivery={delivery} seq={item.seq} />}
     </span>
   );
 }

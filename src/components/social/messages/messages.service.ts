@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 
 import type { ChannelAccessSnapshot } from '@/components/communities/channel-access/channel-access/types';
+import { STAR_ME } from '@/components/star-me/star-me.identity';
+import { WorkspaceMembersRepository } from '@/components/workspaces/members';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import { keptGif, linkedGif, type MessageGif } from '../content/message-gif';
@@ -22,6 +24,7 @@ import type {
   MessageRef,
   NewMessage,
 } from './types/message.types';
+import { privateAssistantMessage } from './visibility';
 
 @Injectable()
 export class MessagesService {
@@ -29,10 +32,19 @@ export class MessagesService {
     private readonly repository: MessagesRepository,
     private readonly entries: EntriesFacade,
     private readonly mentions: MentionsService,
+    private readonly members: WorkspaceMembersRepository,
   ) {}
 
-  async requireLive({ workspaceId, channelId, messageId }: MessageRef): Promise<MessageModel> {
-    const message = await this.repository.findById(workspaceId, channelId, messageId);
+  async requireLive(
+    { workspaceId, channelId, messageId }: MessageRef,
+    viewerMemberId: string,
+  ): Promise<MessageModel> {
+    const message = await this.repository.findById(
+      workspaceId,
+      channelId,
+      messageId,
+      viewerMemberId,
+    );
     const isLive = message !== null && message.deletedAt === null;
     if (!isLive) throw new NotFoundException('Message not found');
 
@@ -40,8 +52,12 @@ export class MessagesService {
   }
 
   /** In the order asked for. */
-  async requireLiveMany(channelId: string, ids: string[]): Promise<MessageModel[]> {
-    const found = await this.repository.findMany(channelId, ids);
+  async requireLiveMany(
+    channelId: string,
+    ids: string[],
+    viewerMemberId: string,
+  ): Promise<MessageModel[]> {
+    const found = await this.repository.findMany(channelId, ids, viewerMemberId);
     const byId = new Map(found.map((message) => [message.id, message]));
 
     return ids.map((id) => {
@@ -95,8 +111,10 @@ export class MessagesService {
     author: WorkspaceMember,
     channel: ChannelAccessSnapshot,
     message: NewMessage,
+    authority: WorkspaceMember = author,
   ): Promise<MessageView> {
     await this.mentions.requireValid(channel, message.content.mentions);
+    const audience = await this.assistantAudience(author, authority, channel, message);
 
     const created = await this.repository.insert({
       workspaceId: channel.workspaceId,
@@ -109,14 +127,25 @@ export class MessagesService {
       quoteText: message.quoteText,
       requestDigest: message.requestDigest,
       clientNonce: message.clientNonce,
+      ...audience,
     });
-    const entry = await this.entries.append(channel.workspaceId, channel.id, created.id);
-    await this.mentions.replace(this.mentionedBy(created), message.content.mentions);
+    const entry = await this.entries.append(
+      channel.workspaceId,
+      channel.id,
+      created.id,
+      privateAssistantMessage(created),
+    );
+    await this.mentions.replace(
+      this.mentionedBy(created),
+      privateAssistantMessage(created)
+        ? { ...message.content.mentions, roleIds: [], everyone: false }
+        : message.content.mentions,
+    );
     if (message.contextMessageIds.length) {
       await this.repository.addContext(created, entry.seq, message.contextMessageIds);
     }
 
-    return messageView(created, entry.seq, author.id);
+    return messageView(created, entry.seq, authority.id);
   }
 
   async postForwarded(
@@ -149,7 +178,12 @@ export class MessagesService {
       expectedRevision: number | undefined;
     },
   ): Promise<MessageView> {
-    const message = await this.repository.findById(channel.workspaceId, channel.id, messageId);
+    const message = await this.repository.findById(
+      channel.workspaceId,
+      channel.id,
+      messageId,
+      author.id,
+    );
     if (!message) throw new NotFoundException('Message not found');
 
     const { content, expectedRevision } = change;
@@ -164,6 +198,12 @@ export class MessagesService {
     if (isStale) throw new ConflictException('Message was changed');
 
     await this.mentions.requireValid(channel, content.mentions);
+    if (!privateAssistantMessage(message) && content.mentions.memberIds.length) {
+      const assistant = await this.members.findForUser(channel.workspaceId, STAR_ME.subject);
+      if (assistant && content.mentions.memberIds.includes(assistant.id)) {
+        throw new BadRequestException('Start a private StarMe message from the composer');
+      }
+    }
     const gif = change.gif
       ? linkedGif(change.gif, content.links)
       : keptGif(message.gif, content.links);
@@ -172,7 +212,12 @@ export class MessagesService {
       gif,
       revision: message.revision + 1,
     });
-    await this.mentions.replace(this.mentionedBy(revised), content.mentions);
+    await this.mentions.replace(
+      this.mentionedBy(revised),
+      privateAssistantMessage(revised)
+        ? { ...content.mentions, roleIds: [], everyone: false }
+        : content.mentions,
+    );
 
     return messageView(revised, await this.repository.entrySeq(messageId), author.id);
   }
@@ -182,10 +227,14 @@ export class MessagesService {
     channelId: string,
     request: { ids: string[]; moderates: boolean },
   ): Promise<DeletedMessage[]> {
-    const rows = await this.repository.findWithEntries(channelId, request.ids);
+    const rows = await this.repository.findWithEntries(channelId, request.ids, actor.id);
     if (rows.length !== request.ids.length) throw new NotFoundException('Message not found');
 
-    const touchesOthers = rows.some(({ message }) => message.authorMemberId !== actor.id);
+    const touchesOthers = rows.some(
+      ({ message }) =>
+        message.authorMemberId !== actor.id &&
+        !(privateAssistantMessage(message) && message.assistantOwnerMemberId === actor.id),
+    );
     if (touchesOthers && !request.moderates)
       throw new ForbiddenException('Cannot delete another member’s message');
 
@@ -198,7 +247,77 @@ export class MessagesService {
       id: message.id,
       seq: seq.toString(),
       authorMemberId: message.authorMemberId,
+      ...(privateAssistantMessage(message) ? { privateToUserId: actor.profile.oidcUserId } : {}),
     }));
+  }
+
+  private async assistantAudience(
+    author: WorkspaceMember,
+    authority: WorkspaceMember,
+    channel: ChannelAccessSnapshot,
+    message: NewMessage,
+  ) {
+    const reply = message.replyToMessageId
+      ? await this.repository.findById(
+          channel.workspaceId,
+          channel.id,
+          message.replyToMessageId,
+          authority.id,
+        )
+      : null;
+    const botAuthor = author.profile.oidcUserId === STAR_ME.subject;
+    const privateReply = Boolean(reply && privateAssistantMessage(reply));
+    const mayAddressAssistant =
+      botAuthor ||
+      message.assistant ||
+      privateReply ||
+      message.content.mentions.memberIds.length > 0 ||
+      Boolean(reply);
+    if (!mayAddressAssistant) return {};
+    const assistant = await this.members.findForUser(channel.workspaceId, STAR_ME.subject);
+    const mentionsAssistant =
+      assistant && message.content.mentions.memberIds.includes(assistant.id);
+    const repliesToAssistant = assistant && reply?.authorMemberId === assistant.id;
+    if (
+      !botAuthor &&
+      !message.assistant &&
+      !privateReply &&
+      !mentionsAssistant &&
+      !repliesToAssistant
+    )
+      return {};
+    if (!assistant) throw new NotFoundException('StarMe is not in this workspace');
+    if (author.id !== authority.id && !botAuthor)
+      throw new ForbiddenException('Only StarMe can post a private assistant answer');
+    if (botAuthor && (!reply || reply.authorMemberId !== authority.id))
+      throw new BadRequestException('An assistant answer requires the owner’s question');
+    return {
+      assistantOwnerMemberId: authority.id,
+      assistantQuestionId: botAuthor ? reply!.id : null,
+    };
+  }
+
+  async makeOwn(actor: WorkspaceMember, channel: ChannelAccessSnapshot, messageId: string) {
+    const message = await this.requireLive(
+      { workspaceId: channel.workspaceId, channelId: channel.id, messageId },
+      actor.id,
+    );
+    if (message.assistantOwnerMemberId !== actor.id || !message.assistantQuestionId)
+      throw new NotFoundException('Private assistant answer not found');
+    if (message.publishedAt)
+      return {
+        message: messageView(message, await this.repository.entrySeq(messageId), actor.id),
+        changed: false,
+      };
+    const originalSeq = await this.repository.entrySeq(messageId);
+    const updated = await this.repository.makeOwn(messageId, actor.id, originalSeq);
+    const seq = await this.entries.moveToEnd(channel.workspaceId, channel.id, messageId);
+    return { message: messageView(updated, seq, actor.id), changed: true };
+  }
+
+  requireShared(message: MessageModel): void {
+    if (privateAssistantMessage(message))
+      throw new BadRequestException('Publish the private assistant message before sharing it');
   }
 
   private mentionedBy(message: MessageModel) {

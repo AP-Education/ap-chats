@@ -1,4 +1,5 @@
 export const MESSAGE_DELETED_EVENT = 'social.message.deleted';
+export const PRIVATE_MESSAGE_DELETED_EVENT = 'social.message.deleted.private';
 
 export class MessageDeletedEvent {
   constructor(
@@ -8,5 +9,6 @@ export class MessageDeletedEvent {
     public readonly seq: string,
     public readonly actorMemberId: string,
     public readonly authorMemberId: string,
+    public readonly privateToUserId?: string,
   ) {}
 }

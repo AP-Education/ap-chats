@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 
+import { WorkspaceMembersModule } from '@/components/workspaces/members';
+
 import { EntriesModule } from '../entries';
 import { MentionsModule } from '../mentions';
 import { MessagesService } from './messages.service';
@@ -7,7 +9,7 @@ import { DrizzleMessagesRepository } from './repository/drizzle-messages.reposit
 import { MessagesRepository } from './repository/messages.repository';
 
 @Module({
-  imports: [EntriesModule, MentionsModule],
+  imports: [EntriesModule, MentionsModule, WorkspaceMembersModule],
   providers: [
     MessagesService,
     { provide: MessagesRepository, useClass: DrizzleMessagesRepository },

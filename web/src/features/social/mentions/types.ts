@@ -17,6 +17,7 @@ export interface ComposerDraft {
 export interface ComposerEditorApi {
   draft: () => ComposerDraft;
   clear: () => void;
+  replaceDraft: (draft: ComposerDraft) => void;
   focus: () => void;
   blur: () => void;
   insertText: (text: string) => void;

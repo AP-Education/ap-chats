@@ -3,7 +3,8 @@ import { useMemo } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
-import { deleteMessages, editMessage } from '../api/messages-api';
+import { directMessageKey } from '../../direct-messages/queryKeys';
+import { deleteMessages, editMessage, makeMessageOwn } from '../api/messages-api';
 import { messagingQueryKeys } from '../queryKeys';
 import { useConversationOutbox } from '../sending/hooks/useConversationOutbox';
 import { unsentRows } from '../sending/utils/unsent-rows';
@@ -54,6 +55,14 @@ export function useMessageOperations(
     return result;
   }
 
+  async function makeOwn(messageId: string) {
+    if (!token) throw new Error('Not signed in');
+    const message = await makeMessageOwn(token, workspaceId, channelId, messageId);
+    refreshHistory();
+    void queryClient.invalidateQueries({ queryKey: directMessageKey(identity) });
+    return message;
+  }
+
   async function remove(messageIds: string[]) {
     if (!token) throw new Error('Not signed in');
     await deleteMessages(token, workspaceId, channelId, messageIds);
@@ -68,5 +77,5 @@ export function useMessageOperations(
     [items, snapshot, delivered, author, messages],
   );
 
-  return { displayItems, send, unsent: actions, edit, remove };
+  return { displayItems, send, unsent: actions, edit, remove, makeOwn };
 }

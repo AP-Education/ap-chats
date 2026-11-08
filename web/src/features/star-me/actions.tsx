@@ -1,4 +1,5 @@
 import { AiSpark } from '@ap-education/ui';
+import { PaperPlaneRightIcon } from '@phosphor-icons/react';
 
 import type { ConversationAction } from '../social/messaging/types';
 import type { MemberSummary } from '../workspaces/types';
@@ -15,3 +16,19 @@ export function askStarMeAction(starMe: MemberSummary): ConversationAction {
     execute: (target, commands) => commands.ask(starMe, target.items),
   };
 }
+
+export const makeStarMeAnswerOwnAction: ConversationAction = {
+  id: 'make-own',
+  icon: <PaperPlaneRightIcon size={18} />,
+  accent: 'ai',
+  label: () => 'Зробити моїм',
+  available: (target, context) =>
+    target.kind === 'message' &&
+    context.canPost &&
+    Boolean(
+      target.items[0].message.privateToMe &&
+      target.items[0].message.assistantAnswer &&
+      target.items[0].message.markdown !== null,
+    ),
+  execute: (target, commands) => commands.makeOwn(target.items[0]!),
+};

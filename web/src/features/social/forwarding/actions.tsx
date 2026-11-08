@@ -9,7 +9,7 @@ export const forwardingActions: ConversationAction[] = [
     available: (target) =>
       target.kind !== 'text' &&
       target.items.length > 0 &&
-      target.items.every((item) => item.message.markdown !== null),
+      target.items.every((item) => item.message.markdown !== null && !item.message.privateToMe),
     execute: (target, commands) => commands.forward(target.items),
   },
 ];

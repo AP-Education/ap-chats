@@ -30,6 +30,10 @@ export interface MessageModel extends MessageContent {
   workspaceId: string;
   channelId: string;
   authorMemberId: string;
+  assistantOwnerMemberId: string | null;
+  assistantQuestionId: string | null;
+  assistantOriginalSeq: bigint | null;
+  publishedAt: Date | null;
   contentVersion: number;
   revision: number;
   replyToMessageId: string | null;
@@ -55,6 +59,7 @@ export interface MessageRef {
 
 /** A message ready to post: checked against its channel, its files already claimed. */
 export interface NewMessage {
+  assistant?: boolean;
   content: NormalizedMessageContent;
   attachments: Attachment[];
   gif: MessageGif | null;
@@ -75,6 +80,7 @@ export interface DeletedMessage {
   id: string;
   seq: string;
   authorMemberId: string;
+  privateToUserId?: string;
 }
 
 export type CreateMessageRecord = Pick<
@@ -95,5 +101,7 @@ export type CreateMessageRecord = Pick<
       | 'quoteText'
       | 'forwardedFromMessageId'
       | 'forwardedFromMemberId'
+      | 'assistantOwnerMemberId'
+      | 'assistantQuestionId'
     >
   >;

@@ -25,7 +25,7 @@ export interface IntentExcerptProps<T> {
   replyPreview?: ReplyPreview;
 }
 
-export type ReplyPreview = Pick<Message, 'markdown' | 'blocks'>;
+export type ReplyPreview = Pick<Message, 'markdown' | 'blocks' | 'privateToMe'>;
 
 interface ComposerIntentBehaviour<T> {
   Excerpt: ComponentType<IntentExcerptProps<T>>;
@@ -42,7 +42,13 @@ const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>>
   reply: {
     Excerpt: ({ intent, replyAuthor, replyPreview }) => (
       <ReplyExcerpt
-        title={intent.quoteText ? 'Цитата' : `Відповідь для ${replyAuthor ?? 'учасника'}`}
+        title={
+          replyPreview?.privateToMe
+            ? 'Приватна відповідь · Лише для вас'
+            : intent.quoteText
+              ? 'Цитата'
+              : `Відповідь для ${replyAuthor ?? 'учасника'}`
+        }
         markdown={replyPreview?.markdown ?? 'Повідомлення'}
         blocks={replyPreview?.blocks}
         quoteText={intent.quoteText}

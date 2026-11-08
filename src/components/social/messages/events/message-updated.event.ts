@@ -1,4 +1,5 @@
 export const MESSAGE_UPDATED_EVENT = 'social.message.updated';
+export const PRIVATE_MESSAGE_UPDATED_EVENT = 'social.message.updated.private';
 
 export class MessageUpdatedEvent {
   constructor(
@@ -7,5 +8,6 @@ export class MessageUpdatedEvent {
     public readonly messageId: string,
     public readonly seq: string,
     public readonly actorMemberId: string,
+    public readonly privateToUserId?: string,
   ) {}
 }

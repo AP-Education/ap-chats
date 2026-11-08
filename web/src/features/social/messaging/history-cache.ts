@@ -19,19 +19,27 @@ export function mergeHistoryItem(
       if (!current?.pages.length) return current;
       const pages = current.pages.map((page) => ({ ...page, items: [...page.items] }));
       const existingPage = pages.find((page) => page.items.some((entry) => entry.id === item.id));
-      if (existingPage) {
-        existingPage.items = existingPage.items.map((entry) =>
+      const existing = existingPage?.items.find((entry) => entry.id === item.id);
+      if (existing && existing.seq === item.seq) {
+        existingPage!.items = existingPage!.items.map((entry) =>
           entry.id === item.id ? item : entry,
         );
       } else {
         const tail = pages.at(-1)!;
-        if (tail.hasNewer) return current;
+        if (!existing && tail.hasNewer) return current;
         const cursor = tail.items.at(-1)?.seq ?? tail.snapshotSeq;
-        if (BigInt(item.seq) > BigInt(cursor) + 1n) return current;
-        tail.items.push(item);
-        tail.items.sort((left, right) =>
-          BigInt(left.seq) < BigInt(right.seq) ? -1 : BigInt(left.seq) > BigInt(right.seq) ? 1 : 0,
-        );
+        if (!existing && BigInt(item.seq) > BigInt(cursor) + 1n) return current;
+        for (const page of pages) page.items = page.items.filter((entry) => entry.id !== item.id);
+        if (!tail.hasNewer) {
+          tail.items.push(item);
+          tail.items.sort((left, right) =>
+            BigInt(left.seq) < BigInt(right.seq)
+              ? -1
+              : BigInt(left.seq) > BigInt(right.seq)
+                ? 1
+                : 0,
+          );
+        }
       }
       const tail = pages.at(-1)!;
       if (BigInt(item.seq) > BigInt(tail.snapshotSeq)) tail.snapshotSeq = item.seq;

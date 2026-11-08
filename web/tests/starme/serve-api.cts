@@ -60,11 +60,21 @@ async function main() {
   async function createSession() {
     const workspaceId = await seed.workspace();
     const user = await seed.join(workspaceId, await seed.person('Олена Коваль'));
+    const manager = await seed.join(workspaceId, await seed.person('Менеджер'), 'manager');
     const peer = await seed.join(workspaceId, await seed.person('Іван Петренко'));
     await repository.enrol(STAR_ME, workspaceId);
     const starMe = (await members.findForUser(workspaceId, STAR_ME.subject))!;
     const other = await direct.conversations.open(user, peer.id);
-    return { workspaceId, user, starMe, other, peer };
+    const group = await seed.channel(user, 'public', [peer, manager]);
+    return {
+      workspaceId,
+      user,
+      starMe,
+      other,
+      peer,
+      manager,
+      group: { channelId: group.channelId },
+    };
   }
   type Session = Awaited<ReturnType<typeof createSession>>;
   const sessions = new Map<string, Promise<Session>>();
@@ -80,6 +90,7 @@ async function main() {
       return reply.code(401).send({ message: 'Disposable QA authorization required' });
   });
   function session(token: string) {
+    token = token.replace(/_(peer|manager)$/u, '');
     let value = sessions.get(token);
     if (!value) {
       value = createSession();
@@ -90,10 +101,15 @@ async function main() {
   api.all('/api/*', async (request, reply) => {
     const token = request.headers.authorization!.slice(7);
     const state = await session(token);
+    const actor = token.endsWith('_peer')
+      ? state.peer
+      : token.endsWith('_manager')
+        ? state.manager
+        : state.user;
     const path = request.url.split('?')[0]!;
     const body = request.body as Record<string, string> | undefined;
     const channelId = path.match(/\/channels\/([^/]+)/u)?.[1];
-    if (path === '/api/qa/session') return state;
+    if (path === '/api/qa/session') return { ...state, user: actor };
     if (path === '/api/qa/result' && request.method === 'POST') {
       results.set(token, request.body);
       return { ok: true };
@@ -101,7 +117,7 @@ async function main() {
     if (path === '/api/qa/results') return Object.fromEntries(results);
     if (path.endsWith('/members')) return members.findAllForWorkspace(state.workspaceId);
     if (channelId && path.endsWith('/mention-candidates')) {
-      await access.requireViewAccess(state.user, channelId);
+      await access.requireViewAccess(actor, channelId);
       return mentions.candidates(
         state.workspaceId,
         channelId,
@@ -109,7 +125,7 @@ async function main() {
       );
     }
     if (path.endsWith('/direct-messages') && request.method === 'POST')
-      return direct.conversations.open(state.user, body!.memberId!);
+      return direct.conversations.open(actor, body!.memberId!);
     if (path.endsWith('/uploads/policy'))
       return {
         maxFileBytes: 20 * 1024 * 1024,
@@ -118,16 +134,43 @@ async function main() {
         partBytes: 5 * 1024 * 1024,
       };
     if (channelId && path.endsWith('/messages') && request.method === 'POST')
-      return social.sending.send(state.user, channelId, body as never);
+      return social.sending.send(actor, channelId, body as never);
+    const makeOwn = path.match(/\/messages\/([^/]+)\/make-own$/u);
+    if (channelId && makeOwn && request.method === 'POST')
+      return social.publication.publish(actor, channelId, makeOwn[1]!);
+    if (channelId && path.endsWith('/messages/window'))
+      return social.history.window(
+        actor,
+        channelId,
+        Object.fromEntries(new URL(request.url, 'http://fixture.test').searchParams),
+      );
+    const entry = path.match(/\/messages\/([^/]+)$/u);
+    if (channelId && entry && request.method === 'GET')
+      return social.history.entry(actor, channelId, entry[1]!);
+    if (channelId && path.endsWith('/messages') && request.method === 'GET')
+      return social.history.page(
+        actor,
+        channelId,
+        Object.fromEntries(new URL(request.url, 'http://fixture.test').searchParams),
+      );
     if (channelId && path.endsWith('/star-me/answers')) {
-      await service.answer(state.user, channelId, body as never, token);
+      await service.answer(actor, channelId, body as never, token);
       return reply.code(204).send();
     }
-    if (channelId && path.endsWith('/star-me/status')) return service.status(state.user, channelId);
+    if (channelId && path.endsWith('/star-me/status')) return service.status(actor, channelId);
     if (channelId && path.endsWith('/qa-history')) {
-      return (await social.history.window(state.user, channelId, {})).items;
+      return (await social.history.window(actor, channelId, {})).items;
     }
-    if (path === '/api/qa/events') return social.published;
+    if (path === '/api/qa/events')
+      return social.published
+        .filter(({ event }) => {
+          const scoped = event as { workspaceId?: string; privateToUserId?: string };
+          return (
+            scoped.workspaceId === state.workspaceId &&
+            (!scoped.privateToUserId || scoped.privateToUserId === actor.profile.oidcUserId)
+          );
+        })
+        .map(({ name, event }) => ({ name: name.replace(/\.private$/u, ''), event }));
     return reply.code(404).send({ message: 'Not in the isolated fixture API' });
   });
   api.addHook('onClose', () => pg.close());

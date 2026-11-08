@@ -3,12 +3,12 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import {
   and,
   count,
+  desc,
   eq,
   gt,
   isNotNull,
   isNull,
   lte,
-  max,
   min,
   ne,
   or,
@@ -27,6 +27,7 @@ import {
   messageMentions,
 } from '@/database/drizzle/schema';
 
+import { messageVisibleTo, publicMessage } from '../../messages/visibility';
 import type { ReadPosition, ReadPositionQuery, WorkspaceChannelUnread } from '../types';
 import { ReadStateRepository } from './read-state.repository';
 
@@ -44,6 +45,7 @@ function unreadFor(memberId: string) {
       isNotNull(channelEntries.messageId),
       ne(chatMessages.authorMemberId, memberId),
       isNull(chatMessages.deletedAt),
+      publicMessage(),
     ),
     and(isNotNull(channelEntries.callId), ne(calls.startedByMemberId, memberId)),
   );
@@ -121,8 +123,11 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
       .as('unread');
 
     const peers = alias(channelMemberships, 'peers');
+    const sharedPosition = this.sharedPosition(peers.channelId, peers.lastReadEntrySeq);
     const peerRead = this.txHost.tx
-      .select({ seq: max(peers.lastReadEntrySeq).as('peer_read_seq') })
+      .select({
+        seq: sql<bigint>`max(coalesce((${sharedPosition}), 0))`.mapWith(BigInt).as('peer_read_seq'),
+      })
       .from(peers)
       .where(
         and(
@@ -168,12 +173,36 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
     return row?.seq ?? null;
   }
 
-  async entryExists(channelId: string, seq: bigint): Promise<boolean> {
+  async entryExists(channelId: string, seq: bigint, viewerMemberId?: string): Promise<boolean> {
     const [row] = await this.txHost.tx
       .select({ id: channelEntries.id })
       .from(channelEntries)
-      .where(and(eq(channelEntries.channelId, channelId), eq(channelEntries.seq, seq)));
+      .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .where(
+        and(
+          eq(channelEntries.channelId, channelId),
+          eq(channelEntries.seq, seq),
+          viewerMemberId ? messageVisibleTo(viewerMemberId) : publicMessage(),
+        ),
+      );
     return !!row;
+  }
+
+  async sharedSeqAtOrBefore(channelId: string, seq: bigint): Promise<bigint> {
+    const [row] = await this.sharedPosition(channelId, seq);
+    return row?.seq ?? 0n;
+  }
+
+  private sharedPosition(channelId: string | AnyPgColumn, seq: bigint | AnyPgColumn) {
+    return this.txHost.tx
+      .select({ seq: channelEntries.seq })
+      .from(channelEntries)
+      .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .where(
+        and(eq(channelEntries.channelId, channelId), lte(channelEntries.seq, seq), publicMessage()),
+      )
+      .orderBy(desc(channelEntries.seq))
+      .limit(1);
   }
 
   async advance(channelId: string, memberId: string, seq: bigint): Promise<void> {
@@ -212,6 +241,7 @@ export class DrizzleReadStateRepository extends ReadStateRepository {
           gt(channelEntries.seq, channelMemberships.lastReadEntrySeq),
           ceiling === undefined ? undefined : lte(channelEntries.seq, ceiling),
           isNull(chatMessages.deletedAt),
+          publicMessage(),
         ),
       )
       .limit(UNREAD_COUNT_CAP);

@@ -183,3 +183,29 @@ test('the same history fetched again is the history already held', () => {
 
   assert.equal(shareHistory(shown, structuredClone(shown)), shown);
 });
+
+test('publishing a private answer moves its existing ID to the public end without a duplicate', () => {
+  const client = new QueryClient();
+  const key = messagingQueryKeys.history('user', 'workspace', 'channel');
+  client.setQueryData(key, {
+    pages: [page([item('answer', '2')]), page([item('later', '3')])],
+    pageParams: [{ mode: 'window' }, { mode: 'after', cursor: '2' }],
+  });
+  mergeHistoryItem(client, 'user', 'workspace', 'channel', item('answer', '4'));
+  const data = client.getQueryData<InfiniteData<HistoryPage>>(key)!;
+  assert.deepEqual(
+    data.pages.flatMap((entry) => entry.items.map(({ id, seq }) => [id, seq])),
+    [
+      ['later', '3'],
+      ['answer', '4'],
+    ],
+  );
+  mergeHistoryItem(client, 'user', 'workspace', 'channel', item('answer', '4'));
+  assert.equal(
+    client
+      .getQueryData<InfiniteData<HistoryPage>>(key)!
+      .pages.flatMap((entry) => entry.items)
+      .filter(({ id }) => id === 'answer').length,
+    1,
+  );
+});

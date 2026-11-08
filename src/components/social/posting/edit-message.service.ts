@@ -12,6 +12,7 @@ import { MessagesService } from '../messages';
 import {
   MESSAGE_UPDATED_EVENT,
   MessageUpdatedEvent,
+  PRIVATE_MESSAGE_UPDATED_EVENT,
 } from '../messages/events/message-updated.event';
 import type { EditMessageDto } from './dto/send-message.dto';
 import { requestedGif } from './requested-gif';
@@ -58,8 +59,15 @@ export class EditMessageService {
     const channel = await this.access.requirePostAccess(author, channelId);
     const message = await this.messages.revise(author, channel, messageId, change);
     const announce = await this.events.record(
-      MESSAGE_UPDATED_EVENT,
-      new MessageUpdatedEvent(author.workspaceId, channelId, messageId, message.seq, author.id),
+      message.privateToMe ? PRIVATE_MESSAGE_UPDATED_EVENT : MESSAGE_UPDATED_EVENT,
+      new MessageUpdatedEvent(
+        author.workspaceId,
+        channelId,
+        messageId,
+        message.seq,
+        author.id,
+        message.privateToMe ? author.profile.oidcUserId : undefined,
+      ),
     );
 
     return { message, announce };

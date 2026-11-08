@@ -14,6 +14,7 @@ import type {
   MessageModel,
   MessageWithSeq,
 } from '../types/message.types';
+import { messageVisibleTo, publicMessage } from '../visibility';
 import { MessagesRepository } from './messages.repository';
 
 @Injectable()
@@ -59,7 +60,12 @@ export class DrizzleMessagesRepository extends MessagesRepository {
       );
   }
 
-  async findById(workspaceId: string, channelId: string, id: string): Promise<MessageModel | null> {
+  async findById(
+    workspaceId: string,
+    channelId: string,
+    id: string,
+    viewerMemberId: string,
+  ): Promise<MessageModel | null> {
     const [row] = await this.txHost.tx
       .select()
       .from(chatMessages)
@@ -68,26 +74,47 @@ export class DrizzleMessagesRepository extends MessagesRepository {
           eq(chatMessages.workspaceId, workspaceId),
           eq(chatMessages.channelId, channelId),
           eq(chatMessages.id, id),
+          messageVisibleTo(viewerMemberId),
         ),
       );
     return row ?? null;
   }
 
-  async findMany(channelId: string, ids: string[]): Promise<MessageModel[]> {
+  async findMany(
+    channelId: string,
+    ids: string[],
+    viewerMemberId: string,
+  ): Promise<MessageModel[]> {
     if (!ids.length) return [];
     return this.txHost.tx
       .select()
       .from(chatMessages)
-      .where(and(eq(chatMessages.channelId, channelId), inArray(chatMessages.id, ids)));
+      .where(
+        and(
+          eq(chatMessages.channelId, channelId),
+          inArray(chatMessages.id, ids),
+          messageVisibleTo(viewerMemberId),
+        ),
+      );
   }
 
-  async findWithEntries(channelId: string, ids: string[]): Promise<MessageWithSeq[]> {
+  async findWithEntries(
+    channelId: string,
+    ids: string[],
+    viewerMemberId: string,
+  ): Promise<MessageWithSeq[]> {
     if (!ids.length) return [];
     return this.txHost.tx
       .select({ message: chatMessages, seq: channelEntries.seq })
       .from(chatMessages)
       .innerJoin(channelEntries, eq(channelEntries.messageId, chatMessages.id))
-      .where(and(eq(chatMessages.channelId, channelId), inArray(chatMessages.id, ids)));
+      .where(
+        and(
+          eq(chatMessages.channelId, channelId),
+          inArray(chatMessages.id, ids),
+          messageVisibleTo(viewerMemberId),
+        ),
+      );
   }
 
   async entrySeq(messageId: string): Promise<bigint> {
@@ -120,6 +147,9 @@ export class DrizzleMessagesRepository extends MessagesRepository {
           eq(chatMessages.channelId, message.channelId),
           inArray(chatMessages.id, messageIds),
           lt(channelEntries.seq, seq),
+          message.assistantOwnerMemberId
+            ? messageVisibleTo(message.assistantOwnerMemberId)
+            : publicMessage(),
         ),
       );
     await this.txHost.tx.insert(messageContext).select(earlier).onConflictDoNothing();
@@ -168,6 +198,25 @@ export class DrizzleMessagesRepository extends MessagesRepository {
       .where(eq(chatMessages.id, id))
       .returning();
     if (!row) throw new Error('Message update failed');
+    return row;
+  }
+
+  async makeOwn(messageId: string, memberId: string, originalSeq: bigint): Promise<MessageModel> {
+    const [row] = await this.txHost.tx
+      .update(chatMessages)
+      .set({
+        authorMemberId: memberId,
+        publishedAt: new Date(),
+        assistantOriginalSeq: originalSeq,
+        clientNonce: randomUUID(),
+        replyToMessageId: null,
+        quoteText: null,
+        revision: sql`${chatMessages.revision} + 1`,
+      })
+      .where(eq(chatMessages.id, messageId))
+      .returning();
+    if (!row) throw new Error('Message disappeared during publication');
+    await this.txHost.tx.delete(messageContext).where(eq(messageContext.messageId, messageId));
     return row;
   }
 

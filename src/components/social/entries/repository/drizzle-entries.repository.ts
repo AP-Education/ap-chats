@@ -16,12 +16,26 @@ export class DrizzleEntriesRepository extends EntriesRepository {
     super();
   }
 
-  append(workspaceId: string, channelId: string, messageId: string): Promise<ChannelEntry> {
-    return this.appendOne(workspaceId, channelId, { messageId });
+  append(
+    workspaceId: string,
+    channelId: string,
+    messageId: string,
+    privateEntry = false,
+  ): Promise<ChannelEntry> {
+    return this.appendOne(workspaceId, channelId, { messageId }, privateEntry);
   }
 
   appendCall(workspaceId: string, channelId: string, callId: string): Promise<ChannelEntry> {
     return this.appendOne(workspaceId, channelId, { callId });
+  }
+
+  async moveToEnd(workspaceId: string, channelId: string, messageId: string): Promise<bigint> {
+    const seq = await this.advance(workspaceId, channelId, 1);
+    await this.txHost.tx
+      .update(channelEntries)
+      .set({ seq, createdAt: new Date() })
+      .where(and(eq(channelEntries.channelId, channelId), eq(channelEntries.messageId, messageId)));
+    return seq;
   }
 
   async appendMany(
@@ -48,8 +62,9 @@ export class DrizzleEntriesRepository extends EntriesRepository {
     workspaceId: string,
     channelId: string,
     occupant: Occupant,
+    privateEntry = false,
   ): Promise<ChannelEntry> {
-    const seq = await this.advance(workspaceId, channelId, 1);
+    const seq = await this.advance(workspaceId, channelId, 1, privateEntry);
     const [entry] = await this.txHost.tx
       .insert(channelEntries)
       .values({ workspaceId, channelId, seq, ...occupant })
@@ -59,10 +74,21 @@ export class DrizzleEntriesRepository extends EntriesRepository {
     return entry;
   }
 
-  private async advance(workspaceId: string, channelId: string, count: number): Promise<bigint> {
+  private async advance(
+    workspaceId: string,
+    channelId: string,
+    count: number,
+    privateEntry = false,
+  ): Promise<bigint> {
     const [channel] = await this.txHost.tx
       .update(channels)
-      .set({ lastEntrySeq: sql`${channels.lastEntrySeq} + ${count}`, updatedAt: new Date() })
+      .set({
+        lastEntrySeq: sql`${channels.lastEntrySeq} + ${count}`,
+        lastPublicEntrySeq: privateEntry
+          ? channels.lastPublicEntrySeq
+          : sql`${channels.lastEntrySeq} + ${count}`,
+        updatedAt: privateEntry ? channels.updatedAt : new Date(),
+      })
       .where(and(eq(channels.workspaceId, workspaceId), eq(channels.id, channelId)))
       .returning({ lastSeq: channels.lastEntrySeq });
     if (!channel) throw new Error('Locked channel disappeared');

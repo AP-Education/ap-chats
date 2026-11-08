@@ -1,9 +1,12 @@
 import { messageBlocks } from './message-blocks';
 import type { MessageModel } from './types/message.types';
+import { privateAssistantMessage } from './visibility';
 
 export type MessageView = ReturnType<typeof messageView>;
 
 export function messageView(message: MessageModel, seq: bigint, viewerMemberId?: string) {
+  const privateToMe =
+    privateAssistantMessage(message) && message.assistantOwnerMemberId === viewerMemberId;
   return {
     id: message.id,
     seq: seq.toString(),
@@ -18,7 +21,9 @@ export function messageView(message: MessageModel, seq: bigint, viewerMemberId?:
     quoteText: message.quoteText,
     isForwarded: message.forwardedFromMemberId !== null,
     forwardedFromMemberId: message.forwardedFromMemberId,
-    createdAt: message.createdAt,
+    createdAt: message.publishedAt ?? message.createdAt,
+    privateToMe,
+    assistantAnswer: privateToMe && Boolean(message.assistantQuestionId),
     editedAt: message.editedAt,
     deletedAt: message.deletedAt,
   };

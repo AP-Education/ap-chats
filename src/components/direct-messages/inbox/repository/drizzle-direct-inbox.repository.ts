@@ -14,6 +14,7 @@ import {
   workspaceMembers,
 } from '@/database/drizzle/schema';
 
+import { messageVisibleTo, publicMessage } from '../../../social/messages/visibility';
 import type { ConversationRow, InboxCursor } from '../types';
 import { DirectInboxRepository } from './direct-inbox.repository';
 
@@ -47,11 +48,23 @@ export class DrizzleDirectInboxRepository extends DirectInboxRepository {
   }
 
   page(viewerIds: string[], cursor: InboxCursor | undefined, limit: number) {
+    const ownAssistant = this.txHost.tx
+      .select({ id: chatMessages.id })
+      .from(chatMessages)
+      .where(
+        and(
+          eq(chatMessages.channelId, channels.id),
+          inArray(chatMessages.assistantOwnerMemberId, viewerIds),
+          isNull(chatMessages.publishedAt),
+          isNull(chatMessages.deletedAt),
+        ),
+      );
+
     return this.conversations(viewerIds)
       .where(
         and(
           participatesIn(viewerIds),
-          gt(channels.lastEntrySeq, 0n),
+          or(gt(channels.lastPublicEntrySeq, 0n), exists(ownAssistant)),
           cursor
             ? or(
                 lt(channels.updatedAt, cursor.at),
@@ -77,6 +90,7 @@ export class DrizzleDirectInboxRepository extends DirectInboxRepository {
           gt(unreadEntry.seq, channelMemberships.lastReadEntrySeq),
           ne(unreadMessage.authorMemberId, channelMemberships.memberId),
           isNull(unreadMessage.deletedAt),
+          publicMessage(unreadMessage),
         ),
       );
     const candidates = await this.txHost.tx
@@ -136,6 +150,7 @@ export class DrizzleDirectInboxRepository extends DirectInboxRepository {
           gt(channelEntries.seq, channelMemberships.lastReadEntrySeq),
           ne(chatMessages.authorMemberId, channelMemberships.memberId),
           isNull(chatMessages.deletedAt),
+          publicMessage(),
         ),
       )
       .groupBy(channelEntries.channelId);
@@ -147,6 +162,16 @@ export class DrizzleDirectInboxRepository extends DirectInboxRepository {
     const firstProfile = alias(userProfiles, 'dm_first_profile');
     const secondProfile = alias(userProfiles, 'dm_second_profile');
     const viewerMembership = alias(channelMemberships, 'dm_viewer_membership');
+    const visibleEntry = this.txHost.tx
+      .select({ messageId: channelEntries.messageId })
+      .from(channelEntries)
+      .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .where(
+        and(eq(channelEntries.channelId, channels.id), messageVisibleTo(viewerMembership.memberId)),
+      )
+      .orderBy(desc(channelEntries.seq))
+      .limit(1)
+      .as('dm_visible_entry');
     return this.txHost.tx
       .select({
         channel: {
@@ -178,7 +203,10 @@ export class DrizzleDirectInboxRepository extends DirectInboxRepository {
           gif: chatMessages.gif,
           deletedAt: chatMessages.deletedAt,
           authorMemberId: chatMessages.authorMemberId,
-          createdAt: chatMessages.createdAt,
+          createdAt:
+            sql<Date | null>`coalesce(${chatMessages.publishedAt}, ${chatMessages.createdAt})`.mapWith(
+              chatMessages.createdAt,
+            ),
         },
       })
       .from(directMessages)
@@ -194,14 +222,8 @@ export class DrizzleDirectInboxRepository extends DirectInboxRepository {
       .innerJoin(second, eq(second.id, directMessages.secondMemberId))
       .innerJoin(firstProfile, eq(firstProfile.id, first.userProfileId))
       .innerJoin(secondProfile, eq(secondProfile.id, second.userProfileId))
-      .leftJoin(
-        channelEntries,
-        and(
-          eq(channelEntries.channelId, channels.id),
-          eq(channelEntries.seq, channels.lastEntrySeq),
-        ),
-      )
-      .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .leftJoinLateral(visibleEntry, sql`true`)
+      .leftJoin(chatMessages, eq(chatMessages.id, visibleEntry.messageId))
       .$dynamic();
   }
 }

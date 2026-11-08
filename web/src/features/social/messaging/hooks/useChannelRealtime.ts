@@ -70,6 +70,17 @@ export function useChannelRealtime(
             await queryClient.invalidateQueries({ queryKey: key });
             return;
           }
+          const moved = data?.pages.some((page) =>
+            page.items.some(
+              (item) => item.id === event.messageId && event.seq && item.seq !== event.seq,
+            ),
+          );
+          if (moved) {
+            await queryClient.invalidateQueries({
+              queryKey: messagingQueryKeys.histories(identity, workspaceId, channelId),
+            });
+            return;
+          }
           if (lastPage.hasNewer) {
             const eventSeq = event.lastSeq ?? event.seq;
             if (eventSeq && BigInt(eventSeq) > BigInt(lastPage.snapshotSeq)) {
@@ -106,7 +117,7 @@ export function useChannelRealtime(
                 entryId,
               ],
               queryFn: () => getEntry(token, workspaceId, channelId, entryId),
-              staleTime: 30_000,
+              staleTime: 0,
             });
             mergeHistoryItem(queryClient, identity, workspaceId, channelId, item);
           }

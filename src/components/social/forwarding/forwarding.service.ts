@@ -53,7 +53,12 @@ export class ForwardingService {
     const repeated = await this.messages.findRepeatedBatch(member, targetChannelId, request);
     if (repeated) return { messages: repeated, conversation, announce: nothingToAnnounce };
 
-    const sources = await this.messages.requireLiveMany(dto.sourceChannelId, dto.messageIds);
+    const sources = await this.messages.requireLiveMany(
+      dto.sourceChannelId,
+      dto.messageIds,
+      member.id,
+    );
+    sources.forEach((source) => this.messages.requireShared(source));
     const copies = sources.map((source, index) => ({
       sourceMessageId: source.id,
       sourceAuthorMemberId: source.authorMemberId,
