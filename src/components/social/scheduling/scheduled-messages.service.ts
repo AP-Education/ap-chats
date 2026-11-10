@@ -14,7 +14,6 @@ import {
 import { ScheduledMessagesRepository } from './repository';
 import { requireSendTime } from './scheduled-message.rules';
 import { scheduledMessageView } from './scheduled-message-view';
-import type { ScheduledMessageChange } from './types/scheduled-message.types';
 
 /** What the author does with their own schedule; nobody else sees it. */
 @Injectable()
@@ -40,15 +39,10 @@ export class ScheduledMessagesService {
     id: string,
     request: ChangeScheduledMessageDto,
   ) {
-    const { markdown, sendAt, revision } = request;
+    const { sendAt } = request;
     if (sendAt) requireSendTime(sendAt);
-    const content = markdown === undefined ? null : await this.markdown.normalize(markdown, false);
 
-    const { scheduled, announce } = await this.revise(author, channelId, id, revision, {
-      ...(content && { contentMarkdown: content.markdown }),
-      // A new time is a new attempt, so the last attempt's failure no longer stands.
-      ...(sendAt && { sendAt, failure: null }),
-    });
+    const { scheduled, announce } = await this.revise(author, channelId, id, request);
     announce();
 
     return scheduledMessageView(scheduled);
@@ -64,16 +58,26 @@ export class ScheduledMessagesService {
     author: WorkspaceMember,
     channelId: string,
     id: string,
-    expectedRevision: number | undefined,
-    change: ScheduledMessageChange,
+    request: ChangeScheduledMessageDto,
   ) {
     await this.access.requirePostRight(author, channelId);
     const scheduled = await this.requireOwn(author, channelId, id);
+    const { markdown, sendAt, revision } = request;
 
-    const isStale = expectedRevision !== undefined && expectedRevision !== scheduled.revision;
+    const isStale = revision !== undefined && revision !== scheduled.revision;
     if (isStale) throw new ConflictException('Scheduled message was changed');
 
-    const revised = await this.repository.update(id, change, scheduled.revision + 1);
+    const hasAttachments = scheduled.attachments.length > 0;
+    const content =
+      markdown === undefined ? null : await this.markdown.normalize(markdown, hasAttachments);
+    const revised = await this.repository.update(
+      id,
+      {
+        ...(content && { contentMarkdown: content.markdown }),
+        ...(sendAt && { sendAt, failure: null }),
+      },
+      scheduled.revision + 1,
+    );
 
     return { scheduled: revised, announce: await this.announceChange(author, channelId) };
   }

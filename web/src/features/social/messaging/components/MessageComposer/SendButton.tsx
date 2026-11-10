@@ -1,6 +1,6 @@
 import { ComposerSend, type HoldPointer, useComposer } from '@ap-education/timeline/composer';
 import { Dropdown, type MenuProps } from 'antd';
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import {
   type ComposerCommands,
@@ -8,19 +8,18 @@ import {
   useConversationExtensions,
 } from '@/features/social/conversation-scope/extensions';
 import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
+import { randomId } from '@/shared/lib/random-id';
 
+import type { Attachment } from '../../attachments/types';
 import { useConversationSending } from '../../sending/hooks/useConversationSending';
+import type { ComposedMessage } from '../../types';
 import { composerIntent } from './composerIntents';
 
 /** Sends on a click; a right click lists the other ways to send, a long press takes the only one. */
 export function SendButton({ privateAssistant = false }: { privateAssistant?: boolean }) {
   const { workspaceId, channelId } = useConversationScope();
   const { uploads } = useConversationSending(workspaceId, channelId);
-  // Files wait to go with the message, which not every other way to send can take.
-  const hasAttachments = useSyncExternalStore(
-    uploads.subscribe,
-    () => uploads.getSnapshot().length > 0,
-  );
+  const files = useSyncExternalStore(uploads.subscribe, uploads.getSnapshot);
   const extensions = useConversationExtensions();
   const options = useMemo(
     () => extensions.flatMap((extension) => extension.sendOptions ?? []),
@@ -30,15 +29,44 @@ export function SendButton({ privateAssistant = false }: { privateAssistant?: bo
   const { canSend, compose, clear } = useComposer();
   const [menuOpen, setMenuOpen] = useState(false);
   const [chosen, setChosen] = useState<SendOption | null>(null);
+  const scheduleAttempt = useRef<{ draft: string; nonce: string }>(null);
 
   if (!options.length) return <ComposerSend />;
 
   const draft = {
-    hasAttachments,
+    attachmentsReady: files.every((file) => file.status === 'ready'),
     canWait: !privateAssistant && (!intent || composerIntent(intent.kind).canWait),
   };
   // Other ways to send take the draft over through these, and decide its fate themselves.
-  const composer: ComposerCommands = { read: () => compose().message, clear };
+  const composer: ComposerCommands = {
+    read: () => {
+      const { message } = compose();
+      const composed = message as ComposedMessage;
+      if (composed.assistant) return null;
+
+      const attachments: Attachment[] = [];
+      for (const file of uploads.getSnapshot()) {
+        if (file.status !== 'ready' || !file.attachment) return null;
+        attachments.push({ ...file.attachment, description: file.description || null });
+      }
+      const input = { ...composed, attachments };
+      const draftKey = JSON.stringify(input);
+      const previous = scheduleAttempt.current;
+      const nonce = previous?.draft === draftKey ? previous.nonce : randomId();
+      scheduleAttempt.current = { draft: draftKey, nonce };
+      return { ...input, clientNonce: nonce };
+    },
+    clear: (input) => {
+      const ids = new Set(input.attachments?.map((file) => file.id));
+      const keys = uploads
+        .getSnapshot()
+        .filter((file) => file.attachment && ids.has(file.attachment.id))
+        .map((file) => file.key);
+      uploads.releaseDrafts(keys);
+      scheduleAttempt.current = null;
+      clear();
+    },
+  };
 
   // A mouse has its right click for the menu; a finger holds the button instead and takes the
   // only option at once. With several, or one that cannot take this draft, the menu opens to say

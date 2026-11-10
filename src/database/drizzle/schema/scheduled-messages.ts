@@ -4,6 +4,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -12,7 +13,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { channels } from './channels';
-import { chatMessages } from './chat-messages';
+import { chatMessages, type StoredAttachment } from './chat-messages';
 import { workspaceMembers } from './workspace-members';
 
 /** A send request its author holds until `send_at`; it takes no place in the history before then. */
@@ -24,6 +25,7 @@ export const scheduledMessages = pgTable(
     channelId: uuid('channel_id').notNull(),
     authorMemberId: uuid('author_member_id').notNull(),
     contentMarkdown: text('content_markdown').notNull(),
+    attachments: jsonb('attachments').$type<StoredAttachment[]>().notNull().default([]),
     replyToMessageId: uuid('reply_to_message_id'),
     quoteText: text('quote_text'),
     sendAt: timestamp('send_at', { withTimezone: true }).notNull(),
@@ -45,6 +47,11 @@ export const scheduledMessages = pgTable(
       .on(table.sendAt)
       .where(sql`${table.failure} IS NULL`),
     check('scheduled_messages_revision_check', sql`${table.revision} >= 1`),
+    index('scheduled_messages_attachments_idx').using('gin', table.attachments),
+    check(
+      'scheduled_messages_attachments_check',
+      sql`jsonb_typeof(${table.attachments}) = 'array' AND jsonb_array_length(${table.attachments}) <= 25`,
+    ),
     foreignKey({
       columns: [table.workspaceId, table.channelId],
       foreignColumns: [channels.workspaceId, channels.id],

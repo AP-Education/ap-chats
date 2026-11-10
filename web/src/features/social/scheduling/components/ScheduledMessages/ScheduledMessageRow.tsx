@@ -69,6 +69,8 @@ export function ScheduledMessageRow({
   const when = message.failure
     ? `Не вдалося надіслати ${sendTimeLabel(sendAt, now)}`
     : sendTimeHeading(sendAt, now);
+  const files = message.attachments?.map((file) => file.name).join(', ');
+  const hasText = Boolean(message.markdown.trim());
 
   return (
     <div className={styles.row}>
@@ -76,9 +78,12 @@ export function ScheduledMessageRow({
         <span className={styles.when} data-failed={message.failure ? true : undefined}>
           {when}
         </span>
-        <span className={styles.excerpt}>
-          <MessagePreview markdown={message.markdown} />
-        </span>
+        {(hasText || !files) && (
+          <span className={styles.excerpt}>
+            <MessagePreview markdown={message.markdown} />
+          </span>
+        )}
+        {files && <span className={styles.excerpt}>{files}</span>}
       </div>
       <div className={styles.actions}>
         <IconButton size={32} aria-label="Надіслати зараз" disabled={busy} onClick={onSendNow}>

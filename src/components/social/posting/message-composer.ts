@@ -9,7 +9,7 @@ import { UploadsService } from '../attachments';
 import { MessageMarkdownService, messagePlainText } from '../content';
 import { linkedGif } from '../content/message-gif';
 import { MessagesService } from '../messages';
-import type { NewMessage } from '../messages/types/message.types';
+import type { Attachment, NewMessage } from '../messages/types/message.types';
 import type { SendMessageDto } from './dto/send-message.dto';
 import { requestedGif } from './requested-gif';
 import type { MessageDraft } from './types';
@@ -57,11 +57,13 @@ export class MessageComposer {
     channel: ChannelAccessSnapshot,
     draft: MessageDraft,
     authority: WorkspaceMember = author,
+    claimedAttachments?: Attachment[],
   ): Promise<NewMessage> {
     const { replyToMessageId, quoteText } = draft;
     if (replyToMessageId)
       await this.requireReplyTarget(channel, replyToMessageId, quoteText, authority.id);
-    const attachments = await this.uploads.claim(author, channel.id, draft.attachmentRefs);
+    const attachments =
+      claimedAttachments ?? (await this.uploads.claim(author, channel.id, draft.attachmentRefs));
 
     return {
       ...(draft.assistant ? { assistant: true } : {}),

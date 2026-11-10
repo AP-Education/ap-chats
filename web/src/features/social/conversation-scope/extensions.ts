@@ -17,15 +17,14 @@ export interface SentMessage {
 
 /** The composer's own commands, for a send option to take the draft over. */
 export interface ComposerCommands {
-  /** The message as it would go now: the person's words under the current intent. */
-  read: () => Omit<SendMessageCommand, 'clientNonce' | 'attachments'>;
-  /** Empties the composer the way sending does. */
-  clear: () => void;
+  /** The draft with its uploaded files, or null while a file is unfinished. */
+  read: () => SendMessageCommand | null;
+  clear: (message: SendMessageCommand) => void;
 }
 
 /** What a send option is told of the draft to decide whether it can take it. */
 export interface ComposerDraftState {
-  hasAttachments: boolean;
+  attachmentsReady: boolean;
   /** Its intent still means the same if the message goes out later. */
   canWait: boolean;
 }

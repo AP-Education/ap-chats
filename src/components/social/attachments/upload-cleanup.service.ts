@@ -79,15 +79,15 @@ export class UploadCleanupService implements OnModuleInit, OnModuleDestroy {
     await this.repository.remove(id);
   }
 
-  /** The upload to purge, or null when it is not due yet or a live message still shows it. */
+  /** A scheduled or published message can extend the file's lifetime. */
   @Transactional()
   private async decide(id: string): Promise<ChatUpload | null> {
     const upload = await this.repository.lock(id);
     const isDue = upload !== null && upload.expiresAt.getTime() <= Date.now();
     if (!isDue) return null;
 
-    const isShown = upload.state === 'attached' && (await this.repository.hasLiveReferences(id));
-    if (isShown) {
+    const isRetained = upload.state === 'attached' && (await this.repository.hasLiveReferences(id));
+    if (isRetained) {
       await this.repository.update(id, { expiresAt: new Date(Date.now() + UNREFERENCED_GRACE_MS) });
       return null;
     }

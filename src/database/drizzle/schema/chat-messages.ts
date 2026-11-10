@@ -99,7 +99,7 @@ export const chatMessages = pgTable(
     ),
     check(
       'chat_messages_attachments_check',
-      sql`jsonb_typeof(${table.attachments}) = 'array' AND jsonb_array_length(${table.attachments}) <= 10`,
+      sql`jsonb_typeof(${table.attachments}) = 'array' AND jsonb_array_length(${table.attachments}) <= 25`,
     ),
     foreignKey({
       columns: [table.workspaceId, table.channelId],

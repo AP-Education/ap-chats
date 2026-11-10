@@ -94,6 +94,7 @@ export class SendScheduledMessageService {
         ...(replyToMessageId && { replyToMessageId }),
         ...(quoteText && { quoteText }),
       },
+      scheduled.attachments,
     );
     await this.repository.remove(scheduled.id);
     const announceSchedule = await this.announceChange(author, scheduled.channelId);

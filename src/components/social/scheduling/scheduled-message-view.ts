@@ -8,6 +8,7 @@ export function scheduledMessageView(message: ScheduledMessageModel) {
     authorMemberId: message.authorMemberId,
     clientNonce: message.clientNonce,
     markdown: message.contentMarkdown,
+    attachments: message.attachments,
     replyToMessageId: message.replyToMessageId,
     quoteText: message.quoteText,
     sendAt: message.sendAt,

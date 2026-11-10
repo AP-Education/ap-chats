@@ -10,11 +10,17 @@ export function ScheduleMessageDialog({ composer, onClose }: SendOptionDialogPro
   const { schedule } = useScheduling();
 
   function pick(sendAt: Date) {
+    const input = composer.read();
+    if (!input) {
+      void toast.warning('Спочатку завершіть завантаження файлів.');
+      return;
+    }
+
     schedule.mutate(
-      { input: composer.read(), sendAt },
+      { input, sendAt },
       {
         onSuccess: () => {
-          composer.clear();
+          composer.clear(input);
           onClose();
         },
         onError: () => toast.error('Не вдалося запланувати повідомлення.'),
@@ -27,7 +33,9 @@ export function ScheduleMessageDialog({ composer, onClose }: SendOptionDialogPro
       title="Запланувати повідомлення"
       pending={schedule.isPending}
       onPick={pick}
-      onClose={onClose}
+      onClose={() => {
+        if (!schedule.isPending) onClose();
+      }}
     />
   );
 }
