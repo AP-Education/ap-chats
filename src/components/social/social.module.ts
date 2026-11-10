@@ -14,6 +14,7 @@ import { ReactionsModule } from './reactions';
 import { ReadStateModule } from './read-state';
 import { SocialRealtimeModule } from './realtime';
 import { SchedulingModule } from './scheduling';
+import { TypingModule } from './typing/typing.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { SchedulingModule } from './scheduling';
     ForwardingModule,
     HistoryModule,
     SocialRealtimeModule,
+    TypingModule,
   ],
 })
 export class SocialModule {}

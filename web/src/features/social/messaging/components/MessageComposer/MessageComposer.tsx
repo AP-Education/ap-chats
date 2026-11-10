@@ -20,6 +20,7 @@ import {
   useConversationStore,
 } from '@/features/social/conversation-scope/store';
 import { writeToken } from '@/features/social/mentions/mention-tokens';
+import { useTypingBroadcast } from '@/features/social/typing/hooks/useTypingBroadcast';
 
 import { useAttachments } from '../../attachments/useAttachments';
 import { useLinkedGif } from '../../gifs/useLinkedGif';
@@ -48,6 +49,7 @@ export function MessageComposer({
   children,
 }: MessageComposerProps) {
   const { workspaceId, channelId, composer } = useConversationScope();
+  const { notifyTyping, notifyStopped } = useTypingBroadcast(workspaceId, channelId);
   const { identity } = useQueryAuth();
   const draftKey = `ap-chats:draft:${identity}:${workspaceId}:${channelId}`;
   const audienceKey = `${draftKey}:audience`;
@@ -98,6 +100,7 @@ export function MessageComposer({
   }
 
   function send(message: ComposedMessage, nonce: string) {
+    notifyStopped();
     if (message.assistant) rememberAssistant(true);
 
     sendInTurn(nonce, async () => {
@@ -112,6 +115,10 @@ export function MessageComposer({
       labels={labels}
       autoFocus={composer.autoFocus}
       onChange={(draft) => {
+        const namesAssistant = assistantMention && draft.markdown.includes(assistantMention);
+        if (privateAssistant || namesAssistant || !draft.markdown.trim()) notifyStopped();
+        else notifyTyping();
+
         if (
           draft.markdown &&
           (privateIntent || (assistantMention && draft.markdown.includes(assistantMention)))
