@@ -21,7 +21,7 @@ export function MessageMeta({ placement }: { placement: MessageMetaPlacement }) 
       {item.pin && <PushPinIcon size={12} weight="fill" aria-label="Закріплено" />}
       {editedAt && <span title={`Відредаговано ${fullFormat.format(editedAt)}`}>ред.</span>}
       <TimelineEntryTime />
-      <TimelineEntryStatus />
+      {!item.message.privateToMe && <TimelineEntryStatus />}
     </TimelineEntryMeta>
   );
 }

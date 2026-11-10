@@ -30,6 +30,7 @@ export class MessageComposer {
     const quoteText = request.quoteText?.trim() || null;
     const contextMessageIds = request.contextMessageIds ?? [];
     const requestDigest = digest({
+      assistant: request.assistant || undefined,
       markdown: content.markdown,
       reply: replyToMessageId,
       quote: quoteText,
@@ -39,6 +40,7 @@ export class MessageComposer {
     });
 
     return {
+      ...(request.assistant ? { assistant: true } : {}),
       content,
       attachmentRefs: request.attachments ?? [],
       gif,
@@ -54,12 +56,15 @@ export class MessageComposer {
     author: WorkspaceMember,
     channel: ChannelAccessSnapshot,
     draft: MessageDraft,
+    authority: WorkspaceMember = author,
   ): Promise<NewMessage> {
     const { replyToMessageId, quoteText } = draft;
-    if (replyToMessageId) await this.requireReplyTarget(channel, replyToMessageId, quoteText);
+    if (replyToMessageId)
+      await this.requireReplyTarget(channel, replyToMessageId, quoteText, authority.id);
     const attachments = await this.uploads.claim(author, channel.id, draft.attachmentRefs);
 
     return {
+      ...(draft.assistant ? { assistant: true } : {}),
       content: draft.content,
       attachments,
       gif: draft.gif,
@@ -75,12 +80,16 @@ export class MessageComposer {
     channel: ChannelAccessSnapshot,
     messageId: string,
     quoteText: string | null,
+    viewerMemberId: string,
   ) {
-    const target = await this.messages.requireLive({
-      workspaceId: channel.workspaceId,
-      channelId: channel.id,
-      messageId,
-    });
+    const target = await this.messages.requireLive(
+      {
+        workspaceId: channel.workspaceId,
+        channelId: channel.id,
+        messageId,
+      },
+      viewerMemberId,
+    );
     if (!quoteText) return;
 
     const isQuoted = containsQuote(await messagePlainText(target.contentMarkdown), quoteText);

@@ -21,6 +21,8 @@ export interface GifBlock {
 export type MessageBlock = GifBlock;
 
 export interface Message {
+  privateToMe?: boolean;
+  assistantAnswer?: boolean;
   id: string;
   seq: string;
   authorMemberId: string;
@@ -134,6 +136,7 @@ export interface HistoryPage {
 // needs to render them immediately. messages-api.ts alone knows how the wire
 // format differs (attachment refs, no clientNonce) and translates at the edge.
 export interface SendMessageCommand {
+  assistant?: boolean;
   markdown: string;
   clientNonce: string;
   replyToMessageId?: string;
@@ -191,6 +194,7 @@ export interface ActionCommands {
   showReactions: (item: MessageHistoryItem) => void;
   /** Asks a member, such as an assistant, about the messages: the composer addresses them. */
   ask: (member: MemberSummary, items: MessageHistoryItem[]) => void;
+  makeOwn: (item: MessageHistoryItem) => void;
   /** Unread again from this message on. */
   markUnread: (item: MessageHistoryItem) => void;
 }

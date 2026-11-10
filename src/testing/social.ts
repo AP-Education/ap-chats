@@ -27,6 +27,7 @@ import { DrizzlePinsRepository } from '@/components/social/pins/repository/drizz
 import { MessageComposer, SendMessageService } from '@/components/social/posting';
 import { DeleteMessagesService } from '@/components/social/posting/delete-messages.service';
 import { EditMessageService } from '@/components/social/posting/edit-message.service';
+import { PublishAssistantMessageService } from '@/components/social/posting/publish-assistant-message.service';
 import { ReactionsService } from '@/components/social/reactions/reactions.service';
 import { DrizzleReactionsRepository } from '@/components/social/reactions/repository/drizzle-reactions.repository';
 import { ReadStateService } from '@/components/social/read-state';
@@ -83,6 +84,7 @@ export function socialServices(
     new DrizzleMessagesRepository(txHost),
     new EntriesFacade(new DrizzleEntriesRepository(txHost)),
     mentions,
+    new DrizzleWorkspaceMembersRepository(txHost),
   );
   const config = new AppConfigService(new ConfigService(validateConfig(process.env)));
   const storage = new MemoryStorage();
@@ -112,6 +114,7 @@ export function socialServices(
       new AttachmentLinksService(storage),
     ),
     sending,
+    publication: new PublishAssistantMessageService(access, messages, events),
     editing: new EditMessageService(access, markdown, messages, events),
     deleting: new DeleteMessagesService(access, messages, pins, events),
     reactions: new ReactionsService(

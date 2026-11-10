@@ -9,17 +9,21 @@ import {
   ComposerUploadTray,
 } from '@ap-education/timeline/composer';
 import { Button, message } from 'antd';
-import { type ReactNode, useMemo, useRef } from 'react';
+import { type ReactNode, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { useConversationScope } from '@/features/social/conversation-scope/store';
+import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
+import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
+import { writeToken } from '@/features/social/mentions/mention-tokens';
 
 import { useAttachments } from '../../attachments/useAttachments';
 import { useLinkedGif } from '../../gifs/useLinkedGif';
 import type { ComposedMessage } from '../../types';
 import { ComposerIntent } from './ComposerIntent';
+import { parseComposerDraft } from './composer-draft';
 import type { ReplyPreview } from './composerIntents';
 import { MessageInput } from './MessageInput';
+import { PrivateAssistantMode } from './PrivateAssistantMode';
 import { SendButton } from './SendButton';
 
 interface MessageComposerProps {
@@ -40,6 +44,35 @@ export function MessageComposer({
   const { workspaceId, channelId, composer } = useConversationScope();
   const { identity } = useQueryAuth();
   const draftKey = `ap-chats:draft:${identity}:${workspaceId}:${channelId}`;
+  const audienceKey = `${draftKey}:audience`;
+  const intent = useConversation((state) => state.intent);
+  const extensions = useConversationExtensions();
+  const assistantMemberId = extensions.find((extension) => extension.privateAssistantMemberId)
+    ?.privateAssistantMemberId;
+  const assistantMention = assistantMemberId
+    ? writeToken({ kind: 'member', id: assistantMemberId })
+    : null;
+  const [savedPrivateAssistant, setSavedPrivateAssistant] = useState(
+    () =>
+      localStorage.getItem(audienceKey) === 'private' ||
+      parseComposerDraft(localStorage.getItem(draftKey)).assistant,
+  );
+  const privateIntent =
+    intent?.kind === 'ask' || (intent?.kind === 'reply' && intent.privateAssistant);
+  const privateAssistant = savedPrivateAssistant || Boolean(privateIntent);
+  const rememberAssistant = useCallback(
+    (enabled: boolean) => {
+      if (enabled) localStorage.setItem(audienceKey, 'private');
+      else localStorage.removeItem(audienceKey);
+      setSavedPrivateAssistant(enabled);
+    },
+    [audienceKey],
+  );
+
+  useLayoutEffect(() => {
+    if (privateIntent && !savedPrivateAssistant) rememberAssistant(true);
+  }, [privateIntent, rememberAssistant, savedPrivateAssistant]);
+
   const labels = useMemo(
     () => ({ field: composer.ariaLabel, placeholder: composer.placeholder }),
     [composer.ariaLabel, composer.placeholder],
@@ -54,6 +87,8 @@ export function MessageComposer({
   }
 
   function send(message: ComposedMessage, nonce: string) {
+    if (message.assistant) rememberAssistant(true);
+
     sendInTurn(nonce, async () => {
       const blocks = await linkedGif.blocksFor(message.markdown);
       return blocks ? { ...message, blocks } : message;
@@ -65,8 +100,10 @@ export function MessageComposer({
       draftKey={draftKey}
       labels={labels}
       autoFocus={composer.autoFocus}
-      // Finding a GIF for a link starts while the words are still being written.
-      onChange={(draft) => linkedGif.prefetch(draft.markdown)}
+      onChange={(draft) => {
+        if (assistantMention && draft.markdown.includes(assistantMention)) rememberAssistant(true);
+        linkedGif.prefetch(draft.markdown);
+      }}
       onSend={send}
     >
       <ComposerUploads
@@ -81,11 +118,16 @@ export function MessageComposer({
             <ComposerUploadTray />
             {attachments.policyError && <UploadPolicyAlert onRetry={attachments.reloadPolicy} />}
             <ComposerIntent replyAuthor={replyAuthor} replyPreview={replyPreview} />
+            <PrivateAssistantMode
+              active={privateAssistant}
+              mention={assistantMention}
+              onLeave={() => rememberAssistant(false)}
+            />
           </ComposerHeader>
           <ComposerAttach placement="field" />
           <MessageInput sendInTurn={sendInTurn}>{children}</MessageInput>
         </ComposerField>
-        <SendButton />
+        <SendButton privateAssistant={privateAssistant} />
       </ComposerUploads>
     </Composer>
   );

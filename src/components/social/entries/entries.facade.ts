@@ -6,8 +6,12 @@ import { EntriesRepository } from './repository/entries.repository';
 export class EntriesFacade {
   constructor(private readonly entries: EntriesRepository) {}
 
-  append(workspaceId: string, channelId: string, messageId: string) {
-    return this.entries.append(workspaceId, channelId, messageId);
+  append(workspaceId: string, channelId: string, messageId: string, privateEntry = false) {
+    return this.entries.append(workspaceId, channelId, messageId, privateEntry);
+  }
+
+  moveToEnd(workspaceId: string, channelId: string, messageId: string) {
+    return this.entries.moveToEnd(workspaceId, channelId, messageId);
   }
 
   appendMany(workspaceId: string, channelId: string, messageIds: string[]) {

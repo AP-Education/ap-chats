@@ -6,6 +6,7 @@ import {
   Equals,
   IsArray,
   IsBase64,
+  IsBoolean,
   IsDefined,
   IsIn,
   IsInt,
@@ -77,6 +78,9 @@ export class GifBlockDto {
 }
 
 export class SendMessageDto {
+  @IsOptional()
+  @IsBoolean()
+  assistant?: boolean;
   @IsString()
   @MaxLength(32768)
   markdown!: string;

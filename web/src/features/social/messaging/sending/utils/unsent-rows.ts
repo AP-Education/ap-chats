@@ -25,6 +25,7 @@ function synthesize(
     createdAt,
     message: {
       id: input.clientNonce,
+      privateToMe: Boolean(input.assistant),
       seq: '0',
       authorMemberId: author.memberId,
       clientNonce: input.clientNonce,

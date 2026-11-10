@@ -12,6 +12,7 @@ import {
 } from '@/database/drizzle/schema';
 
 import { messageBlocks } from '../../messages/message-blocks';
+import { publicMessage } from '../../messages/visibility';
 import type { MessagePin, PinnedMessage } from '../types/pin.types';
 import { PinsRepository } from './pins.repository';
 
@@ -39,7 +40,7 @@ export class DrizzlePinsRepository extends PinsRepository {
       .innerJoin(channelEntries, eq(channelEntries.messageId, messagePins.messageId))
       .innerJoin(workspaceMembers, eq(workspaceMembers.id, chatMessages.authorMemberId))
       .innerJoin(userProfiles, eq(userProfiles.id, workspaceMembers.userProfileId))
-      .where(eq(messagePins.channelId, channelId))
+      .where(and(eq(messagePins.channelId, channelId), publicMessage()))
       .orderBy(desc(messagePins.pinnedAt));
     return rows.map(({ authorName, authorAvatar, gif, ...row }) => ({
       ...row,

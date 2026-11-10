@@ -13,7 +13,7 @@ import { useConversationSending } from '../../sending/hooks/useConversationSendi
 import { composerIntent } from './composerIntents';
 
 /** Sends on a click; a right click lists the other ways to send, a long press takes the only one. */
-export function SendButton() {
+export function SendButton({ privateAssistant = false }: { privateAssistant?: boolean }) {
   const { workspaceId, channelId } = useConversationScope();
   const { uploads } = useConversationSending(workspaceId, channelId);
   // Files wait to go with the message, which not every other way to send can take.
@@ -33,7 +33,10 @@ export function SendButton() {
 
   if (!options.length) return <ComposerSend />;
 
-  const draft = { hasAttachments, canWait: !intent || composerIntent(intent.kind).canWait };
+  const draft = {
+    hasAttachments,
+    canWait: !privateAssistant && (!intent || composerIntent(intent.kind).canWait),
+  };
   // Other ways to send take the draft over through these, and decide its fate themselves.
   const composer: ComposerCommands = { read: () => compose().message, clear };
 

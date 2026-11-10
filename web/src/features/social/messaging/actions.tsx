@@ -63,7 +63,9 @@ export const messagingActions: ConversationAction[] = [
       target.items.every(
         (item) =>
           textAvailable(item.message.markdown) &&
-          (item.message.authorMemberId === context.memberId || context.canManage),
+          (item.message.authorMemberId === context.memberId ||
+            item.message.privateToMe ||
+            context.canManage),
       ),
     execute: (target, commands) => commands.remove(target.items),
   },

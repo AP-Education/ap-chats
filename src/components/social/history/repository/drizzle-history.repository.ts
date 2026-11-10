@@ -19,6 +19,7 @@ import {
 } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
 
+import { messageVisibleTo, publicMessage } from '../../messages/visibility';
 import type { MessageReaction } from '../../reactions/types/reaction.types';
 import type {
   ContextPreview,
@@ -35,21 +36,38 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     super();
   }
 
-  async messageSeq(channelId: string, messageId: string): Promise<bigint | null> {
+  async messageSeq(
+    channelId: string,
+    messageId: string,
+    viewerMemberId?: string,
+  ): Promise<bigint | null> {
     const [row] = await this.txHost.tx
       .select({ seq: channelEntries.seq })
       .from(channelEntries)
-      .where(and(eq(channelEntries.channelId, channelId), eq(channelEntries.messageId, messageId)));
-    return row?.seq ?? null;
-  }
-
-  async entrySeq(channelId: string, entryId: string): Promise<bigint | null> {
-    const [row] = await this.txHost.tx
-      .select({ seq: channelEntries.seq })
-      .from(channelEntries)
+      .innerJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
       .where(
         and(
           eq(channelEntries.channelId, channelId),
+          eq(channelEntries.messageId, messageId),
+          viewerMemberId ? messageVisibleTo(viewerMemberId) : publicMessage(),
+        ),
+      );
+    return row?.seq ?? null;
+  }
+
+  async entrySeq(
+    channelId: string,
+    entryId: string,
+    viewerMemberId?: string,
+  ): Promise<bigint | null> {
+    const [row] = await this.txHost.tx
+      .select({ seq: channelEntries.seq })
+      .from(channelEntries)
+      .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
+      .where(
+        and(
+          eq(channelEntries.channelId, channelId),
+          viewerMemberId ? messageVisibleTo(viewerMemberId) : publicMessage(),
           or(eq(channelEntries.messageId, entryId), eq(channelEntries.callId, entryId)),
         ),
       );
@@ -82,7 +100,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
     const forwardAuthorRoles = alias(memberRolePresentation, 'forward_author_roles');
     const startedByRoles = alias(memberRolePresentation, 'started_by_roles');
     const mentions = this.mentionsOfMessage();
-    const context = this.contextOfMessage();
+    const context = this.contextOfMessage(viewerMemberId);
     const reactions = this.reactionsOfMessage(viewerMemberId);
 
     const pageBound =
@@ -140,7 +158,13 @@ export class DrizzleHistoryRepository extends HistoryRepository {
       .leftJoin(authorMembers, eq(authorMembers.id, chatMessages.authorMemberId))
       .leftJoin(authors, eq(authors.id, authorMembers.userProfileId))
       .leftJoin(authorRoles, eq(authorRoles.memberId, chatMessages.authorMemberId))
-      .leftJoin(replyMessages, eq(replyMessages.id, chatMessages.replyToMessageId))
+      .leftJoin(
+        replyMessages,
+        and(
+          eq(replyMessages.id, chatMessages.replyToMessageId),
+          messageVisibleTo(viewerMemberId, replyMessages),
+        ),
+      )
       .leftJoin(replyAuthorMembers, eq(replyAuthorMembers.id, replyMessages.authorMemberId))
       .leftJoin(replyAuthors, eq(replyAuthors.id, replyAuthorMembers.userProfileId))
       .leftJoin(replyAuthorRoles, eq(replyAuthorRoles.memberId, replyMessages.authorMemberId))
@@ -171,6 +195,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         and(
           eq(channelEntries.channelId, channelId),
           pageBound,
+          messageVisibleTo(viewerMemberId),
           lte(channelEntries.seq, ceiling),
           // A deleted message is a tombstone, not history to show: excluded
           // from the projection itself rather than fetched and hidden by the
@@ -207,7 +232,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
   }
 
   // The first live message it is about, and how many there are, counted before the limit.
-  private contextOfMessage() {
+  private contextOfMessage(viewerMemberId: string) {
     const contextMessages = alias(chatMessages, 'context_messages');
     const contextEntries = alias(channelEntries, 'context_entries');
     const preview = sql<ContextPreview>`json_build_object(
@@ -237,7 +262,13 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         memberRolePresentation,
         eq(memberRolePresentation.memberId, contextMessages.authorMemberId),
       )
-      .where(and(eq(messageContext.messageId, chatMessages.id), isNull(contextMessages.deletedAt)))
+      .where(
+        and(
+          eq(messageContext.messageId, chatMessages.id),
+          isNull(contextMessages.deletedAt),
+          messageVisibleTo(viewerMemberId, contextMessages),
+        ),
+      )
       .orderBy(asc(contextEntries.seq))
       .limit(1)
       .as('message_context_preview');

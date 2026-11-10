@@ -1,4 +1,5 @@
 export const MESSAGES_BATCH_DELETED_EVENT = 'social.messages.batch-deleted';
+export const PRIVATE_MESSAGES_BATCH_DELETED_EVENT = 'social.messages.batch-deleted.private';
 
 export interface DeletedMessageEntry {
   seq: string;
@@ -12,5 +13,6 @@ export class MessagesBatchDeletedEvent {
     public readonly messageIds: string[],
     public readonly actorMemberId: string,
     public readonly deletedEntries: DeletedMessageEntry[],
+    public readonly privateToUserId?: string,
   ) {}
 }

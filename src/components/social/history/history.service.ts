@@ -27,7 +27,7 @@ export class HistoryService {
   async entry(member: WorkspaceMember, channelId: string, entryId: string) {
     const channel = await this.access.requireViewAccess(member, channelId);
 
-    const seq = await this.history.entrySeq(channelId, entryId);
+    const seq = await this.history.entrySeq(channelId, entryId, member.id);
     if (seq === null) throw new NotFoundException('Entry not found');
 
     const { rows } = await this.history.page({
@@ -39,7 +39,8 @@ export class HistoryService {
       limit: 1,
     });
     const [row] = rows;
-    if (!row) throw new NotFoundException('Entry not found');
+    const matches = row && (row.type === 'MESSAGE' ? row.message.id : row.call.id) === entryId;
+    if (!matches) throw new NotFoundException('Entry not found');
 
     const shown = await this.shown(row);
     return historyItemView(shown, member.id);
@@ -53,7 +54,7 @@ export class HistoryService {
     const position = await this.readState.position(channel, member.id, snapshotSeq);
 
     const target = query.messageId
-      ? await this.requireMessageSeq(channelId, query.messageId)
+      ? await this.requireMessageSeq(channelId, query.messageId, member.id)
       : position.firstUnreadSeq;
     const snapshot = { channelId, viewerMemberId: member.id, ceiling: snapshotSeq };
     const view = { viewerMemberId: member.id, snapshotSeq, position };
@@ -140,8 +141,12 @@ export class HistoryService {
     return { ...row, message: { ...message, attachments } };
   }
 
-  private async requireMessageSeq(channelId: string, messageId: string): Promise<bigint> {
-    const seq = await this.history.messageSeq(channelId, messageId);
+  private async requireMessageSeq(
+    channelId: string,
+    messageId: string,
+    viewerMemberId: string,
+  ): Promise<bigint> {
+    const seq = await this.history.messageSeq(channelId, messageId, viewerMemberId);
     if (seq === null) throw new NotFoundException('Message not found');
     return seq;
   }

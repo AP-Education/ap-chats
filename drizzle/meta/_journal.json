@@ -246,6 +246,13 @@
       "when": 1792425682058,
       "tag": "0034_drop_star_me_question_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794095507492,
+      "tag": "0035_private_assistant",
+      "breakpoints": true
     }
   ]
 }

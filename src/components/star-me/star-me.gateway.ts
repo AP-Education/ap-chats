@@ -12,6 +12,7 @@ export class StarMeGateway {
 
   @OnEvent(STAR_ME_STATUS_EVENT)
   onStatus(event: StarMeStatusEvent): Promise<void> {
+    if (!event.privateToUserId) return Promise.resolve();
     return this.broadcast.changed(STAR_ME_STATUS_EVENT, event);
   }
 }

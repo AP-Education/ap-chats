@@ -4,6 +4,7 @@ import type { NormalizedMessageContent } from '../content/message-markdown';
 
 /** A send request as written, normalized before any lock is taken. */
 export interface MessageDraft {
+  assistant?: boolean;
   content: NormalizedMessageContent;
   attachmentRefs: AttachmentRef[];
   gif: MessageGif | null;

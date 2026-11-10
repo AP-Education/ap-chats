@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
 
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 
 import type { MemberSummary, WorkspaceMember } from '@/components/workspaces/members/types';
 
@@ -56,11 +56,13 @@ class FakeRepository extends StarMeRepository {
 }
 
 class FakeAssistant extends Assistant {
+  token: string | undefined;
   turns: AssistantTurn[] = [];
   failure: AssistantFailure | undefined;
   hold: Promise<void> = Promise.resolve();
 
-  async reply(turns: AssistantTurn[]) {
+  async reply(turns: AssistantTurn[], token: string) {
+    this.token = token;
     this.turns = turns;
     await this.hold;
     if (this.failure) throw this.failure;
@@ -211,6 +213,48 @@ test('a message that does not ask StarMe gets no answer', async () => {
   await assert.rejects(ask(), BadRequestException);
   assert.deepEqual(assistant.turns, []);
   assert.deepEqual(statuses, []);
+});
+
+test('a question mentioning StarMe uses only the asker token', async () => {
+  repository.question$ = question({ mentionsStarMe: true });
+  repository.recentMessages = [
+    message(ids.question, 2n, person(ids.vlad, 'Влад'), 'Допоможи з планом'),
+  ];
+  await ask();
+  await finished;
+  assert.equal(assistant.token, 'token');
+  assert.equal(answers.length, 1);
+  assert.equal(assistant.turns[0]?.text, 'Допоможи з планом');
+});
+
+test('a missing or foreign question never starts the assistant', async () => {
+  await assert.rejects(ask(), NotFoundException);
+  assert.equal(assistant.token, undefined);
+  assert.deepEqual(statuses, []);
+});
+
+test('revoked access prevents reading the question or invoking the assistant', async () => {
+  repository.question$ = question({ mentionsStarMe: true });
+  const service = starMeService as unknown as { access: { requirePostRight: () => Promise<void> } };
+  service.access.requirePostRight = async () => {
+    throw new ForbiddenException();
+  };
+  await assert.rejects(ask(), ForbiddenException);
+  assert.equal(assistant.token, undefined);
+});
+
+test('a failed question can be retried without replacing the user message', async () => {
+  repository.question$ = question({ mentionsStarMe: true });
+  assistant.failure = new AssistantFailure('unavailable');
+  await ask();
+  await finished;
+  assert.equal(answers.length, 0);
+  assistant.failure = undefined;
+  await ask();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(answers.length, 1);
+  assert.equal(answers[0]?.replyToMessageId, ids.question);
+  assert.equal(statuses.at(-1)?.state, 'answered');
 });
 
 test('asking again after an answer does not run again', async () => {

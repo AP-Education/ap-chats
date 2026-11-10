@@ -46,6 +46,7 @@ export function sendMessage(
 ): Promise<Message> {
   const payload = {
     markdown: input.markdown,
+    assistant: input.assistant,
     clientNonce: input.clientNonce,
     replyToMessageId: input.replyToMessageId,
     quoteText: input.quoteText,
@@ -116,5 +117,19 @@ export function deleteMessages(
     `${messagesUrl(workspaceId, channelId)}/batch-delete`,
     token,
     jsonInit('POST', { messageIds }),
+  );
+}
+
+/** Replaces the caller's private assistant answer with their public message. */
+export function makeMessageOwn(
+  token: string,
+  workspaceId: string,
+  channelId: string,
+  messageId: string,
+): Promise<Message> {
+  return apiRequest(
+    `${messagesUrl(workspaceId, channelId)}/${messageId}/make-own`,
+    token,
+    jsonInit('POST', {}),
   );
 }

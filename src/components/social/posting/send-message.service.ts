@@ -10,6 +10,7 @@ import { MessagesService } from '../messages';
 import {
   MESSAGE_CREATED_EVENT,
   MessageCreatedEvent,
+  PRIVATE_MESSAGE_CREATED_EVENT,
 } from '../messages/events/message-created.event';
 import type { MessageView } from '../messages/message-view';
 import type { SendMessageDto } from './dto/send-message.dto';
@@ -64,11 +65,19 @@ export class SendMessageService {
     const message = await this.messages.post(
       author,
       channel,
-      await this.composer.complete(author, channel, draft),
+      await this.composer.complete(author, channel, draft, authority),
+      authority,
     );
     const announce = await this.events.record(
-      MESSAGE_CREATED_EVENT,
-      new MessageCreatedEvent(author.workspaceId, channelId, message.id, message.seq, author.id),
+      message.privateToMe ? PRIVATE_MESSAGE_CREATED_EVENT : MESSAGE_CREATED_EVENT,
+      new MessageCreatedEvent(
+        author.workspaceId,
+        channelId,
+        message.id,
+        message.seq,
+        author.id,
+        message.privateToMe ? authority.profile.oidcUserId : undefined,
+      ),
       { durable: true },
     );
 

@@ -74,7 +74,12 @@ export function useConversationActions({
 
   const commands: ActionCommands = {
     reply: (item, quoteText) => {
-      setIntent({ kind: 'reply', messageId: item.message.id, quoteText });
+      setIntent({
+        kind: 'reply',
+        messageId: item.message.id,
+        quoteText,
+        privateAssistant: Boolean(item.message.privateToMe),
+      });
       clearSelection();
     },
     edit: (item) => setEditingId(item.message.id),
@@ -84,7 +89,9 @@ export function useConversationActions({
           targetItems.length === 1
             ? 'Видалити повідомлення?'
             : `Видалити ${targetItems.length} повідомлень?`,
-        content: 'Текст повідомлень стане недоступним усім учасникам каналу.',
+        content: targetItems.every((item) => item.message.privateToMe)
+          ? 'Приватні повідомлення буде видалено з вашого обміну зі StarMe.'
+          : 'Текст повідомлень стане недоступним усім учасникам каналу.',
         okText: 'Видалити',
         okType: 'danger',
         cancelText: 'Скасувати',
@@ -117,6 +124,13 @@ export function useConversationActions({
       void pins
         .update(item.message.id, active)
         .catch(() => toast.error('Не вдалося змінити закріплення.'));
+    },
+    makeOwn: (item) => {
+      void operations
+        .makeOwn(item.message.id)
+        .catch(() =>
+          toast.error('Не вдалося опублікувати повідомлення. Приватна відповідь збережена.'),
+        );
     },
     markUnread: (item) => {
       markUnread.mutate(item.seq, {

@@ -114,6 +114,14 @@ export function MentionEditor() {
 
   useImperativeHandle(editorRef, () => ({
     draft: currentDraft,
+    replaceDraft: (draft) => {
+      const root = editableRef.current?.root();
+      if (!root) return;
+      labels.current = draft.labels;
+      restoreEditor(root, draft, styles.chip);
+      setQuery(null);
+      onChange?.(draft);
+    },
     clear: () => {
       editableRef.current?.clear();
       labels.current = {};
@@ -125,7 +133,7 @@ export function MentionEditor() {
     insertText: (text) => editableRef.current?.insertText(text),
     suspendInput: () => editableRef.current?.suspendInput(),
     releaseInput: () => editableRef.current?.releaseInput(),
-    resumeInput: (point) => editableRef.current?.resumeInput(point),
+    resumeInput: (point?: { x: number; y: number }) => editableRef.current?.resumeInput(point),
   }));
 
   return (

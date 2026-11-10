@@ -21,7 +21,7 @@ export class AttachmentDownloadsService {
   /** A file saved or played once opened, or an image whose link from the history lapsed. */
   async link(member: WorkspaceMember, message: MessageRef, id: string, variant: DownloadVariant) {
     await this.access.requireViewAccess(member, message.channelId);
-    const { attachments } = await this.messages.requireLive(message);
+    const { attachments } = await this.messages.requireLive(message, member.id);
     const file = attachments.find((attachment) => attachment.id === id);
     if (!file) throw new NotFoundException('Attachment not found');
 

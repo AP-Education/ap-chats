@@ -50,7 +50,7 @@ export class PinsService {
   @Transactional()
   private async pin(member: WorkspaceMember, message: MessageRef) {
     await this.requirePinner(member, message.channelId);
-    await this.messages.requireLive(message);
+    this.messages.requireShared(await this.messages.requireLive(message, member.id));
 
     const existing = await this.repository.find(message.channelId, message.messageId);
     if (existing) return { pin: existing, announce: nothingToAnnounce };
