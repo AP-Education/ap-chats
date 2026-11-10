@@ -24,6 +24,7 @@ test('sending while video processing continues becomes one playable message with
   await page.goto('/?chat');
   await page
     .locator('input[type=file]')
+    .first()
     .setInputFiles({ name, mimeType: 'video/mp4', buffer: video });
   await expect(page.getByRole('status').filter({ hasText: 'Обробка файлу' })).toBeVisible();
   await page
@@ -34,7 +35,11 @@ test('sending while video processing continues becomes one playable message with
     await expect(
       page.getByRole('log').getByText('Запис нашої зустрічі', { exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole('log').getByRole('article', { name, exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole('log')
+        .getByRole('button', { name: `Скасувати надсилання ${name}`, exact: true }),
+    ).toBeVisible();
     expect(posts).toEqual([]);
   } finally {
     release();
@@ -84,6 +89,7 @@ test('removing an uploading video cancels its reservation without losing the typ
   await editor.fill('Підпис залишиться у чернетці');
   await page
     .locator('input[type=file]')
+    .first()
     .setInputFiles({ name, mimeType: 'video/mp4', buffer: video });
   try {
     await sending;
@@ -122,6 +128,7 @@ test('a failed video in a pending message retries its upload and is posted exact
   await page.goto('/?chat');
   await page
     .locator('input[type=file]')
+    .first()
     .setInputFiles({ name, mimeType: 'video/mp4', buffer: video });
   try {
     await sending;

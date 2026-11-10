@@ -11,6 +11,7 @@ import { useMemo, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
+import { ApiError } from '@/shared/api/http';
 
 import { attachmentUrl } from '../../attachments/attachments-api';
 import type { Attachment, UploadScope } from '../../attachments/types';
@@ -38,7 +39,7 @@ export function attachmentUrlQuery(
     queryFn: () => attachmentUrl(token!, scope, messageId, attachmentId, variant),
     staleTime: freshFor(variant),
     gcTime: 15 * 60_000,
-    retry: 1,
+    retry: (attempt, error) => attempt < 1 && (!(error instanceof ApiError) || error.status >= 500),
   });
 }
 

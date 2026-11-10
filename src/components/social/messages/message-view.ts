@@ -16,7 +16,8 @@ export function messageView<File extends Attachment>(
     id: message.id,
     seq: seq.toString(),
     authorMemberId: message.authorMemberId,
-    clientNonce: privateToMe || message.authorMemberId === viewerMemberId ? message.clientNonce : null,
+    clientNonce:
+      privateToMe || message.authorMemberId === viewerMemberId ? message.clientNonce : null,
     markdown: message.deletedAt ? null : message.contentMarkdown,
     attachments: message.deletedAt ? [] : message.attachments,
     blocks: message.deletedAt ? [] : messageBlocks(message),

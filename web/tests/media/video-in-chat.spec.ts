@@ -16,7 +16,9 @@ for (const variant of ['chat', 'chat&portrait', 'chat&own']) {
     await expect(page.getByText('Ось коротке відео з нашої зустрічі.')).toHaveCount(1);
     await expect(page.getByText('Дякую! Зараз перегляну 👍')).toHaveCount(1);
     await expect(page.getByRole('textbox', { name: 'Повідомлення', exact: true })).toBeVisible();
-    const bubble = await row.locator('[data-variant="media"]').boundingBox();
+    const bubbleElement = row.locator('[data-timeline-bubble]');
+    await expect(bubbleElement).toBeVisible();
+    const bubble = await bubbleElement.boundingBox();
     expect(
       await row.evaluate((node) =>
         parseFloat(getComputedStyle(node).getPropertyValue('--ant-border-radius')),
