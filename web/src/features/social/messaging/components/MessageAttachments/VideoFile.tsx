@@ -110,8 +110,8 @@ function VideoPoster({ attachment, messageId, available, overlay }: FileAttachme
             Превʼю недоступне
           </span>
         )}
+        {overlay}
       </MediaFrame>
-      {overlay}
     </TimelineEntryMedia>
   );
 }

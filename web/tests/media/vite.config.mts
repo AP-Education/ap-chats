@@ -7,6 +7,7 @@ import { fixtureApi } from './fixture-api.ts';
 
 export default defineConfig({
   root: import.meta.dirname,
+  envDir: false,
   plugins: [
     react(),
     {

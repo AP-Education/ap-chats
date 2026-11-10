@@ -11,7 +11,9 @@ import {
   MediaViewerDownload,
   MediaViewerZoom,
 } from '@ap-education/ui/media';
+import { message as toast } from 'antd';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
   showDownloadError,
@@ -49,6 +51,7 @@ export function ConversationMedia({
   const media = useTimelineMedia({ view, read: messageMedia, onShowEntry, labels: LABELS });
   const urls = useAttachmentUrls();
   const { accent } = useShellAppearance();
+  const { t } = useTranslation('mediaViewer');
 
   return (
     <TimelineMediaProvider value={media}>
@@ -57,6 +60,7 @@ export function ConversationMedia({
         {...media.viewer}
         urls={urls}
         accent={accent}
+        onOpenError={() => void toast.error(t(($) => $.openFailed))}
         renderVideo={(item, active) =>
           item.kind === 'video' && <VideoSlide key={item.key} media={item} active={active} />
         }

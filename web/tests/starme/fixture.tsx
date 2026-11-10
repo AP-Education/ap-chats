@@ -1,10 +1,11 @@
 import './fixture.css';
 
 import { CurrentUserContext } from '@ap-education/shell-sdk';
+import { UploadQueue } from '@ap-education/timeline/composer';
 import { ThemeProvider } from '@ap-education/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Button } from 'antd';
-import { StrictMode, useEffect, useMemo, useRef, useState } from 'react';
+import { StrictMode, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
 
@@ -15,7 +16,7 @@ import { ConversationSelectionBar } from '@/features/social/conversation/compone
 import { useConversationActions } from '@/features/social/conversation/components/ConversationView/useConversationActions';
 import { ConversationProvider } from '@/features/social/conversation-scope/store';
 import { sendMessage } from '@/features/social/messaging/api/messages-api';
-import { UploadQueue } from '@/features/social/messaging/attachments/upload-queue';
+import { uploadTransport } from '@/features/social/messaging/attachments/attachments-api';
 import { MessageActions } from '@/features/social/messaging/components/MessageRow/MessageActions';
 import { MessageActionProvider } from '@/features/social/messaging/components/MessageRow/MessageActionScope';
 import { PrivateMessageLabel } from '@/features/social/messaging/components/MessageRow/PrivateMessageLabel';
@@ -30,9 +31,11 @@ import { UnsentMessagesContext } from '@/features/social/messaging/sending/store
 import { TimelineActionsContext } from '@/features/social/messaging/timeline-actions-context';
 import type { MessageHistoryItem } from '@/features/social/messaging/types';
 import { MemberSheetProvider } from '@/features/social/people/providers/MemberSheetProvider';
-import { StarMeActivity } from '@/features/star-me/components/StarMeActivity/StarMeActivity';
+import { StarMeAnswer } from '@/features/star-me/components/StarMeAnswer/StarMeAnswer';
 import { useStarMeExtension } from '@/features/star-me/hooks/useStarMeExtension';
+import { useStarMePending } from '@/features/star-me/hooks/useStarMePending';
 import type { WorkspaceMember } from '@/features/workspaces/types';
+import { I18nProvider } from '@/shared/i18n/I18nProvider';
 
 import { runNativeScenario } from './native-scenario';
 
@@ -45,6 +48,7 @@ const token = `fixture-only:${session}`;
 const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const listeners = new Map<string, Set<(event: unknown) => void>>();
 const socket = {
+  emit() {},
   on(name: string, fn: (event: unknown) => void) {
     let set = listeners.get(name);
     if (!set) {
@@ -93,7 +97,8 @@ function Chat({ state, channelId }: { state: Session; channelId: string }) {
   const extension = useStarMeExtension(state.workspaceId);
   const extensions = useMemo(() => (extension ? [extension] : []), [extension]);
   const [sending] = useState<ConversationSending>(() => {
-    const uploads = new UploadQueue({ workspaceId: state.workspaceId, channelId }, () => token);
+    const transport = uploadTransport({ workspaceId: state.workspaceId, channelId }, () => token);
+    const uploads = new UploadQueue(transport);
     const outbox = new ConversationOutbox({
       uploads,
       storage: { read: () => [], write() {} },
@@ -158,6 +163,12 @@ function ChatContent({
     items,
   );
   const interaction = useConversationActions({ items, memberId: state.user.id, operations });
+  const landed = useMemo(
+    () =>
+      new Set(items.flatMap(({ message }) => (message.clientNonce ? [message.clientNonce] : []))),
+    [items],
+  );
+  const answers = useStarMePending(landed);
   return (
     <TimelineActionsContext.Provider
       value={{
@@ -173,7 +184,16 @@ function ChatContent({
           {items.map((item) => (
             <HistoryRow key={item.id} item={item} own={item.author.memberId === state.user.id} />
           ))}
-          <StarMeActivity />
+          {answers
+            .filter(({ nonce }) => !landed.has(nonce))
+            .map(({ entry, status }) => (
+              <StarMeAnswer
+                key={entry.key}
+                entry={entry}
+                status={status}
+                anchor={{ 'data-timeline-key': entry.key }}
+              />
+            ))}
         </section>
         <ConversationSelectionBar interaction={interaction} />
         <div hidden={interaction.selectedItems.length > 0}>
@@ -269,7 +289,11 @@ createRoot(document.getElementById('root')!).render(
         >
           <RealtimeContext.Provider value={{ status: 'connected', socket, error: null }}>
             <BrowserRouter>
-              <Fixture state={state} />
+              <Suspense>
+                <I18nProvider>
+                  <Fixture state={state} />
+                </I18nProvider>
+              </Suspense>
             </BrowserRouter>
           </RealtimeContext.Provider>
         </CurrentUserContext.Provider>

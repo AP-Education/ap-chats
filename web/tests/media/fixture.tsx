@@ -4,16 +4,18 @@ import { CurrentUserContext } from '@ap-education/shell-sdk';
 import { ThemeProvider } from '@ap-education/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from 'antd';
-import { type ReactNode, StrictMode, useEffect, useState } from 'react';
+import { type ReactNode, StrictMode, Suspense, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { RealtimeContext } from '@/features/realtime/stores/realtime-context';
 import { ConversationProvider } from '@/features/social/conversation-scope/store';
-import { MediaViewerProvider } from '@/features/social/media-viewer/providers/MediaViewerProvider';
+import { ConversationMedia } from '@/features/social/media-viewer/components/ConversationMedia';
 import type { Attachment } from '@/features/social/messaging/attachments/types';
 import { VideoFile } from '@/features/social/messaging/components/MessageAttachments/VideoFile';
 import type { MessageHistoryItem } from '@/features/social/messaging/types';
+import { I18nProvider } from '@/shared/i18n/I18nProvider';
 
-import { ChatFixture } from './chat-fixture';
+import { ChatFixture, fixtureHistory } from './chat-fixture';
 
 const params = new URLSearchParams(location.search);
 const portrait = params.has('portrait');
@@ -68,6 +70,35 @@ const item: MessageHistoryItem = {
   pin: null,
 };
 
+function MediaViewerProvider({
+  items,
+  children,
+}: {
+  items: MessageHistoryItem[];
+  children: ReactNode;
+}) {
+  const view = useMemo(() => fixtureHistory(items), [items]);
+  return (
+    <ConversationMedia
+      view={view}
+      actions={{
+        actions: [],
+        context: {
+          memberId: 'member',
+          canManage: false,
+          canPin: false,
+          canPost: true,
+          canReact: true,
+        },
+        run: () => undefined,
+      }}
+      onShowEntry={() => undefined}
+    >
+      {children}
+    </ConversationMedia>
+  );
+}
+
 createRoot(document.getElementById('root')!).render(
   <FixtureLifetime>
     <StrictMode>
@@ -83,82 +114,63 @@ createRoot(document.getElementById('root')!).render(
           client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
         >
           <ThemeProvider appearance={params.has('dark') ? 'dark' : 'light'}>
-            <Layout className="fixture-layout">
-              <ConversationProvider
-                scope={{
-                  workspaceId: 'workspace',
-                  channelId: 'channel',
-                  title: 'Превʼю відео',
-                  composer: { ariaLabel: 'Повідомлення', placeholder: 'Написати' },
-                  permissions: { canPost: true, canReact: true, canManage: false, canPin: false },
-                }}
-              >
-                {params.has('chat') ? (
-                  <ChatFixture
-                    video={item}
-                    ownVideo={params.has('own')}
-                    caption={
-                      params.has('nocaption')
-                        ? ''
-                        : params.has('longcaption')
-                          ? 'Обговоримо деталі після перегляду. '.repeat(40)
-                          : undefined
-                    }
-                  >
-                    {(items, content) => (
-                      <MediaViewerProvider
-                        items={items}
-                        actions={{
-                          actions: [],
-                          context: {
-                            memberId: 'member',
-                            canManage: false,
-                            canPin: false,
-                            canPost: true,
-                            canReact: true,
-                          },
-                          run: () => undefined,
-                          showInChat: () => undefined,
-                        }}
-                      >
-                        {content}
-                      </MediaViewerProvider>
-                    )}
-                  </ChatFixture>
-                ) : (
-                  <MediaViewerProvider
-                    items={[item]}
-                    actions={{
-                      actions: [],
-                      context: {
-                        memberId: 'member',
-                        canManage: false,
-                        canPin: false,
-                        canPost: true,
-                        canReact: true,
-                      },
-                      run: () => undefined,
-                      showInChat: () => undefined,
-                    }}
-                  >
-                    <main>
-                      <h1>Превʼю відео</h1>
-                      <p>Оригінал завантажується після натискання.</p>
-                      <div
-                        className="message"
-                        style={params.has('offscreen') ? { marginTop: '200vh' } : undefined}
-                      >
-                        <VideoFile
-                          attachment={attachment}
-                          messageId="message"
-                          available={!params.has('unavailable')}
-                        />
-                      </div>
-                    </main>
-                  </MediaViewerProvider>
-                )}
-              </ConversationProvider>
-            </Layout>
+            <Suspense>
+              <I18nProvider>
+                <RealtimeContext.Provider value={{ status: 'idle', socket: null, error: null }}>
+                  <Layout className="fixture-layout">
+                    <ConversationProvider
+                      scope={{
+                        workspaceId: 'workspace',
+                        channelId: 'channel',
+                        title: 'Превʼю відео',
+                        composer: { ariaLabel: 'Повідомлення', placeholder: 'Написати' },
+                        permissions: {
+                          canPost: true,
+                          canReact: true,
+                          canManage: false,
+                          canPin: false,
+                        },
+                      }}
+                    >
+                      {params.has('chat') ? (
+                        <ChatFixture
+                          video={item}
+                          ownVideo={params.has('own')}
+                          caption={
+                            params.has('nocaption')
+                              ? ''
+                              : params.has('longcaption')
+                                ? 'Обговоримо деталі після перегляду. '.repeat(40)
+                                : undefined
+                          }
+                        >
+                          {(items, content) => (
+                            <MediaViewerProvider items={items}>{content}</MediaViewerProvider>
+                          )}
+                        </ChatFixture>
+                      ) : (
+                        <MediaViewerProvider items={[item]}>
+                          <main>
+                            <h1>Превʼю відео</h1>
+                            <p>Оригінал завантажується після натискання.</p>
+                            <div
+                              className="message"
+                              style={params.has('offscreen') ? { marginTop: '200vh' } : undefined}
+                            >
+                              <VideoFile
+                                attachment={attachment}
+                                messageId="message"
+                                available={!params.has('unavailable')}
+                              />
+                            </div>
+                          </main>
+                        </MediaViewerProvider>
+                      )}
+                    </ConversationProvider>
+                  </Layout>
+                </RealtimeContext.Provider>
+              </I18nProvider>
+            </Suspense>
           </ThemeProvider>
         </QueryClientProvider>
       </CurrentUserContext.Provider>

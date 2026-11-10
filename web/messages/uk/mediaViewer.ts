@@ -8,6 +8,7 @@ export const mediaViewer = {
   zoomOut: 'Зменшити',
   download: 'Завантажити {{name}}',
   imageFailed: 'Не вдалося відкрити зображення',
+  openFailed: 'Не вдалося відкрити медіа. Перевірте з’єднання та спробуйте ще раз.',
   videoFailed: 'Не вдалося відкрити відео',
   videoLoading: 'Завантажуємо відео',
 } as const;

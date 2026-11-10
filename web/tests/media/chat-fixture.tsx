@@ -1,3 +1,4 @@
+import type { TimelineView } from '@ap-education/timeline/react';
 import { Page, PageBody, PageHeader, PageTitle } from '@ap-education/ui';
 import { useMemo, useState } from 'react';
 
@@ -7,12 +8,13 @@ import { MessageTimeline } from '@/features/social/messaging/components/MessageT
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import { OutboxesProvider } from '@/features/social/messaging/sending/providers/OutboxesProvider';
 import { UnsentMessagesContext } from '@/features/social/messaging/sending/stores/unsent-messages-context';
+import {
+  type ChatEntry,
+  type ChatMeta,
+  toEntry,
+} from '@/features/social/messaging/timeline/chat-entry';
 import { TimelineActionsContext } from '@/features/social/messaging/timeline-actions-context';
-import type {
-  ComposedMessage,
-  HistoryWindow,
-  MessageHistoryItem,
-} from '@/features/social/messaging/types';
+import type { ComposedMessage, MessageHistoryItem } from '@/features/social/messaging/types';
 import { MemberSheetProvider } from '@/features/social/people/providers/MemberSheetProvider';
 import { PeerReadContext } from '@/features/social/read-receipts/stores/peer-read-context';
 import { ChatBackdrop } from '@/features/social/wallpaper/components/ChatBackdrop';
@@ -25,7 +27,39 @@ const viewer = {
   canPost: true,
   canReact: true,
 };
-const noMore = { available: false, loading: false, load: async () => undefined };
+const noChange = async () => undefined;
+const noMore = { available: false, loading: false, load: noChange };
+
+export function fixtureHistory(items: MessageHistoryItem[]): TimelineView<ChatEntry, ChatMeta> {
+  const entries = items.map(toEntry);
+  const known = entries.at(-1)?.position ?? null;
+  const meta = { readState: null, peerReadSeq: '3', unreadCount: 0 };
+  const data = { entries, known, meta, firstUnread: null, hasOlder: false, hasNewer: false };
+
+  return {
+    status: 'success',
+    isLoaded: true,
+    error: null,
+    entries,
+    known,
+    meta,
+    firstUnread: null,
+    pending: [],
+    older: noMore,
+    newer: noMore,
+    timeline: {
+      key: ['fixture-history'],
+      read: async () => data,
+      loadOlder: noChange,
+      loadNewer: noChange,
+      apply: noChange,
+      receive: noChange,
+      refresh: noChange,
+      subscribeLoading: () => () => {},
+      getLoading: () => ({ older: false, newer: false }),
+    },
+  };
+}
 
 function textMessage(
   base: MessageHistoryItem,
@@ -95,27 +129,7 @@ function ChatScenario({
     },
     textMessage(video, 'reply', '3', 'Дякую! Зараз перегляну 👍', true),
   ]);
-  const history = useMemo<HistoryWindow>(
-    () => ({
-      pages: [
-        {
-          items,
-          snapshotSeq: String(items.length),
-          firstUnreadSeq: null,
-          unreadCount: 0,
-          hasOlder: false,
-          olderCursor: null,
-          hasNewer: false,
-          newerCursor: null,
-          readState: null,
-          peerReadSeq: '3',
-        },
-      ],
-      older: noMore,
-      newer: noMore,
-    }),
-    [items],
-  );
+  const history = useMemo(() => fixtureHistory(items), [items]);
   const ownAuthor = useMemo(
     () => ({ ...video.author, memberId: 'member', displayName: 'Ви' }),
     [video.author],
@@ -163,7 +177,7 @@ function ChatScenario({
                 </PageHeader>
                 <PageBody transparent>
                   <ChatWallpaperSurface className="chat-body">
-                    <MessageTimeline history={history} displayItems={operations.displayItems} />
+                    <MessageTimeline view={history} pending={operations.pending} />
                     <footer className="chat-composer">
                       <MessageComposer onSend={send}>
                         <MentionEditor />
