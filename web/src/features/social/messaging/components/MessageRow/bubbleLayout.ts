@@ -1,3 +1,4 @@
+import { hasVisualPreview } from '../../attachments/file-presentation';
 import type { AttachmentDraft } from '../../attachments/types';
 import { isLoneGif } from '../../gifs/gif-links';
 import type { MessageHistoryItem } from '../../types';
@@ -69,7 +70,7 @@ function bubbleContent(
 ): BubbleContent {
   const markdown = item.message.markdown;
   const attachments = item.message.attachments ?? [];
-  const images = pendingAttachments ? [] : attachments.filter((file) => file.preview === 'image');
+  const media = pendingAttachments ? [] : attachments.filter(hasVisualPreview);
   const hasAttachments = attachments.length > 0 || Boolean(pendingAttachments);
   const gif = item.message.blocks?.find((block) => block.type === 'gif');
   const hasGif = Boolean(gif);
@@ -82,7 +83,7 @@ function bubbleContent(
     isLoneGif: hasGif && !hasAttachments && (!markdown?.trim() || isOnlyGifLink),
     hasFiles: pendingAttachments
       ? pendingAttachments.length > 0
-      : images.length < attachments.length,
+      : media.length < attachments.length,
     jumboEmoji: hasAttachments ? 0 : jumboEmojiCount(markdown),
     reactions: Boolean(item.reactions?.length),
   };

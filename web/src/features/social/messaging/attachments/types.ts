@@ -11,6 +11,8 @@ export interface Attachment {
   description: string | null;
   /** An image's ThumbHash: its colours and a blurred stand-in before it loads. */
   placeholder?: string;
+  hasThumbnail?: boolean;
+  duration?: number;
 }
 
 /** The links an image shows by, signed for a while; any other file is asked for when opened. */

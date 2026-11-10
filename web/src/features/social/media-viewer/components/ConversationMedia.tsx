@@ -21,6 +21,7 @@ import { type ChatMedia, messageMedia } from '@/features/social/messaging/messag
 import type { ChatEntry } from '@/features/social/messaging/timeline/chat-entry';
 
 import type { ViewerActions } from '../types';
+import { VideoSlide } from './MediaViewer/VideoSlide';
 import { ViewerAuthor } from './MediaViewer/ViewerAuthor';
 import { ViewerCaption } from './MediaViewer/ViewerCaption';
 import { ViewerForward } from './MediaViewer/ViewerForward';
@@ -52,7 +53,14 @@ export function ConversationMedia({
   return (
     <TimelineMediaProvider value={media}>
       {children}
-      <MediaViewer {...media.viewer} urls={urls} accent={accent}>
+      <MediaViewer
+        {...media.viewer}
+        urls={urls}
+        accent={accent}
+        renderVideo={(item, active) =>
+          item.kind === 'video' && <VideoSlide key={item.key} media={item} active={active} />
+        }
+      >
         <ViewerAuthor />
         <ViewerCaption memberId={actions.context.memberId} />
         <MediaViewerActions>

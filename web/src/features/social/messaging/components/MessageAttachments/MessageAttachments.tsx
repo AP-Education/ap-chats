@@ -13,7 +13,7 @@ export function MessageAttachments({
   attachments: MessageAttachment[];
   messageId: string;
   available?: boolean;
-  /** The time, when the photos close the bubble. */
+  /** The time, when media closes the bubble. */
   overlay?: ReactNode;
 }) {
   const images = attachments.filter((file) => file.preview === 'image');
@@ -26,18 +26,24 @@ export function MessageAttachments({
           attachment={images[0]!}
           messageId={messageId}
           available={available}
-          overlay={overlay}
+          overlay={!files.length && overlay}
         />
       )}
       {images.length > 1 && (
-        <ImageAlbum images={images} messageId={messageId} available={available} overlay={overlay} />
+        <ImageAlbum
+          images={images}
+          messageId={messageId}
+          available={available}
+          overlay={!files.length && overlay}
+        />
       )}
-      {files.map((file) => (
+      {files.map((file, index) => (
         <FileAttachment
           key={file.id}
           attachment={file}
           messageId={messageId}
           available={available}
+          overlay={index === files.length - 1 && overlay}
         />
       ))}
     </>

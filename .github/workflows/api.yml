@@ -5,8 +5,10 @@ on:
     branches: [main]
     paths:
       - 'src/**'
-      - 'test/search.integration.mts'
       - 'infra/docker-compose.search-test.yml'
+      - 'test/**'
+      - 'web/tests/media/public/media/**'
+      - 'infra/docker-compose.uploads-test.yml'
       - '*.json'
       - '*.yaml'
       - '*.mjs'
@@ -17,8 +19,10 @@ on:
   pull_request:
     paths:
       - 'src/**'
-      - 'test/search.integration.mts'
       - 'infra/docker-compose.search-test.yml'
+      - 'test/**'
+      - 'web/tests/media/public/media/**'
+      - 'infra/docker-compose.uploads-test.yml'
       - '*.json'
       - '*.yaml'
       - '*.mjs'
@@ -49,7 +53,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       # Queue and attention tests start their own isolated server; Redis speaks the same protocol.
-      - run: sudo apt-get update && sudo apt-get install -y redis-server
+      - run: sudo apt-get update && sudo apt-get install -y redis-server ffmpeg
       - run: pnpm test:api
         env:
           VALKEY_SERVER_BIN: redis-server
@@ -58,4 +62,8 @@ jobs:
       - run: node --import tsx test/search.integration.mts
       - if: always()
         run: docker compose --env-file /dev/null -f infra/docker-compose.search-test.yml down
+      - run: docker compose --env-file /dev/null -f infra/docker-compose.uploads-test.yml up -d --wait
+      - run: node --import tsx test/uploads.integration.mts
+      - if: always()
+        run: docker compose --env-file /dev/null -f infra/docker-compose.uploads-test.yml down
       - run: pnpm exec prettier --check src package.json eslint.config.mjs

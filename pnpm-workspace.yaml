@@ -22,4 +22,5 @@ allowBuilds:
   msgpackr-extract: false
 
 patchedDependencies:
+  '@ap-education/ui@0.5.0': patches/@ap-education__ui@0.5.0.patch
   expo-callkit-telecom@0.5.0: patches/expo-callkit-telecom@0.5.0.patch

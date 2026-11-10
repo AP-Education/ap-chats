@@ -8,6 +8,7 @@ import { ChannelAccessPolicy } from '@/components/communities/channel-access/cha
 import { DrizzleChannelAccessRepository } from '@/components/communities/channel-access/channel-access/repository/drizzle-channel-access.repository';
 import { AttachmentDownloadsService } from '@/components/social/attachments/attachment-downloads.service';
 import { AttachmentLinksService } from '@/components/social/attachments/attachment-links.service';
+import { AttachmentPreviewService } from '@/components/social/attachments/attachment-preview.service';
 import { DrizzleChatUploadsRepository } from '@/components/social/attachments/repository/drizzle-chat-uploads.repository';
 import { UploadCompletionService } from '@/components/social/attachments/upload-completion.service';
 import { UploadPolicy } from '@/components/social/attachments/upload-policy';
@@ -90,7 +91,8 @@ export function socialServices(
   const storage = new MemoryStorage();
   const uploadLedger = new DrizzleChatUploadsRepository(txHost);
   const uploads = new UploadsService(access, uploadLedger, storage, new UploadPolicy(config));
-  const media = new MediaInspector(storage, { placeholder: new ThumbHashPlaceholder() });
+  const images = new MediaInspector(storage, { placeholder: new ThumbHashPlaceholder() });
+  const media = new AttachmentPreviewService(storage, images);
   const pins = new PinsService(access, messages, new DrizzlePinsRepository(txHost), events);
   const composer = new MessageComposer(markdown, messages, uploads);
   const sending = new SendMessageService(access, composer, messages, events);

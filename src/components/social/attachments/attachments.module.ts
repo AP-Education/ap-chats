@@ -7,6 +7,7 @@ import { WorkspaceMembersModule } from '@/components/workspaces/members';
 import { MessagesModule } from '../messages';
 import { AttachmentDownloadsService } from './attachment-downloads.service';
 import { AttachmentLinksService } from './attachment-links.service';
+import { AttachmentPreviewService } from './attachment-preview.service';
 import { ChatUploadsController } from './chat-uploads.controller';
 import { ChatUploadsRepository } from './repository/chat-uploads.repository';
 import { DrizzleChatUploadsRepository } from './repository/drizzle-chat-uploads.repository';
@@ -23,6 +24,7 @@ import { UploadsService } from './uploads.service';
     UploadCompletionService,
     AttachmentDownloadsService,
     AttachmentLinksService,
+    AttachmentPreviewService,
     UploadPolicy,
     UploadCleanupService,
     { provide: ChatUploadsRepository, useClass: DrizzleChatUploadsRepository },

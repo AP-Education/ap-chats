@@ -81,7 +81,10 @@ export function showDownloadError() {
   void message.error('Не вдалося завантажити файл. Можливо, доступ до повідомлення змінився.');
 }
 
-export function useAttachmentDownload(messageId: string, attachment: Attachment) {
+export function useAttachmentDownload(
+  messageId: string,
+  attachment: Pick<Attachment, 'id' | 'name'>,
+) {
   const queryClient = useQueryClient();
   const auth = useQueryAuth();
   const scope = useConversationScope();

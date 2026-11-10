@@ -13,6 +13,7 @@ export interface AttachmentMedia extends MediaItem {
   attachmentId: string;
   /** The links its message brought, so it shows at once; anything else is asked for. */
   links: AttachmentLinks;
+  hasThumbnail?: boolean;
 }
 
 /** A GIF, served straight from its service's CDN. */
@@ -49,6 +50,7 @@ export function attachmentMedia(
     messageId,
     attachmentId: id,
     links,
+    ...(attachment.hasThumbnail && { hasThumbnail: true }),
   };
 }
 

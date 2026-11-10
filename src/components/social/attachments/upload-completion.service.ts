@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { NoSuchUploadError, ObjectStorage } from '@ap-education/storage';
-import { MediaBusyError, MediaInspector } from '@ap-education/storage/media';
+import { MediaBusyError } from '@ap-education/storage/media';
 import {
   BadRequestException,
   ConflictException,
@@ -14,7 +14,7 @@ import { ChannelAccessPolicy } from '@/components/communities/channel-access/cha
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import type { Attachment } from '../messages/types/message.types';
-import { attachmentMedia } from './attachment-media';
+import { AttachmentPreviewService } from './attachment-preview.service';
 import { ChatUploadsRepository } from './repository/chat-uploads.repository';
 import { type ChatUpload, READY_LIFETIME_MS } from './types';
 import { isFinished, requireOwnUpload } from './upload-lifecycle';
@@ -29,7 +29,7 @@ export class UploadCompletionService {
     private readonly access: ChannelAccessPolicy,
     private readonly repository: ChatUploadsRepository,
     private readonly storage: ObjectStorage,
-    private readonly media: MediaInspector,
+    private readonly media: AttachmentPreviewService,
   ) {}
 
   async complete(member: WorkspaceMember, channelId: string, id: string): Promise<Attachment> {
@@ -66,7 +66,7 @@ export class UploadCompletionService {
       name: upload.name,
       size: upload.size,
       description: null,
-      ...attachmentMedia(media),
+      ...media,
     };
   }
 

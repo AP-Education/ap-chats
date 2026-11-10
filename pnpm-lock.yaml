@@ -7,6 +7,7 @@ settings:
 packageExtensionsChecksum: sha256-rA9adrAfwBYBMB7xf7s/XRbW72UeldZyUXqJai+SbfA=
 
 patchedDependencies:
+  '@ap-education/ui@0.5.0': 2c39fe9803256c22319c87250c662c0e293f5cad1dba7fdc3d63ef192ef965ff
   expo-callkit-telecom@0.5.0: 6d66c94f91ff0ab9df2a68f55392b6f7828a7db039fc6970d6cc1f715ac3ae72
 
 importers:
@@ -344,10 +345,10 @@ importers:
         version: 0.1.1(react@19.2.8)
       '@ap-education/timeline':
         specifier: ^0.1.3
-        version: 0.1.3(@ap-education/ui@0.5.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)))(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 0.1.3(@ap-education/ui@0.5.0(patch_hash=2c39fe9803256c22319c87250c662c0e293f5cad1dba7fdc3d63ef192ef965ff)(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)))(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@ap-education/ui':
         specifier: ^0.5.0
-        version: 0.5.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
+        version: 0.5.0(patch_hash=2c39fe9803256c22319c87250c662c0e293f5cad1dba7fdc3d63ef192ef965ff)(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
       '@emoji-mart/data':
         specifier: ^1.2.1
         version: 1.2.1
@@ -3167,7 +3168,9 @@ packages:
   '@smithy/core@3.35.0':
     resolution: {integrity: sha512-zRMhfkByhT2snNdr1si24vJitU6Cr9ix2MikUfWmkAgp4jrNP0GcKSP5YvwQ+TlI8AZXER5QOGJn3JsVtSD9/A==}
     engines: {node: '>=18.0.0'}
-    deprecated: Deprecated due to a bug in custom logger data redaction. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
+    deprecated: |-
+      Deprecated due to a bug in custom logger data redaction. Upgrade to the latest version. If you used a custom logger with this
+        version, review your logs and rotate any credentials or other secrets. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
 
   '@smithy/credential-provider-imds@4.5.2':
     resolution: {integrity: sha512-A9uSdn72ozbRUSit0eib0TW7nXuNPlaeM0zcGkJ+nE6tFcSDbnmtwoxbTCFBukVQcszDAyvsd7+rTduPTXpygg==}
@@ -7635,9 +7638,9 @@ snapshots:
       sharp: 0.35.4(@types/node@24.13.6)
       thumbhash: 0.1.1
 
-  '@ap-education/timeline@0.1.3(@ap-education/ui@0.5.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)))(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@ap-education/timeline@0.1.3(@ap-education/ui@0.5.0(patch_hash=2c39fe9803256c22319c87250c662c0e293f5cad1dba7fdc3d63ef192ef965ff)(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)))(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@tanstack/react-query@5.101.4(react@19.2.8))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@ap-education/ui': 0.5.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
+      '@ap-education/ui': 0.5.0(patch_hash=2c39fe9803256c22319c87250c662c0e293f5cad1dba7fdc3d63ef192ef965ff)(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
       '@phosphor-icons/react': 2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@radix-ui/react-slot': 1.5.0(@types/react@19.2.18)(react@19.2.8)
       '@tanstack/react-query': 5.101.4(react@19.2.8)
@@ -7646,7 +7649,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@ap-education/ui@0.5.0(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))':
+  '@ap-education/ui@0.5.0(patch_hash=2c39fe9803256c22319c87250c662c0e293f5cad1dba7fdc3d63ef192ef965ff)(@phosphor-icons/react@2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(antd-style@4.1.0(@types/react@19.2.18)(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(supports-color@8.1.1))(antd@6.5.4(luxon@3.7.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(photoswipe@5.4.4)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(thumbhash@0.1.1)(vaul@1.1.2(@types/react-dom@19.2.7(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))':
     dependencies:
       '@phosphor-icons/react': 2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@radix-ui/react-slot': 1.5.0(@types/react@19.2.18)(react@19.2.8)

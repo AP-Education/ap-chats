@@ -1,0 +1,55 @@
+diff --git a/dist/media/viewer/components/MediaViewer.d.ts b/dist/media/viewer/components/MediaViewer.d.ts
+index a34026c09438e0bfd39b4b75d43a3070acd4d698..552af0adc4a5862f24a9c51392d4e6be3004af5b 100644
+--- a/dist/media/viewer/components/MediaViewer.d.ts
++++ b/dist/media/viewer/components/MediaViewer.d.ts
+@@ -22,6 +22,7 @@ export interface MediaViewerProps<Item extends MediaItem> {
+     /** The accent preset id the viewer's dark theme keeps, such as the one the person picked. */
+     accent?: string | undefined;
+     labels?: MediaLabels | undefined;
++    renderVideo?: (item: Item, active: boolean) => ReactNode;
+     /** The parts: `MediaViewerTitle`, `MediaViewerCaption` and `MediaViewerActions`. */
+     children?: ReactNode;
+ }
+@@ -30,4 +31,4 @@ export interface MediaViewerProps<Item extends MediaItem> {
+  * and to close, videos that play, and the app's own parts in its bars. One item shows alone, with
+  * nothing to page through; several page here, and new ones around the one on screen join in place.
+  */
+-export declare function MediaViewer<Item extends MediaItem>({ open, items, index, onIndexChange, onClose, onEdge, urls, accent, labels, children, }: MediaViewerProps<Item>): import("react").ReactPortal | null;
++export declare function MediaViewer<Item extends MediaItem>({ open, items, index, onIndexChange, onClose, onEdge, urls, accent, labels, renderVideo, children, }: MediaViewerProps<Item>): import("react").ReactPortal | null;
+diff --git a/dist/media/viewer/components/MediaViewer.js b/dist/media/viewer/components/MediaViewer.js
+index fe9238f36d2061767dd9f7dee5008f393df75fe2..ee55ddcb4879b578c6a9bec454799d3d254352bb 100644
+--- a/dist/media/viewer/components/MediaViewer.js
++++ b/dist/media/viewer/components/MediaViewer.js
+@@ -17,7 +17,7 @@ import { VideoSlide } from './VideoSlide';
+  * and to close, videos that play, and the app's own parts in its bars. One item shows alone, with
+  * nothing to page through; several page here, and new ones around the one on screen join in place.
+  */
+-export function MediaViewer({ open, items, index = 0, onIndexChange, onClose, onEdge, urls, accent, labels, children, }) {
++export function MediaViewer({ open, items, index = 0, onIndexChange, onClose, onEdge, urls, accent, labels, renderVideo, children, }) {
+     const [gallery, setGallery] = useState(null);
+     const resolved = useMemo(() => resolveMediaLabels(labels), [labels]);
+     // Read by PhotoSwipe's callbacks and the opening import long after the render that set them.
+@@ -69,10 +69,10 @@ export function MediaViewer({ open, items, index = 0, onIndexChange, onClose, on
+     }, [viewIndex, viewItems]);
+     if (!gallery || !view)
+         return null;
+-    return createPortal(_jsx(AppearanceScope, { appearance: "dark", accent: accent, children: _jsx(ViewerScreen, { gallery: gallery, view: view, urls: urls, labels: resolved, children: children }) }), gallery.element);
++    return createPortal(_jsx(AppearanceScope, { appearance: "dark", accent: accent, children: _jsx(ViewerScreen, { gallery: gallery, view: view, urls: urls, labels: resolved, renderVideo, children: children }) }), gallery.element);
+ }
+ /** The bars over the open gallery, with slots the parts fill, and the videos in its slides. */
+-function ViewerScreen({ gallery, view, urls, labels, children, }) {
++function ViewerScreen({ gallery, view, urls, labels, renderVideo, children, }) {
+     const isMobile = useIsMobile();
+     const [title, setTitle] = useState(null);
+     const [caption, setCaption] = useState(null);
+@@ -101,5 +101,9 @@ function ViewerScreen({ gallery, view, urls, labels, children, }) {
+     if (!item || !context)
+         return null;
+     const { counter } = mediaPaging(index, items.length, item.position);
+-    return (_jsxs(ViewerContext, { value: context, children: [_jsxs("header", { className: styles.top, children: [_jsx("div", { ref: setTitle, className: styles.titleSlot }), counter && (_jsx("span", { className: styles.counter, children: labels.counter(counter.index + 1, counter.total) })), edge === 'top' && _jsx("div", { ref: setActions, className: styles.group }), _jsx("div", { className: styles.group, children: _jsx(IconButton, { size: 40, "aria-label": labels.close, onClick: () => gallery.close(), children: _jsx(XIcon, { size: 22 }) }) })] }), _jsxs("footer", { className: styles.bottom, children: [_jsx("div", { ref: setCaption, className: styles.captionSlot }), edge === 'bottom' && _jsx("div", { ref: setActions, className: styles.tools })] }), children, mounted.map((slide) => createPortal(_jsx(VideoSlide, { item: slide.item, active: slide.item.key === item.key }), slide.element, String(slide.id)))] }));
++    return (_jsxs(ViewerContext, { value: context, children: [_jsxs("header", { className: styles.top, children: [_jsx("div", { ref: setTitle, className: styles.titleSlot }), counter && (_jsx("span", { className: styles.counter, children: labels.counter(counter.index + 1, counter.total) })), edge === 'top' && _jsx("div", { ref: setActions, className: styles.group }), _jsx("div", { className: styles.group, children: _jsx(IconButton, { size: 40, "aria-label": labels.close, onClick: () => gallery.close(), children: _jsx(XIcon, { size: 22 }) }) })] }), _jsxs("footer", { className: styles.bottom, children: [_jsx("div", { ref: setCaption, className: styles.captionSlot }), edge === 'bottom' && _jsx("div", { ref: setActions, className: styles.tools })] }), children, mounted.map((slide) => {
++            const active = slide.item.key === item.key;
++            const player = renderVideo ? renderVideo(slide.item, active) : _jsx(VideoSlide, { item: slide.item, active });
++            return createPortal(player, slide.element, String(slide.id));
++        })] }));
+ }

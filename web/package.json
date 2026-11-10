@@ -12,6 +12,7 @@
     "test": "node --import tsx --test \"src/**/*.spec.ts\" \"tests/*.spec.ts\"",
     "test:browser": "playwright test",
     "test:search": "tsc --noEmit -p tests/search/tsconfig.json && vite build --config tests/search/vite.config.mts && playwright test --config tests/search/playwright.config.ts",
+    "test:media": "tsc --noEmit -p tests/media/tsconfig.json && vite build --config tests/media/vite.config.mts && playwright test --config tests/media/playwright.config.ts",
     "icons": "pnpm dlx @vite-pwa/assets-generator@2.0.0 && pnpm dlx @vite-pwa/assets-generator@2.0.0 -c pwa-assets.favicon.mjs"
   },
   "dependencies": {

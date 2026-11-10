@@ -12,6 +12,10 @@ export interface Attachment {
   description: string | null;
   /** An image's ThumbHash, base64: its colours and a blurred stand-in before it loads. */
   placeholder?: string;
+  /** A private video poster exists; photos always have a thumbnail. */
+  hasThumbnail?: boolean;
+  /** Video duration in seconds, inspected from the uploaded file. */
+  duration?: number;
 }
 
 // What a fresh post and a forward of it both carry unmodified: what's

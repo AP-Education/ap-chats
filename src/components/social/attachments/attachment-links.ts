@@ -36,6 +36,8 @@ export function linkOf(key: string, file: Attachment, variant: DownloadVariant):
   const { name, mediaType, preview } = file;
   if (variant === 'download') return { key, options: { mediaType, saveAs: name } };
   if (preview === 'image') return imageLinkOf(key, mediaType, variant);
+  if (variant === 'thumbnail' && preview === 'video' && file.hasThumbnail)
+    return { key: previewKeyOf(key), options: { mediaType: 'image/webp' } };
 
   const isPlayed = variant === 'preview' && preview !== null;
   if (!isPlayed) return null;

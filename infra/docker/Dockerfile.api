@@ -25,6 +25,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     && pnpm install --frozen-lockfile --prod --ignore-scripts --filter @ap-chats/api --store-dir /pnpm/store
 
 FROM node:24-alpine AS runtime
+RUN apk add --no-cache ffmpeg
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=prod-deps /app/node_modules ./node_modules
