@@ -1,5 +1,6 @@
 import { Button, Popconfirm, Typography } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   // Rests at the foot of the settings, apart from the fields above it.
@@ -34,26 +35,27 @@ interface DeleteChannelActionProps {
 }
 
 export function DeleteChannelAction({ isPending, onDelete }: DeleteChannelActionProps) {
+  const { t } = useTranslation(['communities', 'common']);
   const { styles } = useStyles();
 
   return (
-    <section className={styles.zone} aria-label="Видалення каналу">
+    <section className={styles.zone} aria-label={t(($) => $.channels.delete.zoneLabel)}>
       <span className={styles.text}>
-        <span className={styles.title}>Видалити канал</span>
+        <span className={styles.title}>{t(($) => $.channels.delete.title)}</span>
         <Typography.Text type="secondary" className={styles.hint}>
-          Повідомлення й історія зникнуть для всіх без можливості відновлення.
+          {t(($) => $.channels.delete.hint)}
         </Typography.Text>
       </span>
       <Popconfirm
-        title="Видалити канал?"
-        description="Канал і його історія будуть видалені без можливості відновлення."
-        okText="Видалити"
+        title={t(($) => $.channels.delete.confirmTitle)}
+        description={t(($) => $.channels.delete.confirmDescription)}
+        okText={t(($) => $.common.actions.delete)}
         okButtonProps={{ danger: true, loading: isPending }}
-        cancelText="Скасувати"
+        cancelText={t(($) => $.common.actions.cancel)}
         onConfirm={onDelete}
       >
         <Button danger loading={isPending}>
-          Видалити
+          {t(($) => $.common.actions.delete)}
         </Button>
       </Popconfirm>
     </section>

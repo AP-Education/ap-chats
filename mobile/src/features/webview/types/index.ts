@@ -63,6 +63,8 @@ export type WebToNativeMessage =
   | { type: 'calls/readiness-fix'; id: CallCheckId }
   /** The theme the page resolved, for everything native draws around it. */
   | { type: 'appearance/changed'; payload: ShellPalette }
+  /** The language the person picked in the page, for the screens native draws without it. */
+  | { type: 'locale/changed'; payload: { locale: string } }
   /** The page's tab bar, which native draws over it. */
   | { type: 'navigation/tabs'; payload: TabBarModel }
   /** Whether the page takes Android's back; while it doesn't, the system's own back applies. */

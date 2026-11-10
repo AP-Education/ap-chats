@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useChannels } from '@/features/communities/channels/hooks/useChannels';
@@ -12,6 +13,7 @@ import type { ForwardTargetGroup, ForwardTargetOption } from './forward-targets'
 export type ForwardScope = 'all' | 'direct' | 'channels';
 
 export function useForwardTargets(workspaceId: string) {
+  const { t } = useTranslation('forwarding');
   const { token, identity } = useQueryAuth();
   const channels = useChannels(workspaceId);
   const conversations = useDirectMessages();
@@ -39,9 +41,11 @@ export function useForwardTargets(workspaceId: string) {
     .map((item) => ({
       kind: 'direct',
       id: item.id,
-      name: item.participant.displayName ?? 'Ім’я недоступне',
+      name: item.participant.displayName ?? t(($) => $.details.nameUnavailable),
       avatarPath: item.participant.avatarPath,
-      detail: item.participant.active ? 'Особиста розмова' : 'Учасник недоступний',
+      detail: item.participant.active
+        ? t(($) => $.details.directChat)
+        : t(($) => $.details.memberUnavailable),
       disabled: !item.participant.active,
     }));
   const joined: ForwardTargetOption[] = (channels.data ?? [])
@@ -50,7 +54,7 @@ export function useForwardTargets(workspaceId: string) {
       kind: 'channel',
       id: channel.id,
       name: channel.name,
-      detail: channel.isOpen ? 'Канал' : 'Закритий канал',
+      detail: channel.isOpen ? t(($) => $.details.channel) : t(($) => $.details.privateChannel),
       private: !channel.isOpen,
     }));
   const colleagues: ForwardTargetOption[] =
@@ -60,15 +64,15 @@ export function useForwardTargets(workspaceId: string) {
           .map((person) => ({
             kind: 'person',
             id: person.memberId,
-            name: person.displayName ?? 'Ім’я недоступне',
+            name: person.displayName ?? t(($) => $.details.nameUnavailable),
             avatarPath: person.avatarPath,
-            detail: 'Почати особисту розмову',
+            detail: t(($) => $.details.startDirectChat),
           }))
       : [];
   const groups: ForwardTargetGroup[] = [
-    ...(showDirect ? [{ label: 'Особисті', items: direct }] : []),
-    ...(showChannels ? [{ label: 'Канали', items: joined }] : []),
-    ...(showDirect ? [{ label: 'Колеги', items: colleagues }] : []),
+    ...(showDirect ? [{ label: t(($) => $.groups.direct), items: direct }] : []),
+    ...(showChannels ? [{ label: t(($) => $.groups.channels), items: joined }] : []),
+    ...(showDirect ? [{ label: t(($) => $.groups.colleagues), items: colleagues }] : []),
   ].filter((group) => group.items.length > 0);
 
   return {

@@ -25,7 +25,7 @@ test('broadcasts typing to the room only for a member already watching the chann
   } as unknown as WorkspaceMembersRepository;
   const gateway = new TypingGateway(
     members,
-    { requireViewAccess: async () => ({}) } as ChannelAccessPolicy,
+    { requireViewAccess: async () => ({}) } as unknown as ChannelAccessPolicy,
     {
       send: async (_scope, event, payload) => {
         broadcast.push({ event, payload });

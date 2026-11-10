@@ -1,6 +1,7 @@
 import { getAppShell } from '@ap-education/shell-sdk';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { message as toast } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
@@ -16,6 +17,7 @@ export function useJoinCall(
   title: string,
   calleeAvatarPath?: string | null,
 ) {
+  const { t } = useTranslation('calls');
   const { token } = useQueryAuth();
   const setActive = useCallStore((state) => state.setActive);
   const queryClient = useQueryClient();
@@ -38,7 +40,7 @@ export function useJoinCall(
     },
     onError: (error) => {
       console.error('[calls] failed to join call', error);
-      toast.error('Не вдалося приєднатися до дзвінка. Спробуй ще раз.');
+      toast.error(t(($) => $.errors.joinRetry));
     },
   });
 }

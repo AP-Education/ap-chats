@@ -1,5 +1,6 @@
 import { createStyles } from 'antd-style';
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { Gif } from '../../../gifs/types';
 import { gifColumns } from './gif-columns';
@@ -63,6 +64,7 @@ interface GifResultsProps {
 
 export function GifResults({ search, onPick }: GifResultsProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('messaging');
   const { status, gifs, hasMore, loadMore } = search;
   const scrollRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -84,10 +86,10 @@ export function GifResults({ search, onPick }: GifResultsProps) {
   if (status === 'searching' && !gifs.length) return <GifGridSkeleton />;
 
   if (status === 'failed') {
-    return <div className={styles.state}>Не вдалося завантажити GIF. Спробуйте ще раз.</div>;
+    return <div className={styles.state}>{t(($) => $.picker.gifFailed)}</div>;
   }
 
-  if (!gifs.length) return <div className={styles.state}>Нічого не знайдено.</div>;
+  if (!gifs.length) return <div className={styles.state}>{t(($) => $.picker.nothingFound)}</div>;
 
   return (
     <div ref={scrollRef} className={styles.scroll}>

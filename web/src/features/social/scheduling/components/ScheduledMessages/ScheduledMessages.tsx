@@ -1,5 +1,6 @@
 import { message as toast } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { ApiError } from '@/shared/api/http';
 
@@ -35,6 +36,7 @@ interface ScheduledMessagesProps {
 
 export function ScheduledMessages({ messages, onReschedule }: ScheduledMessagesProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('scheduling');
   const { sendNow, cancel } = useScheduling();
   const now = new Date();
 
@@ -51,11 +53,11 @@ export function ScheduledMessages({ messages, onReschedule }: ScheduledMessagesP
           now={now}
           busy={isBusy(message)}
           onSendNow={() =>
-            sendNow.mutate(message, { onError: unlessGone('Не вдалося надіслати повідомлення.') })
+            sendNow.mutate(message, { onError: unlessGone(t(($) => $.errors.sendNow)) })
           }
           onReschedule={() => onReschedule(message)}
           onCancel={() =>
-            cancel.mutate(message, { onError: unlessGone('Не вдалося скасувати повідомлення.') })
+            cancel.mutate(message, { onError: unlessGone(t(($) => $.errors.cancel)) })
           }
         />
       ))}

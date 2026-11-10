@@ -1,4 +1,5 @@
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { MessageReaction } from '../../types';
 
@@ -54,9 +55,10 @@ interface ReactionTabsProps {
 
 export function ReactionTabs({ reactions, total, selected, onSelect }: ReactionTabsProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('reactions');
 
   return (
-    <div className={styles.tabs} role="tablist" aria-label="Реакції">
+    <div className={styles.tabs} role="tablist" aria-label={t(($) => $.toolbar)}>
       <button
         type="button"
         role="tab"
@@ -64,7 +66,7 @@ export function ReactionTabs({ reactions, total, selected, onSelect }: ReactionT
         aria-selected={selected === undefined}
         onClick={() => onSelect(undefined)}
       >
-        Усі {total}
+        {t(($) => $.all, { total })}
       </button>
       {reactions.map(({ emoji, count }) => (
         <button

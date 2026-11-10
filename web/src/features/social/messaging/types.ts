@@ -1,4 +1,5 @@
 import type { Action } from '@ap-education/ui';
+import type { TFunction } from 'i18next';
 import type { ReactNode } from 'react';
 
 import type { MemberSummary } from '@/features/workspaces/types';
@@ -203,6 +204,21 @@ export interface ActionCommands {
 
 export type { ActionAccent } from '@ap-education/ui';
 
-export type ConversationAction = Action<ActionTarget, ActionContext, ActionCommands> & {
+export type ExtensionNamespaces = [
+  'messaging',
+  'common',
+  'conversation',
+  'pins',
+  'reactions',
+  'scheduling',
+  'starMe',
+];
+export type ExtensionT = TFunction<ExtensionNamespaces>;
+
+export type ConversationAction = Omit<
+  Action<ActionTarget, ActionContext, ActionCommands>,
+  'label'
+> & {
   icon: ReactNode;
+  label: (target: ActionTarget, t: ExtensionT) => string;
 };

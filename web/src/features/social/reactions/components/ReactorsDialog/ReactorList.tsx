@@ -1,5 +1,6 @@
 import { Button, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { useReactors } from '../../hooks/useReactors';
 import { reactionsByPerson } from '../../reaction-display';
@@ -39,14 +40,15 @@ interface ReactorListProps {
 
 export function ReactorList({ messageId, emoji, expected }: ReactorListProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['reactions', 'common']);
   const reactors = useReactors(messageId, emoji, expected);
 
   if (reactors.isError && !reactors.data) {
     return (
       <div className={styles.list}>
-        <p className={styles.note}>Не вдалося завантажити список.</p>
+        <p className={styles.note}>{t(($) => $.loadFailed)}</p>
         <Button type="link" onClick={() => void reactors.refetch()}>
-          Повторити
+          {t(($) => $.common.actions.retry)}
         </Button>
       </div>
     );
@@ -65,7 +67,7 @@ export function ReactorList({ messageId, emoji, expected }: ReactorListProps) {
     );
   }
 
-  const people = reactionsByPerson(reactors.data);
+  const people = reactionsByPerson(reactors.data, t);
   const unlisted = expected - reactors.data.length;
 
   return (
@@ -73,7 +75,7 @@ export function ReactorList({ messageId, emoji, expected }: ReactorListProps) {
       {people.map((person) => (
         <ReactorRow key={person.memberId} person={person} />
       ))}
-      {unlisted > 0 && <li className={styles.note}>і ще {unlisted}</li>}
+      {unlisted > 0 && <li className={styles.note}>{t(($) => $.andMore, { amount: unlisted })}</li>}
     </ul>
   );
 }

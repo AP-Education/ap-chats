@@ -1,5 +1,6 @@
 import { EyeIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   footer: css`
@@ -28,12 +29,14 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 export function ReadOnlyChannelFooter() {
+  const { t } = useTranslation('communities');
   const { styles } = useStyles();
 
   return (
     <div className={styles.footer}>
       <div className={styles.surface}>
-        <EyeIcon size={18} />У цьому каналі ви можете лише читати
+        <EyeIcon size={18} />
+        {t(($) => $.channels.readOnly)}
       </div>
     </div>
   );

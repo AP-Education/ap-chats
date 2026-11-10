@@ -1,5 +1,6 @@
 import { Input } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
@@ -28,10 +29,11 @@ interface TimeFieldProps {
 
 export function TimeField({ value, onChange }: TimeFieldProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('scheduling');
 
   return (
     <label className={styles.row}>
-      Час
+      {t(($) => $.time)}
       <Input
         type="time"
         className={styles.input}

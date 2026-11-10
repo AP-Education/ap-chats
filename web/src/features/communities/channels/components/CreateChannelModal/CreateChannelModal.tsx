@@ -1,5 +1,6 @@
 import { Form, message } from 'antd';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { AdaptiveModal } from '@/shared/ui/AdaptiveModal';
@@ -7,7 +8,7 @@ import { AdaptiveModal } from '@/shared/ui/AdaptiveModal';
 import { ChannelAccessEditor } from '../../../channel-access/components/ChannelAccessEditor';
 import { openChannelPermissions } from '../../../channel-access/principals';
 import type { ChannelPermissionsInput } from '../../../channel-access/types';
-import { isChannelNameTaken, takenChannelName } from '../../channel-name';
+import { isChannelNameTaken } from '../../channel-name';
 import { useChannelActions } from '../../hooks/useChannelActions';
 import type { NewChannelPlace } from '../../stores/channel-dialogs-context';
 import { ChannelNameField } from '../ChannelNameField';
@@ -26,6 +27,7 @@ interface CreateChannelModalProps {
 }
 
 export function CreateChannelModal({ place, open, onClose, onClosed }: CreateChannelModalProps) {
+  const { t } = useTranslation(['communities', 'common']);
   const [form] = Form.useForm<NewChannelValues>();
   const { create } = useChannelActions(place.workspaceId);
   const navigate = useNavigate();
@@ -43,10 +45,10 @@ export function CreateChannelModal({ place, open, onClose, onClosed }: CreateCha
       onClose();
     } catch (error) {
       if (isChannelNameTaken(error)) {
-        setNameError(takenChannelName);
+        setNameError(t(($) => $.channels.name.taken));
         return;
       }
-      void message.error('Не вдалося створити канал.');
+      void message.error(t(($) => $.channels.createFailed));
     }
   }
 
@@ -57,11 +59,13 @@ export function CreateChannelModal({ place, open, onClose, onClosed }: CreateCha
       afterClose={onClosed}
       onOk={() => form.submit()}
       confirmLoading={create.isPending}
-      okText="Створити"
-      cancelText="Скасувати"
-      title="Новий канал"
+      okText={t(($) => $.common.actions.create)}
+      cancelText={t(($) => $.common.actions.cancel)}
+      title={t(($) => $.channels.create.title)}
       description={
-        place.categoryId ? `у категорії «${place.categoryName}»` : 'Назва та доступ до каналу'
+        place.categoryId
+          ? t(($) => $.channels.create.inCategory, { name: place.categoryName })
+          : t(($) => $.channels.create.description)
       }
       bodyHeight="min(440px, 62vh)"
       destroyOnHidden
@@ -76,7 +80,7 @@ export function CreateChannelModal({ place, open, onClose, onClosed }: CreateCha
         onFinish={handleFinish}
       >
         <ChannelNameField error={nameError} onEdit={() => setNameError(undefined)} autoFocus />
-        <Form.Item label="Доступ">
+        <Form.Item label={t(($) => $.access.title)}>
           <Form.Item name="permissions" noStyle>
             <ChannelAccessEditor workspaceId={place.workspaceId} />
           </Form.Item>

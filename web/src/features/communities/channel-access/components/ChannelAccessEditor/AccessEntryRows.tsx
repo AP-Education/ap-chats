@@ -1,9 +1,9 @@
 import { CaretRightIcon } from '@phosphor-icons/react';
 import { Typography } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { AccessEntry } from '../../access-entries';
-import { capabilityLabels } from '../../capability-labels';
 import type { Principal } from '../../types';
 import { PrincipalLabel } from './PrincipalLabel';
 import type { PrincipalDetails } from './usePrincipalDirectory';
@@ -63,12 +63,13 @@ interface AccessEntryRowsProps {
 }
 
 export function AccessEntryRows({ entries, describe, disabled, onOpen }: AccessEntryRowsProps) {
+  const { t } = useTranslation('communities');
   const { styles } = useStyles();
 
   if (!entries.length)
     return (
       <Typography.Text type="secondary" className={styles.empty}>
-        Канал поки не бачить ніхто, крім менеджерів.
+        {t(($) => $.access.nobody)}
       </Typography.Text>
     );
 
@@ -87,7 +88,9 @@ export function AccessEntryRows({ entries, describe, disabled, onOpen }: AccessE
               <span className={styles.principal}>
                 <PrincipalLabel details={details} />
               </span>
-              <span className={styles.level}>{capabilityLabels[entry.level].label}</span>
+              <span className={styles.level}>
+                {t(($) => $.access.capabilities[entry.level].label)}
+              </span>
               <CaretRightIcon size={16} className={styles.chevron} />
             </button>
           </li>

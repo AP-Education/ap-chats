@@ -3,6 +3,7 @@ import { PlusIcon } from '@phosphor-icons/react';
 import { Button, message } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { matchPath, useLocation } from 'react-router-dom';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
@@ -48,6 +49,7 @@ interface ChannelsListProps {
 }
 
 export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
+  const { t } = useTranslation(['communities', 'common']);
   const { styles } = useStyles();
   const { isLoading, isError, retry, isAdministrator, sections, createCategory } =
     useChannelSections(workspaceId);
@@ -68,7 +70,7 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
     if (channel.categoryId === categoryId) return;
     update.mutate(
       { channelId: channel.id, input: { categoryId } },
-      { onError: () => message.error('Не вдалося перенести канал.') },
+      { onError: () => message.error(t(($) => $.channels.moveFailed)) },
     );
     setDraggingChannel(null);
   }
@@ -78,9 +80,9 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
   if (isError) {
     return (
       <div role="alert" style={{ padding: '12px 16px' }}>
-        Не вдалося завантажити канали.{' '}
+        {t(($) => $.sidebar.channelsLoadFailed)}{' '}
         <Button type="link" onClick={retry}>
-          Повторити
+          {t(($) => $.common.actions.retry)}
         </Button>
       </div>
     );
@@ -110,8 +112,10 @@ export function ChannelsList({ workspaceId, onNavigate }: ChannelsListProps) {
           <div className={styles.headerActions}>
             <IconButton
               size={isMobile ? 36 : 28}
-              aria-label="Створити канал"
-              onClick={() => dialogs.create({ workspaceId, categoryName: 'Без категорії' })}
+              aria-label={t(($) => $.sidebar.createChannel)}
+              onClick={() =>
+                dialogs.create({ workspaceId, categoryName: t(($) => $.channels.noCategory) })
+              }
             >
               <PlusIcon size={20} />
             </IconButton>

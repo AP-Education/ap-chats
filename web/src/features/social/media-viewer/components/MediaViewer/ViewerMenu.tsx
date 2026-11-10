@@ -3,7 +3,9 @@ import { groupActions, messageActionOrder } from '@ap-education/ui';
 import { MediaViewerAction, useMediaViewer } from '@ap-education/ui/media';
 import { ChatCircleTextIcon, DotsThreeIcon } from '@phosphor-icons/react';
 import { Dropdown, type MenuProps } from 'antd';
+import { useTranslation } from 'react-i18next';
 
+import { extensionNamespaces } from '@/features/social/conversation-scope/extensions';
 import type { ChatMedia } from '@/features/social/messaging/message-media';
 import type { MessageEntry } from '@/features/social/messaging/timeline/chat-entry';
 import type { ActionTarget } from '@/features/social/messaging/types';
@@ -17,6 +19,7 @@ const VIEWER_ACTIONS = new Set(['reply', 'copy', 'pin', 'reactions', 'delete']);
 const SHOW_IN_CHAT = 'show-in-chat';
 
 export function ViewerMenu({ actions }: { actions: ViewerActions }) {
+  const { t } = useTranslation(extensionNamespaces);
   const { entry } = useTimelineMediaItem<MessageEntry, ChatMedia>();
   const { showEntry } = useTimelineMediaActions();
   const { edge, leave } = useMediaViewer();
@@ -33,7 +36,7 @@ export function ViewerMenu({ actions }: { actions: ViewerActions }) {
     for (const action of group) {
       items.push({
         key: action.id,
-        label: action.label(target),
+        label: action.label(target, t),
         icon: action.icon,
         danger: action.id === 'delete',
       });

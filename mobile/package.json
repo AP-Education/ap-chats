@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "main": "src/index.ts",
   "dependencies": {
+    "i18next": "^26.5.2",
+    "react-i18next": "^17.1.0",
     "@config-plugins/react-native-webrtc": "^15.0.2",
     "@emoji-mart/data": "^1.2.1",
     "@expo/vector-icons": "^15.1.1",

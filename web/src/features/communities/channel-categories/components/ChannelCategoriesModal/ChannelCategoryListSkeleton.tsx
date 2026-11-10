@@ -1,5 +1,6 @@
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
@@ -12,10 +13,11 @@ const useStyles = createStyles(({ token, css }) => ({
 }));
 
 export function ChannelCategoryListSkeleton() {
+  const { t } = useTranslation('communities');
   const { styles } = useStyles();
 
   return (
-    <div aria-label="Завантажуємо категорії" role="status">
+    <div aria-label={t(($) => $.categories.loading)} role="status">
       {[136, 96, 168].map((width) => (
         <div key={width} className={styles.row}>
           <Skeleton.Input active size="small" style={{ width, minWidth: 0, height: 14 }} />

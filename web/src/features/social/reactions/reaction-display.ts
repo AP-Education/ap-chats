@@ -1,14 +1,11 @@
+import type { TFunction } from 'i18next';
+
+import { numberFormat } from '../../../shared/i18n/format';
 import type { MessageReaction, Reactor } from './types';
 
 export const MAX_FACES = 3;
 
-const plural = new Intl.PluralRules('uk-UA');
-const REACTION_NOUN: Partial<Record<Intl.LDMLPluralRule, string>> = {
-  one: 'реакція',
-  few: 'реакції',
-  many: 'реакцій',
-};
-const compactCount = new Intl.NumberFormat('uk-UA', { notation: 'compact' });
+const compactCount = numberFormat({ notation: 'compact' });
 
 export interface PersonReactions {
   memberId: string;
@@ -21,16 +18,12 @@ export function totalReactions(reactions: MessageReaction[] = []) {
   return reactions.reduce((total, reaction) => total + reaction.count, 0);
 }
 
-export function reactionsLabel(total: number) {
-  return `${total} ${REACTION_NOUN[plural.select(total)] ?? 'реакції'}`;
+export function chipCount(count: number, locale: string) {
+  return compactCount(locale).format(count);
 }
 
-export function chipCount(count: number) {
-  return compactCount.format(count);
-}
-
-export function chipLabel({ emoji, count, reacted }: MessageReaction) {
-  return reacted ? `${emoji} ${count}, ваша реакція` : `${emoji} ${count}`;
+export function chipLabel({ emoji, count, reacted }: MessageReaction, t: TFunction<'reactions'>) {
+  return reacted ? t(($) => $.yourReaction, { emoji, amount: count }) : `${emoji} ${count}`;
 }
 
 /** A few people read better as faces, but only once every one of them is known. */
@@ -47,13 +40,16 @@ export function chipFaces<Member>(
 }
 
 /** One entry per person, in the order of their latest reaction, with every emoji they used. */
-export function reactionsByPerson(reactors: Reactor[]): PersonReactions[] {
+export function reactionsByPerson(
+  reactors: Reactor[],
+  t: TFunction<'reactions'>,
+): PersonReactions[] {
   const people = new Map<string, PersonReactions>();
 
   for (const reactor of reactors) {
     const person = people.get(reactor.memberId) ?? {
       memberId: reactor.memberId,
-      name: reactor.displayName ?? 'Ім’я недоступне',
+      name: reactor.displayName ?? t(($) => $.nameUnavailable),
       avatarPath: reactor.avatarPath,
       emojis: [],
     };

@@ -3,6 +3,7 @@ import { DotsSixVerticalIcon, UserIcon } from '@phosphor-icons/react';
 import { Button, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { moveRole } from '../../role-order';
 import type { Role } from '../../types';
@@ -100,6 +101,7 @@ export function RoleList({
   onRetry,
 }: RoleListProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation(['roles', 'common']);
   const [draggingId, setDraggingId] = useState<string>();
   const [targetId, setTargetId] = useState<string>();
 
@@ -119,9 +121,9 @@ export function RoleList({
   if (isError && !roles) {
     return (
       <div role="alert">
-        Не вдалося завантажити ролі.
+        {t(($) => $.list.loadFailed)}
         <Button type="link" onClick={onRetry}>
-          Повторити
+          {t(($) => $.common.actions.retry)}
         </Button>
       </div>
     );
@@ -132,7 +134,7 @@ export function RoleList({
   if (!roles.length) {
     return (
       <ContentState compact>
-        <ContentStateDescription>Ролей ще немає</ContentStateDescription>
+        <ContentStateDescription>{t(($) => $.empty)}</ContentStateDescription>
       </ContentState>
     );
   }
@@ -173,7 +175,10 @@ export function RoleList({
             )}
             <RoleDot color={role.color} />
             <span className={styles.name}>{role.name}</span>
-            <span className={styles.count} aria-label={`Людей: ${role.memberCount}`}>
+            <span
+              className={styles.count}
+              aria-label={t(($) => $.list.memberCount, { people: role.memberCount })}
+            >
               <UserIcon size={12} aria-hidden />
               {role.memberCount}
             </span>

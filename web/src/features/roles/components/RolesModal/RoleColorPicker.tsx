@@ -1,6 +1,7 @@
 import { CheckIcon } from '@phosphor-icons/react';
 import { ColorPicker } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { isPresetRoleColor, roleColors } from '../../role-colors';
 
@@ -52,11 +53,12 @@ interface RoleColorPickerProps {
 
 export function RoleColorPicker({ value, onChange }: RoleColorPickerProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation('roles');
   const current = value?.toLowerCase() ?? null;
   const custom = current && !isPresetRoleColor(current) ? current : null;
 
   return (
-    <div className={styles.swatches} role="radiogroup" aria-label="Колір ролі">
+    <div className={styles.swatches} role="radiogroup" aria-label={t(($) => $.colors.label)}>
       {roleColors.map((color) => {
         const isSelected = color === current;
         return (
@@ -85,7 +87,7 @@ export function RoleColorPicker({ value, onChange }: RoleColorPickerProps) {
           type="button"
           role="radio"
           aria-checked={Boolean(custom)}
-          aria-label="Свій колір"
+          aria-label={t(($) => $.colors.custom)}
           className={cx(styles.swatch, styles.custom, Boolean(custom) && styles.selected)}
           style={custom ? { background: custom } : undefined}
         >

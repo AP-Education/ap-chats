@@ -15,7 +15,6 @@ const ORCHID = '#d946ef';
 export const wallpaperPresets: readonly WallpaperPreset[] = [
   {
     id: 'ap',
-    name: 'AP Education',
     lights: [
       { kind: 'glow', x: 0.94, y: 0.02, radius: 0.42, color: CYAN, strength: 0.55 },
       {
@@ -44,7 +43,6 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
   },
   {
     id: 'university',
-    name: 'Університет',
     lights: [
       {
         kind: 'ribbon',
@@ -82,7 +80,6 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
   },
   {
     id: 'school',
-    name: 'Школа',
     lights: [
       {
         kind: 'halo',
@@ -111,7 +108,6 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
   },
   {
     id: 'space',
-    name: 'Космос',
     lights: [
       {
         kind: 'halo',
@@ -149,7 +145,6 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
   },
   {
     id: 'aurora',
-    name: 'Аврора',
     lights: [
       {
         kind: 'ribbon',
@@ -187,7 +182,6 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
   },
   {
     id: 'innovation',
-    name: 'Інновації',
     lights: [
       {
         kind: 'ribbon',
@@ -225,7 +219,6 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
   },
   {
     id: 'minimal',
-    name: 'Мінімал',
     lights: [
       { kind: 'glow', x: 0.9, y: 0, radius: 0.6, color: CYAN, strength: 0.34 },
       { kind: 'glow', x: 0.1, y: 1, radius: 0.6, color: INDIGO, strength: 0.22 },
@@ -234,7 +227,6 @@ export const wallpaperPresets: readonly WallpaperPreset[] = [
   },
   {
     id: 'none',
-    name: 'Без фону',
     lights: [],
     pattern: null,
   },

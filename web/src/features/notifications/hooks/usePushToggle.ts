@@ -1,4 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
@@ -6,6 +8,7 @@ import { disablePush, enablePush, type PushRegistration } from '../api/push-subs
 import { pushRegistrationKey, usePush, usePushLaunchPath } from './usePush';
 
 export function usePushToggle() {
+  const { t } = useTranslation('notifications');
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
   const push = usePush();
@@ -24,21 +27,20 @@ export function usePushToggle() {
 
   return {
     busy: enable.isPending || disable.isPending,
-    error: toggleError(enable, disable, push.synchronizationFailed),
+    error: toggleError(t, enable, disable, push.synchronizationFailed),
     toggle: () => (push.enabled ? disable.mutate() : enable.mutate()),
   };
 }
 
 function toggleError(
+  t: TFunction<'notifications'>,
   enable: { isError: boolean; data?: PushRegistration },
   disable: { isError: boolean },
   synchronizationFailed: boolean,
 ): string | null {
-  if (enable.data?.permission === 'denied')
-    return 'Браузер не дозволив сповіщення. Перевірте дозвіл для цього сайту та загальні налаштування сповіщень браузера.';
-  if (enable.isError) return 'Не вдалося ввімкнути сповіщення. Спробуйте ще раз.';
-  if (disable.isError) return 'Не вдалося вимкнути сповіщення. Спробуйте ще раз.';
-  if (synchronizationFailed)
-    return 'Не вдалося оновити підписку. Повторимо після відновлення з’єднання.';
+  if (enable.data?.permission === 'denied') return t(($) => $.errors.denied);
+  if (enable.isError) return t(($) => $.errors.enable);
+  if (disable.isError) return t(($) => $.errors.disable);
+  if (synchronizationFailed) return t(($) => $.errors.synchronize);
   return null;
 }

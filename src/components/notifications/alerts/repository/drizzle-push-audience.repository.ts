@@ -110,6 +110,7 @@ export class DrizzlePushAudienceRepository extends PushAudienceRepository {
         lastReadEntrySeq: channelMemberships.lastReadEntrySeq,
         memberId: workspaceMembers.id,
         userId: userProfiles.oidcUserId,
+        locale: userProfiles.locale,
         kind: channels.kind,
         channel: {
           level: channelMemberships.notificationLevel,

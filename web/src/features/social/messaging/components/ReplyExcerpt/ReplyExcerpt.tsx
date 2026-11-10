@@ -1,4 +1,5 @@
 import { LinkIcon, PaperclipIcon } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 
 import type { Attachment } from '../../attachments/types';
 import { isLoneGif } from '../../gifs/gif-links';
@@ -19,6 +20,7 @@ export function ReplyExcerpt({
   attachments?: Attachment[];
   quoteText?: string | null;
 }) {
+  const { t } = useTranslation('messaging');
   const image = /!\[[^\]]*\]\([^)]+\)/.test(markdown ?? '');
   const link =
     !isLoneGif({ markdown, blocks }) && /\[[^\]]+\]\([^)]+\)|https?:\/\/\S+/.test(markdown ?? '');
@@ -28,10 +30,18 @@ export function ReplyExcerpt({
       <div className={styles.title}>{title}</div>
       <div className={styles.preview}>
         {!quoteText && image && (
-          <PaperclipIcon size={14} className={styles.icon} aria-label="Вкладення" />
+          <PaperclipIcon
+            size={14}
+            className={styles.icon}
+            aria-label={t(($) => $.message.preview.attachment)}
+          />
         )}
         {!quoteText && !image && link && (
-          <LinkIcon size={14} className={styles.icon} aria-label="Посилання" />
+          <LinkIcon
+            size={14}
+            className={styles.icon}
+            aria-label={t(($) => $.message.preview.link)}
+          />
         )}
         <span className={styles.text}>
           {quoteText ?? (

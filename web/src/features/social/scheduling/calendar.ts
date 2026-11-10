@@ -1,10 +1,14 @@
-const monthFormat = new Intl.DateTimeFormat('uk-UA', { month: 'long' });
-const weekdayFormat = new Intl.DateTimeFormat('uk-UA', { weekday: 'short' });
+import { dateTimeFormat } from '../../../shared/i18n/format';
 
-// 1 January 2024 was a Monday, where a Ukrainian week starts.
-export const weekdayLabels = Array.from({ length: 7 }, (_, index) =>
-  weekdayFormat.format(new Date(2024, 0, 1 + index)),
-);
+const monthFormat = dateTimeFormat({ month: 'long' });
+const weekdayFormat = dateTimeFormat({ weekday: 'short' });
+
+// 1 January 2024 was a Monday, where the calendar's week starts.
+export function weekdayLabels(locale: string): string[] {
+  return Array.from({ length: 7 }, (_, index) =>
+    weekdayFormat(locale).format(new Date(2024, 0, 1 + index)),
+  );
+}
 
 export function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -35,7 +39,7 @@ export function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-export function monthTitle(month: Date): string {
-  const name = monthFormat.format(month);
+export function monthTitle(month: Date, locale: string): string {
+  const name = monthFormat(locale).format(month);
   return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${month.getFullYear()}`;
 }

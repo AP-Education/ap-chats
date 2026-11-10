@@ -1,0 +1,21 @@
+export const people = {
+  nameUnavailable: 'Ім’я недоступне',
+  bot: 'бот',
+  profileLabel: 'Профіль {{name}}',
+  memberProfileLabel: 'Профіль учасника',
+  memberUnavailable: 'Учасник недоступний',
+  workspaceAssistant: 'Асистент простору',
+  loadingProfile: 'Завантажуємо профіль',
+  message: 'Написати',
+  call: 'Подзвонити',
+  openConversationFailed: 'Не вдалося відкрити розмову.',
+  roles: {
+    title: 'Ролі',
+    manage: 'Керувати ролями',
+    add: 'Додати роль',
+    remove: 'Забрати роль {{name}}',
+    changeFailed: 'Не вдалося змінити ролі.',
+    viewTitle: 'Ролі: {{name}}',
+    backToProfile: 'Назад до профілю',
+  },
+} as const;

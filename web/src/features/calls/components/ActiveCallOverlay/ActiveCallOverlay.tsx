@@ -1,5 +1,6 @@
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { withViewTransition } from '@/shared/hooks/withViewTransition';
 
@@ -40,6 +41,7 @@ interface ActiveCallOverlayProps {
 // The room connection lives here, above the minimized/full split: minimizing
 // only swaps the presentation, it never disconnects the call.
 export function ActiveCallOverlay({ session }: ActiveCallOverlayProps) {
+  const { t } = useTranslation('calls');
   const { styles } = useStyles();
   const minimized = useCallStore((state) => state.minimized);
   const minimize = useCallStore((state) => state.minimize);
@@ -51,14 +53,14 @@ export function ActiveCallOverlay({ session }: ActiveCallOverlayProps) {
   const liveAnsweredAt = live.data?.id === session.callId ? live.data.answeredAt : null;
   const answeredAt = session.answeredAt ?? liveAnsweredAt;
   const duration = useCallDuration(answeredAt);
-  const statusLine = answeredAt ? duration : 'Виклик';
+  const statusLine = answeredAt ? duration : t(($) => $.overlay.ringing);
 
   return (
     <div
       className={minimized ? styles.mini : styles.full}
       role={minimized ? undefined : 'dialog'}
       aria-modal={minimized ? undefined : true}
-      aria-label={minimized ? undefined : 'Дзвінок'}
+      aria-label={minimized ? undefined : t(($) => $.overlay.dialog)}
     >
       <LiveKitRoom
         className={minimized ? undefined : styles.fullRoom}

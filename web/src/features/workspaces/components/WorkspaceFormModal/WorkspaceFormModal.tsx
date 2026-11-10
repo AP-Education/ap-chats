@@ -1,5 +1,6 @@
 import { Form, message, Modal, Typography } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { useCreateWorkspace } from '../../hooks/useCreateWorkspace';
 import { useUpdateWorkspace } from '../../hooks/useUpdateWorkspace';
@@ -31,6 +32,7 @@ interface WorkspaceFormModalProps {
 // create/edit, or the API exist.
 export function WorkspaceFormModal({ open, onClose, workspace }: WorkspaceFormModalProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['workspaces', 'common']);
   const isEditing = Boolean(workspace);
   const [form] = Form.useForm<{ name: string }>();
   const createWorkspace = useCreateWorkspace();
@@ -50,7 +52,7 @@ export function WorkspaceFormModal({ open, onClose, workspace }: WorkspaceFormMo
       }
       handleClose();
     } catch {
-      void message.error('Не вдалося зберегти робочий простір.');
+      void message.error(t(($) => $.modal.saveFailed));
     }
   }
 
@@ -60,17 +62,17 @@ export function WorkspaceFormModal({ open, onClose, workspace }: WorkspaceFormMo
       onCancel={handleClose}
       onOk={() => form.submit()}
       confirmLoading={createWorkspace.isPending || updateWorkspace.isPending}
-      okText={isEditing ? 'Зберегти' : 'Створити'}
-      cancelText="Скасувати"
+      okText={isEditing ? t(($) => $.common.actions.save) : t(($) => $.common.actions.create)}
+      cancelText={t(($) => $.common.actions.cancel)}
       destroyOnHidden
       centered
     >
       <div className={styles.header}>
         <Typography.Title level={4} className={styles.title}>
-          {isEditing ? 'Редагувати робочий простір' : 'Налаштуйте робочий простір'}
+          {isEditing ? t(($) => $.modal.editTitle) : t(($) => $.modal.createTitle)}
         </Typography.Title>
         <Typography.Text className={styles.description}>
-          Додайте назву та іконку. Це завжди можна змінити пізніше.
+          {t(($) => $.modal.description)}
         </Typography.Text>
       </div>
 

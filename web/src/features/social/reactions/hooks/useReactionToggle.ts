@@ -1,5 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { message as toast } from 'antd';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
@@ -20,6 +22,7 @@ interface Toggle {
 
 /** Adds the viewer's reaction, or takes it back when they already reacted with that emoji. */
 export function useReactionToggle(viewerMemberId: string | undefined) {
+  const { t } = useTranslation('reactions');
   const { workspaceId, channelId } = useConversationScope();
   const { token } = useQueryAuth();
   const applyChange = useReactionCache();
@@ -36,7 +39,7 @@ export function useReactionToggle(viewerMemberId: string | undefined) {
     },
     onSuccess: (confirmed, { messageId }) => applyChange(messageId, confirmed),
     onError: (error, { messageId, previous }) => {
-      toast.error(failureMessage(error));
+      toast.error(failureMessage(error, t));
       applyChange(messageId, previous);
     },
   });
@@ -51,7 +54,7 @@ export function useReactionToggle(viewerMemberId: string | undefined) {
   };
 }
 
-function failureMessage(error: unknown) {
+function failureMessage(error: unknown, t: TFunction<'reactions'>) {
   const isFull = error instanceof ApiError && error.status === 409;
-  return isFull ? 'Тут уже забагато різних реакцій.' : 'Не вдалося змінити реакцію.';
+  return isFull ? t(($) => $.errors.tooMany) : t(($) => $.errors.toggle);
 }

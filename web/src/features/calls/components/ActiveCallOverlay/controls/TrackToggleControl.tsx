@@ -2,6 +2,7 @@ import { useTrackToggle } from '@livekit/components-react';
 import type { Icon } from '@phosphor-icons/react';
 import type { Track } from 'livekit-client';
 import type { MouseEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { CallActionButton, type CallActionTone } from '../../CallActionButton/CallActionButton';
 
@@ -10,8 +11,16 @@ export interface CallControlSize {
   iconSize: number;
 }
 
+export type TrackToggleLabel =
+  | 'muteMicrophone'
+  | 'unmuteMicrophone'
+  | 'turnOffCamera'
+  | 'turnOnCamera'
+  | 'stopScreenShare'
+  | 'startScreenShare';
+
 interface TrackToggleState {
-  label: string;
+  label: TrackToggleLabel;
   icon: Icon;
   tone: CallActionTone;
 }
@@ -38,6 +47,7 @@ export function TrackToggleControl({
   hiddenWhenOff = false,
   onToggle,
 }: TrackToggleControlProps) {
+  const { t } = useTranslation('calls');
   const toggle = useTrackToggle({ source });
 
   if (hiddenWhenOff && !toggle.enabled) return null;
@@ -55,7 +65,7 @@ export function TrackToggleControl({
       tone={tone}
       {...toggle.buttonProps}
       onClick={handleClick}
-      aria-label={label}
+      aria-label={t(($) => $.controls[label])}
     >
       <StateIcon size={iconSize} />
     </CallActionButton>

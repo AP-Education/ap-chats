@@ -2,6 +2,7 @@ import { IconButton } from '@ap-education/ui';
 import { ListBulletsIcon, PushPinIcon, XIcon } from '@phosphor-icons/react';
 import { message as toast, Popover } from 'antd';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useConversationPermissions } from '@/features/social/conversation-scope/store';
 import { ReplyExcerpt } from '@/features/social/messaging/components/ReplyExcerpt/ReplyExcerpt';
@@ -15,6 +16,7 @@ interface PinnedMessageBarProps {
 }
 
 export function PinnedMessageBar({ onJump }: PinnedMessageBarProps) {
+  const { t } = useTranslation('pins');
   const { canPin: canUnpin } = useConversationPermissions();
   const [listOpen, setListOpen] = useState(false);
   const bar = usePinnedMessageBar();
@@ -28,7 +30,7 @@ export function PinnedMessageBar({ onJump }: PinnedMessageBarProps) {
   }
 
   function handleUnpin() {
-    void unpin().catch(() => toast.error('Не вдалося відкріпити повідомлення.'));
+    void unpin().catch(() => toast.error(t(($) => $.unpinFailed)));
   }
 
   return (
@@ -43,7 +45,7 @@ export function PinnedMessageBar({ onJump }: PinnedMessageBarProps) {
       </span>
       <button type="button" className={styles.body} onClick={showAndAdvance}>
         <ReplyExcerpt
-          title="Закріплене повідомлення"
+          title={t(($) => $.pinnedMessage)}
           markdown={current.markdown}
           blocks={current.blocks}
         />
@@ -54,7 +56,7 @@ export function PinnedMessageBar({ onJump }: PinnedMessageBarProps) {
           open={listOpen}
           onOpenChange={setListOpen}
           placement="bottomRight"
-          title="Закріплені повідомлення"
+          title={t(($) => $.pinnedMessages)}
           content={
             <PinnedMessages
               onJump={(messageId) => {
@@ -64,12 +66,12 @@ export function PinnedMessageBar({ onJump }: PinnedMessageBarProps) {
             />
           }
         >
-          <IconButton size={32} aria-label="Усі закріплені повідомлення">
+          <IconButton size={32} aria-label={t(($) => $.showAll)}>
             <ListBulletsIcon size={18} />
           </IconButton>
         </Popover>
         {canUnpin && (
-          <IconButton size={32} aria-label="Відкріпити повідомлення" onClick={handleUnpin}>
+          <IconButton size={32} aria-label={t(($) => $.unpin)} onClick={handleUnpin}>
             <XIcon size={16} />
           </IconButton>
         )}

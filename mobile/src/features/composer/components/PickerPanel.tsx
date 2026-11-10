@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { radius, spacing } from '../../../shell/theme';
@@ -6,12 +7,6 @@ import type { GifResult, PickerTab } from '../types';
 import { EmojiTab } from './EmojiTab';
 import { GifTab } from './GifTab';
 import { StickerTab } from './StickerTab';
-
-const TAB_OPTIONS: { label: string; value: PickerTab }[] = [
-  { label: 'GIF', value: 'gif' },
-  { label: 'Стікери', value: 'sticker' },
-  { label: 'Емодзі', value: 'emoji' },
-];
 
 interface PickerPanelProps {
   activeTab: PickerTab;
@@ -28,11 +23,18 @@ export function PickerPanel({
   onPickGif,
   onSearchFocus,
 }: PickerPanelProps) {
+  const { t } = useTranslation('composer');
   const styles = useThemedStyles(themedStyles);
+  const tabOptions: { label: string; value: PickerTab }[] = [
+    { label: t(($) => $.tabs.gif), value: 'gif' },
+    { label: t(($) => $.tabs.stickers), value: 'sticker' },
+    { label: t(($) => $.tabs.emoji), value: 'emoji' },
+  ];
+
   return (
     <View style={styles.root}>
       <View style={styles.tabs}>
-        {TAB_OPTIONS.map((option) => (
+        {tabOptions.map((option) => (
           <Pressable
             key={option.value}
             accessibilityRole="tab"

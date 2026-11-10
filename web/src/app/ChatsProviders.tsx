@@ -3,6 +3,9 @@ import { SheetDismissal } from '@ap-education/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { PropsWithChildren } from 'react';
 
+import { I18nProvider } from '@/shared/i18n/I18nProvider';
+
+import { ProfileLocaleSync } from '../features/auth/components/ProfileLocaleSync/ProfileLocaleSync';
 import { UserProfileSync } from '../features/auth/components/UserProfileSync/UserProfileSync';
 import { ApiAuthSession } from '../features/auth/providers/ApiAuthSession';
 import { CommunitiesProvider } from '../features/communities/providers/CommunitiesProvider';
@@ -32,23 +35,26 @@ export function ChatsProviders({ children }: PropsWithChildren) {
     // The shell's menu slides over the page, so a sheet left open would float above it.
     <SheetDismissal isDismissed={isMenuOpen}>
       <ShellRouter>
-        <QueryClientProvider client={queryClient}>
-          <ApiAuthSession />
-          <UserProfileSync />
-          <RealtimeProvider>
-            <ActiveWorkspaceProvider>
-              <WorkspaceUnreadScope>
-                <CommunitiesProvider>
-                  <PeopleProvider>
-                    <OutboxesProvider>
-                      <NotificationsProvider>{children}</NotificationsProvider>
-                    </OutboxesProvider>
-                  </PeopleProvider>
-                </CommunitiesProvider>
-              </WorkspaceUnreadScope>
-            </ActiveWorkspaceProvider>
-          </RealtimeProvider>
-        </QueryClientProvider>
+        <I18nProvider>
+          <QueryClientProvider client={queryClient}>
+            <ApiAuthSession />
+            <UserProfileSync />
+            <ProfileLocaleSync />
+            <RealtimeProvider>
+              <ActiveWorkspaceProvider>
+                <WorkspaceUnreadScope>
+                  <CommunitiesProvider>
+                    <PeopleProvider>
+                      <OutboxesProvider>
+                        <NotificationsProvider>{children}</NotificationsProvider>
+                      </OutboxesProvider>
+                    </PeopleProvider>
+                  </CommunitiesProvider>
+                </WorkspaceUnreadScope>
+              </ActiveWorkspaceProvider>
+            </RealtimeProvider>
+          </QueryClientProvider>
+        </I18nProvider>
       </ShellRouter>
     </SheetDismissal>
   );

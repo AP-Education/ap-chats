@@ -1,6 +1,7 @@
 import { replaceEntry } from '@ap-education/timeline';
 import { useQueryClient } from '@tanstack/react-query';
 import { message as toast } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
@@ -29,6 +30,7 @@ function parse(payload: unknown): CallSignal | null {
 /** Keeps the call store, the "active call" indicators, and the channel's
  * timeline card in sync with the server, app-wide. */
 export function useCallSignalListener(): void {
+  const { t } = useTranslation('calls');
   const queryClient = useQueryClient();
   const { token, identity } = useQueryAuth();
   const setIncoming = useCallStore((state) => state.setIncoming);
@@ -90,7 +92,7 @@ export function useCallSignalListener(): void {
     if (active?.callId === signal.callId) {
       announceCallEnd(active, 'declined');
       clearActive();
-      toast.info('Дзвінок відхилено.');
+      toast.info(t(($) => $.toasts.declined));
     }
     syncCall(signal);
     refreshEntry(signal);
@@ -117,7 +119,7 @@ export function useCallSignalListener(): void {
     if (active?.callId === signal.callId) {
       announceCallEnd(active, 'ended');
       clearActive();
-      toast.info('Не відповіли.');
+      toast.info(t(($) => $.toasts.noAnswer));
     }
     syncCall(signal);
     refreshEntry(signal);

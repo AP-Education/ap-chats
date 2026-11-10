@@ -1,5 +1,6 @@
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ css }) => ({
   shell: css`
@@ -17,9 +18,10 @@ const useStyles = createStyles(({ css }) => ({
 }));
 
 export function ChannelsSidebarLoading() {
+  const { t } = useTranslation('communities');
   const { styles } = useStyles();
   return (
-    <div className={styles.shell} role="status" aria-label="Завантажуємо список каналів">
+    <div className={styles.shell} role="status" aria-label={t(($) => $.sidebar.loading)}>
       {[0, 1].map((section) => (
         <div className={styles.section} key={section}>
           <Skeleton.Input active size="small" style={{ width: 112, height: 15 }} />

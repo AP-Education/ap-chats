@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import {
   PrivateChannelIcon,
   PublicChannelIcon,
@@ -21,6 +23,7 @@ function channelSuggestion(channel: Channel): Suggestion {
 
 /** After `#`: channels the viewer can see, to link to rather than to notify. */
 export function useChannelSuggestions(query: SuggestionQuery | null): SuggestionGroup | null {
+  const { t } = useTranslation('mentions');
   const { workspaceId } = useConversationScope();
   const channels = useChannels(workspaceId);
 
@@ -31,5 +34,9 @@ export function useChannelSuggestions(query: SuggestionQuery | null): Suggestion
     .filter((channel) => channel.name.toLocaleLowerCase().includes(typed))
     .slice(0, CHANNEL_LIMIT)
     .map(channelSuggestion);
-  return { heading: 'Канали', ariaLabel: 'Послатися на канал', items };
+  return {
+    heading: t(($) => $.suggestions.channels),
+    ariaLabel: t(($) => $.suggestions.channelLabel),
+    items,
+  };
 }

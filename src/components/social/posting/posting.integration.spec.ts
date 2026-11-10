@@ -313,7 +313,7 @@ test('posting messages on PostgreSQL', async (t) => {
     const history = await chat.services.history.window(chat.reader, chat.channelId, {});
     const item = history.items.find((entry) => entry.type === 'MESSAGE');
     assert.ok(item && item.type === 'MESSAGE');
-    assert.deepEqual(item.message.attachments, [metadata]);
+    assert.deepEqual(item.message.attachments, [{ ...metadata, links: {} }]);
     const { channelId: targetId } = await seed.channel(chat.creator, 'public', [chat.author]);
     const forwarded = await chat.services.forwarding.forward(chat.author, {
       target: { kind: 'channel', id: targetId },

@@ -5,7 +5,7 @@ export const forwardingActions: ConversationAction[] = [
   {
     id: 'forward',
     icon: <ForwardIcon size={18} />,
-    label: () => 'Переслати',
+    label: (_, t) => t(($) => $.common.actions.forward),
     available: (target) =>
       target.kind !== 'text' &&
       target.items.length > 0 &&

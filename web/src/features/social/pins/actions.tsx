@@ -6,7 +6,8 @@ export const pinActions: ConversationAction[] = [
   {
     id: 'pin',
     icon: <PushPinIcon size={18} />,
-    label: (target) => (target.items[0]?.pin ? 'Відкріпити' : 'Закріпити'),
+    label: (target, t) =>
+      target.items[0]?.pin ? t(($) => $.pins.actions.unpin) : t(($) => $.pins.actions.pin),
     available: (target, context) =>
       target.kind === 'message' &&
       context.canPin &&

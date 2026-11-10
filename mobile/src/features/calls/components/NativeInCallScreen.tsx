@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { CaretDown, MicrophoneSlash } from 'phosphor-react-native';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -31,6 +32,7 @@ interface NativeInCallScreenProps {
  * icon-for-icon (phosphor-react-native, the same set web/'s @phosphor-icons/react uses).
  */
 export function NativeInCallScreen({ onLeaveWindow }: NativeInCallScreenProps) {
+  const { t } = useTranslation('calls');
   const call = useNativeCallStore((state) => state.call);
   const minimized = useNativeCallStore((state) => state.minimized);
   const minimize = useNativeCallStore((state) => state.minimize);
@@ -39,7 +41,7 @@ export function NativeInCallScreen({ onLeaveWindow }: NativeInCallScreenProps) {
 
   if (!call || call.status === 'ringing' || (minimized && !inWindow)) return null;
 
-  const title = call.caller.displayName ?? 'Дзвінок';
+  const title = call.caller.displayName ?? t(($) => $.call);
 
   return (
     <View style={styles.fill}>
@@ -50,7 +52,7 @@ export function NativeInCallScreen({ onLeaveWindow }: NativeInCallScreenProps) {
           <View style={styles.minimize}>
             <CallControlButton
               icon={CaretDown}
-              accessibilityLabel="Згорнути дзвінок"
+              accessibilityLabel={t(($) => $.minimize)}
               size={40}
               iconSize={20}
               onPress={onLeaveWindow ?? minimize}
@@ -75,10 +77,10 @@ export function NativeInCallScreen({ onLeaveWindow }: NativeInCallScreenProps) {
         <View style={styles.controlsArea}>
           <MutedMicrophoneHint />
           <View style={styles.actions}>
-            <MuteControl size={64} label="Мікрофон" />
-            <CameraPlaceholderControl size={64} label="Камера" />
+            <MuteControl size={64} label={t(($) => $.microphone)} />
+            <CameraPlaceholderControl size={64} label={t(($) => $.camera)} />
             <AudioOutputButton route={call.audioRoute} size={64} />
-            <EndCallControl size={64} label="Завершити" />
+            <EndCallControl size={64} label={t(($) => $.end)} />
           </View>
         </View>
       </SafeAreaView>
@@ -93,10 +95,12 @@ function speakingLevel(call: NativeCallState): number {
 }
 
 function CallStatusLine({ call }: { call: NativeCallState }) {
+  const { t } = useTranslation('calls');
   const duration = useCallDuration(call.answeredAt);
 
-  if (call.status === 'connecting') return <Text style={styles.duration}>З'єднання</Text>;
-  return <Text style={styles.duration}>{call.answeredAt ? duration : 'Виклик'}</Text>;
+  if (call.status === 'connecting')
+    return <Text style={styles.duration}>{t(($) => $.connecting)}</Text>;
+  return <Text style={styles.duration}>{call.answeredAt ? duration : t(($) => $.ringing)}</Text>;
 }
 
 const styles = StyleSheet.create({

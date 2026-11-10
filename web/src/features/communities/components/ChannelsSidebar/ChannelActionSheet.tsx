@@ -1,6 +1,7 @@
 import { BottomSheet } from '@ap-education/ui/sheet';
 import { GearSixIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { Channel } from '../../channels/types';
 
@@ -43,10 +44,15 @@ export function ChannelActionSheet({
   onClose,
   onSettings,
 }: ChannelActionSheetProps) {
+  const { t } = useTranslation('communities');
   const { styles } = useStyles();
 
   return (
-    <BottomSheet open={open} onClose={onClose} aria-label={`Дії каналу ${channel.name}`}>
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      aria-label={t(($) => $.channels.actionsOf, { name: channel.name })}
+    >
       <div className={styles.heading}>{channel.name}</div>
       <button
         type="button"
@@ -57,7 +63,7 @@ export function ChannelActionSheet({
         }}
       >
         <GearSixIcon size={20} />
-        Налаштування каналу
+        {t(($) => $.channels.settings)}
       </button>
     </BottomSheet>
   );

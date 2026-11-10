@@ -1,6 +1,7 @@
 import { FlashList } from '@shopify/flash-list';
 import { MagnifyingGlass } from 'phosphor-react-native';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Image,
@@ -25,6 +26,7 @@ interface GifTabProps {
 }
 
 export function GifTab({ onPick, onSearchFocus }: GifTabProps) {
+  const { t } = useTranslation('composer');
   const palette = useShellPalette();
   const styles = useThemedStyles(themedStyles);
   const [query, setQuery] = useState('');
@@ -34,7 +36,7 @@ export function GifTab({ onPick, onSearchFocus }: GifTabProps) {
   if (!configured) {
     return (
       <View style={styles.state}>
-        <Text style={styles.stateText}>Пошук GIF зараз недоступний.</Text>
+        <Text style={styles.stateText}>{t(($) => $.gif.unavailable)}</Text>
       </View>
     );
   }
@@ -46,12 +48,12 @@ export function GifTab({ onPick, onSearchFocus }: GifTabProps) {
         <TextInput
           style={styles.searchInput}
           // KLIPY's terms require its name as the search placeholder.
-          placeholder="Пошук у KLIPY"
+          placeholder={t(($) => $.gif.searchPlaceholder)}
           placeholderTextColor={palette.textSecondary}
           value={query}
           onChangeText={setQuery}
           onFocus={onSearchFocus}
-          accessibilityLabel="Пошук GIF"
+          accessibilityLabel={t(($) => $.gif.search)}
         />
       </View>
       {status === 'loading' && gifs.length === 0 ? (
@@ -60,11 +62,11 @@ export function GifTab({ onPick, onSearchFocus }: GifTabProps) {
         </View>
       ) : status === 'error' ? (
         <View style={styles.state}>
-          <Text style={styles.stateText}>Не вдалося завантажити GIF. Спробуйте ще раз.</Text>
+          <Text style={styles.stateText}>{t(($) => $.gif.error)}</Text>
         </View>
       ) : gifs.length === 0 ? (
         <View style={styles.state}>
-          <Text style={styles.stateText}>Нічого не знайдено.</Text>
+          <Text style={styles.stateText}>{t(($) => $.gif.empty)}</Text>
         </View>
       ) : (
         <FlashList

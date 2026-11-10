@@ -2,6 +2,7 @@ import { useTrackToggle } from '@livekit/components-react';
 import { MicrophoneSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { Track } from 'livekit-client';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   // Absolutely positioned above the controls, so muting never reflows the stage.
@@ -33,6 +34,7 @@ const useStyles = createStyles(({ token, css }) => ({
 
 /** A reminder, not an error: tapping it unmutes, same as the mic control below it. */
 export function MutedMicrophoneHint() {
+  const { t } = useTranslation('calls');
   const { styles } = useStyles();
   const mic = useTrackToggle({ source: Track.Source.Microphone });
 
@@ -43,10 +45,10 @@ export function MutedMicrophoneHint() {
       type="button"
       className={styles.hint}
       onClick={mic.buttonProps.onClick}
-      aria-label="Увімкнути мікрофон"
+      aria-label={t(($) => $.controls.unmuteMicrophone)}
     >
       <MicrophoneSlashIcon size={14} weight="fill" />
-      Ваш мікрофон вимкнено
+      {t(($) => $.overlay.yourMicrophoneOff)}
     </button>
   );
 }

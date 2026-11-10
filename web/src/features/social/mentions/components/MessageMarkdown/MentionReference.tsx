@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { type MentionToken, tokenText } from '../../mention-tokens';
 import type { MentionLabel } from '../../types';
 import { ChannelReference } from './ChannelReference';
@@ -16,6 +18,8 @@ interface MentionReferenceProps {
 
 /** The one place a reference in a message becomes its tag, whatever kind it is. */
 export function MentionReference({ token, people, inline, mine }: MentionReferenceProps) {
+  const { t } = useTranslation('mentions');
+
   switch (token.kind) {
     case 'member':
       return (
@@ -33,7 +37,7 @@ export function MentionReference({ token, people, inline, mine }: MentionReferen
     case 'everyone':
       return (
         <span className={styles.mention} data-me={mine || undefined}>
-          <MentionChipText>{tokenText(token)}</MentionChipText>
+          <MentionChipText>{tokenText(token, t)}</MentionChipText>
         </span>
       );
   }

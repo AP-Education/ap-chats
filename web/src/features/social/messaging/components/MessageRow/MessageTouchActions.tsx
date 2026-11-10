@@ -8,7 +8,9 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 
+import { extensionNamespaces } from '@/features/social/conversation-scope/extensions';
 import { QuickReactions } from '@/features/social/reactions/components/QuickReactions/QuickReactions';
 import { ReactionPicker } from '@/features/social/reactions/components/ReactionPicker/ReactionPicker';
 
@@ -21,6 +23,7 @@ import { useMessageReplySwipe } from './useMessageReplySwipe';
 import { useOwnMessageStatus } from './useOwnMessageStatus';
 
 export function MessageTouchActions({ rowProps, children }: MessageActionsProps) {
+  const { t } = useTranslation(extensionNamespaces);
   const scope = useMessageActionScope();
   const status = useOwnMessageStatus();
   const areaRef = useRef<HTMLDivElement>(null);
@@ -99,7 +102,7 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
           open
           onClose={closeSheet}
           aria-label="Дії з повідомленням"
-          groups={messageActionItems(available, scope.messageTarget)}
+          groups={messageActionItems(available, scope.messageTarget, t)}
           onSelect={(id) => {
             const action = available.find((entry) => entry.id === id);
             if (action) scope.onAction(action, scope.messageTarget);

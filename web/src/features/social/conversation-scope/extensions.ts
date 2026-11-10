@@ -3,7 +3,22 @@ import type { EntryKind } from '@ap-education/timeline/react';
 import { type ComponentType, createContext, type ReactNode, useContext } from 'react';
 
 import type { ConversationEntry } from '../messaging/timeline/chat-entry';
-import type { ConversationAction, Message, SendMessageCommand } from '../messaging/types';
+import type {
+  ConversationAction,
+  ExtensionNamespaces,
+  Message,
+  SendMessageCommand,
+} from '../messaging/types';
+
+export const extensionNamespaces: ExtensionNamespaces = [
+  'messaging',
+  'common',
+  'conversation',
+  'pins',
+  'reactions',
+  'scheduling',
+  'starMe',
+];
 
 /** A message the person sent from the composer, and what they composed it as. */
 export interface SentMessage {

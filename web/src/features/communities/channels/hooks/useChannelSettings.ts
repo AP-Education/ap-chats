@@ -1,9 +1,10 @@
 import { message } from 'antd';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useChannelPermissions } from '../../channel-access/hooks/useChannelPermissions';
 import type { ChannelPermissions, ChannelPermissionsInput } from '../../channel-access/types';
-import { isChannelNameTaken, takenChannelName } from '../channel-name';
+import { isChannelNameTaken } from '../channel-name';
 import type { Channel } from '../types';
 import { useChannelActions } from './useChannelActions';
 import { useChannel } from './useChannels';
@@ -43,6 +44,7 @@ export function useChannelSettings(
   channelId: string,
   onDone: () => void,
 ): ChannelSettings {
+  const { t } = useTranslation('communities');
   const channel = useChannel(workspaceId, channelId).data;
   const permissions = useChannelPermissions(workspaceId, channelId);
   const { update, remove } = useChannelActions(workspaceId);
@@ -60,10 +62,10 @@ export function useChannelSettings(
       onDone();
     } catch (error) {
       if (isChannelNameTaken(error)) {
-        setNameError(takenChannelName);
+        setNameError(t(($) => $.channels.name.taken));
         return;
       }
-      void message.error('Не вдалося зберегти канал.');
+      void message.error(t(($) => $.channels.saveFailed));
     }
   }
 
@@ -73,7 +75,7 @@ export function useChannelSettings(
       await remove.mutateAsync(channelId);
       onDone();
     } catch {
-      void message.error('Не вдалося видалити канал.');
+      void message.error(t(($) => $.channels.deleteFailed));
     }
   }
 
