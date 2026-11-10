@@ -83,7 +83,9 @@ test('agent failure keeps the human DM question and retry produces one answer', 
   page,
 }) => {
   await mention(page, 'Помилка агента');
-  await expect(page.getByRole('alert')).toContainText('StarMe зараз не відповідає');
+  const failure = page.getByRole('alert');
+  await expect(failure).toContainText('StarMe зараз не відповідає');
+  await expect(failure.getByText('Лише для вас', { exact: true })).toBeVisible();
   await expect(page.locator('article')).toHaveCount(1);
   await press(page, 'Повторити');
   await expect(page.locator('article')).toHaveCount(2);
@@ -164,7 +166,8 @@ for (const kind of ['dm', 'group'] as const) {
     await press(page, 'Надіслати');
     for (const peer of peers) await expect(peer.locator('article')).toHaveCount(1);
     await mention(page, 'Секретний план');
-    await expect(page.getByText('Думаю над відповіддю')).toBeVisible();
+    const thinking = page.getByRole('status').filter({ hasText: 'Думаю над відповіддю' });
+    await expect(thinking.getByText('Лише для вас', { exact: true })).toBeVisible();
     for (const peer of peers) await expect(peer.getByText('Думаю над відповіддю')).toHaveCount(0);
     await expect(page.locator('article')).toHaveCount(3);
     await expect(
@@ -174,6 +177,7 @@ for (const kind of ['dm', 'group'] as const) {
       .locator('[data-private="true"]')
       .evaluateAll((rows) => rows.map((row) => row.getAttribute('data-message-id')!));
     const answer = page.locator('[data-assistant-answer="true"]').first();
+    await expect(answer.getByText('Лише для вас', { exact: true })).toBeVisible();
     const answerId = await answer.getAttribute('data-message-id');
     for (const peer of peers) {
       await expect(peer.locator('article')).toHaveCount(1);
@@ -212,9 +216,9 @@ for (const kind of ['dm', 'group'] as const) {
       'false',
     );
     await expect(page.locator('article')).toHaveCount(5);
-    const myAuthor = await page
-      .locator(`[data-message-id="${answerId}"]`)
-      .getAttribute('data-author');
+    const published = page.locator(`[data-message-id="${answerId}"]`);
+    await expect(published.getByText('Лише для вас', { exact: true })).toHaveCount(0);
+    const myAuthor = await published.getAttribute('data-author');
     for (const peer of peers) {
       await expect(peer.locator('article')).toHaveCount(2);
       await expect(peer.locator(`[data-message-id="${answerId}"]`)).toHaveAttribute(

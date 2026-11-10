@@ -14,6 +14,7 @@ import type { Attachment } from '../../attachments/types';
 import { useConversationSending } from '../../sending/hooks/useConversationSending';
 import type { ComposedMessage } from '../../types';
 import { composerIntent } from './composerIntents';
+import styles from './MessageComposer.module.css';
 
 /** Sends on a click; a right click lists the other ways to send, a long press takes the only one. */
 export function SendButton({ privateAssistant = false }: { privateAssistant?: boolean }) {
@@ -31,7 +32,7 @@ export function SendButton({ privateAssistant = false }: { privateAssistant?: bo
   const [chosen, setChosen] = useState<SendOption | null>(null);
   const scheduleAttempt = useRef<{ draft: string; nonce: string }>(null);
 
-  if (!options.length) return <ComposerSend />;
+  if (!options.length) return canSend ? <ComposerSend className={styles.sendAction} /> : null;
 
   const draft = {
     attachmentsReady: files.every((file) => file.status === 'ready'),
@@ -99,15 +100,17 @@ export function SendButton({ privateAssistant = false }: { privateAssistant?: bo
 
   return (
     <>
-      <Dropdown
-        trigger={['contextMenu']}
-        menu={menu}
-        open={menuOpen && canSend}
-        onOpenChange={setMenuOpen}
-        placement="topRight"
-      >
-        <ComposerSend onHold={hold} />
-      </Dropdown>
+      {canSend && (
+        <Dropdown
+          trigger={['contextMenu']}
+          menu={menu}
+          open={menuOpen}
+          onOpenChange={setMenuOpen}
+          placement="topRight"
+        >
+          <ComposerSend className={styles.sendAction} onHold={hold} />
+        </Dropdown>
+      )}
       {Dialog && <Dialog composer={composer} onClose={() => setChosen(null)} />}
     </>
   );

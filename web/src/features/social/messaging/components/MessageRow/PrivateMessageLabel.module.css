@@ -1,8 +1,0 @@
-.label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--ant-color-text-secondary);
-}

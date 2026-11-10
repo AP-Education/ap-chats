@@ -10,6 +10,7 @@ import { useConversationScope } from '@/features/social/conversation-scope/store
 
 import type { AnswerEntry } from '../../answers';
 import { useAskStarMe } from '../../hooks/useAskStarMe';
+import { StarMePrivateHeading } from '../StarMePrivateHeading/StarMePrivateHeading';
 import { StarMeFailureNote } from './StarMeFailureNote';
 
 /** StarMe's answer on its way, in StarMe's run: composing, or why not, told to the asker alone. */
@@ -36,8 +37,16 @@ export function StarMeAnswer({ entry, status }: EntryViewProps<AnswerEntry>) {
 // Marked to arrive: its run rises in once, as StarMe's answer always came in below the history.
 function AnswerRow({ role, children }: PropsWithChildren<{ role: 'status' | 'alert' }>) {
   return (
-    <TimelineEntry side="start" role={role} data-arrives>
-      <TimelineEntryBubble>{children}</TimelineEntryBubble>
+    <TimelineEntry
+      side="start"
+      status={role === 'alert' ? 'failed' : undefined}
+      role={role}
+      data-arrives
+    >
+      <TimelineEntryBubble>
+        <StarMePrivateHeading />
+        {children}
+      </TimelineEntryBubble>
     </TimelineEntry>
   );
 }

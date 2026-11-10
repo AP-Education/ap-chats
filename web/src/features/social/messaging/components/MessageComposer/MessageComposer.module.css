@@ -5,6 +5,11 @@
   flex-shrink: 0;
 }
 
+button.sendAction {
+  width: 48px;
+  height: 48px;
+}
+
 /* Floating, the picker keeps a size of its own; on a phone it fills the keyboard's place. */
 .pickerPopover {
   box-sizing: content-box;
@@ -46,12 +51,23 @@
   align-items: center;
   justify-content: space-between;
   gap: 2px 8px;
-  padding: 6px 8px;
-  color: var(--ant-color-primary);
+  margin-block: 4px;
+  padding: 4px 8px;
+  border-inline-start: 2px solid var(--ant-color-primary);
+  border-radius: var(--ant-border-radius-sm);
+  background: var(--ant-color-primary-bg);
+  color: var(--ant-color-text);
   font-size: 12px;
 }
+
 .privateAssistant > span {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  font-weight: 600;
+}
+
+.privateAssistant button {
+  min-height: 32px;
+  color: var(--ant-color-primary-text-active);
 }

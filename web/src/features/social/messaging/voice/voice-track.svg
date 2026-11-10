@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 24" preserveAspectRatio="none">
+  <path fill="none" stroke="black" stroke-width="2.3" stroke-linecap="round" d="
+    M2 9v6 M6 8v8 M10 6v12 M14 8v8 M18 10v4 M22 8v8
+    M26 5v14 M30 2v20 M34 6v12 M38 8v8 M42 7v10 M46 9v6
+    M50 10v4 M54 8v8 M58 6v12 M62 4v16 M66 2v20 M70 5v14
+    M74 8v8 M78 10v4 M82 9v6 M86 7v10 M90 5v14 M94 3v18
+    M98 6v12 M102 8v8 M106 6v12 M110 4v16 M114 7v10
+    M118 9v6 M122 8v8 M126 10v4
+  "/>
+</svg>

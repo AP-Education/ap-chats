@@ -195,11 +195,16 @@ test('record, pause, preview and send a real audio file through the composer, up
     .toBe(0);
   expect(data.posts).toHaveLength(0);
   await page.getByRole('button', { name: 'Надіслати голосове', exact: true }).click();
-  await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
+  const voice = page.getByRole('group', { name: 'Голосове повідомлення', exact: true });
+  const seek = voice.getByRole('slider', { name: 'Позиція голосового' });
+  await expect(voice).toBeVisible();
+  await expect(seek).toBeDisabled();
+  await expect(seek).toHaveAttribute('aria-valuetext', /^0:00 з 0:\d{2}$/);
   expect(data.posts).toHaveLength(1);
   expect(data.uploads.size).toBe(1);
-  await page.getByRole('button', { name: 'Відтворити голосове', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Швидкість відтворення' })).toHaveText('1×');
+  await voice.getByRole('button', { name: 'Відтворити голосове', exact: true }).click();
+  await expect(seek).toBeEnabled();
+  await expect(voice.getByRole('button', { name: 'Швидкість відтворення' })).toHaveText('1×');
   await page.getByRole('button', { name: 'Швидкість відтворення' }).click();
   await expect(page.getByRole('button', { name: 'Швидкість відтворення' })).toHaveText('1.5×');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -582,12 +587,16 @@ test('text and voice use one consistent primary action and a tap sends text once
 }) => {
   const data = await backend(page);
   await page.goto('/');
+  const editor = page.getByRole('textbox', { name: 'Повідомлення' });
   const microphone = page.getByRole('button', { name: 'Записати голосове повідомлення' });
-  await expect(microphone).toBeEnabled();
-  const microphoneBox = (await microphone.boundingBox())!;
-  await page.getByRole('textbox', { name: 'Повідомлення' }).fill('Перевірка кнопки надсилання');
   const send = page.getByRole('button', { name: 'Надіслати', exact: true });
+  await expect(microphone).toBeEnabled();
+  await expect(send).toHaveCount(0);
+  const microphoneBox = (await microphone.boundingBox())!;
+
+  await editor.fill('ї');
   await expect(send).toBeEnabled();
+  await expect(microphone).toHaveCount(0);
   const sendBox = (await send.boundingBox())!;
   await page.screenshot({ path: test.info().outputPath('text-send.png') });
   expect(sendBox.width).toBe(microphoneBox.width);
@@ -599,11 +608,17 @@ test('text and voice use one consistent primary action and a tap sends text once
   });
   expect(colors.foreground).toBe('rgb(255, 255, 255)');
   expect(colors.foreground).not.toBe(colors.background);
+  await editor.fill('');
+  await expect(microphone).toBeEnabled();
+  await expect(send).toHaveCount(0);
+
+  await editor.fill('ї');
   await pressSend(page, 'Надіслати');
-  await expect(page.getByText('Перевірка кнопки надсилання', { exact: true })).toBeVisible();
-  await expect(microphone).toBeVisible();
+  await expect(page.getByText('ї', { exact: true })).toBeVisible();
+  await expect(microphone).toBeEnabled();
+  await expect(send).toHaveCount(0);
   expect(data.posts).toHaveLength(1);
-  expect(data.posts[0]!.markdown).toBe('Перевірка кнопки надсилання');
+  expect(data.posts[0]!.markdown).toBe('ї');
 });
 
 test('the first touch on Send finalizes a hands-free voice note and restores text sending', async ({

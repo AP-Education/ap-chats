@@ -1,15 +1,7 @@
 import { TimelineEntryRetry } from '@ap-education/timeline/react';
-import { createStyles } from 'antd-style';
 
 import type { AnswerFailure } from '../../types';
-
-const useStyles = createStyles(({ css }) => ({
-  note: css`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  `,
-}));
+import styles from './StarMeFailureNote.module.css';
 
 const FAILURE_TEXT: Record<AnswerFailure, string> = {
   limited: 'Запитів до StarMe забагато. Спробуйте трохи згодом.',
@@ -25,13 +17,14 @@ interface StarMeFailureNoteProps {
 
 /** Why StarMe did not answer the person's question, told to them alone. */
 export function StarMeFailureNote({ failure, onRetry }: StarMeFailureNoteProps) {
-  const { styles } = useStyles();
   const canRetry = failure !== 'forbidden';
 
   return (
     <div className={styles.note}>
-      {FAILURE_TEXT[failure]}
-      <TimelineEntryRetry notice="Бачите лише ви" onRetry={canRetry ? onRetry : undefined} />
+      <TimelineEntryRetry
+        notice={<span className={styles.reason}>{FAILURE_TEXT[failure]}</span>}
+        onRetry={canRetry ? onRetry : undefined}
+      />
     </div>
   );
 }
