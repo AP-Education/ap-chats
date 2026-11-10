@@ -1,0 +1,70 @@
+.root {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 320px;
+  max-width: 100%;
+  padding: 10px 2px;
+  color: var(--bubble-text, var(--ant-color-text));
+}
+.play {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ant-color-primary);
+  color: var(--ant-color-white);
+  cursor: pointer;
+}
+.play:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+.body input {
+  width: 100%;
+  margin: 0;
+  min-height: 24px;
+  accent-color: var(--ant-color-primary);
+}
+.title {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.time {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--bubble-muted, var(--ant-color-text-secondary));
+}
+.speed {
+  border: 0;
+  padding: 10px 2px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.retry {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  text-align: start;
+  cursor: pointer;
+  text-decoration: underline;
+}

@@ -9,19 +9,25 @@ import {
   ComposerUploadTray,
 } from '@ap-education/timeline/composer';
 import { Button, message } from 'antd';
-import { type ReactNode, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
-import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
+import {
+  type ComposerIntent as ConversationIntent,
+  useConversation,
+  useConversationScope,
+  useConversationStore,
+} from '@/features/social/conversation-scope/store';
 import { writeToken } from '@/features/social/mentions/mention-tokens';
 
 import { useAttachments } from '../../attachments/useAttachments';
 import { useLinkedGif } from '../../gifs/useLinkedGif';
 import type { ComposedMessage } from '../../types';
-import { ComposerIntent } from './ComposerIntent';
 import { parseComposerDraft } from './composer-draft';
+import { ComposerIntent } from './ComposerIntent';
 import type { ReplyPreview } from './composerIntents';
+import { ComposerVoice } from './ComposerVoice';
 import { MessageInput } from './MessageInput';
 import { PrivateAssistantMode } from './PrivateAssistantMode';
 import { SendButton } from './SendButton';
@@ -45,10 +51,12 @@ export function MessageComposer({
   const { identity } = useQueryAuth();
   const draftKey = `ap-chats:draft:${identity}:${workspaceId}:${channelId}`;
   const audienceKey = `${draftKey}:audience`;
-  const intent = useConversation((state) => state.intent);
+  const privateIntent = useConversation((state) => isPrivateIntent(state.intent));
+  const conversation = useConversationStore();
   const extensions = useConversationExtensions();
-  const assistantMemberId = extensions.find((extension) => extension.privateAssistantMemberId)
-    ?.privateAssistantMemberId;
+  const assistantMemberId = extensions.find(
+    (extension) => extension.privateAssistantMemberId,
+  )?.privateAssistantMemberId;
   const assistantMention = assistantMemberId
     ? writeToken({ kind: 'member', id: assistantMemberId })
     : null;
@@ -57,9 +65,7 @@ export function MessageComposer({
       localStorage.getItem(audienceKey) === 'private' ||
       parseComposerDraft(localStorage.getItem(draftKey)).assistant,
   );
-  const privateIntent =
-    intent?.kind === 'ask' || (intent?.kind === 'reply' && intent.privateAssistant);
-  const privateAssistant = savedPrivateAssistant || Boolean(privateIntent);
+  const privateAssistant = savedPrivateAssistant || privateIntent;
   const rememberAssistant = useCallback(
     (enabled: boolean) => {
       if (enabled) localStorage.setItem(audienceKey, 'private');
@@ -69,9 +75,14 @@ export function MessageComposer({
     [audienceKey],
   );
 
-  useLayoutEffect(() => {
-    if (privateIntent && !savedPrivateAssistant) rememberAssistant(true);
-  }, [privateIntent, rememberAssistant, savedPrivateAssistant]);
+  useEffect(
+    () =>
+      conversation.subscribe((next, previous) => {
+        if (next.intent !== previous.intent && isPrivateIntent(next.intent))
+          rememberAssistant(true);
+      }),
+    [conversation, rememberAssistant],
+  );
 
   const labels = useMemo(
     () => ({ field: composer.ariaLabel, placeholder: composer.placeholder }),
@@ -101,7 +112,11 @@ export function MessageComposer({
       labels={labels}
       autoFocus={composer.autoFocus}
       onChange={(draft) => {
-        if (assistantMention && draft.markdown.includes(assistantMention)) rememberAssistant(true);
+        if (
+          draft.markdown &&
+          (privateIntent || (assistantMention && draft.markdown.includes(assistantMention)))
+        )
+          rememberAssistant(true);
         linkedGif.prefetch(draft.markdown);
       }}
       onSend={send}
@@ -111,26 +126,32 @@ export function MessageComposer({
         policy={attachments.policy}
         onReject={showRejections}
       >
-        <ComposerDropZone />
-        <ComposerAttach placement="beside" />
-        <ComposerField>
-          <ComposerHeader>
-            <ComposerUploadTray />
-            {attachments.policyError && <UploadPolicyAlert onRetry={attachments.reloadPolicy} />}
-            <ComposerIntent replyAuthor={replyAuthor} replyPreview={replyPreview} />
-            <PrivateAssistantMode
-              active={privateAssistant}
-              mention={assistantMention}
-              onLeave={() => rememberAssistant(false)}
-            />
-          </ComposerHeader>
-          <ComposerAttach placement="field" />
-          <MessageInput sendInTurn={sendInTurn}>{children}</MessageInput>
-        </ComposerField>
-        <SendButton privateAssistant={privateAssistant} />
+        <ComposerVoice scope={{ workspaceId, channelId }} attachments={attachments} onSend={send}>
+          <ComposerDropZone />
+          <ComposerAttach placement="beside" />
+          <ComposerField>
+            <ComposerHeader>
+              <ComposerUploadTray />
+              {attachments.policyError && <UploadPolicyAlert onRetry={attachments.reloadPolicy} />}
+              <ComposerIntent replyAuthor={replyAuthor} replyPreview={replyPreview} />
+              <PrivateAssistantMode
+                active={privateAssistant}
+                mention={assistantMention}
+                onLeave={() => rememberAssistant(false)}
+              />
+            </ComposerHeader>
+            <ComposerAttach placement="field" />
+            <MessageInput sendInTurn={sendInTurn}>{children}</MessageInput>
+          </ComposerField>
+          <SendButton privateAssistant={privateAssistant} />
+        </ComposerVoice>
       </ComposerUploads>
     </Composer>
   );
+}
+
+function isPrivateIntent(intent: ConversationIntent): boolean {
+  return intent?.kind === 'ask' || (intent?.kind === 'reply' && Boolean(intent.privateAssistant));
 }
 
 function showRejections(reasons: string[]) {

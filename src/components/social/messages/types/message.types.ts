@@ -16,6 +16,8 @@ export interface Attachment {
   hasThumbnail?: boolean;
   /** Video duration in seconds, inspected from the uploaded file. */
   duration?: number;
+  /** A recorded voice note; duration is derived from the stored audio by the API. */
+  voice?: { durationMs: number };
 }
 
 // What a fresh post and a forward of it both carry unmodified: what's

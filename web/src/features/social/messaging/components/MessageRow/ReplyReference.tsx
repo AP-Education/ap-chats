@@ -17,6 +17,7 @@ export function ReplyReference() {
         title={reply.author?.displayName ?? 'Ім’я недоступне'}
         markdown={reply.markdown}
         blocks={reply.blocks}
+        attachments={reply.attachments}
         quoteText={item.message.quoteText}
       />
     </BubbleExcerpt>

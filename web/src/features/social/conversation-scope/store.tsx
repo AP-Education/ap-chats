@@ -109,7 +109,11 @@ export function useConversationPermissions(): ConversationPermissions {
 }
 
 export function useConversation<T>(selector: (state: ConversationState) => T): T {
+  return useStore(useConversationStore(), selector);
+}
+
+export function useConversationStore() {
   const store = useContext(ConversationContext);
   if (!store) throw new Error('ConversationProvider is missing');
-  return useStore(store, selector);
+  return store;
 }

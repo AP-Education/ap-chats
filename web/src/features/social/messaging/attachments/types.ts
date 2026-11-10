@@ -1,4 +1,10 @@
-import type { UploadDraft } from '@ap-education/timeline/composer';
+import type {
+  UploadDraft,
+  UploadFile as QueueFile,
+  UploadSession,
+} from '@ap-education/timeline/composer';
+
+export type { UploadSession };
 
 export interface Attachment {
   id: string;
@@ -13,6 +19,7 @@ export interface Attachment {
   placeholder?: string;
   hasThumbnail?: boolean;
   duration?: number;
+  voice?: { durationMs: number };
 }
 
 /** The links an image shows by, signed for a while; any other file is asked for when opened. */
@@ -43,3 +50,16 @@ export interface UploadScope {
 
 /** A file on its way, as the composer and a waiting message show it. */
 export type AttachmentDraft = UploadDraft<Attachment>;
+
+/** A native recording or shared file can carry a handle while its bytes stay on the device. */
+export interface UploadFile extends QueueFile {
+  voice?: true;
+  nativeRecordingId?: string;
+  sendPart?: (
+    url: string,
+    start: number,
+    end: number,
+    signal: AbortSignal,
+    onProgress: (bytes: number) => void,
+  ) => Promise<void>;
+}

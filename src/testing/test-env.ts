@@ -1,3 +1,4 @@
+process.env.NODE_ENV = 'test';
 // Importing a module validates config eagerly; tests touch no real services, so placeholders satisfy it.
 process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL ??= 'postgresql://test:test@127.0.0.1:1/test';

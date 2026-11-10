@@ -30,6 +30,8 @@ export interface StoredAttachment {
   placeholder?: string;
   hasThumbnail?: boolean;
   duration?: number;
+  /** A recorded voice note; duration is derived from the stored audio by the API. */
+  voice?: { durationMs: number };
 }
 
 /** A GIF as a message keeps it: the media URL exactly as its service serves it, never a copy. */

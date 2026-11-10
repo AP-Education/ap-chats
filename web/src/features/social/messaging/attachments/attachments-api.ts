@@ -2,7 +2,8 @@ import type { UploadSession, UploadTransport } from '@ap-education/timeline/comp
 
 import { apiRequest, jsonInit } from '@/shared/api/http';
 
-import type { Attachment, AttachmentPolicy, UploadScope } from './types';
+import { releaseNativeVoice, uploadNativeVoice } from '../voice/native-recorder';
+import type { Attachment, AttachmentPolicy, UploadFile, UploadScope } from './types';
 
 function uploadsUrl({ workspaceId, channelId }: UploadScope) {
   return `/api/workspaces/${workspaceId}/channels/${channelId}/uploads`;
@@ -37,9 +38,22 @@ export function uploadTransport(
       );
       return part.url;
     },
-    complete: async (id) =>
-      apiRequest<Attachment>(`${url}/${id}/complete`, token(), jsonInit('POST', {})),
+    complete: async (id, file: UploadFile) =>
+      apiRequest<Attachment>(
+        `${url}/${id}/complete`,
+        token(),
+        jsonInit('POST', file.voice ? { kind: 'voice' } : {}),
+      ),
     cancel: async (id) => apiRequest<void>(`${url}/${id}`, token(), { method: 'DELETE' }),
+    uploadNative: (file: UploadFile, signal, { onProgress }) =>
+      file.nativeRecordingId
+        ? uploadNativeVoice(file.nativeRecordingId, scope, signal, onProgress)
+        : undefined,
+    putPart: (file: UploadFile, partUrl, start, end, signal, progress) =>
+      file.sendPart?.(partUrl, start, end, signal, progress),
+    release: (file: UploadFile, cancel) => {
+      if (file.nativeRecordingId) releaseNativeVoice(file.nativeRecordingId, cancel);
+    },
   };
 }
 

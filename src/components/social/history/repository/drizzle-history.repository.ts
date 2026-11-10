@@ -125,6 +125,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
           authorMemberId: replyMessages.authorMemberId,
           contentMarkdown: replyMessages.contentMarkdown,
           gif: replyMessages.gif,
+          attachments: replyMessages.attachments,
           deletedAt: replyMessages.deletedAt,
         },
         replyAuthorProfile: {
@@ -242,6 +243,7 @@ export class DrizzleHistoryRepository extends HistoryRepository {
         'authorMemberId', ${contextMessages.authorMemberId},
         'contentMarkdown', ${contextMessages.contentMarkdown},
         'gif', ${contextMessages.gif},
+        'attachments', ${contextMessages.attachments},
         'author', json_build_object(
           'displayName', ${userProfiles.displayName},
           'avatarPath', ${userProfiles.avatarPath},

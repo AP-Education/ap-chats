@@ -1,5 +1,6 @@
 import { LinkIcon, PaperclipIcon } from '@phosphor-icons/react';
 
+import type { Attachment } from '../../attachments/types';
 import { isLoneGif } from '../../gifs/gif-links';
 import type { MessageBlock } from '../../types';
 import { MessagePreview } from '../MessagePreview/MessagePreview';
@@ -9,11 +10,13 @@ export function ReplyExcerpt({
   title,
   markdown,
   blocks,
+  attachments,
   quoteText,
 }: {
   title: string;
   markdown: string | null;
   blocks?: MessageBlock[];
+  attachments?: Attachment[];
   quoteText?: string | null;
 }) {
   const image = /!\[[^\]]*\]\([^)]+\)/.test(markdown ?? '');
@@ -31,7 +34,9 @@ export function ReplyExcerpt({
           <LinkIcon size={14} className={styles.icon} aria-label="Посилання" />
         )}
         <span className={styles.text}>
-          {quoteText ?? <MessagePreview markdown={markdown} blocks={blocks} />}
+          {quoteText ?? (
+            <MessagePreview markdown={markdown} blocks={blocks} attachments={attachments} />
+          )}
         </span>
       </div>
     </div>

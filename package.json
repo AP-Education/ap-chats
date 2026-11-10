@@ -64,6 +64,7 @@
     "ioredis": "^5.11.1",
     "jose": "6.2.12",
     "livekit-server-sdk": "^2.19.1",
+    "mediabunny": "^1.63.0",
     "nestjs-cls": "^7.0.1",
     "nestjs-pino": "5.2.0",
     "pg": "^8.23.0",

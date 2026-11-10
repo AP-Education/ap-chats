@@ -5,6 +5,11 @@ import type { ComposerInputRequest, ComposerInputState } from '../../composer';
 import type { TabBarModel } from '../../navigation/types';
 import type { PushPermission } from '../../push/types';
 import type { NotificationIntent } from '../../push/utils/notification-intent';
+import type {
+  VoiceRequest,
+  VoiceStateMessage,
+  VoiceUploadResult,
+} from '../../voice-messages/types';
 
 // Bridge protocol: mirrors web/src/features/auth/types/index.ts. Keep additive.
 export interface NativeAuthTokenPayload {
@@ -15,6 +20,8 @@ export interface NativeAuthTokenPayload {
 }
 
 export type NativeToWebMessage =
+  | VoiceStateMessage
+  | VoiceUploadResult
   | { type: 'auth/token'; payload: NativeAuthTokenPayload }
   /** Native has no OIDC client configured (e.g. local dev) — no token is coming, ever. */
   | { type: 'auth/unavailable' }
@@ -45,6 +52,7 @@ export type NativeToWebMessage =
   | { type: 'navigation/back' };
 
 export type WebToNativeMessage =
+  | VoiceRequest
   /** A new document started: what the previous one announced (tabs, back, readiness) is gone. */
   | { type: 'page/started' }
   | { type: 'auth/sign-out' }

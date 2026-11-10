@@ -1,4 +1,5 @@
 import {
+  type ComposerDraft,
   ComposerEditable,
   type ComposerEditableHandle,
   serializeEditable,
@@ -114,7 +115,7 @@ export function MentionEditor() {
 
   useImperativeHandle(editorRef, () => ({
     draft: currentDraft,
-    replaceDraft: (draft) => {
+    replaceDraft: (draft: ComposerDraft) => {
       const root = editableRef.current?.root();
       if (!root) return;
       labels.current = draft.labels;

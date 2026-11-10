@@ -17,7 +17,12 @@ export function ContextReference() {
 
   return (
     <BubbleExcerpt onClick={() => jumpTo(first.id)}>
-      <ReplyExcerpt title={title} markdown={first.markdown} blocks={first.blocks} />
+      <ReplyExcerpt
+        title={title}
+        markdown={first.markdown}
+        blocks={first.blocks}
+        attachments={first.attachments}
+      />
     </BubbleExcerpt>
   );
 }

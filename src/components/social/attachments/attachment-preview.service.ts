@@ -13,11 +13,11 @@ import {
   MediaInspector,
   previewKeyOf,
 } from '@ap-education/storage/media';
+import { ThumbHashPlaceholder } from '@ap-education/storage/thumbhash';
 import { Injectable } from '@nestjs/common';
 
 import type { Attachment } from '../messages/types/message.types';
 import { attachmentMedia } from './attachment-media';
-import { imagePlaceholder } from './image-placeholder';
 import { MAX_VIDEO_PREVIEW_BYTES, videoPreview } from './video-preview';
 
 type InspectedMedia = Pick<
@@ -27,6 +27,7 @@ type InspectedMedia = Pick<
 
 @Injectable()
 export class AttachmentPreviewService {
+  private readonly placeholder = new ThumbHashPlaceholder();
   private rendering = false;
   private readonly waiting: (() => void)[] = [];
   constructor(
@@ -68,7 +69,7 @@ export class AttachmentPreviewService {
         return fallback;
       }
       const { image, width, height, duration } = rendered;
-      const placeholder = await imagePlaceholder(image);
+      const placeholder = await this.placeholder.of(image);
       await this.storage.putPrivateObject(previewKeyOf(key), image, 'image/webp');
       return { ...fallback, width, height, duration, placeholder, hasThumbnail: true };
     } finally {

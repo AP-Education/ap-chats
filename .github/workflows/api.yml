@@ -66,4 +66,8 @@ jobs:
       - run: node --import tsx test/uploads.integration.mts
       - if: always()
         run: docker compose --env-file /dev/null -f infra/docker-compose.uploads-test.yml down
+      - run: docker compose --env-file /dev/null -f infra/docker-compose.voice-test.yml up -d --wait
+      - run: node --import tsx test/voice.integration.mts
+      - if: always()
+        run: docker compose --env-file /dev/null -f infra/docker-compose.voice-test.yml down
       - run: pnpm exec prettier --check src package.json eslint.config.mjs
