@@ -47,12 +47,16 @@ export function useChatFeed(workspaceId: string, channelId: string): TimelineFee
       return;
     }
 
-    // Joined before reading again: an entry created in between reaches the window either way.
+    // The join acknowledges the latest position, so the timeline can skip a read when it has it.
     socket
       .timeout(WATCH_ACK_MS)
-      .emit('social:watch', { workspaceId, channelId }, () =>
-        listeners.current.forEach((listener) => listener({ type: 'reset' })),
-      );
+      .emit('social:watch', { workspaceId, channelId }, (error, watched) => {
+        const signal: TimelineSignal =
+          !error && watched?.lastEntrySeq
+            ? { type: 'appended', upTo: watched.lastEntrySeq }
+            : { type: 'reset' };
+        listeners.current.forEach((listener) => listener(signal));
+      });
     return () => {
       socket.emit('social:unwatch', { workspaceId, channelId });
     };
