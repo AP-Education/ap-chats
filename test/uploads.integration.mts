@@ -30,10 +30,9 @@ Object.assign(process.env, {
 // test in this repo, does not — so this one black-box test needs the real
 // tsc build output rather than a transpile-only run against src.
 const require = createRequire(import.meta.url);
-// Nest itself is required too: an ESM import would load a second copy of @nestjs/core beside the
-// one dist requires, and its injector then fails to resolve its own ApplicationConfig.
-const { ServiceUnavailableException, ValidationPipe } =
-  require('@nestjs/common') as typeof import('@nestjs/common');
+// Nest and the storage package are required too: an ESM import would load a second copy beside
+// the one dist requires, and the injector then finds neither ApplicationConfig nor MediaInspector.
+const { ValidationPipe } = require('@nestjs/common') as typeof import('@nestjs/common');
 const { NestFactory } = require('@nestjs/core') as typeof import('@nestjs/core');
 const { FastifyAdapter } =
   require('@nestjs/platform-fastify') as typeof import('@nestjs/platform-fastify');
@@ -47,13 +46,11 @@ const { AccountsTokenVerifier } =
       verify: (token: string) => Promise<{ sub: string; appId: string }>;
     }>;
   };
+const { MediaBusyError, MediaInspector } =
+  require('@ap-education/storage/media') as typeof import('@ap-education/storage/media');
 const { UploadCleanupService } =
   require('../dist/components/social/attachments/upload-cleanup.service.js') as {
     UploadCleanupService: Type<{ sweep: () => Promise<void> }>;
-  };
-const { AttachmentPreviewService } =
-  require('../dist/components/social/attachments/attachment-preview.service.js') as {
-    AttachmentPreviewService: Type<{ inspect: (...args: unknown[]) => Promise<unknown> }>;
   };
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const s3 = new S3Client({
@@ -259,7 +256,7 @@ try {
   assert.equal(tampered.status, 403);
   await tampered.body?.cancel();
   assert.equal((await fetch(imagePart.url, { method: 'PUT', body: png })).status, 200);
-  const previews = app.get(AttachmentPreviewService);
+  const previews = app.get(MediaInspector);
   const inspect = previews.inspect.bind(previews);
   let releasePreview;
   let enteredPreview;
@@ -272,7 +269,7 @@ try {
   previews.inspect = async () => {
     enteredPreview();
     await held;
-    throw new ServiceUnavailableException('Simulated thumbnail worker interruption');
+    throw new MediaBusyError();
   };
   const interrupted = request('POST', `${target}/uploads/${imageSession.id}/complete`, {}, 503);
   await entered;
@@ -315,6 +312,15 @@ try {
     (await sharp(Buffer.from(await thumbnailResponse.arrayBuffer())).metadata()).width,
     640,
   );
+  const shown = await request('GET', `${target}/messages/${imageMessage.id}`);
+  const { links } = shown.message.attachments[0];
+  const shownPhoto = await fetch(links.preview);
+  assert.equal(shownPhoto.headers.get('content-type'), 'image/png');
+  assert.equal(shownPhoto.headers.get('content-disposition'), null);
+  assert.deepEqual(Buffer.from(await shownPhoto.arrayBuffer()), png);
+  const shownThumbnail = await fetch(links.thumbnail);
+  assert.equal(shownThumbnail.headers.get('content-type'), 'image/webp');
+  await shownThumbnail.body?.cancel();
   await pool.query('delete from channels where id = $1', [channelIds[1]]);
   await pool.query(
     "update chat_uploads set expires_at = now() - interval '1 minute' where workspace_id = $1",

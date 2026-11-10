@@ -1,23 +1,26 @@
 import { ComposerSend, type HoldPointer, useComposer } from '@ap-education/timeline/composer';
 import { Dropdown, type MenuProps } from 'antd';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 
 import {
   type ComposerCommands,
   type SendOption,
   useConversationExtensions,
 } from '@/features/social/conversation-scope/extensions';
-import { useConversation } from '@/features/social/conversation-scope/store';
+import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
 
+import { useConversationSending } from '../../sending/hooks/useConversationSending';
 import { composerIntent } from './composerIntents';
 
-interface SendButtonProps {
-  /** Files wait to go with the message, which not every other way to send can take. */
-  hasAttachments: boolean;
-}
-
 /** Sends on a click; a right click lists the other ways to send, a long press takes the only one. */
-export function SendButton({ hasAttachments }: SendButtonProps) {
+export function SendButton() {
+  const { workspaceId, channelId } = useConversationScope();
+  const { uploads } = useConversationSending(workspaceId, channelId);
+  // Files wait to go with the message, which not every other way to send can take.
+  const hasAttachments = useSyncExternalStore(
+    uploads.subscribe,
+    () => uploads.getSnapshot().length > 0,
+  );
   const extensions = useConversationExtensions();
   const options = useMemo(
     () => extensions.flatMap((extension) => extension.sendOptions ?? []),

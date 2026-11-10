@@ -1,22 +1,29 @@
-import { queryOptions, useQuery } from '@tanstack/react-query';
+import {
+  downloadFile,
+  type MediaUrls,
+  type MediaVariant,
+  useMediaUrl,
+  useNearScreen,
+} from '@ap-education/ui/media';
+import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 
 import { attachmentUrl } from '../../attachments/attachments-api';
 import type { Attachment, UploadScope } from '../../attachments/types';
-
-export type AttachmentUrlVariant = 'thumbnail' | 'preview';
+import type { AttachmentMedia, ChatMedia } from '../../message-media';
+import { attachmentUrls, freshFor } from './attachment-urls';
 
 /** A signed address of an attachment, shared by the rows and the viewer through one cache entry. */
 export function attachmentUrlQuery(
-  { token, identity }: ReturnType<typeof useQueryAuth>,
+  { token, identity }: { token: string | undefined; identity: string | undefined },
   scope: UploadScope,
   messageId: string,
   attachmentId: string,
-  variant: AttachmentUrlVariant,
+  variant: MediaVariant,
 ) {
   return queryOptions({
     queryKey: [
@@ -29,17 +36,37 @@ export function attachmentUrlQuery(
       variant,
     ],
     queryFn: () => attachmentUrl(token!, scope, messageId, attachmentId, variant),
-    // Signed addresses live 15 minutes; one is reused well before it runs out.
-    staleTime: 10 * 60_000,
+    staleTime: freshFor(variant),
     gcTime: 15 * 60_000,
     retry: 1,
   });
 }
 
+/** The conversation's media addresses as the bubbles and the viewer ask for them. */
+export function useAttachmentUrls(): MediaUrls<ChatMedia> {
+  const queryClient = useQueryClient();
+  const { token, identity } = useQueryAuth();
+  const { workspaceId, channelId } = useConversationScope();
+
+  return useMemo(
+    () =>
+      attachmentUrls(queryClient, ({ messageId, attachmentId }, variant) =>
+        attachmentUrlQuery(
+          { token, identity },
+          { workspaceId, channelId },
+          messageId,
+          attachmentId,
+          variant,
+        ),
+      ),
+    [queryClient, token, identity, workspaceId, channelId],
+  );
+}
+
 export function useAttachmentUrl(
   messageId: string,
   attachmentId: string,
-  variant: AttachmentUrlVariant,
+  variant: MediaVariant,
   enabled: boolean,
 ) {
   const auth = useQueryAuth();
@@ -50,24 +77,25 @@ export function useAttachmentUrl(
   });
 }
 
+export function showDownloadError() {
+  void message.error('Не вдалося завантажити файл. Можливо, доступ до повідомлення змінився.');
+}
+
 export function useAttachmentDownload(messageId: string, attachment: Attachment) {
-  const { token } = useQueryAuth();
+  const queryClient = useQueryClient();
+  const auth = useQueryAuth();
   const scope = useConversationScope();
   const [downloading, setDownloading] = useState(false);
 
   async function download() {
-    if (!token || downloading) return;
+    if (!auth.token || downloading) return;
     setDownloading(true);
     try {
-      const { url } = await attachmentUrl(token, scope, messageId, attachment.id, 'download');
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = attachment.name;
-      link.rel = 'noopener noreferrer';
-      link.referrerPolicy = 'no-referrer';
-      link.click();
+      const query = attachmentUrlQuery(auth, scope, messageId, attachment.id, 'download');
+      const { url } = await queryClient.fetchQuery(query);
+      downloadFile(url, attachment.name);
     } catch {
-      void message.error('Не вдалося завантажити файл. Можливо, доступ до повідомлення змінився.');
+      showDownloadError();
     } finally {
       setDownloading(false);
     }
@@ -76,40 +104,37 @@ export function useAttachmentDownload(messageId: string, attachment: Attachment)
   return { downloading, download };
 }
 
-export function useVisibleAttachment() {
-  const [element, setElement] = useState<HTMLElement | null>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    if (!element) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '200px' },
-    );
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [element]);
-  return { observeElement: setElement, visible };
-}
+/**
+ * A message's photo as shown: by the link its message brought, else asked for once it nears the
+ * screen. One that does not load asks once for a fresh link, as a link lapses while the chat stays
+ * open; one that still breaks waits for a press.
+ */
+export function useAttachmentImage(media: AttachmentMedia, available: boolean) {
+  const urls = useAttachmentUrls();
+  const { observe, isNear } = useNearScreen();
+  const address = useMediaUrl(urls, media, 'thumbnail', available && isNear);
+  const [hasRetried, setRetried] = useState(false);
+  const [hasBroken, setBroken] = useState(false);
 
-/** A message's photo as shown: its address once it nears the screen, and a retry if it broke. */
-export function useAttachmentImage(messageId: string, attachmentId: string, available: boolean) {
-  const { observeElement, visible } = useVisibleAttachment();
-  const access = useAttachmentUrl(messageId, attachmentId, 'thumbnail', available && visible);
-  const [failed, setFailed] = useState(false);
+  function fail() {
+    if (hasRetried) {
+      setBroken(true);
+      return;
+    }
+    setRetried(true);
+    address.retry();
+  }
+
+  function retry() {
+    setBroken(false);
+    address.retry();
+  }
 
   return {
-    observeElement,
-    src: access.data && !failed ? access.data.url : undefined,
-    broken: failed || access.isError,
-    markBroken: () => setFailed(true),
-    retry: () => {
-      setFailed(false);
-      void access.refetch();
-    },
+    observe,
+    src: hasBroken ? undefined : address.url,
+    broken: hasBroken || address.failed,
+    fail,
+    retry,
   };
 }

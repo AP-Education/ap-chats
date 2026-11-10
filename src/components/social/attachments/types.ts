@@ -5,6 +5,12 @@ export interface AttachmentRef {
   description?: string;
 }
 
+/** The links an image shows by; any other file is signed when it is opened. */
+export type AttachmentLinks = Partial<Record<'thumbnail' | 'preview', string>>;
+
+/** A file as a message shows it to its reader: what it is and the links it is read by. */
+export type ShownAttachment = Attachment & { links: AttachmentLinks };
+
 export type UploadState = 'uploading' | 'ready' | 'attached' | 'cancelled';
 
 export interface ChatUpload {

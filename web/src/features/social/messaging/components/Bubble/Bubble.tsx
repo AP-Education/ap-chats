@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import styles from './Bubble.module.css';
 
-export type BubbleVariant = 'text' | 'media' | 'bare';
+export type BubbleVariant = 'text' | 'bare';
 
 interface BubbleProps {
   variant?: BubbleVariant;
@@ -11,8 +11,8 @@ interface BubbleProps {
   children: ReactNode;
 }
 
-/** The timeline's bubble with what a chat adds: photos edge to edge, no bubble behind large emoji
- * or a lone GIF, and the full width while editing. */
+/** The timeline's bubble with what a chat adds: no bubble behind large emoji or a lone GIF, and the
+ * full width while editing. */
 export function Bubble({ variant = 'text', wide, children }: BubbleProps) {
   return (
     <TimelineEntryBubble

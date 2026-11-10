@@ -1,14 +1,20 @@
 import { randomUUID } from 'node:crypto';
 
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { NoSuchUploadError, ObjectStorage } from '@ap-education/storage';
+import { MediaBusyError, MediaInspector } from '@ap-education/storage/media';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
 import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
-import { NoSuchUploadError, StorageProvider } from '@/components/uploads/storage';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import type { Attachment } from '../messages/types/message.types';
-import { AttachmentPreviewService } from './attachment-preview.service';
+import { attachmentMedia } from './attachment-media';
 import { ChatUploadsRepository } from './repository/chat-uploads.repository';
 import { type ChatUpload, READY_LIFETIME_MS } from './types';
 import { isFinished, requireOwnUpload } from './upload-lifecycle';
@@ -22,8 +28,8 @@ export class UploadCompletionService {
   constructor(
     private readonly access: ChannelAccessPolicy,
     private readonly repository: ChatUploadsRepository,
-    private readonly storage: StorageProvider,
-    private readonly preview: AttachmentPreviewService,
+    private readonly storage: ObjectStorage,
+    private readonly media: MediaInspector,
   ) {}
 
   async complete(member: WorkspaceMember, channelId: string, id: string): Promise<Attachment> {
@@ -54,13 +60,24 @@ export class UploadCompletionService {
     if (storedSize !== upload.size)
       throw new BadRequestException('Stored file size does not match');
 
+    const media = await this.inspect(upload);
     return {
       id: upload.id,
       name: upload.name,
       size: upload.size,
       description: null,
-      ...(await this.preview.inspect(upload.objectKey, upload.size)),
+      ...attachmentMedia(media),
     };
+  }
+
+  private async inspect(upload: ChatUpload) {
+    try {
+      return await this.media.inspect(upload.objectKey, upload.size);
+    } catch (error) {
+      if (error instanceof MediaBusyError)
+        throw new ServiceUnavailableException('Preview processing is busy; retry completion');
+      throw error;
+    }
   }
 
   @Transactional()

@@ -18,6 +18,7 @@ const useStyles = createStyles(({ css }) => ({
     --timeline-own-to: var(--chat-own-to);
     --timeline-service-bg: var(--chat-service-bg);
     --timeline-service-text: var(--ant-color-white);
+    --media-badge: var(--chat-service-strong);
     position: relative;
     isolation: isolate;
     overflow: hidden;

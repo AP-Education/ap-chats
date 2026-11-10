@@ -22,6 +22,7 @@ Research checked on 2026-10-02:
 | Uploaded but unsent files              | 7 days                           |
 | Completion lease after process failure | 30 minutes                       |
 | Signed upload/download URL             | 15 minutes                       |
+| Signed image link in history           | 1 hour span, valid up to 2 hours |
 | Outstanding uploads per member         | 20 files and 4 GB                |
 
 `CHAT_UPLOAD_MAX_FILE_BYTES`, `CHAT_UPLOAD_MAX_MESSAGE_BYTES`, and `CHAT_UPLOAD_MAX_FILES` configure the public limits. The file ceiling remains 1 GB. The authenticated policy endpoint is the UI's source of truth. `CHAT_UPLOAD_MAX_PENDING_FILES`/`CHAT_UPLOAD_MAX_PENDING_BYTES` configure the outstanding-uploads reservation cap; `UploadPolicy.pendingLimitsFor(member)` is the one seam a future per-member/per-role quota plugs into.
@@ -78,6 +79,8 @@ sequenceDiagram
 ### Access and cleanup
 
 Objects and thumbnails are private. Downloads recheck current channel read access and a live message reference before issuing a short-lived URL. Signing uploads requires current channel post access and session ownership. HTML/SVG/PDF/Office content is served as a download, not executable inline content.
+
+History pages (`window`, `page`, one entry) hand every attachment out with `links`: an image gets `thumbnail` (its WebP preview) and `preview` (the original when browsers show its type, otherwise the WebP), signed in the read itself with no storage request; any other file gets `{}`. Links are signed from the start of the current hour, so a page read twice gives the same address and the browser keeps the image; neither names the file. Downloads, video and audio are signed only when opened, through the per-attachment endpoint, which also gives an image a fresh link when the one from history lapsed. The web shows a photo by its history link, asks the endpoint once if it fails to load, then shows the manual retry. Realtime carries only change hints, so links are never put into events or the outbox.
 
 A previously issued signed URL remains usable until its expiry, including after message deletion or access revocation. New URL requests are denied immediately. Forwarded messages can legitimately authorize the same object through their own channel.
 

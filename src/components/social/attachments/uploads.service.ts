@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto';
 
+import { ObjectStorage } from '@ap-education/storage';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
 import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
-import { StorageProvider } from '@/components/uploads/storage';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
 import type { Attachment } from '../messages/types/message.types';
+import { attachmentObjectKey } from './attachment-links';
 import { ChatUploadsRepository } from './repository/chat-uploads.repository';
 import { type AttachmentRef, UPLOAD_LIFETIME_MS } from './types';
 import {
@@ -32,7 +33,7 @@ export class UploadsService {
   constructor(
     private readonly access: ChannelAccessPolicy,
     private readonly repository: ChatUploadsRepository,
-    private readonly storage: StorageProvider,
+    private readonly storage: ObjectStorage,
     private readonly policy: UploadPolicy,
   ) {}
 
@@ -44,7 +45,7 @@ export class UploadsService {
   async begin(member: WorkspaceMember, channelId: string, name: string, size: number) {
     this.policy.requireFile(size);
     const id = randomUUID();
-    const objectKey = `chat-attachments/${member.workspaceId}/${id}`;
+    const objectKey = attachmentObjectKey(member.workspaceId, id);
     const reservation = { id, name: normalizeFilename(name), size, objectKey };
 
     const multipartId = await this.storage.beginMultipart(objectKey);

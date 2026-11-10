@@ -1,43 +1,19 @@
-import { createStyles } from 'antd-style';
+import { useTimelineMediaItem } from '@ap-education/timeline/media';
+import { MediaViewerCaption } from '@ap-education/ui/media';
 
 import { MessageMarkdown } from '@/features/social/mentions/components/MessageMarkdown/MessageMarkdown';
-import type { MessageHistoryItem } from '@/features/social/messaging/types';
+import type { ChatMedia } from '@/features/social/messaging/message-media';
+import type { MessageEntry } from '@/features/social/messaging/timeline/chat-entry';
 
-const useStyles = createStyles(({ token, css }) => ({
-  // A long caption scrolls inside the bar rather than covering the photo.
-  caption: css`
-    flex: 0 1 720px;
-    min-width: 0;
-    max-width: 720px;
-    max-height: min(30dvh, 168px);
-    overflow-y: auto;
-    padding-bottom: ${token.paddingXS}px;
-    font-size: ${token.fontSize}px;
-    line-height: 1.45;
-    overflow-wrap: anywhere;
-    overscroll-behavior: contain;
+/** The message's text under its media, with the people it mentions. */
+export function ViewerCaption({ memberId }: { memberId: string | undefined }) {
+  const { caption, entry } = useTimelineMediaItem<MessageEntry, ChatMedia>();
+  if (!caption) return null;
 
-    p {
-      margin: 0;
-    }
-    a {
-      color: #8cc8ff;
-    }
-  `,
-}));
-
-interface ViewerCaptionProps {
-  caption: string;
-  /** The message it came in, for the people it mentions. */
-  item: MessageHistoryItem;
-  memberId: string | undefined;
-}
-
-export function ViewerCaption({ caption, item, memberId }: ViewerCaptionProps) {
-  const { styles } = useStyles();
+  const { item } = entry.payload;
 
   return (
-    <div className={styles.caption}>
+    <MediaViewerCaption>
       <MessageMarkdown
         markdown={caption}
         mentions={item.mentions}
@@ -47,6 +23,6 @@ export function ViewerCaption({ caption, item, memberId }: ViewerCaptionProps) {
           roleIds: item.rolesMentioningMe ?? [],
         }}
       />
-    </div>
+    </MediaViewerCaption>
   );
 }

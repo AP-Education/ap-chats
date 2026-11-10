@@ -4,10 +4,12 @@ import { Transactional } from '@nestjs-cls/transactional';
 import { ChannelAccessPolicy } from '@/components/communities/channel-access/channel-access';
 import type { WorkspaceMember } from '@/components/workspaces/members/types';
 
+import { AttachmentLinksService } from '../attachments';
 import { ReadStateService } from '../read-state';
 import type { HistoryQueryDto, HistoryWindowQueryDto } from './dto/history-query.dto';
 import { historyItemView, historyPageView } from './history.view';
 import { HistoryRepository } from './repository/history.repository';
+import type { HistoryRow, ShownHistoryRow } from './types/history.types';
 
 const PAGE_SIZE = 40;
 const CONTEXT_BEFORE_TARGET = 12;
@@ -18,6 +20,7 @@ export class HistoryService {
     private readonly access: ChannelAccessPolicy,
     private readonly history: HistoryRepository,
     private readonly readState: ReadStateService,
+    private readonly links: AttachmentLinksService,
   ) {}
 
   @Transactional()
@@ -38,7 +41,8 @@ export class HistoryService {
     const [row] = rows;
     if (!row) throw new NotFoundException('Entry not found');
 
-    return historyItemView(row, member.id);
+    const shown = await this.shown(row);
+    return historyItemView(shown, member.id);
   }
 
   /** Opens history at the first unread entry or at a linked message; otherwise at the newest. */
@@ -60,9 +64,10 @@ export class HistoryService {
         direction: 'before',
         limit: PAGE_SIZE,
       });
+      const rows = await this.shownAll(latest.rows);
       return historyPageView({
         ...view,
-        rows: latest.rows,
+        rows,
         hasOlder: latest.hasMore,
         hasNewer: false,
       });
@@ -77,9 +82,10 @@ export class HistoryService {
       }),
       this.history.page({ ...snapshot, direction: 'after', cursor: target - 1n, limit: PAGE_SIZE }),
     ]);
+    const rows = await this.shownAll([...older.rows, ...newer.rows]);
     return historyPageView({
       ...view,
-      rows: [...older.rows, ...newer.rows],
+      rows,
       hasOlder: older.hasMore,
       hasNewer: newer.hasMore,
     });
@@ -109,15 +115,29 @@ export class HistoryService {
 
     const position = await this.readState.position(channel, member.id, ceiling);
     const startsMidHistory = Boolean(cursor);
+    const rows = await this.shownAll(page.rows);
 
     return historyPageView({
-      rows: page.rows,
+      rows,
       viewerMemberId: member.id,
       snapshotSeq: ceiling,
       position,
       hasOlder: direction === 'before' ? page.hasMore : startsMidHistory,
       hasNewer: direction === 'after' ? page.hasMore : startsMidHistory,
     });
+  }
+
+  private shownAll(rows: HistoryRow[]): Promise<ShownHistoryRow[]> {
+    return Promise.all(rows.map((row) => this.shown(row)));
+  }
+
+  // A photo shows at once by the links its row brings; any other file is signed once opened.
+  private async shown(row: HistoryRow): Promise<ShownHistoryRow> {
+    if (row.type === 'CALL') return row;
+
+    const { message } = row;
+    const attachments = await this.links.shown(message.workspaceId, message.attachments);
+    return { ...row, message: { ...message, attachments } };
   }
 
   private async requireMessageSeq(channelId: string, messageId: string): Promise<bigint> {

@@ -1,9 +1,14 @@
 import { messageBlocks } from './message-blocks';
-import type { MessageModel } from './types/message.types';
+import type { Attachment, MessageModel } from './types/message.types';
 
 export type MessageView = ReturnType<typeof messageView>;
 
-export function messageView(message: MessageModel, seq: bigint, viewerMemberId?: string) {
+// The history hands files out with their links, so the view keeps the files' own type.
+export function messageView<File extends Attachment>(
+  message: Omit<MessageModel, 'attachments'> & { attachments: File[] },
+  seq: bigint,
+  viewerMemberId?: string,
+) {
   return {
     id: message.id,
     seq: seq.toString(),
