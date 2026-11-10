@@ -1,14 +1,23 @@
 import { messageBlocks } from './message-blocks';
-import type { MessageModel } from './types/message.types';
+import type { Attachment, MessageModel } from './types/message.types';
+import { privateAssistantMessage } from './visibility';
 
 export type MessageView = ReturnType<typeof messageView>;
 
-export function messageView(message: MessageModel, seq: bigint, viewerMemberId?: string) {
+// The history hands files out with their links, so the view keeps the files' own type.
+export function messageView<File extends Attachment>(
+  message: Omit<MessageModel, 'attachments'> & { attachments: File[] },
+  seq: bigint,
+  viewerMemberId?: string,
+) {
+  const privateToMe =
+    privateAssistantMessage(message) && message.assistantOwnerMemberId === viewerMemberId;
   return {
     id: message.id,
     seq: seq.toString(),
     authorMemberId: message.authorMemberId,
-    clientNonce: message.authorMemberId === viewerMemberId ? message.clientNonce : null,
+    clientNonce:
+      privateToMe || message.authorMemberId === viewerMemberId ? message.clientNonce : null,
     markdown: message.deletedAt ? null : message.contentMarkdown,
     attachments: message.deletedAt ? [] : message.attachments,
     blocks: message.deletedAt ? [] : messageBlocks(message),
@@ -18,7 +27,9 @@ export function messageView(message: MessageModel, seq: bigint, viewerMemberId?:
     quoteText: message.quoteText,
     isForwarded: message.forwardedFromMemberId !== null,
     forwardedFromMemberId: message.forwardedFromMemberId,
-    createdAt: message.createdAt,
+    createdAt: message.publishedAt ?? message.createdAt,
+    privateToMe,
+    assistantAnswer: privateToMe && Boolean(message.assistantQuestionId),
     editedAt: message.editedAt,
     deletedAt: message.deletedAt,
   };

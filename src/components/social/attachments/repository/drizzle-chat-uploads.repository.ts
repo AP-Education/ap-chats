@@ -3,7 +3,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, eq, inArray, isNull, lt, ne, sql } from 'drizzle-orm';
 
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
-import { chatMessages, chatUploads } from '@/database/drizzle/schema';
+import { chatMessages, chatUploads, scheduledMessages } from '@/database/drizzle/schema';
 
 import type { ChatUpload, ChatUploadPatch, NewChatUpload } from '../types';
 import { ChatUploadsRepository } from './chat-uploads.repository';
@@ -95,16 +95,29 @@ export class DrizzleChatUploadsRepository extends ChatUploadsRepository {
   }
 
   async hasLiveReferences(id: string): Promise<boolean> {
-    const [row] = await this.host.tx
+    const attachment = JSON.stringify([{ id }]);
+    const posted = this.host.tx
       .select({ id: chatMessages.id })
       .from(chatMessages)
       .where(
         and(
           isNull(chatMessages.deletedAt),
-          sql`${chatMessages.attachments} @> ${JSON.stringify([{ id }])}::jsonb`,
+          sql`${chatMessages.attachments} @> ${attachment}::jsonb`,
         ),
       )
       .limit(1);
-    return Boolean(row);
+    const scheduled = this.host.tx
+      .select({ id: scheduledMessages.id })
+      .from(scheduledMessages)
+      .where(sql`${scheduledMessages.attachments} @> ${attachment}::jsonb`)
+      .limit(1);
+
+    // A single snapshot sees the file in the schedule or in the history during delivery.
+    const [row] = await this.host.tx
+      .select({ retained: sql<boolean>`exists (${posted}) or exists (${scheduled})` })
+      .from(chatUploads)
+      .where(eq(chatUploads.id, id));
+
+    return row?.retained ?? false;
   }
 }

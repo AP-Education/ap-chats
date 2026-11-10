@@ -15,6 +15,7 @@ import {
 import { ChatTextIcon, ProhibitIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
+import { useMemo } from 'react';
 import { useMatch, useParams } from 'react-router-dom';
 
 import { ConversationView } from '@/features/social/conversation/components/ConversationView/ConversationView';
@@ -24,13 +25,12 @@ import { DirectMessageActions } from '@/features/social/direct-messages/componen
 import { DirectProfilePanel } from '@/features/social/direct-messages/components/DirectProfilePanel/DirectProfilePanel';
 import { useDirectMessage } from '@/features/social/direct-messages/hooks/useDirectMessages';
 import { schedulingExtension } from '@/features/social/scheduling/extension';
+import { useStarMeExtension } from '@/features/star-me/hooks/useStarMeExtension';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 import { useRequiredWorkspace } from '@/features/workspaces/stores/required-workspace-context';
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 import { Avatar } from '@/shared/ui/Avatar';
 import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
-
-const directExtensions = [schedulingExtension];
 
 const useStyles = createStyles(({ css }) => ({
   name: css`
@@ -83,6 +83,11 @@ export default function DirectMessagePage() {
   );
   // A conversation belongs to people rather than to the active workspace, so it names its own.
   const { byId, currentMember } = useWorkspaceMemberLabels(conversation.data?.workspaceId);
+  const starMe = useStarMeExtension(conversation.data?.workspaceId ?? activeWorkspaceId);
+  const directExtensions = useMemo(
+    () => (starMe ? [schedulingExtension, starMe] : [schedulingExtension]),
+    [starMe],
+  );
 
   if (!channelId) return <NoConversationSelected />;
   if (conversation.isPending) return <Page />;

@@ -158,7 +158,11 @@ export function seedConversations(db: TestDatabase) {
         .values({ workspaceId, channelId, messageId, seq: conversation.seq });
       await db
         .update(schema.channels)
-        .set({ lastEntrySeq: conversation.seq, updatedAt: tick() })
+        .set({
+          lastEntrySeq: conversation.seq,
+          lastPublicEntrySeq: conversation.seq,
+          updatedAt: tick(),
+        })
         .where(eq(schema.channels.id, channelId));
       if (mentioning.length) {
         await db

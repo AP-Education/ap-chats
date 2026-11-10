@@ -1,10 +1,13 @@
+import { replaceEntry } from '@ap-education/timeline';
 import { useQueryClient } from '@tanstack/react-query';
 import { message as toast } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { getCallEntry } from '@/features/social/messaging/api/messages-api';
-import { mergeHistoryItem } from '@/features/social/messaging/history-cache';
+import { messagingQueryKeys } from '@/features/social/messaging/queryKeys';
+import { type ChatTimelineData, toEntry } from '@/features/social/messaging/timeline/chat-entry';
 
 import type { CallView } from '../api/calls-api';
 import { liveCallAfter } from '../liveCall';
@@ -27,6 +30,7 @@ function parse(payload: unknown): CallSignal | null {
 /** Keeps the call store, the "active call" indicators, and the channel's
  * timeline card in sync with the server, app-wide. */
 export function useCallSignalListener(): void {
+  const { t } = useTranslation('calls');
   const queryClient = useQueryClient();
   const { token, identity } = useQueryAuth();
   const setIncoming = useCallStore((state) => state.setIncoming);
@@ -51,7 +55,12 @@ export function useCallSignalListener(): void {
     if (!token) return;
     void getCallEntry(token, signal.workspaceId, signal.channelId, signal.callId)
       .then((item) =>
-        mergeHistoryItem(queryClient, identity, signal.workspaceId, signal.channelId, item),
+        queryClient.setQueriesData<ChatTimelineData>(
+          {
+            queryKey: messagingQueryKeys.histories(identity, signal.workspaceId, signal.channelId),
+          },
+          (history) => history && replaceEntry(history, toEntry(item)),
+        ),
       )
       .catch(() => undefined);
   }
@@ -83,7 +92,7 @@ export function useCallSignalListener(): void {
     if (active?.callId === signal.callId) {
       announceCallEnd(active, 'declined');
       clearActive();
-      toast.info('Дзвінок відхилено.');
+      toast.info(t(($) => $.toasts.declined));
     }
     syncCall(signal);
     refreshEntry(signal);
@@ -110,7 +119,7 @@ export function useCallSignalListener(): void {
     if (active?.callId === signal.callId) {
       announceCallEnd(active, 'ended');
       clearActive();
-      toast.info('Не відповіли.');
+      toast.info(t(($) => $.toasts.noAnswer));
     }
     syncCall(signal);
     refreshEntry(signal);

@@ -21,14 +21,28 @@ export abstract class StarMeRepository {
     channelId: string,
     starMeMemberId: string,
     clientNonce: string,
+    questionId?: string,
   ): Promise<string | undefined>;
 
   /** The channel's last live messages up to and including `seq`, oldest first. */
-  abstract recent(channelId: string, seq: bigint, limit: number): Promise<ConversationMessage[]>;
+  abstract recent(
+    channelId: string,
+    seq: bigint,
+    limit: number,
+    viewerMemberId?: string,
+  ): Promise<ConversationMessage[]>;
 
   /** The listed live messages of the channel, oldest first. */
-  abstract selected(channelId: string, messageIds: string[]): Promise<ConversationMessage[]>;
+  abstract selected(
+    channelId: string,
+    messageIds: string[],
+    viewerMemberId?: string,
+  ): Promise<ConversationMessage[]>;
 
   /** The live messages the question is about, oldest first. */
-  abstract context(channelId: string, questionId: string): Promise<ConversationMessage[]>;
+  abstract context(
+    channelId: string,
+    questionId: string,
+    viewerMemberId?: string,
+  ): Promise<ConversationMessage[]>;
 }

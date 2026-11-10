@@ -1,3 +1,5 @@
+import { TimelineEntryAuthor } from '@ap-education/timeline/react';
+
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { BotBadge } from '@/features/social/people/components/BotBadge/BotBadge';
 import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
@@ -5,7 +7,8 @@ import { MemberProfileTrigger } from '@/features/social/people/components/Member
 import { useMessageActionScope } from './MessageActionScope';
 import styles from './MessageAuthorName.module.css';
 
-/** Who wrote an incoming message, in the colour of their top role. */
+/** Who wrote an incoming message, in the colour of their top role, over the first bubble of
+ * their run. */
 export function MessageAuthorName() {
   const { item, author, context } = useMessageActionScope();
   const { workspaceId } = useConversationScope();
@@ -13,7 +16,7 @@ export function MessageAuthorName() {
   if (item.message.authorMemberId === context.memberId) return null;
 
   return (
-    <span className={styles.line}>
+    <TimelineEntryAuthor className={styles.line} data-bot={item.author.isBot || undefined}>
       <MemberProfileTrigger member={{ ...item.author, workspaceId }}>
         <button
           type="button"
@@ -24,6 +27,6 @@ export function MessageAuthorName() {
         </button>
       </MemberProfileTrigger>
       {item.author.isBot && <BotBadge />}
-    </span>
+    </TimelineEntryAuthor>
   );
 }

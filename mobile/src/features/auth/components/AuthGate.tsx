@@ -1,4 +1,5 @@
 import type { PropsWithChildren } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { GateScreen } from '../../../components/GateScreen';
 import { useAuthStore } from '../index';
@@ -13,29 +14,33 @@ import { useAuthStore } from '../index';
  */
 export function AuthGate({ children }: PropsWithChildren) {
   const auth = useAuthStore();
+  const { t } = useTranslation('auth');
 
   if (auth.status === 'unconfigured' || auth.status === 'signed-in') {
     return <>{children}</>;
   }
 
   if (auth.status === 'signing-in') {
-    return <GateScreen icon="people" title="Заходимо" loading />;
+    return <GateScreen icon="people" title={t(($) => $.signingIn)} loading />;
   }
 
   if (auth.status === 'signing-out') {
-    return <GateScreen icon="people" title="Виходимо" loading />;
+    return <GateScreen icon="people" title={t(($) => $.signingOut)} loading />;
   }
 
   if (auth.status === 'error' && auth.operation === 'sign-out') {
     return (
       <GateScreen
         icon="people"
-        title="Не вдалося завершити вихід"
-        description="Спробуй ще раз, щоб завершити вихід зі спільного акаунта AP."
+        title={t(($) => $.signOutFailed.title)}
+        description={t(($) => $.signOutFailed.description)}
         actions={[
-          { label: 'Повторити вихід', onPress: () => void useAuthStore.getState().signOut() },
           {
-            label: 'Увійти',
+            label: t(($) => $.signOutFailed.retry),
+            onPress: () => void useAuthStore.getState().signOut(),
+          },
+          {
+            label: t(($) => $.signOutFailed.signIn),
             variant: 'secondary',
             onPress: () => void useAuthStore.getState().signIn(),
           },
@@ -47,16 +52,17 @@ export function AuthGate({ children }: PropsWithChildren) {
   return (
     <GateScreen
       icon="people"
-      title={auth.status === 'error' ? 'Не вдалося увійти' : 'Увійди в AP App'}
+      title={auth.status === 'error' ? t(($) => $.signInFailed.title) : t(($) => $.signIn.title)}
       description={
         auth.status === 'error'
-          ? 'Спробуй ще раз за хвилину.'
-          : 'Один клік через спільний акаунт AP, і ти в чаті з командою.'
+          ? t(($) => $.signInFailed.description)
+          : t(($) => $.signIn.description)
       }
       detail={auth.status === 'error' ? auth.message : undefined}
       actions={[
         {
-          label: auth.status === 'error' ? 'Спробувати ще раз' : 'Увійти',
+          label:
+            auth.status === 'error' ? t(($) => $.signInFailed.retry) : t(($) => $.signIn.action),
           onPress: () => void useAuthStore.getState().signIn(),
         },
       ]}

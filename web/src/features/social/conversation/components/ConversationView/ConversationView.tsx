@@ -4,7 +4,7 @@ import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 
 import { ActiveCallBanner } from '@/features/calls/components/ActiveCallBanner';
 import { useConversation, useConversationScope } from '@/features/social/conversation-scope/store';
-import { MediaViewerProvider } from '@/features/social/media-viewer/providers/MediaViewerProvider';
+import { ConversationMedia } from '@/features/social/media-viewer/components/ConversationMedia';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import { keyboardGlidePart } from '@/features/social/messaging/keyboard-glide-part';
 import { PinnedMessageBar } from '@/features/social/pins/components/PinnedMessageBar/PinnedMessageBar';
@@ -81,8 +81,7 @@ export function ConversationView({ currentMember, readOnlyFooter }: Conversation
     memberId: currentMember?.id,
     operations,
   });
-  const historyReady =
-    !navigation.history.isPending && !(navigation.history.isError && !navigation.history.data);
+  const historyReady = navigation.history.isLoaded;
   const surfaceRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -92,23 +91,23 @@ export function ConversationView({ currentMember, readOnlyFooter }: Conversation
     <KeyboardGlideSurface
       surfaceRef={surfaceRef}
       className={styles.shell}
-      data-conversation-drop-target
+      data-composer-drop-target
     >
-      <MediaViewerProvider
-        items={navigation.items}
+      <ConversationMedia
+        view={navigation.history}
         actions={{
           actions: interaction.actions,
           context: interaction.actionContext,
           run: interaction.onAction,
-          showInChat: navigation.onJump,
         }}
+        onShowEntry={navigation.onJump}
       >
         <ConversationHistoryContent
           navigation={navigation}
           interaction={interaction}
           operations={operations}
         />
-      </MediaViewerProvider>
+      </ConversationMedia>
       <div ref={topRef} className={styles.top}>
         <PinnedMessageBar onJump={navigation.onJump} />
         <ActiveCallBanner

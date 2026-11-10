@@ -5,76 +5,87 @@ import { join } from 'node:path';
 import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { fileTypeFromBuffer } from 'file-type';
-import sharp from 'sharp';
-
-import { StorageProvider } from '@/components/uploads/storage';
+import { ObjectStorage } from '@ap-education/storage';
+import {
+  identifyMedia,
+  MEDIA_PREFIX_BYTES,
+  MediaBusyError,
+  MediaInspector,
+  previewKeyOf,
+} from '@ap-education/storage/media';
+import { ThumbHashPlaceholder } from '@ap-education/storage/thumbhash';
+import { Injectable } from '@nestjs/common';
 
 import type { Attachment } from '../messages/types/message.types';
-import { imagePlaceholder } from './image-placeholder';
-
-const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
-// Phone cameras shoot 24 to 50 megapixels by default; JPEG decodes shrunk, so a preview stays cheap.
-const MAX_PIXELS = 50_000_000;
-
-// file-type's own signature library: maintained against the real corpus of
-// container formats (zip-based docs, webm/mkv, heic, ...) instead of the
-// handful of magic bytes we'd otherwise hand-roll and slowly rot.
-const PREFIX_BYTES = 4100;
-
-// Unlike images (sharp either decodes one or inspect() falls back to
-// preview: null, so any detected image/* is safe to try), a video/audio
-// preview goes straight to an HTML5 <video>/<audio> tag with no decode check
-// in between — so this stays a deliberate allowlist of formats browsers
-// reliably play, not everything file-type can merely identify.
-const PREVIEWABLE_VIDEO_TYPES = new Set(['video/mp4', 'video/webm']);
-const PREVIEWABLE_AUDIO_TYPES = new Set(['audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/ogg']);
-
-export async function identifyMedia(prefix: Buffer): Promise<{
-  mediaType: string;
-  preview: Attachment['preview'];
-}> {
-  const detected = await fileTypeFromBuffer(prefix);
-  if (!detected) return { mediaType: 'application/octet-stream', preview: null };
-  const preview = detected.mime.startsWith('image/')
-    ? 'image'
-    : PREVIEWABLE_VIDEO_TYPES.has(detected.mime)
-      ? 'video'
-      : PREVIEWABLE_AUDIO_TYPES.has(detected.mime)
-        ? 'audio'
-        : null;
-  return { mediaType: detected.mime, preview };
-}
+import { attachmentMedia } from './attachment-media';
+import { MAX_VIDEO_PREVIEW_BYTES, videoPreview } from './video-preview';
 
 type InspectedMedia = Pick<
   Attachment,
-  'preview' | 'mediaType' | 'width' | 'height' | 'placeholder'
+  'preview' | 'mediaType' | 'width' | 'height' | 'placeholder' | 'hasThumbnail' | 'duration'
 >;
 
 @Injectable()
 export class AttachmentPreviewService {
+  private readonly placeholder = new ThumbHashPlaceholder();
   private rendering = false;
   private readonly waiting: (() => void)[] = [];
-  constructor(private readonly storage: StorageProvider) {}
+  constructor(
+    private readonly storage: ObjectStorage,
+    private readonly images: MediaInspector,
+  ) {}
 
   async inspect(key: string, size: number): Promise<InspectedMedia> {
     const media = await identifyMedia(await this.readPrefix(key));
     const result = { ...media, width: null, height: null };
+    if (media.preview === 'video' && size <= MAX_VIDEO_PREVIEW_BYTES)
+      return this.withRenderSlot(() => this.videoThumbnail(key, size, result));
     if (media.preview !== 'image') return result;
-    if (size > MAX_IMAGE_BYTES) return { ...result, preview: null };
-    return this.withRenderSlot(() => this.thumbnail(key, size, result));
+    return this.withRenderSlot(async () => attachmentMedia(await this.images.inspect(key, size)));
+  }
+
+  private async videoThumbnail(
+    key: string,
+    size: number,
+    fallback: InspectedMedia,
+  ): Promise<InspectedMedia> {
+    const directory = await mkdtemp(join(tmpdir(), 'ap-chat-video-'));
+    try {
+      const path = join(directory, 'original');
+      let bytes = 0;
+      const limit = new Transform({
+        transform(chunk: Buffer, _encoding, callback) {
+          bytes += chunk.length;
+          callback(bytes > size ? new Error('Video exceeds its declared size') : null, chunk);
+        },
+      });
+      let rendered: Awaited<ReturnType<typeof videoPreview>>;
+      try {
+        await pipeline(await this.storage.readObject(key), limit, createWriteStream(path), {
+          signal: AbortSignal.timeout(30_000),
+        });
+        rendered = await videoPreview(path);
+      } catch {
+        return fallback;
+      }
+      const { image, width, height, duration } = rendered;
+      const placeholder = await this.placeholder.of(image);
+      await this.storage.putPrivateObject(previewKeyOf(key), image, 'image/webp');
+      return { ...fallback, width, height, duration, placeholder, hasThumbnail: true };
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   }
 
   private async readPrefix(key: string): Promise<Buffer> {
-    const input = await this.storage.readObject(key, `bytes=0-${PREFIX_BYTES - 1}`);
+    const input = await this.storage.readObject(key, `bytes=0-${MEDIA_PREFIX_BYTES - 1}`);
     const chunks: Buffer[] = [];
     let count = 0;
     try {
       for await (const value of input) {
         const chunk = Buffer.from(value as Uint8Array);
         count += chunk.length;
-        if (count > PREFIX_BYTES) throw new Error('Storage exceeded the requested range');
+        if (count > MEDIA_PREFIX_BYTES) throw new Error('Storage exceeded the requested range');
         chunks.push(chunk);
       }
     } finally {
@@ -86,8 +97,7 @@ export class AttachmentPreviewService {
   /** Runs `render` with at most one thumbnail job at a time, queueing up to 4 callers before shedding load. */
   private async withRenderSlot<T>(render: () => Promise<T>): Promise<T> {
     if (this.rendering) {
-      if (this.waiting.length >= 4)
-        throw new ServiceUnavailableException('Preview processing is busy; retry completion');
+      if (this.waiting.length >= 4) throw new MediaBusyError();
       await new Promise<void>((resolve) => this.waiting.push(resolve));
     }
     this.rendering = true;
@@ -97,66 +107,6 @@ export class AttachmentPreviewService {
       const next = this.waiting.shift();
       if (next) next();
       else this.rendering = false;
-    }
-  }
-
-  private async thumbnail(
-    key: string,
-    size: number,
-    fallback: InspectedMedia,
-  ): Promise<InspectedMedia> {
-    const directory = await mkdtemp(join(tmpdir(), 'ap-chat-preview-'));
-    try {
-      const path = join(directory, 'original');
-      let bytes = 0;
-      const limit = new Transform({
-        transform(chunk: Buffer, _encoding, callback) {
-          bytes += chunk.length;
-          callback(bytes > size ? new Error('Image exceeds its declared size') : null, chunk);
-        },
-      });
-      await pipeline(await this.storage.readObject(key), limit, createWriteStream(path), {
-        signal: AbortSignal.timeout(60_000),
-      });
-      const options = {
-        limitInputPixels: MAX_PIXELS,
-        sequentialRead: true,
-        animated: false,
-        failOn: 'error',
-      } as const;
-      let output: Buffer;
-      let placeholder: string;
-      let metadata: sharp.Metadata;
-      try {
-        metadata = await sharp(path, options).metadata();
-        if (
-          !metadata.width ||
-          !metadata.height ||
-          metadata.width * metadata.height > MAX_PIXELS ||
-          metadata.width > 10_000 ||
-          metadata.height > 10_000
-        )
-          return { ...fallback, preview: null };
-        output = await sharp(path, options)
-          .timeout({ seconds: 30 })
-          .rotate()
-          .resize({ width: 960, height: 960, fit: 'inside', withoutEnlargement: true })
-          .webp({ quality: 80, effort: 2 })
-          .toBuffer();
-        placeholder = await imagePlaceholder(output);
-      } catch {
-        return { ...fallback, preview: null };
-      }
-      await this.storage.putPrivateObject(`${key}.preview.webp`, output, 'image/webp');
-      return {
-        ...fallback,
-        preview: 'image',
-        width: metadata.width!,
-        height: metadata.height!,
-        placeholder,
-      };
-    } finally {
-      await rm(directory, { recursive: true, force: true });
     }
   }
 }

@@ -1,9 +1,11 @@
+import type { Action } from '@ap-education/ui';
+import type { TFunction } from 'i18next';
 import type { ReactNode } from 'react';
 
 import type { MemberSummary } from '@/features/workspaces/types';
 
 import type { MessageReaction } from '../reactions/types';
-import type { Attachment, AttachmentDraft } from './attachments/types';
+import type { Attachment, MessageAttachment } from './attachments/types';
 
 /** A GIF for a GIF link its message makes, loaded straight from its service's CDN. */
 export interface GifBlock {
@@ -20,12 +22,14 @@ export interface GifBlock {
 export type MessageBlock = GifBlock;
 
 export interface Message {
+  privateToMe?: boolean;
+  assistantAnswer?: boolean;
   id: string;
   seq: string;
   authorMemberId: string;
   clientNonce: string | null;
   markdown: string | null;
-  attachments?: Attachment[];
+  attachments?: MessageAttachment[];
   blocks?: MessageBlock[];
   contentVersion: number;
   revision: number;
@@ -51,6 +55,7 @@ export interface MessageHistoryItem {
     author: MessageAuthor | null;
     markdown: string | null;
     blocks?: MessageBlock[];
+    attachments?: Attachment[];
   } | null;
   /** The first of the earlier messages this one is about, and how many there are. */
   context: {
@@ -61,6 +66,7 @@ export interface MessageHistoryItem {
       author: MessageAuthor;
       markdown: string | null;
       blocks?: MessageBlock[];
+      attachments?: Attachment[];
     };
   } | null;
   forwardedFrom: MessageAuthor | null;
@@ -128,26 +134,12 @@ export interface HistoryPage {
   peerReadSeq: string | null;
 }
 
-/** One end of the loaded history: whether more lies past it, and how to bring it in. */
-export interface HistoryEdge {
-  available: boolean;
-  loading: boolean;
-  load: () => Promise<unknown>;
-}
-
-/** The stretch of history a timeline shows, opened at a linked message or where reading stopped. */
-export interface HistoryWindow {
-  pages: HistoryPage[];
-  targetMessageId?: string;
-  older: HistoryEdge;
-  newer: HistoryEdge;
-}
-
 // The command this feature works with: full attachment objects, since the
 // composer already has them from the upload queue and the optimistic echo
 // needs to render them immediately. messages-api.ts alone knows how the wire
 // format differs (attachment refs, no clientNonce) and translates at the edge.
 export interface SendMessageCommand {
+  assistant?: boolean;
   markdown: string;
   clientNonce: string;
   replyToMessageId?: string;
@@ -180,13 +172,6 @@ export type EditMessage = (
 // before it's even been POSTed at all; 'failed' waits for a retry.
 export type DeliveryStatus = 'uploading' | 'sending' | 'failed';
 
-export interface DisplayItem {
-  item: HistoryItem;
-  delivery: DeliveryStatus | undefined;
-  /** Set while the message waits on its files: their live progress, shown instead of `item.message.attachments`. */
-  pendingAttachments?: AttachmentDraft[];
-}
-
 // What any feature can offer on messages: the conversation gathers them, message rows show them.
 export type ActionTarget =
   | { kind: 'message'; items: [MessageHistoryItem] }
@@ -212,18 +197,28 @@ export interface ActionCommands {
   showReactions: (item: MessageHistoryItem) => void;
   /** Asks a member, such as an assistant, about the messages: the composer addresses them. */
   ask: (member: MemberSummary, items: MessageHistoryItem[]) => void;
+  makeOwn: (item: MessageHistoryItem) => void;
   /** Unread again from this message on. */
   markUnread: (item: MessageHistoryItem) => void;
 }
 
-/** How an action stands out: a destructive one warns, an assistant's leads on its own sky. */
-export type ActionAccent = 'danger' | 'ai';
+export type { ActionAccent } from '@ap-education/ui';
 
-export interface ConversationAction {
-  id: string;
+export type ExtensionNamespaces = [
+  'messaging',
+  'common',
+  'conversation',
+  'pins',
+  'reactions',
+  'scheduling',
+  'starMe',
+];
+export type ExtensionT = TFunction<ExtensionNamespaces>;
+
+export type ConversationAction = Omit<
+  Action<ActionTarget, ActionContext, ActionCommands>,
+  'label'
+> & {
   icon: ReactNode;
-  accent?: ActionAccent;
-  label: (target: ActionTarget) => string;
-  available: (target: ActionTarget, context: ActionContext) => boolean;
-  execute: (target: ActionTarget, commands: ActionCommands) => void;
-}
+  label: (target: ActionTarget, t: ExtensionT) => string;
+};

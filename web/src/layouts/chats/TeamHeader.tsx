@@ -2,6 +2,7 @@ import { PanelHeader } from '@ap-education/ui';
 import { BellIcon, FoldersIcon, UsersThreeIcon } from '@phosphor-icons/react';
 import type { MenuProps } from 'antd';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { ChannelCategoriesModal } from '../../features/communities/channel-categories/components/ChannelCategoriesModal';
 import { WorkspaceNotificationsDialog } from '../../features/communities/notifications/components/WorkspaceNotifications/WorkspaceNotificationsDialog';
@@ -21,6 +22,7 @@ type Managing = 'notifications' | 'roles' | 'categories' | null;
  * managers also shape its roles and categories.
  */
 export function TeamHeader() {
+  const { t } = useTranslation('navigation');
   const { workspace } = useActiveWorkspace();
   const { currentMember } = useWorkspaceMemberLabels(workspace?.id);
   const [managing, setManaging] = useState<Managing>(null);
@@ -39,13 +41,13 @@ export function TeamHeader() {
         {
           key: 'roles',
           icon: <UsersThreeIcon size={18} />,
-          label: 'Керувати ролями',
+          label: t(($) => $.manageRoles),
           onClick: () => setManaging('roles'),
         },
         {
           key: 'categories',
           icon: <FoldersIcon size={18} />,
-          label: 'Керувати категоріями',
+          label: t(($) => $.manageCategories),
           onClick: () => setManaging('categories'),
         },
       ]

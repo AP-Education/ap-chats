@@ -2,6 +2,7 @@ import { CaretDownIcon, PencilLineIcon, PlusIcon } from '@phosphor-icons/react';
 import { Dropdown, type MenuProps, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useActiveWorkspace } from '../../hooks/useActiveWorkspace';
 import { WorkspaceFormModal } from '../WorkspaceFormModal';
@@ -82,6 +83,7 @@ interface WorkspaceHeaderProps {
 // shell rail, so the header carries no avatar and no switcher affordance.
 export function WorkspaceHeader({ actions = [] }: WorkspaceHeaderProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('workspaces');
   const { workspace, workspaces, isLoading, isError, retry } = useActiveWorkspace();
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -97,7 +99,7 @@ export function WorkspaceHeader({ actions = [] }: WorkspaceHeaderProps) {
   if (isError && !workspaces) {
     return (
       <button type="button" className={styles.trigger} onClick={retry}>
-        Повторити завантаження
+        {t(($) => $.header.retryLoading)}
       </button>
     );
   }
@@ -108,7 +110,7 @@ export function WorkspaceHeader({ actions = [] }: WorkspaceHeaderProps) {
         <span className={styles.createIcon}>
           <PlusIcon size={14} />
         </span>
-        <span className={styles.name}>Створіть робочий простір</span>
+        <span className={styles.name}>{t(($) => $.header.createPrompt)}</span>
       </div>
     );
   }
@@ -127,7 +129,7 @@ export function WorkspaceHeader({ actions = [] }: WorkspaceHeaderProps) {
             {
               key: 'edit',
               icon: <PencilLineIcon size={18} />,
-              label: 'Редагувати робочий простір',
+              label: t(($) => $.header.edit),
               onClick: () => setEditing(true),
             },
             ...actions,

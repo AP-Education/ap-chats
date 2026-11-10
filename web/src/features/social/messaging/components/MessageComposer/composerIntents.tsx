@@ -1,8 +1,8 @@
+import type { ComposerDraft } from '@ap-education/timeline/composer';
 import type { ComponentType } from 'react';
 
 import type { ComposerIntent } from '@/features/social/conversation-scope/store';
 import { writeToken } from '@/features/social/mentions/mention-tokens';
-import type { ComposerDraft } from '@/features/social/mentions/types';
 import type { MemberSummary } from '@/features/workspaces/types';
 
 import type { Message, SendMessageCommand } from '../../types';
@@ -25,7 +25,7 @@ export interface IntentExcerptProps<T> {
   replyPreview?: ReplyPreview;
 }
 
-export type ReplyPreview = Pick<Message, 'markdown' | 'blocks'>;
+export type ReplyPreview = Pick<Message, 'markdown' | 'blocks' | 'attachments' | 'privateToMe'>;
 
 interface ComposerIntentBehaviour<T> {
   Excerpt: ComponentType<IntentExcerptProps<T>>;
@@ -42,9 +42,16 @@ const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>>
   reply: {
     Excerpt: ({ intent, replyAuthor, replyPreview }) => (
       <ReplyExcerpt
-        title={intent.quoteText ? 'Цитата' : `Відповідь для ${replyAuthor ?? 'учасника'}`}
+        title={
+          replyPreview?.privateToMe
+            ? 'Приватна відповідь · Лише для вас'
+            : intent.quoteText
+              ? 'Цитата'
+              : `Відповідь для ${replyAuthor ?? 'учасника'}`
+        }
         markdown={replyPreview?.markdown ?? 'Повідомлення'}
         blocks={replyPreview?.blocks}
+        attachments={replyPreview?.attachments}
         quoteText={intent.quoteText}
       />
     ),

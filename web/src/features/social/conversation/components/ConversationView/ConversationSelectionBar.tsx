@@ -2,6 +2,9 @@ import { IconButton, useIsMobile } from '@ap-education/ui';
 import { XIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import { extensionNamespaces } from '@/features/social/conversation-scope/extensions';
 
 import { AssistedActionLabel } from '../AssistedActionLabel/AssistedActionLabel';
 import type { useConversationActions } from './useConversationActions';
@@ -79,6 +82,8 @@ interface ConversationSelectionBarProps {
 
 export function ConversationSelectionBar({ interaction }: ConversationSelectionBarProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('conversation');
+  const { t: extensionT } = useTranslation(extensionNamespaces);
   const isMobile = useIsMobile();
   const { actions, selectedItems, actionContext, onAction, clearSelection } = interaction;
   const selecting = selectedItems.length > 0;
@@ -104,16 +109,18 @@ export function ConversationSelectionBar({ interaction }: ConversationSelectionB
 
   return (
     <div className={styles.shell}>
-      <div className={styles.bar} role="toolbar" aria-label="Вибрані повідомлення">
+      <div className={styles.bar} role="toolbar" aria-label={t(($) => $.selection.label)}>
         <IconButton
           size={size}
           className={styles.action}
-          aria-label="Скасувати вибір"
+          aria-label={t(($) => $.selection.cancel)}
           onClick={clearSelection}
         >
           <XIcon size={20} />
         </IconButton>
-        <span className={styles.count}>Вибрано: {selectedItems.length}</span>
+        <span className={styles.count}>
+          {t(($) => $.selection.count, { selected: selectedItems.length })}
+        </span>
         {actions
           .filter((action) => action.available(target, actionContext))
           .map((action) =>
@@ -131,7 +138,7 @@ export function ConversationSelectionBar({ interaction }: ConversationSelectionB
                 key={action.id}
                 size={size}
                 className={styles.action}
-                aria-label={action.label(target)}
+                aria-label={action.label(target, extensionT)}
                 onClick={() => onAction(action, target)}
               >
                 {action.icon}

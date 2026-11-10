@@ -1,37 +1,5 @@
-/* Floated after the last line of text: it shares that line while there is room and drops to its
-   own line otherwise, the way chat bubbles keep the time in the corner. */
-.meta {
-  position: relative;
-  top: 6px;
-  float: right;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--ant-padding-xxs);
-  height: 1.5em;
-  margin: 0 calc(-1 * var(--ant-padding-xxs)) 0 var(--ant-padding-sm);
-  color: var(--bubble-meta);
-  /* The smallest text in a bubble: weight and a little tracking keep it legible on a fill. */
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.5;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-/* Trimmed to the cap height, the digits centre on the icons beside them instead of riding
-   above them on the room the line keeps for descenders. */
-.meta > time,
-.meta > span {
-  text-box: trim-both cap alphabetic;
-}
-
-.meta > svg {
-  flex-shrink: 0;
-}
-
+/* The timeline package floats the meta into the corner of the text's last line; the other
+   placements below take it to the files, the reactions or over large emoji. */
 .meta[data-placement='block'] {
   top: 0;
   float: none;
@@ -48,33 +16,22 @@
   margin-left: auto;
 }
 
-/* Over a photo, and over the corner of large emoji that have no bubble behind them. */
-.meta[data-placement='overlay'],
+/* Over the corner of large emoji that have no bubble behind them. Over a photo or GIF the
+   timeline's media part places it. */
 .meta[data-placement='emoji'] {
+  position: absolute;
   top: auto;
+  right: -6px;
+  bottom: 2px;
   float: none;
   display: flex;
   width: fit-content;
+  height: 1.55em;
   margin: 0;
   padding: 0 6px;
   border-radius: 999px;
   background: var(--chat-service-strong, rgba(0, 0, 0, 0.45));
   color: #fff;
-}
-
-/* Inside the photo or GIF it closes, tinted from that corner of it when the media has a ThumbHash. */
-.meta[data-placement='overlay'] {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  background: var(--media-badge-end, var(--chat-service-strong, rgba(0, 0, 0, 0.45)));
-}
-
-.meta[data-placement='emoji'] {
-  position: absolute;
-  right: -6px;
-  bottom: 2px;
-  height: 1.55em;
   font-size: 12px;
   font-weight: 500;
   line-height: 1.55;

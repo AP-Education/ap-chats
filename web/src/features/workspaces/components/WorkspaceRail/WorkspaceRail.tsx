@@ -3,6 +3,7 @@ import { NavAddTile, NavTile } from '@ap-education/ui';
 import { ArrowClockwiseIcon } from '@phosphor-icons/react';
 import { Skeleton } from 'antd';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useActiveWorkspace } from '../../hooks/useActiveWorkspace';
@@ -19,6 +20,7 @@ interface WorkspaceRailProps {
 export function WorkspaceRail({ onTeam }: WorkspaceRailProps) {
   const { workspace, workspaces, isLoading, isError, retry, selectWorkspace } =
     useActiveWorkspace();
+  const { t } = useTranslation('workspaces');
   const chatsActive = useIsAppActive();
   const openApp = useOpenApp();
   const navigate = useNavigate();
@@ -52,7 +54,7 @@ export function WorkspaceRail({ onTeam }: WorkspaceRailProps) {
 
   if (isError && !workspaces) {
     return (
-      <NavTile label="Повторити завантаження робочих просторів" onClick={retry}>
+      <NavTile label={t(($) => $.rail.retryLoading)} onClick={retry}>
         <ArrowClockwiseIcon size={22} />
       </NavTile>
     );
@@ -68,7 +70,7 @@ export function WorkspaceRail({ onTeam }: WorkspaceRailProps) {
           onSelect={() => handleSelect(item.id)}
         />
       ))}
-      <NavAddTile label="Створити робочий простір" onClick={() => setCreating(true)} />
+      <NavAddTile label={t(($) => $.rail.create)} onClick={() => setCreating(true)} />
       <WorkspaceFormModal open={creating} onClose={() => setCreating(false)} />
     </>
   );

@@ -1,6 +1,7 @@
 import { ChatTextIcon } from '@phosphor-icons/react';
 import { Button, message as toast } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { CallIcon } from '@/features/calls/callIcons';
 import { useOpenDirectMessage } from '@/features/social/direct-messages/hooks/useOpenDirectMessage';
@@ -27,6 +28,7 @@ interface MemberCardActionsProps {
 export function MemberCardActions({ onConversationOpen }: MemberCardActionsProps) {
   const { workspaceId, memberId, unavailable } = useMemberCard();
   const { styles } = useStyles();
+  const { t } = useTranslation('people');
   const { open, opening } = useOpenDirectMessage(workspaceId);
 
   return (
@@ -39,13 +41,13 @@ export function MemberCardActions({ onConversationOpen }: MemberCardActionsProps
         disabled={unavailable}
         onClick={() => {
           void open(memberId).then(onConversationOpen, () =>
-            toast.error('Не вдалося відкрити розмову.'),
+            toast.error(t(($) => $.openConversationFailed)),
           );
         }}
       >
-        Написати
+        {t(($) => $.message)}
       </Button>
-      <Button icon={<CallIcon size={20} />} aria-label="Подзвонити" disabled />
+      <Button icon={<CallIcon size={20} />} aria-label={t(($) => $.call)} disabled />
     </div>
   );
 }

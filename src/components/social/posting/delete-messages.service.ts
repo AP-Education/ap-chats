@@ -10,10 +10,12 @@ import { MessagesService } from '../messages';
 import {
   MESSAGE_DELETED_EVENT,
   MessageDeletedEvent,
+  PRIVATE_MESSAGE_DELETED_EVENT,
 } from '../messages/events/message-deleted.event';
 import {
   MESSAGES_BATCH_DELETED_EVENT,
   MessagesBatchDeletedEvent,
+  PRIVATE_MESSAGES_BATCH_DELETED_EVENT,
 } from '../messages/events/messages-batch-deleted.event';
 import type { DeletedMessage } from '../messages/types/message.types';
 import { PinsService } from '../pins';
@@ -45,37 +47,49 @@ export class DeleteMessagesService {
     return { deleted, announce: await this.recordDeletion(actor, channelId, deleted) };
   }
 
-  // One message keeps its own event; several share one, so clients refetch once.
-  private recordDeletion(
+  private async recordDeletion(
     actor: WorkspaceMember,
     channelId: string,
     deleted: DeletedMessage[],
   ): Promise<Announce> {
-    const [only] = deleted;
-    if (!only) return Promise.resolve(nothingToAnnounce);
-
-    if (deleted.length === 1)
-      return this.events.record(
-        MESSAGE_DELETED_EVENT,
-        new MessageDeletedEvent(
-          actor.workspaceId,
-          channelId,
-          only.id,
-          only.seq,
-          actor.id,
-          only.authorMemberId,
-        ),
-      );
-
-    return this.events.record(
-      MESSAGES_BATCH_DELETED_EVENT,
-      new MessagesBatchDeletedEvent(
-        actor.workspaceId,
-        channelId,
-        deleted.map(({ id }) => id),
-        actor.id,
-        deleted.map(({ seq, authorMemberId }) => ({ seq, authorMemberId })),
-      ),
-    );
+    const announcements: Announce[] = [];
+    for (const privateGroup of [false, true]) {
+      const group = deleted.filter((item) => Boolean(item.privateToUserId) === privateGroup);
+      const [only] = group;
+      if (!only) continue;
+      const privateTo = privateGroup ? actor.profile.oidcUserId : undefined;
+      const name =
+        group.length === 1
+          ? privateGroup
+            ? PRIVATE_MESSAGE_DELETED_EVENT
+            : MESSAGE_DELETED_EVENT
+          : privateGroup
+            ? PRIVATE_MESSAGES_BATCH_DELETED_EVENT
+            : MESSAGES_BATCH_DELETED_EVENT;
+      const event =
+        group.length === 1
+          ? new MessageDeletedEvent(
+              actor.workspaceId,
+              channelId,
+              only.id,
+              only.seq,
+              actor.id,
+              only.authorMemberId,
+              privateTo,
+            )
+          : new MessagesBatchDeletedEvent(
+              actor.workspaceId,
+              channelId,
+              group.map(({ id }) => id),
+              actor.id,
+              group.map(({ seq, authorMemberId }) => ({ seq, authorMemberId })),
+              privateTo,
+            );
+      announcements.push(await this.events.record(name, event));
+    }
+    if (!announcements.length) return nothingToAnnounce;
+    return () => {
+      announcements.forEach((announce) => announce());
+    };
   }
 }

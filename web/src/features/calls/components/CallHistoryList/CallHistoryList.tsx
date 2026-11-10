@@ -9,6 +9,7 @@ import { PhoneIcon } from '@phosphor-icons/react';
 import { Button, Segmented } from 'antd';
 import { createStyles } from 'antd-style';
 import { type RefObject, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { matchPath, useLocation } from 'react-router-dom';
 
 import { PanelHeaderActions } from '@/shared/ui/PanelHeaderActions';
@@ -43,6 +44,7 @@ const useStyles = createStyles(({ css }) => ({
 }));
 
 export function CallHistoryList({ onNavigate }: { onNavigate?: () => void }) {
+  const { t } = useTranslation('calls');
   const { styles } = useStyles();
   const [filter, setFilter] = useState<CallHistoryFilter>('all');
   const listRef = useRef<HTMLDivElement>(null);
@@ -50,15 +52,15 @@ export function CallHistoryList({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className={styles.root}>
       <PanelHeader>
-        <PanelTitle>Дзвінки</PanelTitle>
+        <PanelTitle>{t(($) => $.title)}</PanelTitle>
         <PanelHeaderActions>
           <Segmented
             size="small"
             value={filter}
             onChange={(value) => setFilter(value as CallHistoryFilter)}
             options={[
-              { label: 'Усі', value: 'all' },
-              { label: 'Пропущені', value: 'missed' },
+              { label: t(($) => $.filters.all), value: 'all' },
+              { label: t(($) => $.filters.missed), value: 'missed' },
             ]}
           />
         </PanelHeaderActions>
@@ -79,6 +81,7 @@ function CallHistoryResults({
   scrollRoot: RefObject<HTMLDivElement | null>;
   onNavigate?: () => void;
 }) {
+  const { t } = useTranslation(['calls', 'common']);
   const { styles } = useStyles();
   const location = useLocation();
   const history = useCallHistory(filter);
@@ -87,9 +90,9 @@ function CallHistoryResults({
   if (history.isError && !history.data)
     return (
       <div role="alert" className={styles.error}>
-        Не вдалося завантажити дзвінки.{' '}
+        {t(($) => $.loadFailed)}{' '}
         <Button type="link" onClick={() => void history.refetch()}>
-          Повторити
+          {t(($) => $.common.actions.retry)}
         </Button>
       </div>
     );
@@ -104,7 +107,7 @@ function CallHistoryResults({
             <PhoneIcon />
           </ContentStateIcon>
           <ContentStateDescription>
-            {filter === 'missed' ? 'Пропущених дзвінків немає' : 'Дзвінків поки немає'}
+            {filter === 'missed' ? t(($) => $.empty.missed) : t(($) => $.empty.all)}
           </ContentStateDescription>
         </ContentState>
       </div>
@@ -148,6 +151,7 @@ function NextPageLoader({
   failed: boolean;
   onLoad: () => void;
 }) {
+  const { t } = useTranslation(['calls', 'common']);
   const { styles } = useStyles();
   const sentinelRef = useRef<HTMLDivElement>(null);
   // A failed page waits for an explicit retry instead of refiring every time it scrolls into view.
@@ -171,9 +175,9 @@ function NextPageLoader({
   if (failed)
     return (
       <div role="alert" className={styles.error}>
-        Не вдалося завантажити дзвінки.{' '}
+        {t(($) => $.loadFailed)}{' '}
         <Button type="link" onClick={onLoad}>
-          Повторити
+          {t(($) => $.common.actions.retry)}
         </Button>
       </div>
     );

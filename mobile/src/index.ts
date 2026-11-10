@@ -1,3 +1,4 @@
+import './features/locale/store/locale-store';
 import './features/calls/background/call-session';
 import './features/calls/background/ring-ended-task';
 import './features/push/background/session-end';

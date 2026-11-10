@@ -30,6 +30,7 @@ function fixture(kind: 'web' | 'expo' = 'web') {
   const recipient = {
     memberId: 'reader-member',
     userId: 'reader',
+    locale: 'uk',
     lastReadEntrySeq: 0n,
     kind: 'channel',
     channel: { level: 'all', notificationsMuted: false, mutedUntil: null },

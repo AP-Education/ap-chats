@@ -1,5 +1,6 @@
 import { CheckIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { PATTERN_TILE_SIZE } from '../../canvas/pattern-tile';
 import type { WallpaperBase } from '../../hooks/useWallpaperBase';
@@ -104,6 +105,7 @@ export function WallpaperPresetCard({
   onSelect,
 }: WallpaperPresetCardProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('wallpaper');
 
   return (
     <button
@@ -123,7 +125,7 @@ export function WallpaperPresetCard({
           </span>
         )}
       </span>
-      {preset.name}
+      {t(($) => $.presets[preset.id])}
     </button>
   );
 }

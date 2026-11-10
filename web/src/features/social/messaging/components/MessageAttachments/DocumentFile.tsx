@@ -1,10 +1,8 @@
-import { LoadingIcon } from '@ap-education/ui';
+import { TimelineEntryFile } from '@ap-education/timeline/media';
+import { FileCardBadge } from '@ap-education/ui/media';
 import { DownloadSimpleIcon } from '@phosphor-icons/react';
 
-import { fileSummary } from '../../attachments/file-presentation';
 import type { FileAttachmentProps } from './FileAttachment';
-import { FileBadge } from './FileBadge';
-import { FileCard } from './FileCard';
 import { useAttachmentDownload } from './useAttachmentAccess';
 
 export function DocumentFile({ attachment, messageId, available }: FileAttachmentProps) {
@@ -12,24 +10,20 @@ export function DocumentFile({ attachment, messageId, available }: FileAttachmen
   const save = () => void download.download();
 
   return (
-    <FileCard
+    <TimelineEntryFile
       name={attachment.name}
-      meta={fileSummary(attachment.name, attachment.size)}
-      onNamePress={save}
+      size={attachment.size}
+      onNameClick={save}
       nameDisabled={!available}
-      badge={
-        <FileBadge
-          label={`Завантажити ${attachment.name}`}
-          disabled={!available || download.downloading}
-          onPress={save}
-        >
-          {download.downloading ? (
-            <LoadingIcon size={22} />
-          ) : (
-            <DownloadSimpleIcon size={22} weight="bold" />
-          )}
-        </FileBadge>
-      }
-    />
+    >
+      <FileCardBadge
+        label={`Завантажити ${attachment.name}`}
+        disabled={!available}
+        busy={download.downloading}
+        onClick={save}
+      >
+        <DownloadSimpleIcon size={22} weight="bold" />
+      </FileCardBadge>
+    </TimelineEntryFile>
   );
 }

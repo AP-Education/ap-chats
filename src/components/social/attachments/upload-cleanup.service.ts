@@ -1,7 +1,8 @@
+import { ObjectStorage } from '@ap-education/storage';
+import { previewKeyOf } from '@ap-education/storage/media';
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 
-import { StorageProvider } from '@/components/uploads/storage';
 import { Logger } from '@/globals/logger';
 
 import { ChatUploadsRepository } from './repository/chat-uploads.repository';
@@ -27,7 +28,7 @@ export class UploadCleanupService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly repository: ChatUploadsRepository,
-    private readonly storage: StorageProvider,
+    private readonly storage: ObjectStorage,
     private readonly logger: Logger,
   ) {}
 
@@ -74,19 +75,19 @@ export class UploadCleanupService implements OnModuleInit, OnModuleDestroy {
 
     await this.storage.abortMultipart(upload.objectKey, upload.multipartId);
     await this.storage.deleteObject(upload.objectKey);
-    await this.storage.deleteObject(`${upload.objectKey}.preview.webp`);
+    await this.storage.deleteObject(previewKeyOf(upload.objectKey));
     await this.repository.remove(id);
   }
 
-  /** The upload to purge, or null when it is not due yet or a live message still shows it. */
+  /** A scheduled or published message can extend the file's lifetime. */
   @Transactional()
   private async decide(id: string): Promise<ChatUpload | null> {
     const upload = await this.repository.lock(id);
     const isDue = upload !== null && upload.expiresAt.getTime() <= Date.now();
     if (!isDue) return null;
 
-    const isShown = upload.state === 'attached' && (await this.repository.hasLiveReferences(id));
-    if (isShown) {
+    const isRetained = upload.state === 'attached' && (await this.repository.hasLiveReferences(id));
+    if (isRetained) {
       await this.repository.update(id, { expiresAt: new Date(Date.now() + UNREFERENCED_GRACE_MS) });
       return null;
     }

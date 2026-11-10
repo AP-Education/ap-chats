@@ -3,6 +3,7 @@ import { FoldersIcon, TrashIcon } from '@phosphor-icons/react';
 import { Button, Input, List, message, Popconfirm, Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useChannelCategories } from '../../hooks/useChannelCategories';
 import type { ChannelCategory } from '../../types';
@@ -16,6 +17,7 @@ const useStyles = createStyles(({ css }) => ({
 }));
 
 export function ChannelCategoryList({ workspaceId }: { workspaceId: string }) {
+  const { t } = useTranslation(['communities', 'common']);
   const { styles } = useStyles();
   const { query, update, remove } = useChannelCategories(workspaceId);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export function ChannelCategoryList({ workspaceId }: { workspaceId: string }) {
     if (editingId && trimmed) {
       update.mutate(
         { categoryId: editingId, input: { name: trimmed } },
-        { onError: () => void message.error('Не вдалося перейменувати категорію.') },
+        { onError: () => void message.error(t(($) => $.categories.renameFailed)) },
       );
     }
     setEditingId(null);
@@ -39,7 +41,7 @@ export function ChannelCategoryList({ workspaceId }: { workspaceId: string }) {
 
   function deleteCategory(categoryId: string) {
     remove.mutate(categoryId, {
-      onError: () => void message.error('Не вдалося видалити категорію.'),
+      onError: () => void message.error(t(($) => $.categories.deleteFailed)),
     });
   }
 
@@ -54,7 +56,7 @@ export function ChannelCategoryList({ workspaceId }: { workspaceId: string }) {
             <ContentStateIcon>
               <FoldersIcon />
             </ContentStateIcon>
-            <ContentStateDescription>Категорій ще немає</ContentStateDescription>
+            <ContentStateDescription>{t(($) => $.categories.empty)}</ContentStateDescription>
           </ContentState>
         ),
       }}
@@ -64,11 +66,11 @@ export function ChannelCategoryList({ workspaceId }: { workspaceId: string }) {
           actions={[
             <Popconfirm
               key="delete"
-              title="Видалити категорію?"
-              description="Її канали залишаться без категорії."
-              okText="Видалити"
+              title={t(($) => $.categories.deleteConfirmTitle)}
+              description={t(($) => $.categories.deleteConfirmDescription)}
+              okText={t(($) => $.common.actions.delete)}
               okButtonProps={{ danger: true }}
-              cancelText="Скасувати"
+              cancelText={t(($) => $.common.actions.cancel)}
               onConfirm={() => deleteCategory(category.id)}
             >
               <Button
@@ -76,7 +78,7 @@ export function ChannelCategoryList({ workspaceId }: { workspaceId: string }) {
                 danger
                 size="small"
                 icon={<TrashIcon size={16} />}
-                aria-label={`Видалити категорію ${category.name}`}
+                aria-label={t(($) => $.categories.deleteLabel, { name: category.name })}
               />
             </Popconfirm>,
           ]}

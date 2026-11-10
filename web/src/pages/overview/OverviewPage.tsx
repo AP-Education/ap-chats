@@ -8,16 +8,19 @@ import {
   PageTitle,
 } from '@ap-education/ui';
 import { ChatsCircleIcon } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 
 import { MobileMenuButton } from '@/layouts/chats/MobileMenuButton';
 import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 export default function OverviewPage() {
+  const { t } = useTranslation('navigation');
+
   return (
     <Page>
       <PageHeader>
         <MobileMenuButton />
-        <PageTitle>Головна</PageTitle>
+        <PageTitle>{t(($) => $.home)}</PageTitle>
       </PageHeader>
       <PageBody>
         <RefreshOnPull>
@@ -25,7 +28,7 @@ export default function OverviewPage() {
             <ContentStateIcon>
               <ChatsCircleIcon />
             </ContentStateIcon>
-            <ContentStateTitle>Розмов поки немає</ContentStateTitle>
+            <ContentStateTitle>{t(($) => $.noConversations)}</ContentStateTitle>
           </ContentState>
         </RefreshOnPull>
       </PageBody>

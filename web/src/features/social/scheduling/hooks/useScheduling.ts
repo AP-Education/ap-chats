@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
-import { randomId } from '@/shared/lib/random-id';
 
 import {
   cancelScheduled,
@@ -35,7 +34,6 @@ export function useScheduling() {
     mutationFn: ({ input, sendAt }: Schedule) =>
       scheduleMessage(token as string, workspaceId, channelId, {
         ...input,
-        clientNonce: randomId(),
         sendAt,
       }),
     onSuccess: refresh,

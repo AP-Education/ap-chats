@@ -1,8 +1,12 @@
+import type { Attachment } from '@/features/social/messaging/attachments/types';
+import type { SendMessageCommand } from '@/features/social/messaging/types';
+
 export interface ScheduledMessage {
   id: string;
   authorMemberId: string;
   clientNonce: string;
   markdown: string;
+  attachments?: Attachment[];
   replyToMessageId: string | null;
   quoteText: string | null;
   sendAt: string;
@@ -13,11 +17,10 @@ export interface ScheduledMessage {
   updatedAt: string;
 }
 
-export interface ScheduleMessageCommand {
-  markdown: string;
-  replyToMessageId?: string;
-  quoteText?: string;
-}
+export type ScheduleMessageCommand = Pick<
+  SendMessageCommand,
+  'markdown' | 'clientNonce' | 'replyToMessageId' | 'quoteText' | 'attachments'
+>;
 
 // Mirrors SocialEventsRelay on the API: only the author's own devices hear of their schedule.
 export type SchedulingServerToClientEvents = {

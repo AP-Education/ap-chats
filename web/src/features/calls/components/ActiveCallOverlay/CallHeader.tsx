@@ -1,5 +1,6 @@
 import { CaretDownIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { CallActionButton } from '../CallActionButton/CallActionButton';
 
@@ -61,6 +62,7 @@ interface CallHeaderProps {
 }
 
 export function CallHeader({ title, duration, onMinimize }: CallHeaderProps) {
+  const { t } = useTranslation('calls');
   const { styles } = useStyles();
 
   return (
@@ -68,7 +70,7 @@ export function CallHeader({ title, duration, onMinimize }: CallHeaderProps) {
       <CallActionButton
         size={40}
         className={styles.minimize}
-        aria-label="Згорнути дзвінок"
+        aria-label={t(($) => $.overlay.minimize)}
         onClick={onMinimize}
       >
         <CaretDownIcon size={20} />

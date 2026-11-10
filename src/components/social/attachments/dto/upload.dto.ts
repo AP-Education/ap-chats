@@ -1,6 +1,6 @@
 import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
-import type { DownloadVariant } from '../attachment-downloads.service';
+import type { DownloadVariant } from '../attachment-links';
 
 export class BeginUploadDto {
   @IsString()
@@ -18,6 +18,12 @@ export class SignPartDto {
   @Min(1)
   @Max(60)
   number!: number;
+}
+
+export class CompleteUploadDto {
+  @IsOptional()
+  @IsIn(['voice'])
+  kind?: 'voice';
 }
 
 export class DownloadQueryDto {

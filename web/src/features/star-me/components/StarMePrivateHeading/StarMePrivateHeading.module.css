@@ -1,0 +1,28 @@
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-block-end: 5px;
+  color: var(--timeline-bubble-text, var(--bubble-text, var(--ant-color-text)));
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.name,
+.privacy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.name {
+  color: var(--timeline-bubble-accent, var(--bubble-accent, var(--ant-color-primary-text-active)));
+  font-weight: 650;
+}
+
+.privacy {
+  padding: 2px 6px;
+  border-radius: var(--ant-border-radius-sm, 4px);
+  background: var(--timeline-bubble-fill, var(--bubble-fill, var(--ant-color-fill-tertiary)));
+}

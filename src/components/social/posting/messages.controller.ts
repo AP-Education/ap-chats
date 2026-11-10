@@ -17,6 +17,7 @@ import type { WorkspaceMember } from '@/components/workspaces/members/types';
 import { DeleteMessagesService } from './delete-messages.service';
 import { BatchDeleteMessagesDto, EditMessageDto, SendMessageDto } from './dto/send-message.dto';
 import { EditMessageService } from './edit-message.service';
+import { PublishAssistantMessageService } from './publish-assistant-message.service';
 import { SendMessageService } from './send-message.service';
 
 @Controller('workspaces/:workspaceId/channels/:channelId/messages')
@@ -26,6 +27,7 @@ export class MessagesController {
     private readonly sending: SendMessageService,
     private readonly editing: EditMessageService,
     private readonly deleting: DeleteMessagesService,
+    private readonly publication: PublishAssistantMessageService,
   ) {}
 
   @Post()
@@ -64,5 +66,14 @@ export class MessagesController {
     @Body() dto: BatchDeleteMessagesDto,
   ) {
     return this.deleting.delete(member, channelId, dto.messageIds);
+  }
+
+  @Post(':messageId/make-own')
+  makeOwn(
+    @CurrentWorkspaceMember() member: WorkspaceMember,
+    @Param('channelId', ParseUUIDPipe) channelId: string,
+    @Param('messageId', ParseUUIDPipe) messageId: string,
+  ) {
+    return this.publication.publish(member, channelId, messageId);
   }
 }

@@ -2,7 +2,15 @@ import { selectionAsync } from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, BackHandler, Linking, Platform, StyleSheet, View } from 'react-native';
+import {
+  AppState,
+  BackHandler,
+  Linking,
+  Platform,
+  StyleSheet,
+  View,
+  type ViewInstance,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Portal } from 'react-native-teleport';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
@@ -25,6 +33,7 @@ import {
   isComposerInputRequest,
   useComposerInput,
 } from '../../composer';
+import { isLocale, useLocaleStore } from '../../locale';
 import { NativeTabs } from '../../navigation/components/NativeTabs';
 import { OverlayTabs } from '../../navigation/components/OverlayTabs';
 import { SystemBack } from '../../navigation/components/SystemBack';
@@ -34,6 +43,11 @@ import { dismissPresentedNotifications } from '../../push/api/presented-notifica
 import { getPushPermissionStatus } from '../../push/api/push-token';
 import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
 import { useNotificationStore } from '../../push/store/notification-store';
+import {
+  VoiceMessageRuntime,
+  type VoiceRuntimeHandle,
+} from '../../voice-messages/components/VoiceMessageRuntime';
+import { isVoiceRequest } from '../../voice-messages/types';
 import { forgetLastLocation, loadLastLocation, rememberLocation } from '../api/last-location';
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
 import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
@@ -51,6 +65,7 @@ const inspectable = __DEV__ || process.env.EXPO_PUBLIC_WEBVIEW_INSPECTABLE === '
 export function WebViewHost() {
   // 13.17 defaults WebView's extra props to `undefined`, which leaves it accepting none.
   const webViewRef = useRef<WebView<object>>(null);
+  const voiceRuntime = useRef<VoiceRuntimeHandle>(null);
   const auth = useAuthStore();
   const pendingNotification = useNotificationStore((state) => state.pending);
   const webReady = useNotificationStore((state) => state.webReady);
@@ -78,8 +93,8 @@ export function WebViewHost() {
     webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'composer/state', ...state }));
   }, []);
   // Measured rather than assumed: where the page ends depends on the tab it is teleported into.
-  const containerRef = useRef<View>(null);
-  const pageRef = useRef<View>(null);
+  const containerRef = useRef<ViewInstance>(null);
+  const pageRef = useRef<ViewInstance>(null);
   const [pageGap, setPageGap] = useState(0);
   // The page's own safe area can't tell its bottom inside a tab: it grows under the tab bar and
   // empties under the keyboard. Native knows, and writes it into the page's CSS.
@@ -181,6 +196,7 @@ export function WebViewHost() {
 
   // Android reports the page's own history steps as loads too, so the page says when it starts.
   function startPage() {
+    voiceRuntime.current?.reset();
     input.close();
     // Hidden rather than dropped: the page lives inside a tab's host until it reloads.
     setTabBar((current) => current && { ...current, visible: false });
@@ -203,7 +219,9 @@ export function WebViewHost() {
     } catch {
       return;
     }
-    if (isComposerInputRequest(message)) {
+    if (isVoiceRequest(message)) {
+      voiceRuntime.current?.handle(message);
+    } else if (isComposerInputRequest(message)) {
       input.request(message);
     } else if (message.type === 'page/started') {
       startPage();
@@ -244,6 +262,9 @@ export function WebViewHost() {
       void connectBridgedCall(message.payload);
     } else if (message.type === 'appearance/changed') {
       useAppearanceStore.getState().setPalette(message.payload);
+    } else if (message.type === 'locale/changed') {
+      const { locale } = message.payload;
+      useLocaleStore.getState().setLocale(isLocale(locale) ? locale : 'uk');
     } else if (message.type === 'navigation/tabs') {
       setTabBar(message.payload);
     } else if (message.type === 'navigation/handles-back') {
@@ -317,6 +338,10 @@ export function WebViewHost() {
       }}
     >
       <MessageNotificationSound request={messageSoundRequest} />
+      <VoiceMessageRuntime
+        ref={voiceRuntime}
+        send={(message) => webViewRef.current?.injectJavaScript(buildBridgeScript(message))}
+      />
       <SystemBack onBack={() => input.back() || sendBackToPage()} />
       <View style={styles.webviewWrapper}>
         {startUrl && (

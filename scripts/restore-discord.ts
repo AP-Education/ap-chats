@@ -13,12 +13,13 @@
  */
 import { parseArgs } from 'node:util';
 
+import { ObjectStorage, StorageModule } from '@ap-education/storage';
 import { ConfigService } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-import { DigitalOceanSpacesProvider } from '../src/components/uploads/storage/digital-ocean-spaces.provider';
 import type { AppConfig } from '../src/globals/config/config.schema';
 import { AppConfigService } from '../src/globals/config/config.service';
 import {
@@ -42,6 +43,21 @@ import {
 } from './discord/restore-structure';
 
 class DryRunRollback extends Error {}
+
+// The Spaces adapter is the storage package's own, so it is reached through its module.
+async function openStorage(): Promise<ObjectStorage> {
+  const config = new AppConfigService(new ConfigService<AppConfig, true>());
+  const context = await NestFactory.createApplicationContext(
+    StorageModule.forRoot({
+      bucket: config.get('DIGITAL_OCEAN_SPACES_BUCKET'),
+      endpoint: config.get('DIGITAL_OCEAN_SPACES_ENDPOINT'),
+      accessKey: config.get('DIGITAL_OCEAN_SPACES_ACCESS_KEY'),
+      secretKey: config.get('DIGITAL_OCEAN_SPACES_SECRET_KEY'),
+    }),
+    { logger: false },
+  );
+  return context.get(ObjectStorage);
+}
 
 async function main(): Promise<void> {
   const { values: args } = parseArgs({
@@ -82,9 +98,7 @@ async function main(): Promise<void> {
 
   const pool = new Pool({ connectionString: databaseUrl });
   const db = drizzle(pool);
-  const storage = isDryRun
-    ? null
-    : new DigitalOceanSpacesProvider(new AppConfigService(new ConfigService<AppConfig, true>()));
+  const storage = isDryRun ? null : await openStorage();
   const report: Record<string, unknown> = {};
 
   try {

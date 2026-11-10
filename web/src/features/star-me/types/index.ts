@@ -21,6 +21,8 @@ interface QuestionRef {
   channelId: string;
   questionId: string;
   askedByMemberId: string;
+  /** The nonce its answer will carry, so the answer on its way turns into it in place. */
+  answerNonce: string;
 }
 
 /** Where StarMe is with a question; a failed one always says why. */

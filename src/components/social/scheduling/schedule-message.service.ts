@@ -26,8 +26,8 @@ export class ScheduleMessageService {
   ) {}
 
   async schedule(author: WorkspaceMember, channelId: string, request: ScheduleMessageDto) {
-    if (request.attachments?.length)
-      throw new BadRequestException('A scheduled message cannot carry files');
+    if (request.assistant)
+      throw new BadRequestException('Private assistant messages cannot be scheduled');
     requireSendTime(request.sendAt);
     const draft = await this.composer.draft(request);
 
@@ -60,6 +60,7 @@ export class ScheduleMessageService {
       channelId,
       authorMemberId: author.id,
       contentMarkdown: message.content.markdown,
+      attachments: message.attachments,
       replyToMessageId: message.replyToMessageId,
       quoteText: message.quoteText,
       sendAt,

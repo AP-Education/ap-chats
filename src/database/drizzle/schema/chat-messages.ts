@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  bigint,
   check,
   foreignKey,
   index,
@@ -27,6 +28,10 @@ export interface StoredAttachment {
   description: string | null;
   /** An image's ThumbHash, base64; files stored before it was kept have none. */
   placeholder?: string;
+  hasThumbnail?: boolean;
+  duration?: number;
+  /** A recorded voice note; duration is derived from the stored audio by the API. */
+  voice?: { durationMs: number };
 }
 
 /** A GIF as a message keeps it: the media URL exactly as its service serves it, never a copy. */
@@ -44,6 +49,10 @@ export const chatMessages = pgTable(
     workspaceId: uuid('workspace_id').notNull(),
     channelId: uuid('channel_id').notNull(),
     authorMemberId: uuid('author_member_id').notNull(),
+    assistantOwnerMemberId: uuid('assistant_owner_member_id'),
+    assistantQuestionId: uuid('assistant_question_id'),
+    assistantOriginalSeq: bigint('assistant_original_seq', { mode: 'bigint' }),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
     contentMarkdown: text('content_markdown').notNull(),
     attachments: jsonb('attachments').$type<StoredAttachment[]>().notNull().default([]),
     gif: jsonb('gif').$type<StoredGif>(),
@@ -71,6 +80,16 @@ export const chatMessages = pgTable(
       table.clientNonce,
     ),
     index('chat_messages_reply_idx').on(table.replyToMessageId),
+    unique('chat_messages_assistant_question_key').on(table.assistantQuestionId),
+    index('chat_messages_assistant_owner_idx').on(table.channelId, table.assistantOwnerMemberId),
+    check(
+      'chat_messages_assistant_publication_check',
+      sql`${table.publishedAt} IS NULL OR (${table.assistantOwnerMemberId} IS NOT NULL AND ${table.assistantQuestionId} IS NOT NULL AND ${table.assistantOriginalSeq} IS NOT NULL AND ${table.authorMemberId} = ${table.assistantOwnerMemberId})`,
+    ),
+    check(
+      'chat_messages_assistant_answer_check',
+      sql`${table.assistantQuestionId} IS NULL OR ${table.assistantOwnerMemberId} IS NOT NULL`,
+    ),
     index('chat_messages_attachments_idx').using('gin', table.attachments),
     check('chat_messages_content_version_check', sql`${table.contentVersion} = 1`),
     check('chat_messages_revision_check', sql`${table.revision} >= 1`),
@@ -80,7 +99,7 @@ export const chatMessages = pgTable(
     ),
     check(
       'chat_messages_attachments_check',
-      sql`jsonb_typeof(${table.attachments}) = 'array' AND jsonb_array_length(${table.attachments}) <= 10`,
+      sql`jsonb_typeof(${table.attachments}) = 'array' AND jsonb_array_length(${table.attachments}) <= 25`,
     ),
     foreignKey({
       columns: [table.workspaceId, table.channelId],
@@ -91,6 +110,16 @@ export const chatMessages = pgTable(
       columns: [table.workspaceId, table.authorMemberId],
       foreignColumns: [workspaceMembers.workspaceId, workspaceMembers.id],
       name: 'chat_messages_author_workspace_fk',
+    }),
+    foreignKey({
+      columns: [table.workspaceId, table.assistantOwnerMemberId],
+      foreignColumns: [workspaceMembers.workspaceId, workspaceMembers.id],
+      name: 'chat_messages_assistant_owner_workspace_fk',
+    }),
+    foreignKey({
+      columns: [table.workspaceId, table.channelId, table.assistantQuestionId],
+      foreignColumns: [table.workspaceId, table.channelId, table.id],
+      name: 'chat_messages_assistant_question_channel_fk',
     }),
     foreignKey({
       columns: [table.workspaceId, table.channelId, table.replyToMessageId],

@@ -11,3 +11,10 @@
   inherits: false;
   initial-value: 0px;
 }
+
+/* The same bottom inset for the timeline package, which lifts a run's sticky avatar by it. */
+@property --timeline-inset-bottom {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}

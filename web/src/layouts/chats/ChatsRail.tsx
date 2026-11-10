@@ -1,13 +1,15 @@
-import { type AppTab, useIsAppActive, useOpenApp } from '@ap-education/shell-sdk';
+import { useIsAppActive, useOpenApp } from '@ap-education/shell-sdk';
 import { NavTile } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
 import { useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { useShellLanguage } from '@/shared/i18n/I18nProvider';
+
 import { type Attention, QUIET } from '../../features/social/read-state/conversation-attention';
 import { WorkspaceUnreadContext } from '../../features/social/read-state/workspace-unread-context';
 import { WorkspaceRail } from '../../features/workspaces/components/WorkspaceRail';
-import { personalTab, sectionAt } from './sections';
+import { type ChatsTab, personalTab, sectionAt } from './sections';
 
 const useStyles = createStyles(({ token, css }) => ({
   divider: css`
@@ -42,13 +44,14 @@ function SectionTile({
   pathname,
   attention,
 }: {
-  tab: AppTab;
+  tab: ChatsTab;
   pathname: string;
   attention: Attention;
 }) {
   const chatsActive = useIsAppActive();
   const openApp = useOpenApp();
   const navigate = useNavigate();
+  const locale = useShellLanguage();
   const active = chatsActive && tab.includes(pathname);
 
   function open() {
@@ -58,7 +61,7 @@ function SectionTile({
 
   return (
     <NavTile
-      label={tab.label}
+      label={tab.labels[locale]}
       active={active}
       unread={attention.unread}
       badge={attention.badge}

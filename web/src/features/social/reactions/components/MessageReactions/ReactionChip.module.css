@@ -3,7 +3,7 @@
 .chip {
   --chip-bg: var(--ant-color-fill-secondary);
   --chip-mine-bg: color-mix(in srgb, var(--chip-accent) 16%, transparent);
-  --chip-accent: var(--bubble-accent);
+  --chip-accent: var(--timeline-bubble-accent);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -12,7 +12,7 @@
   border: 1px solid transparent;
   border-radius: 16px;
   background: var(--chip-bg);
-  color: var(--bubble-text);
+  color: var(--timeline-bubble-text);
   font: inherit;
   font-size: 15px;
   font-weight: 500;
@@ -27,7 +27,7 @@
 }
 
 /* The bubble's accent is its primary tone, white on own bubbles, which then need a deeper wash. */
-[data-side='own'] .chip {
+[data-side='end'] .chip {
   --chip-bg: rgba(255, 255, 255, 0.14);
   --chip-mine-bg: rgba(255, 255, 255, 0.24);
 }
@@ -49,7 +49,7 @@
 }
 
 .chip:focus-visible {
-  outline: 2px solid var(--bubble-accent);
+  outline: 2px solid var(--timeline-bubble-accent);
   outline-offset: 1px;
 }
 

@@ -13,6 +13,7 @@ import { CaretDownIcon, GearSixIcon, UsersThreeIcon } from '@phosphor-icons/reac
 import { Alert, Button, Dropdown, type MenuProps } from 'antd';
 import { createStyles } from 'antd-style';
 import { type ReactNode, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { callActionLabel } from '@/features/calls/callActionLabel';
 import { CallIcon } from '@/features/calls/callIcons';
@@ -88,12 +89,13 @@ interface ChannelTitleProps {
 }
 
 function ChannelTitle({ channel, canManage, onSettings }: ChannelTitleProps) {
+  const { t } = useTranslation('communities');
   const { styles } = useStyles();
   const menuItems: MenuProps['items'] = [];
   if (canManage)
     menuItems.push({
       key: 'settings',
-      label: 'Налаштування каналу',
+      label: t(($) => $.channels.settings),
       icon: <GearSixIcon size={18} />,
     });
 
@@ -125,7 +127,7 @@ function ChannelTitle({ channel, canManage, onSettings }: ChannelTitleProps) {
       <button
         type="button"
         className={styles.titleButton}
-        aria-label={`Дії каналу ${channel.name}`}
+        aria-label={t(($) => $.channels.actionsOf, { name: channel.name })}
       >
         {title}
       </button>
@@ -144,6 +146,7 @@ function LargeChannelCallNotice({
   onCallAnyway,
   onDismiss,
 }: LargeChannelCallNoticeProps) {
+  const { t } = useTranslation('communities');
   const { styles } = useStyles();
   return (
     <div className={styles.sizeNotice}>
@@ -152,11 +155,11 @@ function LargeChannelCallNotice({
         showIcon
         closable
         onClose={onDismiss}
-        message={`У цьому каналі ${memberCount} учасників`}
-        description="Дзвінок краще підходить для невеликих груп. Для такої кількості людей, можливо, зручніше запланувати окрему зустріч."
+        message={t(($) => $.channels.largeCall.title, { count: memberCount })}
+        description={t(($) => $.channels.largeCall.description)}
         action={
           <Button size="small" onClick={onCallAnyway}>
-            Подзвонити
+            {t(($) => $.channels.largeCall.callAnyway)}
           </Button>
         }
       />
@@ -165,6 +168,8 @@ function LargeChannelCallNotice({
 }
 
 export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailProps) {
+  const { t } = useTranslation('communities');
+  const { t: callsT } = useTranslation('calls');
   const isMobile = useIsMobile();
   const { currentMember } = useWorkspaceMemberLabels(workspaceId);
   const { query: membersQuery } = useChannelMembership(workspaceId, channel.id);
@@ -172,7 +177,11 @@ export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailPr
   const [sizeNoticeVisible, setSizeNoticeVisible] = useState(false);
   const canManage = channel.canManage;
   const call = useCallAction(workspaceId, channel.id, channel.name);
-  const callTitle = callActionLabel(call, 'Дзвінок у каналі');
+  const callTitle = callActionLabel(
+    call,
+    t(($) => $.channels.callTitle),
+    callsT,
+  );
   const memberCount = membersQuery.data?.length ?? 0;
   const isLargeChannel = memberCount > LARGE_CHANNEL_MEMBER_THRESHOLD;
   const openSettings = () => dialogs.openSettings(workspaceId, channel.id);
@@ -218,7 +227,7 @@ export function ChannelDetail({ workspaceId, channel, leading }: ChannelDetailPr
             {call.pending ? <LoadingIcon size={22} /> : <CallIcon size={22} />}
           </PageAction>
           <PageActionDivider />
-          <PageAsideTrigger aria-label="Учасники каналу">
+          <PageAsideTrigger aria-label={t(($) => $.channels.members)}>
             <UsersThreeIcon size={22} />
           </PageAsideTrigger>
         </PageActions>

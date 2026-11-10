@@ -24,7 +24,7 @@ export function useOverlayInsets(
     function publish() {
       const top = topRef.current?.offsetHeight ?? 0;
       const bottom = bottomRef.current?.offsetHeight ?? 0;
-      sheet.textContent = `[data-overlay-insets="${scope}"] [data-chat-inset] { --chat-inset-top: ${top}px; --chat-inset-bottom: ${bottom}px; }`;
+      sheet.textContent = `[data-overlay-insets="${scope}"] [data-chat-inset] { --chat-inset-top: ${top}px; --chat-inset-bottom: ${bottom}px; --timeline-inset-bottom: ${bottom}px; }`;
     }
 
     publish();

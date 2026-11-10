@@ -1,5 +1,6 @@
 import { Select } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { AccessEntry } from '../../access-entries';
 import { principalFromKey, principalKey } from '../../principals';
@@ -29,6 +30,7 @@ export function AccessEntryList({
   onOpen,
   onAdd,
 }: AccessEntryListProps) {
+  const { t } = useTranslation('communities');
   const { styles } = useStyles();
 
   const listed = new Set(entries.map((entry) => principalKey(entry.principal)));
@@ -51,8 +53,8 @@ export function AccessEntryList({
       <Select
         showSearch
         className={styles.add}
-        aria-label="Додати роль або людину"
-        placeholder="Додати роль або людину"
+        aria-label={t(($) => $.access.addPrincipal)}
+        placeholder={t(($) => $.access.addPrincipal)}
         value={null}
         options={candidates}
         optionFilterProp="title"

@@ -1,0 +1,130 @@
+/* The gallery portal can sit outside the host’s Ant Design token root. */
+.player {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #0c0e12;
+  color: var(--ant-color-white, #fff);
+}
+
+.video,
+.poster {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.poster {
+  opacity: 0.4;
+}
+
+.loading,
+.failure,
+.resume {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ant-padding-xs, 8px);
+  background: rgb(12 14 18 / 28%);
+  font-size: 13px;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 50%);
+  pointer-events: none;
+}
+
+.resume {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  padding: 0 0 0 2px;
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 50%;
+  background: rgb(16 20 24 / 65%);
+  color: inherit;
+  cursor: pointer;
+}
+
+.failure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ant-padding-xs, 8px);
+  padding: var(--ant-padding-sm, 12px);
+  background: rgb(12 14 18 / 65%);
+  text-align: center;
+}
+
+.failure p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--ant-padding-xs, 8px);
+}
+
+.actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ant-padding-xs, 8px);
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: var(--ant-border-radius-lg, 12px);
+  background: rgb(255 255 255 / 12%);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.resume,
+.actions button {
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.resume:focus-visible,
+.actions button:focus-visible {
+  outline: 2px solid var(--ant-color-white, #fff);
+  outline-offset: 3px;
+}
+
+.actions button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.resume:active,
+.actions button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) {
+  .resume:hover,
+  .actions button:hover:not(:disabled) {
+    background: rgb(52 57 64 / 95%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resume,
+  .actions button {
+    transition: none;
+  }
+}

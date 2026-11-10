@@ -1,3 +1,5 @@
+import { TimelineEntry } from '@ap-education/timeline/react';
+import { ActionSheet } from '@ap-education/ui/sheet';
 import {
   type CSSProperties,
   type MouseEvent,
@@ -6,20 +8,24 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 
+import { extensionNamespaces } from '@/features/social/conversation-scope/extensions';
 import { QuickReactions } from '@/features/social/reactions/components/QuickReactions/QuickReactions';
 import { ReactionPicker } from '@/features/social/reactions/components/ReactionPicker/ReactionPicker';
 
 import { ReplyIcon } from '../../actionIcons';
-import { groupMessageActions } from './messageActionGroups';
+import { messageActionItems } from './messageActionItems';
 import type { MessageActionsProps } from './MessageActions';
 import { useMessageActionScope } from './MessageActionScope';
-import { MessageActionSheet } from './MessageActionSheet';
 import styles from './MessageTouchActions.module.css';
 import { useMessageReplySwipe } from './useMessageReplySwipe';
+import { useOwnMessageStatus } from './useOwnMessageStatus';
 
 export function MessageTouchActions({ rowProps, children }: MessageActionsProps) {
+  const { t } = useTranslation(extensionNamespaces);
   const scope = useMessageActionScope();
+  const status = useOwnMessageStatus();
   const areaRef = useRef<HTMLDivElement>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -78,26 +84,32 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
         <span className={styles.replyHint} aria-hidden="true">
           <ReplyIcon size={20} />
         </span>
-        <div
-          {...rowProps}
-          className={`${rowProps.className ?? ''} ${styles.touchTarget}`}
-          data-message-readonly={!scope.editing || undefined}
-          {...swipe.gesture}
-          onContextMenu={openSheetFromContextMenu}
-        >
-          {children}
-        </div>
+        <TimelineEntry asChild side={scope.isOwn ? 'end' : 'start'} status={status}>
+          <div
+            {...rowProps}
+            className={`${rowProps.className ?? ''} ${styles.touchTarget}`}
+            data-message-readonly={!scope.editing || undefined}
+            {...swipe.gesture}
+            onContextMenu={openSheetFromContextMenu}
+          >
+            {children}
+          </div>
+        </TimelineEntry>
       </div>
 
       {sheetOpen && (
-        <MessageActionSheet
+        <ActionSheet
           open
           onClose={closeSheet}
-          header={quickReactions}
-          target={scope.messageTarget}
-          groups={groupMessageActions(available)}
-          onAction={scope.onAction}
-        />
+          aria-label="Дії з повідомленням"
+          groups={messageActionItems(available, scope.messageTarget, t)}
+          onSelect={(id) => {
+            const action = available.find((entry) => entry.id === id);
+            if (action) scope.onAction(action, scope.messageTarget);
+          }}
+        >
+          {quickReactions}
+        </ActionSheet>
       )}
       {picking && (
         <ReactionPicker
@@ -120,7 +132,9 @@ function useRunAvatarFollow(
   useLayoutEffect(() => {
     const area = areaRef.current;
     const run = area?.closest<HTMLElement>('[data-history-run]');
-    if (!area || !run || run.querySelector('[data-run-entries] > :last-child') !== area) return;
+    if (!area || !run || run.querySelector('[data-timeline-run-entries] > :last-child') !== area) {
+      return;
+    }
 
     run.style.setProperty('--run-swipe-offset', `${offset}px`);
     run.toggleAttribute('data-swiping', dragging);

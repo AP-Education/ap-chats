@@ -1,8 +1,10 @@
 import { IconButton } from '@ap-education/ui';
 import { CalendarDotsIcon, PaperPlaneRightIcon, TrashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { MessagePreview } from '@/features/social/messaging/components/MessagePreview/MessagePreview';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import { sendTimeHeading, sendTimeLabel } from '../../send-times';
 import type { ScheduledMessage } from '../../types';
@@ -65,10 +67,14 @@ export function ScheduledMessageRow({
   onCancel,
 }: ScheduledMessageRowProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['scheduling', 'common']);
+  const locale = useChatsLanguage();
   const sendAt = new Date(message.sendAt);
   const when = message.failure
-    ? `Не вдалося надіслати ${sendTimeLabel(sendAt, now)}`
-    : sendTimeHeading(sendAt, now);
+    ? t(($) => $.failedToSendAt, { when: sendTimeLabel(sendAt, now, t, locale) })
+    : sendTimeHeading(sendAt, now, t, locale);
+  const files = message.attachments?.map((file) => file.name).join(', ');
+  const hasText = Boolean(message.markdown.trim());
 
   return (
     <div className={styles.row}>
@@ -76,18 +82,31 @@ export function ScheduledMessageRow({
         <span className={styles.when} data-failed={message.failure ? true : undefined}>
           {when}
         </span>
-        <span className={styles.excerpt}>
-          <MessagePreview markdown={message.markdown} />
-        </span>
+        {(hasText || !files) && (
+          <span className={styles.excerpt}>
+            <MessagePreview markdown={message.markdown} />
+          </span>
+        )}
+        {files && <span className={styles.excerpt}>{files}</span>}
       </div>
       <div className={styles.actions}>
-        <IconButton size={32} aria-label="Надіслати зараз" disabled={busy} onClick={onSendNow}>
+        <IconButton size={32} aria-label={t(($) => $.sendNow)} disabled={busy} onClick={onSendNow}>
           <PaperPlaneRightIcon size={18} />
         </IconButton>
-        <IconButton size={32} aria-label="Змінити час" disabled={busy} onClick={onReschedule}>
+        <IconButton
+          size={32}
+          aria-label={t(($) => $.changeTime)}
+          disabled={busy}
+          onClick={onReschedule}
+        >
           <CalendarDotsIcon size={18} />
         </IconButton>
-        <IconButton size={32} aria-label="Скасувати" disabled={busy} onClick={onCancel}>
+        <IconButton
+          size={32}
+          aria-label={t(($) => $.common.actions.cancel)}
+          disabled={busy}
+          onClick={onCancel}
+        >
           <TrashIcon size={18} />
         </IconButton>
       </div>

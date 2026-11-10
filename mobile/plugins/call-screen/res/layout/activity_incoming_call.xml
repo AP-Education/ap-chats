@@ -125,7 +125,7 @@
                     android:layout_width="72dp"
                     android:layout_height="72dp"
                     android:background="@drawable/expo_callkit_telecom_bg_decline"
-                    android:contentDescription="Відхилити дзвінок"
+                    android:contentDescription="@string/call_screen_decline_description"
                     android:scaleType="center"
                     android:src="@drawable/expo_callkit_telecom_ic_decline" />
 
@@ -134,7 +134,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:importantForAccessibility="no"
-                    android:text="Відхилити"
+                    android:text="@string/call_screen_decline"
                     android:textColor="#A3FFFFFF"
                     android:textSize="13sp" />
             </LinearLayout>
@@ -154,7 +154,7 @@
                     android:layout_width="72dp"
                     android:layout_height="72dp"
                     android:background="@drawable/expo_callkit_telecom_bg_answer"
-                    android:contentDescription="Прийняти дзвінок"
+                    android:contentDescription="@string/call_screen_accept_description"
                     android:scaleType="center"
                     android:src="@drawable/expo_callkit_telecom_ic_answer" />
 
@@ -163,7 +163,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:importantForAccessibility="no"
-                    android:text="Прийняти"
+                    android:text="@string/call_screen_accept"
                     android:textColor="#A3FFFFFF"
                     android:textSize="13sp" />
             </LinearLayout>

@@ -7,7 +7,7 @@ import type { MemberSummary } from '@/features/workspaces/types';
 import { type ConversationExtension, ConversationExtensionsContext } from './extensions';
 
 export type ComposerIntent =
-  | { kind: 'reply'; messageId: string; quoteText?: string }
+  | { kind: 'reply'; messageId: string; quoteText?: string; privateAssistant?: boolean }
   /** Asks a member, such as an assistant, about the picked messages: the message mentions them. */
   | { kind: 'ask'; member: MemberSummary; messageIds: string[] }
   | null;
@@ -109,7 +109,11 @@ export function useConversationPermissions(): ConversationPermissions {
 }
 
 export function useConversation<T>(selector: (state: ConversationState) => T): T {
+  return useStore(useConversationStore(), selector);
+}
+
+export function useConversationStore() {
   const store = useContext(ConversationContext);
   if (!store) throw new Error('ConversationProvider is missing');
-  return useStore(store, selector);
+  return store;
 }

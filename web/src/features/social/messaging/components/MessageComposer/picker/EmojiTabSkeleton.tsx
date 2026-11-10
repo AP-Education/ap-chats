@@ -1,5 +1,6 @@
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const CATEGORIES = 9;
 const ROWS = 4;
@@ -35,9 +36,10 @@ const useStyles = createStyles(({ css }) => ({
 /** The emoji tab's frame while its data set downloads. */
 export function EmojiTabSkeleton() {
   const { styles } = useStyles();
+  const { t } = useTranslation('messaging');
 
   return (
-    <div className={styles.root} aria-label="Завантажуємо емодзі" role="status">
+    <div className={styles.root} aria-label={t(($) => $.picker.emojiLoading)} role="status">
       <div className={styles.nav}>
         {Array.from({ length: CATEGORIES }, (_, index) => (
           <span key={index} className={styles.navItem}>

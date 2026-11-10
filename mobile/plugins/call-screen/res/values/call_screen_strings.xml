@@ -9,4 +9,8 @@
     <string name="expo_callkit_telecom_channel_incoming_description">Вхідний дзвінок на весь екран і зі звуком</string>
     <string name="expo_callkit_telecom_channel_ongoing">Поточний дзвінок</string>
     <string name="expo_callkit_telecom_channel_ongoing_description">Дзвінок, що триває, у шторці сповіщень</string>
+    <string name="call_screen_decline">Відхилити</string>
+    <string name="call_screen_decline_description">Відхилити дзвінок</string>
+    <string name="call_screen_accept">Прийняти</string>
+    <string name="call_screen_accept_description">Прийняти дзвінок</string>
 </resources>

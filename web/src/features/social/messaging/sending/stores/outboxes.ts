@@ -1,7 +1,9 @@
+import { UploadQueue } from '@ap-education/timeline/composer';
 import type { QueryClient } from '@tanstack/react-query';
 
 import { sendMessage } from '../../api/messages-api';
-import { UploadQueue } from '../../attachments/upload-queue';
+import { uploadTransport } from '../../attachments/attachments-api';
+import type { Attachment } from '../../attachments/types';
 import { localOutboxStorage } from '../api/outbox-storage';
 import { recordSentMessage } from '../api/record-sent';
 import type { ConversationKey } from '../types';
@@ -9,7 +11,7 @@ import { ConversationOutbox } from './conversation-outbox';
 
 /** A conversation's outgoing side: the files its composer holds and the messages on their way. */
 export interface ConversationSending {
-  uploads: UploadQueue;
+  uploads: UploadQueue<Attachment>;
   outbox: ConversationOutbox;
 }
 
@@ -30,7 +32,7 @@ export function createOutboxes(queryClient: QueryClient): Outboxes {
 
   function open(conversation: ConversationKey): ConversationSending {
     const { identity, workspaceId, channelId } = conversation;
-    const uploads = new UploadQueue({ workspaceId, channelId }, () => token);
+    const uploads = new UploadQueue(uploadTransport({ workspaceId, channelId }, requireToken));
     const outbox = new ConversationOutbox({
       uploads,
       storage: localOutboxStorage(`ap-chats:outbox:${identity}:${workspaceId}:${channelId}`),

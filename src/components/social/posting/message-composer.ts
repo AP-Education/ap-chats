@@ -9,7 +9,7 @@ import { UploadsService } from '../attachments';
 import { MessageMarkdownService, messagePlainText } from '../content';
 import { linkedGif } from '../content/message-gif';
 import { MessagesService } from '../messages';
-import type { NewMessage } from '../messages/types/message.types';
+import type { Attachment, NewMessage } from '../messages/types/message.types';
 import type { SendMessageDto } from './dto/send-message.dto';
 import { requestedGif } from './requested-gif';
 import type { MessageDraft } from './types';
@@ -30,6 +30,7 @@ export class MessageComposer {
     const quoteText = request.quoteText?.trim() || null;
     const contextMessageIds = request.contextMessageIds ?? [];
     const requestDigest = digest({
+      assistant: request.assistant || undefined,
       markdown: content.markdown,
       reply: replyToMessageId,
       quote: quoteText,
@@ -39,6 +40,7 @@ export class MessageComposer {
     });
 
     return {
+      ...(request.assistant ? { assistant: true } : {}),
       content,
       attachmentRefs: request.attachments ?? [],
       gif,
@@ -54,12 +56,17 @@ export class MessageComposer {
     author: WorkspaceMember,
     channel: ChannelAccessSnapshot,
     draft: MessageDraft,
+    authority: WorkspaceMember = author,
+    claimedAttachments?: Attachment[],
   ): Promise<NewMessage> {
     const { replyToMessageId, quoteText } = draft;
-    if (replyToMessageId) await this.requireReplyTarget(channel, replyToMessageId, quoteText);
-    const attachments = await this.uploads.claim(author, channel.id, draft.attachmentRefs);
+    if (replyToMessageId)
+      await this.requireReplyTarget(channel, replyToMessageId, quoteText, authority.id);
+    const attachments =
+      claimedAttachments ?? (await this.uploads.claim(author, channel.id, draft.attachmentRefs));
 
     return {
+      ...(draft.assistant ? { assistant: true } : {}),
       content: draft.content,
       attachments,
       gif: draft.gif,
@@ -75,12 +82,16 @@ export class MessageComposer {
     channel: ChannelAccessSnapshot,
     messageId: string,
     quoteText: string | null,
+    viewerMemberId: string,
   ) {
-    const target = await this.messages.requireLive({
-      workspaceId: channel.workspaceId,
-      channelId: channel.id,
-      messageId,
-    });
+    const target = await this.messages.requireLive(
+      {
+        workspaceId: channel.workspaceId,
+        channelId: channel.id,
+        messageId,
+      },
+      viewerMemberId,
+    );
     if (!quoteText) return;
 
     const isQuoted = containsQuote(await messagePlainText(target.contentMarkdown), quoteText);

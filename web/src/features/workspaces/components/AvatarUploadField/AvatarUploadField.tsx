@@ -1,6 +1,7 @@
 import { PlusIcon } from '@phosphor-icons/react';
 import { message, Upload, type UploadProps } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { useUploadFile } from '../../hooks/useUploadFile';
 import { AvatarPreview } from './AvatarPreview';
@@ -71,6 +72,7 @@ interface AvatarUploadFieldProps {
 // is none of this component's business.
 export function AvatarUploadField({ value, onChange, alt }: AvatarUploadFieldProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('workspaces');
   const uploadFile = useUploadFile();
 
   const customRequest: UploadProps['customRequest'] = (options) => {
@@ -81,7 +83,7 @@ export function AvatarUploadField({ value, onChange, alt }: AvatarUploadFieldPro
         onSuccess?.(result);
       },
       onError: () => {
-        message.error('Не вдалося завантажити зображення');
+        message.error(t(($) => $.avatar.uploadFailed));
         onError?.(new ProgressEvent('error'));
       },
     });
@@ -95,7 +97,7 @@ export function AvatarUploadField({ value, onChange, alt }: AvatarUploadFieldPro
         customRequest={customRequest}
       >
         <div className={styles.circle}>
-          <div className={styles.trigger} aria-label="Завантажити іконку">
+          <div className={styles.trigger} aria-label={t(($) => $.avatar.uploadLabel)}>
             <AvatarPreview uploading={uploadFile.isPending} path={value} alt={alt} />
           </div>
           <span className={styles.badge}>
@@ -103,7 +105,7 @@ export function AvatarUploadField({ value, onChange, alt }: AvatarUploadFieldPro
           </span>
         </div>
       </Upload>
-      <span className={styles.label}>Завантажити</span>
+      <span className={styles.label}>{t(($) => $.avatar.upload)}</span>
     </div>
   );
 }

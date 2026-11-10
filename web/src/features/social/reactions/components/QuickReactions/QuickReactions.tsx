@@ -1,6 +1,7 @@
 import { CaretDownIcon, PlusIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { MessageHistoryItem } from '@/features/social/messaging/types';
 
@@ -96,6 +97,7 @@ export function QuickReactions({
   onMore,
 }: QuickReactionsProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation('reactions');
   const toggle = useReactionToggle(viewerMemberId);
   const [emojis] = useState(quickReactions);
   const reacted = new Set(
@@ -105,7 +107,7 @@ export function QuickReactions({
   return (
     <div
       role="toolbar"
-      aria-label="Реакції"
+      aria-label={t(($) => $.toolbar)}
       data-variant={variant}
       className={variant === 'menu' ? styles.menu : styles.sheet}
     >
@@ -114,7 +116,7 @@ export function QuickReactions({
           key={emoji}
           type="button"
           className={styles.option}
-          aria-label={`Реакція ${emoji}`}
+          aria-label={t(($) => $.reaction, { emoji })}
           aria-pressed={reacted.has(emoji)}
           onClick={() => {
             toggle(item, emoji);
@@ -127,7 +129,7 @@ export function QuickReactions({
       <button
         type="button"
         className={cx(styles.option, styles.more)}
-        aria-label="Інші реакції"
+        aria-label={t(($) => $.more)}
         onClick={onMore}
       >
         {variant === 'menu' ? <CaretDownIcon size={16} weight="bold" /> : <PlusIcon size={20} />}

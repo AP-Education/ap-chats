@@ -12,7 +12,8 @@ const WEEK_MINUTES = 10_080;
 export function lastMessagePreview(message: DirectMessage['lastMessage']): string {
   if (!message) return 'Нова розмова';
   if (message.markdown === null) return 'Повідомлення видалено';
-  if (!message.markdown) return 'Вкладення';
+  if (!message.markdown)
+    return message.attachments?.some((file) => file.voice) ? 'Голосове повідомлення' : 'Вкладення';
   return isLoneGif(message) ? 'GIF' : previewText(message.markdown);
 }
 

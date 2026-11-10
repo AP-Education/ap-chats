@@ -41,10 +41,19 @@ export function readToken(name: string | undefined, label: string): MentionToken
 }
 
 /** How a reference reads as text: by its name where known, otherwise by what it is. */
-export function tokenText(token: MentionToken, name?: string): string {
+export function tokenText(
+  token: MentionToken,
+  nameOrTranslate?: string | TFunction<'mentions'>,
+  localizedName?: string,
+): string {
   if (token.kind === 'everyone') return '@everyone';
   const { sigil, unnamed } = references[token.kind];
-  return `${sigil}${name ?? unnamed}`;
+  const kind = token.kind;
+  const label =
+    typeof nameOrTranslate === 'function'
+      ? (localizedName ?? nameOrTranslate(($) => $.unnamed[kind]))
+      : (nameOrTranslate ?? unnamed);
+  return `${sigil}${label}`;
 }
 
 /** The attributes a rendered reference carries, read back by `tokenFromAttributes`. */
@@ -84,10 +93,11 @@ export function splitTokens(markdown: string): (string | MentionToken)[] {
 const SPOILER = /\|\|(?=\S)[\s\S]*?\S\|\|/gu;
 const SPOILER_MASK = '▒▒▒▒';
 
-export function previewText(markdown: string): string {
+export function previewText(markdown: string, t?: TFunction<'mentions'>): string {
   return splitTokens(markdown)
-    .map((part) => (typeof part === 'string' ? part : tokenText(part)))
+    .map((part) => (typeof part === 'string' ? part : tokenText(part, t)))
     .join('')
     .replace(SPOILER, SPOILER_MASK)
     .replace(/\s+/gu, ' ');
 }
+import type { TFunction } from 'i18next';

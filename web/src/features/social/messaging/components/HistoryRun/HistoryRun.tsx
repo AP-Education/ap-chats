@@ -1,3 +1,4 @@
+import { TimelineRun, TimelineRunAvatar, TimelineRunEntries } from '@ap-education/timeline/react';
 import { theme } from 'antd';
 import type { ReactNode } from 'react';
 
@@ -16,13 +17,17 @@ export function HistoryRun({ avatar, children }: HistoryRunProps) {
   const { token } = theme.useToken();
 
   return (
-    <div className={styles.run} data-history-run data-has-avatar={avatar ? true : undefined}>
+    <TimelineRun
+      className={styles.run}
+      data-history-run
+      data-has-avatar={avatar ? true : undefined}
+    >
       {avatar && (
-        <RunAvatar author={avatar} size={token.controlHeightLG} className={styles.avatar} />
+        <TimelineRunAvatar asChild>
+          <RunAvatar author={avatar} size={token.controlHeightLG} className={styles.avatar} />
+        </TimelineRunAvatar>
       )}
-      <div className={styles.entries} data-run-entries>
-        {children}
-      </div>
-    </div>
+      <TimelineRunEntries>{children}</TimelineRunEntries>
+    </TimelineRun>
   );
 }

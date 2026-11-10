@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AttachmentsModule } from './attachments';
 import { ContentModule } from './content';
+import { ConversationSearchModule } from './conversation-search/conversation-search.module';
 import { EntriesModule } from './entries';
 import { ForwardingModule } from './forwarding';
 import { HistoryModule } from './history';
@@ -13,11 +14,13 @@ import { ReactionsModule } from './reactions';
 import { ReadStateModule } from './read-state';
 import { SocialRealtimeModule } from './realtime';
 import { SchedulingModule } from './scheduling';
+import { TypingModule } from './typing/typing.module';
 
 @Module({
   imports: [
     EntriesModule,
     ContentModule,
+    ConversationSearchModule,
     MentionsModule,
     MessagesModule,
     AttachmentsModule,
@@ -29,6 +32,7 @@ import { SchedulingModule } from './scheduling';
     ForwardingModule,
     HistoryModule,
     SocialRealtimeModule,
+    TypingModule,
   ],
 })
 export class SocialModule {}

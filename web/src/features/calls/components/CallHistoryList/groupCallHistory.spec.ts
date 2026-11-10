@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import { i18n, i18nReady } from '../../../../shared/i18n/i18n';
 import type { CallHistoryItem, CallStatus } from '../../api/calls-api';
 import { callEntryStatus, formatCallDate } from './callHistoryLabels';
 import { groupCallHistory } from './groupCallHistory';
 
+await i18nReady('uk');
+const t = i18n.getFixedT('uk', 'calls');
 const me = 'member-me';
 
 function call(
@@ -56,9 +59,9 @@ test('a different direction, outcome or day starts a new row', () => {
 test('call dates read as time today, weekday this week, short date before that', () => {
   const now = new Date('2026-10-08T15:00:00');
 
-  assert.match(formatCallDate('2026-10-08T09:05:00', now), /^09:05$/);
-  assert.doesNotMatch(formatCallDate('2026-10-03T09:05:00', now), /\d/);
-  assert.match(formatCallDate('2026-10-01T09:05:00', now), /^01\.10\.26$/);
+  assert.match(formatCallDate('2026-10-08T09:05:00', 'uk', now), /^09:05$/);
+  assert.doesNotMatch(formatCallDate('2026-10-03T09:05:00', 'uk', now), /\d/);
+  assert.match(formatCallDate('2026-10-01T09:05:00', 'uk', now), /^01\.10\.26$/);
 });
 
 test('a single finished call shows its length, a collapsed row only its direction', () => {
@@ -73,9 +76,9 @@ test('a single finished call shows its length, a collapsed row only its directio
     call('1', '2026-10-08T10:00:00', { outgoing: false, status: 'missed' }),
   ]);
 
-  assert.equal(callEntryStatus(single[0]), 'Вихідний (49 хв)');
-  assert.equal(callEntryStatus(collapsed[0]), 'Вхідний');
-  assert.equal(callEntryStatus(missed[0]), 'Пропущений');
+  assert.equal(callEntryStatus(single[0], t), 'Вихідний (49 хв)');
+  assert.equal(callEntryStatus(collapsed[0], t), 'Вхідний');
+  assert.equal(callEntryStatus(missed[0], t), 'Пропущений');
 });
 
 test('a call lasts from its answer, and one hung up before an answer has no length', () => {
@@ -88,6 +91,6 @@ test('a call lasts from its answer, and one hung up before an answer has no leng
     answeredAt: null,
   };
 
-  assert.equal(callEntryStatus(groupCallHistory([ringFirst])[0]), 'Вихідний (10 хв)');
-  assert.equal(callEntryStatus(groupCallHistory([unanswered])[0]), 'Вихідний');
+  assert.equal(callEntryStatus(groupCallHistory([ringFirst])[0], t), 'Вихідний (10 хв)');
+  assert.equal(callEntryStatus(groupCallHistory([unanswered])[0], t), 'Вихідний');
 });

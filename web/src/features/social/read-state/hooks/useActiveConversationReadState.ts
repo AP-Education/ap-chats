@@ -6,7 +6,7 @@ import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { useDebouncedCallback } from '@/shared/hooks/useDebouncedCallback';
 import { isAttending, useIsAttending } from '@/shared/hooks/useIsAttending';
 
-import type { HistoryPage } from '../../messaging/types';
+import type { ReadState } from '../../messaging/types';
 import { markRead } from '../api/read-state-api';
 import { applyOptimisticReadState, applyReadState } from '../applyReadState';
 import { workspaceUnreadKey } from '../queryKeys';
@@ -16,7 +16,9 @@ import type { ChannelUnread } from './useWorkspaceUnread';
 export function useActiveConversationReadState(
   workspaceId: string,
   channelId: string,
-  page: HistoryPage | undefined,
+  /** The furthest entry the open history knows of. */
+  snapshotSeq: string | null,
+  readState: ReadState | null | undefined,
 ) {
   const { token, identity } = useQueryAuth();
   const queryClient = useQueryClient();
@@ -25,8 +27,7 @@ export function useActiveConversationReadState(
   const release = useReadingHold((state) => state.release);
   const requested = useRef(0n);
   const latestEventSeq = useRef(0n);
-  const snapshotSeq = page?.snapshotSeq;
-  const readCursor = page?.readState?.lastReadEntrySeq;
+  const readCursor = readState?.lastReadEntrySeq;
   const debouncedMarkRead = useDebouncedCallback((seq: string) => {
     if (!token) return;
     void markRead(token, workspaceId, channelId, seq).then(

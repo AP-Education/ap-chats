@@ -2,6 +2,7 @@ import { ContentState, ContentStateDescription, ContentStateIcon } from '@ap-edu
 import { UsersIcon } from '@phosphor-icons/react';
 import { Button, Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { WorkspaceMemberLabel } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
 
@@ -60,11 +61,12 @@ export function ChannelMembersContent({
   byId,
   onRetry,
 }: ChannelMembersContentProps) {
+  const { t } = useTranslation(['communities', 'common']);
   const { styles } = useStyles();
 
   if (isLoading) {
     return (
-      <div className={styles.body} role="status" aria-label="Завантажуємо учасників">
+      <div className={styles.body} role="status" aria-label={t(($) => $.members.loading)}>
         {[0, 1, 2, 3].map((row) => (
           <div className={styles.skeletonRow} key={row}>
             <Skeleton.Avatar active size={40} />
@@ -78,9 +80,9 @@ export function ChannelMembersContent({
   if (isError) {
     return (
       <div className={styles.body} role="alert">
-        Не вдалося завантажити учасників.
+        {t(($) => $.members.loadFailed)}
         <Button type="link" onClick={onRetry}>
-          Повторити
+          {t(($) => $.common.actions.retry)}
         </Button>
       </div>
     );
@@ -93,7 +95,7 @@ export function ChannelMembersContent({
           <ContentStateIcon>
             <UsersIcon />
           </ContentStateIcon>
-          <ContentStateDescription>Учасників ще немає</ContentStateDescription>
+          <ContentStateDescription>{t(($) => $.members.empty)}</ContentStateDescription>
         </ContentState>
       </div>
     );

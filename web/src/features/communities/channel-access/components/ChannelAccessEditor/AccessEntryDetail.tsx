@@ -1,9 +1,9 @@
 import { ArrowLeftIcon, TrashIcon } from '@phosphor-icons/react';
 import { Button, Switch, Typography } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { type AccessEntry, grants, switchCapability } from '../../access-entries';
-import { capabilityLabels } from '../../capability-labels';
 import { channelCapabilities, type ChannelCapability } from '../../types';
 import { PrincipalLabel } from './PrincipalLabel';
 import type { PrincipalDetails } from './usePrincipalDirectory';
@@ -72,6 +72,7 @@ export function AccessEntryDetail({
   onLevelChange,
   onBack,
 }: AccessEntryDetailProps) {
+  const { t } = useTranslation('communities');
   const { styles } = useStyles();
 
   return (
@@ -80,7 +81,7 @@ export function AccessEntryDetail({
         <Button
           type="text"
           icon={<ArrowLeftIcon size={18} />}
-          aria-label="Назад до списку"
+          aria-label={t(($) => $.access.backToList)}
           onClick={onBack}
         />
         <PrincipalLabel details={details} />
@@ -90,13 +91,15 @@ export function AccessEntryDetail({
         {channelCapabilities.map((capability) => (
           <li key={capability} className={styles.right}>
             <span className={styles.text}>
-              <span className={styles.label}>{capabilityLabels[capability].label}</span>
+              <span className={styles.label}>
+                {t(($) => $.access.capabilities[capability].label)}
+              </span>
               <Typography.Text type="secondary" className={styles.hint}>
-                {capabilityLabels[capability].hint}
+                {t(($) => $.access.capabilities[capability].hint)}
               </Typography.Text>
             </span>
             <Switch
-              aria-label={capabilityLabels[capability].label}
+              aria-label={t(($) => $.access.capabilities[capability].label)}
               checked={grants(entry.level, capability)}
               disabled={disabled}
               onChange={(enabled) =>
@@ -115,7 +118,7 @@ export function AccessEntryDetail({
         disabled={disabled}
         onClick={() => onLevelChange(null)}
       >
-        Прибрати з каналу
+        {t(($) => $.access.removeFromChannel)}
       </Button>
     </div>
   );

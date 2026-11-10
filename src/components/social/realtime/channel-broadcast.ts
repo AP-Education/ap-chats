@@ -9,6 +9,7 @@ import { channelRoom } from './channel-room';
 interface ChannelScope {
   workspaceId: string;
   channelId: string;
+  privateToUserId?: string | undefined;
 }
 
 @Injectable()
@@ -28,7 +29,11 @@ export class ChannelBroadcast {
   async send(channel: ChannelScope, name: string, payload: object): Promise<void> {
     const { workspaceId, channelId } = channel;
     const admit = (userIds: string[]) =>
-      this.audience.allowedUserIds(workspaceId, channelId, userIds);
+      this.audience.allowedUserIds(
+        workspaceId,
+        channelId,
+        channel.privateToUserId ? userIds.filter((id) => id === channel.privateToUserId) : userIds,
+      );
 
     try {
       await this.realtime.toWatchers(channelRoom(workspaceId, channelId), name, payload, admit);

@@ -95,6 +95,10 @@ class FakeChannelAccessRepository extends ChannelAccessRepository {
 }
 
 class FakeEntriesRepository extends EntriesRepository {
+  moveToEnd(): Promise<bigint> {
+    return Promise.reject(new Error('Call fixtures have no assistant messages'));
+  }
+
   async append(): Promise<never> {
     throw new Error('not exercised by these tests');
   }

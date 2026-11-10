@@ -1,0 +1,53 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #f5f5f5;
+}
+#root,
+.fixture-layout {
+  height: 100dvh;
+}
+.fixture-layout {
+  background: transparent;
+}
+main {
+  max-width: 600px;
+  padding: 20px;
+  margin: auto;
+}
+h1 {
+  font-size: 22px;
+}
+.message {
+  max-width: 440px;
+  padding: 6px;
+  border-radius: 16px;
+  background: white;
+}
+
+.chat-screen {
+  position: relative;
+  isolation: isolate;
+  height: 100dvh;
+  --media-max-side: 420px;
+}
+
+.chat-composer {
+  flex-shrink: 0;
+  padding: 8px;
+}
+
+.chat-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.qa-label {
+  font-size: 11px;
+  color: #666;
+}

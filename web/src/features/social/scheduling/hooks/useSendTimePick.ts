@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { startOfMonth } from '../calendar';
 import {
@@ -11,8 +12,9 @@ import {
 
 /** The day and time picked for a message, and the moment they mean while it is still allowed. */
 export function useSendTimePick(initial?: Date) {
+  const { t } = useTranslation('scheduling');
   const [now] = useState(() => new Date());
-  const options = sendTimeOptions(now);
+  const options = sendTimeOptions(now, t);
   const start = initial ?? defaultSendTime(now);
   const [day, setDay] = useState(start);
   const [time, setTime] = useState(() => timeOfDay(start));

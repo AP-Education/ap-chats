@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="expo_callkit_telecom_unknown_caller">Call</string>
+    <string name="expo_callkit_telecom_incoming_call">Incoming call</string>
+    <string name="expo_callkit_telecom_incoming_video_call">Incoming video call</string>
+    <string name="expo_callkit_telecom_ongoing_call">Ongoing call</string>
+    <string name="expo_callkit_telecom_call_ended">Call ended</string>
+    <string name="expo_callkit_telecom_channel_incoming">Incoming calls</string>
+    <string name="expo_callkit_telecom_channel_incoming_description">Full-screen incoming call with sound</string>
+    <string name="expo_callkit_telecom_channel_ongoing">Ongoing call</string>
+    <string name="expo_callkit_telecom_channel_ongoing_description">An ongoing call in the notification shade</string>
+    <string name="call_screen_decline">Decline</string>
+    <string name="call_screen_decline_description">Decline call</string>
+    <string name="call_screen_accept">Accept</string>
+    <string name="call_screen_accept_description">Accept call</string>
+</resources>

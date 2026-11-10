@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { and, desc, eq, ilike, inArray, isNotNull, ne, or, type SQL, sql } from 'drizzle-orm';
 
+import { STAR_ME } from '@/components/star-me/star-me.identity';
 import {
   activeRoleMembers,
   channelEntries,
@@ -54,7 +55,7 @@ export class DrizzleMentionsRepository extends MentionsRepository {
     return rows.length === ids.length;
   }
 
-  // The channel's members, and the workspace's bots in any channel but a direct message.
+  // StarMe may be summoned in a human DM without becoming a member of that conversation.
   // Tech debt: a bot answers on the asker's right to post rather than its own channel grants,
   // so it is mentionable where the lists leave it out; drop this once bots hold grants.
   private mentionable(workspaceId: string, channelId: string, condition: SQL | undefined) {
@@ -81,7 +82,10 @@ export class DrizzleMentionsRepository extends MentionsRepository {
           eq(workspaceMembers.status, 'active'),
           or(
             isNotNull(channelMemberships.memberId),
-            and(eq(userProfiles.isBot, true), ne(channels.kind, 'dm')),
+            and(
+              eq(userProfiles.isBot, true),
+              or(ne(channels.kind, 'dm'), eq(userProfiles.oidcUserId, STAR_ME.subject)),
+            ),
           ),
           condition,
         ),

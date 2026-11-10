@@ -1,4 +1,5 @@
 import { Button } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 import { useActiveWorkspace } from '@/features/workspaces/hooks/useActiveWorkspace';
 
@@ -10,6 +11,7 @@ interface ChannelsSidebarProps {
 }
 
 export function ChannelsSidebar({ onNavigate }: ChannelsSidebarProps) {
+  const { t } = useTranslation(['communities', 'common']);
   const { workspace, isLoading, isError, retry } = useActiveWorkspace();
 
   if (isLoading) return <ChannelsSidebarLoading />;
@@ -17,9 +19,9 @@ export function ChannelsSidebar({ onNavigate }: ChannelsSidebarProps) {
   if (isError && !workspace) {
     return (
       <div role="alert" style={{ padding: '12px 16px' }}>
-        Не вдалося завантажити робочі простори.{' '}
+        {t(($) => $.sidebar.workspacesLoadFailed)}{' '}
         <Button type="link" onClick={retry}>
-          Повторити
+          {t(($) => $.common.actions.retry)}
         </Button>
       </div>
     );

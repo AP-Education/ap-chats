@@ -19,7 +19,7 @@ export function scheduleMessage(
   token: string,
   workspaceId: string,
   channelId: string,
-  input: ScheduleMessageCommand & { clientNonce: string; sendAt: Date },
+  input: ScheduleMessageCommand & { sendAt: Date },
 ): Promise<ScheduledMessage> {
   const payload = {
     markdown: input.markdown,
@@ -27,6 +27,10 @@ export function scheduleMessage(
     sendAt: input.sendAt,
     replyToMessageId: input.replyToMessageId,
     quoteText: input.quoteText,
+    attachments: input.attachments?.map(({ id, description }) => ({
+      id,
+      description: description ?? undefined,
+    })),
   };
   return apiRequest(scheduledUrl(workspaceId, channelId), token, jsonInit('POST', payload));
 }

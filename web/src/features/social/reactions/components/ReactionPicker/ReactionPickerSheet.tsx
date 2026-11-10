@@ -1,7 +1,7 @@
+import { BottomSheet } from '@ap-education/ui/sheet';
 import { createStyles } from 'antd-style';
 import type { ReactNode } from 'react';
-
-import { BottomSheet } from '@/shared/ui/BottomSheet';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ css }) => ({
   panel: css`
@@ -19,9 +19,10 @@ export function ReactionPickerSheet({
   children: ReactNode;
 }) {
   const { styles } = useStyles();
+  const { t } = useTranslation('reactions');
 
   return (
-    <BottomSheet open onClose={onClose} aria-label="Вибір реакції">
+    <BottomSheet open onClose={onClose} aria-label={t(($) => $.picker)}>
       <div className={styles.panel}>{children}</div>
     </BottomSheet>
   );

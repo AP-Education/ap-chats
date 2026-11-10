@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -16,16 +17,17 @@ import { NativeIncomingCallScreen } from './NativeIncomingCallScreen';
 const RESTORE_WAIT_MS = 15_000;
 const FAILURE_NOTICE_MS = 3_500;
 
-const FAILURE_REASONS: Record<AnswerFailure, string> = {
-  'signed-out': 'Увійди в застосунок, щоб відповідати на дзвінки',
-  unreachable: "Перевір з'єднання і передзвони",
-};
+const FAILURE_REASON_KEYS = {
+  'signed-out': 'signedOut',
+  unreachable: 'unreachable',
+} as const satisfies Record<AnswerFailure, string>;
 
 /**
  * The "call" root, alone in Android's CallActivity over the lock screen: a call and nothing else,
  * so a locked phone never shows the chats. It stays behind them until the call ends.
  */
 export function CallWindow() {
+  const { t } = useTranslation('calls');
   const call = useNativeCallStore((state) => state.call);
   const answerFailure = useAnswerFailureStore((state) => state.failure);
   const hadCall = useRef(false);
@@ -56,11 +58,11 @@ export function CallWindow() {
         {!call &&
           (answerFailure ? (
             <CallWindowStatus
-              title="Не вдалося прийняти дзвінок"
-              description={FAILURE_REASONS[answerFailure]}
+              title={t(($) => $.answerFailed.title)}
+              description={t(($) => $.answerFailed[FAILURE_REASON_KEYS[answerFailure]])}
             />
           ) : (
-            <CallWindowStatus title="З'єднання" loading />
+            <CallWindowStatus title={t(($) => $.connecting)} loading />
           ))}
         <ErrorBoundary label="call-window-incoming">
           <NativeIncomingCallScreen />

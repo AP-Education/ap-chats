@@ -3,6 +3,7 @@ import { BellIcon, BellSlashIcon, UserCircleIcon } from '@phosphor-icons/react';
 import { message as toast, Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { callActionLabel } from '@/features/calls/callActionLabel';
 import { CallIcon } from '@/features/calls/callIcons';
@@ -38,9 +39,11 @@ interface DirectMessageActionsProps {
 
 export function DirectMessageActions({ workspaceId, conversation }: DirectMessageActionsProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('directMessages');
+  const { t: callsT } = useTranslation('calls');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const mute = useDirectMessageMute(workspaceId, conversation.id);
-  const name = conversation.participant.displayName ?? 'Колега';
+  const name = conversation.participant.displayName ?? t(($) => $.colleague);
   const call = useCallAction(
     workspaceId,
     conversation.id,
@@ -48,12 +51,16 @@ export function DirectMessageActions({ workspaceId, conversation }: DirectMessag
     conversation.participant.avatarPath,
   );
   const isMuted = conversation.notification.isMuted;
-  const callTitle = callActionLabel(call, `Подзвонити: ${name}`);
+  const callTitle = callActionLabel(
+    call,
+    t(($) => $.actions.callTitle, { name }),
+    callsT,
+  );
 
   function chooseMute(mode: 'unmute' | 'hour' | 'day' | 'indefinite') {
     mute.mutate(mode, {
       onSuccess: () => setNotificationsOpen(false),
-      onError: () => toast.error('Не вдалося змінити сповіщення.'),
+      onError: () => toast.error(t(($) => $.actions.notificationsFailed)),
     });
   }
 
@@ -65,7 +72,11 @@ export function DirectMessageActions({ workspaceId, conversation }: DirectMessag
         onOpenChange={setNotificationsOpen}
         styles={{ content: { padding: 4 } }}
         content={
-          <div className={styles.muteMenu} role="group" aria-label="Сповіщення розмови">
+          <div
+            className={styles.muteMenu}
+            role="group"
+            aria-label={t(($) => $.actions.notifications)}
+          >
             {isMuted && (
               <button
                 type="button"
@@ -73,7 +84,7 @@ export function DirectMessageActions({ workspaceId, conversation }: DirectMessag
                 disabled={mute.isPending}
                 onClick={() => chooseMute('unmute')}
               >
-                Увімкнути сповіщення
+                {t(($) => $.actions.enableNotifications)}
               </button>
             )}
             <button
@@ -82,7 +93,7 @@ export function DirectMessageActions({ workspaceId, conversation }: DirectMessag
               disabled={mute.isPending}
               onClick={() => chooseMute('hour')}
             >
-              Вимкнути на 1 годину
+              {t(($) => $.actions.muteHour)}
             </button>
             <button
               type="button"
@@ -90,7 +101,7 @@ export function DirectMessageActions({ workspaceId, conversation }: DirectMessag
               disabled={mute.isPending}
               onClick={() => chooseMute('day')}
             >
-              Вимкнути на 24 години
+              {t(($) => $.actions.muteDay)}
             </button>
             <button
               type="button"
@@ -98,14 +109,14 @@ export function DirectMessageActions({ workspaceId, conversation }: DirectMessag
               disabled={mute.isPending}
               onClick={() => chooseMute('indefinite')}
             >
-              Вимкнути безстроково
+              {t(($) => $.actions.muteIndefinitely)}
             </button>
           </div>
         }
       >
         <PageAction
           active={notificationsOpen || isMuted}
-          aria-label="Сповіщення розмови"
+          aria-label={t(($) => $.actions.notifications)}
           aria-expanded={notificationsOpen}
         >
           {isMuted ? <BellSlashIcon size={22} /> : <BellIcon size={22} />}
@@ -120,7 +131,7 @@ export function DirectMessageActions({ workspaceId, conversation }: DirectMessag
         {call.pending ? <LoadingIcon size={22} /> : <CallIcon size={22} />}
       </PageAction>
       <PageActionDivider />
-      <PageAsideTrigger aria-label="Профіль співрозмовника">
+      <PageAsideTrigger aria-label={t(($) => $.actions.profile)}>
         <UserCircleIcon size={22} />
       </PageAsideTrigger>
     </>

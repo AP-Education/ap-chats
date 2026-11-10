@@ -12,6 +12,12 @@ export interface Attachment {
   description: string | null;
   /** An image's ThumbHash, base64: its colours and a blurred stand-in before it loads. */
   placeholder?: string;
+  /** A private video poster exists; photos always have a thumbnail. */
+  hasThumbnail?: boolean;
+  /** Video duration in seconds, inspected from the uploaded file. */
+  duration?: number;
+  /** A recorded voice note; duration is derived from the stored audio by the API. */
+  voice?: { durationMs: number };
 }
 
 // What a fresh post and a forward of it both carry unmodified: what's
@@ -30,6 +36,10 @@ export interface MessageModel extends MessageContent {
   workspaceId: string;
   channelId: string;
   authorMemberId: string;
+  assistantOwnerMemberId: string | null;
+  assistantQuestionId: string | null;
+  assistantOriginalSeq: bigint | null;
+  publishedAt: Date | null;
   contentVersion: number;
   revision: number;
   replyToMessageId: string | null;
@@ -55,6 +65,7 @@ export interface MessageRef {
 
 /** A message ready to post: checked against its channel, its files already claimed. */
 export interface NewMessage {
+  assistant?: boolean;
   content: NormalizedMessageContent;
   attachments: Attachment[];
   gif: MessageGif | null;
@@ -75,6 +86,7 @@ export interface DeletedMessage {
   id: string;
   seq: string;
   authorMemberId: string;
+  privateToUserId?: string;
 }
 
 export type CreateMessageRecord = Pick<
@@ -95,5 +107,7 @@ export type CreateMessageRecord = Pick<
       | 'quoteText'
       | 'forwardedFromMessageId'
       | 'forwardedFromMemberId'
+      | 'assistantOwnerMemberId'
+      | 'assistantQuestionId'
     >
   >;

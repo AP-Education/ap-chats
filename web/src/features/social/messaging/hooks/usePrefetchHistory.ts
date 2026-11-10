@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 
-import { historyQuery } from './useMessageHistory';
+import { readChatWindow } from '../timeline/useChatTimeline';
 
 /** Starts loading a conversation's history as it is chosen, so the request runs while its page renders. */
 export function usePrefetchHistory() {
@@ -11,6 +11,8 @@ export function usePrefetchHistory() {
 
   return (workspaceId: string, channelId: string) => {
     if (token)
-      void queryClient.prefetchInfiniteQuery(historyQuery(identity, token, workspaceId, channelId));
+      void queryClient.prefetchQuery(
+        readChatWindow(queryClient, identity, token, workspaceId, channelId),
+      );
   };
 }

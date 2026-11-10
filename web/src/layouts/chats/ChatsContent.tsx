@@ -1,6 +1,7 @@
 import { Page, useIsMobile } from '@ap-education/ui';
 import { Skeleton, theme } from 'antd';
 import { Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useRoutes } from 'react-router-dom';
 
 import { chatsRoutes } from '../../app/routes';
@@ -8,6 +9,7 @@ import { PageSection } from '../../shared/ui/PageSection/PageSection';
 
 export function ChatsContent() {
   const { token } = theme.useToken();
+  const { t } = useTranslation('navigation');
   const isMobile = useIsMobile();
   const { pathname } = useLocation();
   const routes = useRoutes(chatsRoutes);
@@ -30,7 +32,7 @@ export function ChatsContent() {
             isChatPage ? (
               <Page />
             ) : (
-              <div role="status" aria-label="Завантажуємо сторінку" style={{ padding: 24 }}>
+              <div role="status" aria-label={t(($) => $.loadingPage)} style={{ padding: 24 }}>
                 <Skeleton active paragraph={{ rows: 4 }} />
               </div>
             )

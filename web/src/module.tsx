@@ -1,5 +1,6 @@
 import { defineApp } from '@ap-education/shell-sdk';
 import { Skeleton } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 import { ChatsProviders } from './app/ChatsProviders';
 import { WorkspaceStartup } from './app/WorkspaceStartup';
@@ -12,15 +13,19 @@ import { ChatsPanel } from './layouts/chats/ChatsPanel';
 import { ChatsRail } from './layouts/chats/ChatsRail';
 import { callsTab, personalTab, teamTab } from './layouts/chats/sections';
 
-const startup = (
-  <div role="status" aria-label="Завантажуємо чати" style={{ padding: 16 }}>
-    <Skeleton active paragraph={{ rows: 6 }} />
-  </div>
-);
+function Startup() {
+  const { t } = useTranslation('navigation');
+
+  return (
+    <div role="status" aria-label={t(($) => $.loadingChats)} style={{ padding: 16 }}>
+      <Skeleton active paragraph={{ rows: 6 }} />
+    </div>
+  );
+}
 
 function Panel() {
   return (
-    <WorkspaceStartup fallback={startup}>
+    <WorkspaceStartup fallback={<Startup />}>
       <ChatsPanel />
     </WorkspaceStartup>
   );
@@ -28,7 +33,7 @@ function Panel() {
 
 function Content() {
   return (
-    <WorkspaceStartup fallback={startup}>
+    <WorkspaceStartup fallback={<Startup />}>
       <ChatsContent />
     </WorkspaceStartup>
   );

@@ -23,6 +23,6 @@ export abstract class ChatUploadsRepository {
 
   abstract remove(id: string): Promise<void>;
 
-  /** Whether any non-deleted message still carries this attachment id. */
+  /** Whether the file is held by a scheduled or non-deleted message. */
   abstract hasLiveReferences(id: string): Promise<boolean>;
 }

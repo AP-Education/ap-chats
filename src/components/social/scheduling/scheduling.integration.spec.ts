@@ -7,6 +7,8 @@ import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import { and, eq } from 'drizzle-orm';
 
+import { DrizzleChatUploadsRepository } from '@/components/social/attachments/repository/drizzle-chat-uploads.repository';
+import { UploadCleanupService } from '@/components/social/attachments/upload-cleanup.service';
 import * as schema from '@/database/drizzle/schema';
 import { seedConversations } from '@/testing/conversations';
 import { migratedDatabase, transactionHost } from '@/testing/pglite';
@@ -66,6 +68,34 @@ test('scheduled messages on PostgreSQL', async (t) => {
         .where(eq(schema.scheduledMessages.id, id));
     const history = () =>
       db.select().from(schema.chatMessages).where(eq(schema.chatMessages.channelId, channelId));
+    const readyFiles = async (count = 1) => {
+      const files = Array.from({ length: count }, (_, index) => ({
+        id: randomUUID(),
+        name: `plan-${index + 1}.pdf`,
+        size: 120,
+        mediaType: 'application/pdf',
+        preview: null,
+        width: null,
+        height: null,
+        description: null,
+      }));
+      await db.insert(schema.chatUploads).values(
+        files.map((file) => ({
+          id: file.id,
+          workspaceId,
+          channelId,
+          ownerMemberId: author.id,
+          name: file.name,
+          size: file.size,
+          objectKey: `fixture/${file.id}`,
+          multipartId: 'fixture',
+          state: 'ready' as const,
+          metadata: file,
+          expiresAt: minutesFromNow(60),
+        })),
+      );
+      return files;
+    };
     const postGrant = and(
       eq(schema.channelGrants.channelId, channelId),
       eq(schema.channelGrants.memberId, author.id),
@@ -84,6 +114,7 @@ test('scheduled messages on PostgreSQL', async (t) => {
       schedule,
       timeComes,
       history,
+      readyFiles,
       postGrant,
       announced,
     };
@@ -140,7 +171,7 @@ test('scheduled messages on PostgreSQL', async (t) => {
     );
     await assert.rejects(
       chat.schedule('With a file', { attachments: [{ id: randomUUID() }] }),
-      BadRequestException,
+      NotFoundException,
     );
     await assert.rejects(
       chat.schedule('A reply to nothing', { replyToMessageId: randomUUID() }),
@@ -149,6 +180,93 @@ test('scheduled messages on PostgreSQL', async (t) => {
 
     assert.deepEqual(await chat.services.schedule.list(chat.author, chat.channelId), []);
   });
+
+  await t.test(
+    'files are private while scheduled, survive cleanup and appear in the due post',
+    async () => {
+      const chat = await team();
+      const files = await chat.readyFiles(11);
+      const request = {
+        clientNonce: randomUUID(),
+        attachments: files.map(({ id }) => ({ id })),
+      };
+      const scheduled = await chat.schedule('', request);
+      const retry = await chat.schedule('', request);
+      assert.equal(retry.id, scheduled.id);
+      assert.deepEqual(scheduled.attachments, files);
+      assert.deepEqual(await chat.services.schedule.list(chat.reader, chat.channelId), []);
+      assert.deepEqual(await chat.history(), []);
+      await assert.rejects(
+        chat.schedule('', { attachments: request.attachments }),
+        ConflictException,
+      );
+
+      const uploads = new DrizzleChatUploadsRepository(txHost as never);
+      const removed: string[] = [];
+      const errors: unknown[] = [];
+      const cleanup = new UploadCleanupService(
+        uploads,
+        {
+          abortMultipart: async () => {},
+          deleteObject: async (key: string) => {
+            removed.push(key);
+          },
+        } as never,
+        { error: (error: unknown) => errors.push(error) } as never,
+      );
+      const first = files[0]!;
+      await uploads.update(first.id, { expiresAt: minutesFromNow(-1) });
+      await cleanup.sweep();
+      assert.deepEqual(removed, []);
+      assert.equal((await uploads.find(first.id))?.state, 'attached');
+
+      const revised = await chat.services.schedule.change(
+        chat.author,
+        chat.channelId,
+        scheduled.id,
+        {
+          markdown: '',
+          sendAt: minutesFromNow(60),
+          revision: scheduled.revision,
+        },
+      );
+      assert.deepEqual(revised.attachments, files);
+      await chat.timeComes(scheduled.id);
+      assert.equal(await chat.delivery.deliver(), 1);
+      const posted = await chat.history();
+      assert.equal(posted.length, 1);
+      assert.deepEqual(posted[0]!.attachments, files);
+      assert.deepEqual(chat.deliveryErrors, []);
+      assert.deepEqual(await chat.services.schedule.list(chat.author, chat.channelId), []);
+
+      await uploads.update(first.id, { expiresAt: minutesFromNow(-1) });
+      await cleanup.sweep();
+      assert.deepEqual(removed, []);
+      assert.deepEqual(errors, []);
+    },
+  );
+
+  await t.test(
+    'sending now keeps scheduled files and cancelling releases them for cleanup',
+    async () => {
+      const chat = await team();
+      const [sent, cancelled] = await chat.readyFiles(2);
+      const first = await chat.schedule('Plan', { attachments: [{ id: sent!.id }] });
+      const second = await chat.schedule('', { attachments: [{ id: cancelled!.id }] });
+      const posted = await chat.services.scheduledSending.sendNow(
+        chat.author,
+        chat.channelId,
+        first.id,
+      );
+      assert.deepEqual(posted.attachments, [sent]);
+
+      await chat.services.schedule.cancel(chat.author, chat.channelId, second.id);
+      const uploads = new DrizzleChatUploadsRepository(txHost as never);
+      assert.equal(await uploads.hasLiveReferences(cancelled!.id), false);
+      assert.equal(await uploads.hasLiveReferences(sent!.id), true);
+      assert.equal((await chat.history()).length, 1);
+    },
+  );
 
   await t.test(
     'a retried schedule keeps one message; its nonce reused for another conflicts',

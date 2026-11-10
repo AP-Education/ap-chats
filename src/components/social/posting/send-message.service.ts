@@ -10,8 +10,10 @@ import { MessagesService } from '../messages';
 import {
   MESSAGE_CREATED_EVENT,
   MessageCreatedEvent,
+  PRIVATE_MESSAGE_CREATED_EVENT,
 } from '../messages/events/message-created.event';
 import type { MessageView } from '../messages/message-view';
+import type { Attachment } from '../messages/types/message.types';
 import type { SendMessageDto } from './dto/send-message.dto';
 import { MessageComposer } from './message-composer';
 import type { MessageDraft } from './types';
@@ -45,8 +47,19 @@ export class SendMessageService {
   }
 
   /** Joins the caller's transaction, so its own change commits with the message; it announces after. */
-  async sendWithin(author: WorkspaceMember, channelId: string, request: SendMessageDto) {
-    return this.post(author, author, channelId, await this.composer.draft(request));
+  async sendWithin(
+    author: WorkspaceMember,
+    channelId: string,
+    request: Omit<SendMessageDto, 'attachments'>,
+    claimedAttachments: Attachment[],
+  ) {
+    const attachments = claimedAttachments.map(({ id, description }) => ({
+      id,
+      ...(description !== null && { description }),
+    }));
+    const draft = await this.composer.draft({ ...request, attachments });
+
+    return this.post(author, author, channelId, draft, claimedAttachments);
   }
 
   // A retry of a request that already went through gets the same message back, announced once.
@@ -56,6 +69,7 @@ export class SendMessageService {
     authority: WorkspaceMember,
     channelId: string,
     draft: MessageDraft,
+    claimedAttachments?: Attachment[],
   ): Promise<{ message: MessageView; announce: Announce }> {
     const channel = await this.access.requirePostAccess(authority, channelId);
     const repeated = await this.messages.findRepeat(author, channelId, draft);
@@ -64,11 +78,19 @@ export class SendMessageService {
     const message = await this.messages.post(
       author,
       channel,
-      await this.composer.complete(author, channel, draft),
+      await this.composer.complete(author, channel, draft, authority, claimedAttachments),
+      authority,
     );
     const announce = await this.events.record(
-      MESSAGE_CREATED_EVENT,
-      new MessageCreatedEvent(author.workspaceId, channelId, message.id, message.seq, author.id),
+      message.privateToMe ? PRIVATE_MESSAGE_CREATED_EVENT : MESSAGE_CREATED_EVENT,
+      new MessageCreatedEvent(
+        author.workspaceId,
+        channelId,
+        message.id,
+        message.seq,
+        author.id,
+        message.privateToMe ? authority.profile.oidcUserId : undefined,
+      ),
       { durable: true },
     );
 

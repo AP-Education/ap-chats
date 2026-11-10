@@ -28,7 +28,7 @@ test('rows follow the order they were written and skip what history already hold
   const rows = unsentRows({ entries, files: new Map() }, new Set(['landed']), author, []);
 
   assert.deepEqual(
-    rows.map((row) => row.item.id),
+    rows.map((row) => row.entry.payload.item.id),
     ['early', 'late'],
   );
 });
@@ -51,7 +51,7 @@ test('a row quotes the message it replies to and shows its files while they go u
     [target],
   );
 
-  assert.equal(row?.delivery, 'uploading');
-  assert.equal(row?.pendingAttachments, files);
-  assert.equal(row?.item.type === 'MESSAGE' && row.item.reply?.markdown, 'Питання');
+  assert.equal(row?.status, 'preparing');
+  assert.equal(row?.entry.kind === 'MESSAGE' && row.entry.payload.pendingAttachments, files);
+  assert.equal(row?.entry.kind === 'MESSAGE' && row.entry.payload.item.reply?.markdown, 'Питання');
 });

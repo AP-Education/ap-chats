@@ -1,10 +1,11 @@
-import { type ReactNode, useState } from 'react';
+import { TimelineEntryMedia, useTimelineMediaActions } from '@ap-education/timeline/media';
+import { MediaBadge, MediaFrame, MediaFrameOpen } from '@ap-education/ui/media';
+import { thumbHashStyle } from '@ap-education/ui/thumbhash';
+import { type ReactNode, useMemo, useState } from 'react';
 
-import { mediaKey, useMediaViewer } from '../../media-viewer-context';
+import { mediaKey } from '../../message-media';
 import type { GifBlock } from '../../types';
-import { MediaFrame } from '../MediaFrame/MediaFrame';
 import { GifLink } from './GifLink';
-import styles from './GifView.module.css';
 
 /**
  * Straight from its service's CDN; KLIPY swaps a taken-down GIF for its own notice. One that fails
@@ -19,39 +20,40 @@ export function GifView({
   messageId: string;
   overlay?: ReactNode;
 }) {
-  const viewer = useMediaViewer();
+  const { open } = useTimelineMediaActions();
   const [broken, setBroken] = useState(false);
   const key = mediaKey(messageId, 'gif');
+  const title = block.title || 'GIF';
+  const { placeholder } = block.media;
+  const standIn = useMemo(
+    () => (placeholder ? thumbHashStyle(placeholder) : undefined),
+    [placeholder],
+  );
 
   if (broken) {
     return (
-      <>
+      <TimelineEntryMedia>
         <GifLink href={block.link} />
         {overlay}
-      </>
+      </TimelineEntryMedia>
     );
   }
 
   return (
-    <MediaFrame
-      src={block.media.url}
-      size={block.media}
-      alt={block.title || 'GIF'}
-      placeholder={block.media.placeholder}
-      onImageError={() => setBroken(true)}
-      data-attachment-media
-      data-media-key={key}
-    >
-      <button
-        type="button"
-        className={styles.open}
-        aria-label={`Переглянути ${block.title || 'GIF'}`}
-        onClick={() => viewer.open(key)}
-      />
-      <span className={styles.label} aria-hidden>
-        GIF
-      </span>
+    <TimelineEntryMedia style={standIn}>
+      <MediaFrame
+        src={block.media.url}
+        size={block.media}
+        alt={title}
+        mediaKey={key}
+        onImageError={() => setBroken(true)}
+      >
+        <MediaFrameOpen aria-label={`Переглянути ${title}`} onClick={() => open(key)} />
+        <MediaBadge corner="top-start" aria-hidden>
+          GIF
+        </MediaBadge>
+      </MediaFrame>
       {overlay}
-    </MediaFrame>
+    </TimelineEntryMedia>
   );
 }

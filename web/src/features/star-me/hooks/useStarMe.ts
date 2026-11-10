@@ -10,7 +10,9 @@ export function useStarMe(workspaceId: string): MemberSummary | undefined {
   const { data: members } = useWorkspaceMembers(workspaceId);
 
   return useMemo(() => {
-    const starMe = members?.find((member) => member.profile.oidcUserId === STAR_ME_SUBJECT);
+    const starMe = members?.find(
+      (member) => member.status === 'active' && member.profile.oidcUserId === STAR_ME_SUBJECT,
+    );
     if (!starMe) return undefined;
 
     const { displayName, avatarPath, isBot } = starMe.profile;

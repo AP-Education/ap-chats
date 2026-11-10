@@ -1,12 +1,10 @@
-import { MusicNotesIcon, PlayIcon } from '@phosphor-icons/react';
+import { TimelineEntryFile } from '@ap-education/timeline/media';
+import { FileCardAction, FileCardActions, FileCardBadge } from '@ap-education/ui/media';
+import { DownloadSimpleIcon, MusicNotesIcon, PlayIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 
-import { fileSummary } from '../../attachments/file-presentation';
 import { AttachmentPlayer } from './AttachmentPlayer';
 import type { FileAttachmentProps } from './FileAttachment';
-import { FileBadge } from './FileBadge';
-import { FileCard } from './FileCard';
-import { FileDownloadButton } from './FileDownloadButton';
 import { useAttachmentDownload } from './useAttachmentAccess';
 
 // Audio plays in place, under its card.
@@ -16,34 +14,34 @@ export function AudioFile({ attachment, messageId, available }: FileAttachmentPr
   const save = () => void download.download();
 
   return (
-    <FileCard
+    <TimelineEntryFile
       name={attachment.name}
-      meta={fileSummary(attachment.name, attachment.size)}
-      onNamePress={save}
+      size={attachment.size}
+      onNameClick={save}
       nameDisabled={!available}
-      badge={
-        <FileBadge
-          label={`Відтворити ${attachment.name}`}
-          disabled={!available || playing}
-          onPress={() => setPlaying(true)}
-        >
-          {playing ? (
-            <MusicNotesIcon size={22} weight="fill" />
-          ) : (
-            <PlayIcon size={22} weight="fill" />
-          )}
-        </FileBadge>
-      }
-      trailing={
-        <FileDownloadButton
-          name={attachment.name}
-          downloading={download.downloading}
-          disabled={!available}
-          onPress={save}
-        />
-      }
     >
+      <FileCardBadge
+        label={`Відтворити ${attachment.name}`}
+        disabled={!available || playing}
+        onClick={() => setPlaying(true)}
+      >
+        {playing ? (
+          <MusicNotesIcon size={22} weight="fill" />
+        ) : (
+          <PlayIcon size={22} weight="fill" />
+        )}
+      </FileCardBadge>
+      <FileCardActions>
+        <FileCardAction
+          label={`Завантажити ${attachment.name}`}
+          disabled={!available}
+          busy={download.downloading}
+          onClick={save}
+        >
+          <DownloadSimpleIcon size={20} />
+        </FileCardAction>
+      </FileCardActions>
       {playing && available && <AttachmentPlayer attachment={attachment} messageId={messageId} />}
-    </FileCard>
+    </TimelineEntryFile>
   );
 }

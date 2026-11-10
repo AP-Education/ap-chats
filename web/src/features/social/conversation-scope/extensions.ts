@@ -1,6 +1,24 @@
+import type { PendingEntry } from '@ap-education/timeline';
+import type { EntryKind } from '@ap-education/timeline/react';
 import { type ComponentType, createContext, type ReactNode, useContext } from 'react';
 
-import type { ConversationAction, Message, SendMessageCommand } from '../messaging/types';
+import type { ConversationEntry } from '../messaging/timeline/chat-entry';
+import type {
+  ConversationAction,
+  ExtensionNamespaces,
+  Message,
+  SendMessageCommand,
+} from '../messaging/types';
+
+export const extensionNamespaces: ExtensionNamespaces = [
+  'messaging',
+  'common',
+  'conversation',
+  'pins',
+  'reactions',
+  'scheduling',
+  'starMe',
+];
 
 /** A message the person sent from the composer, and what they composed it as. */
 export interface SentMessage {
@@ -14,15 +32,14 @@ export interface SentMessage {
 
 /** The composer's own commands, for a send option to take the draft over. */
 export interface ComposerCommands {
-  /** The message as it would go now: the person's words under the current intent. */
-  read: () => Omit<SendMessageCommand, 'clientNonce' | 'attachments'>;
-  /** Empties the composer the way sending does. */
-  clear: () => void;
+  /** The draft with its uploaded files, or null while a file is unfinished. */
+  read: () => SendMessageCommand | null;
+  clear: (message: SendMessageCommand) => void;
 }
 
 /** What a send option is told of the draft to decide whether it can take it. */
 export interface ComposerDraftState {
-  hasAttachments: boolean;
+  attachmentsReady: boolean;
   /** Its intent still means the same if the message goes out later. */
   canWait: boolean;
 }
@@ -46,10 +63,17 @@ export interface SendOption {
 /** What a feature adds to a conversation, declared by the page that composes it. */
 export interface ConversationExtension {
   id: string;
+  /** The assistant whose private mode the composer can enter. */
+  privateAssistantMemberId?: string;
   /** Message actions, offered after the built-in ones. */
   actions?: ConversationAction[];
-  /** Shown after the last message, where what happens next appears. */
-  TimelineEnd?: ComponentType;
+  /** The kinds of entry it adds to the timeline, each with its view. */
+  kinds?: EntryKind<ConversationEntry>[];
+  /**
+   * What it has on its way, drawn after the history at the live end and turning into the entry
+   * with the same nonce once the history holds it; told which nonces it already holds.
+   */
+  usePending?: (landed: ReadonlySet<string>) => readonly PendingEntry<ConversationEntry>[];
   /** Hears of every message the person sends. */
   sent?: (message: SentMessage) => void;
   /** Other ways to send, offered on the send button's long press and right click. */

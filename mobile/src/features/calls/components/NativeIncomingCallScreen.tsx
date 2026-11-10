@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { PhoneCall, PhoneDisconnect } from 'phosphor-react-native';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -19,11 +20,12 @@ import { CallSurfaceBackground } from './CallSurfaceBackground';
  * IncomingCallCard in its phone layout.
  */
 export function NativeIncomingCallScreen() {
+  const { t } = useTranslation('calls');
   const call = useNativeCallStore((state) => state.call);
 
   if (!call || call.status !== 'ringing') return null;
 
-  const name = call.caller.displayName ?? 'Дзвінок';
+  const name = call.caller.displayName ?? t(($) => $.call);
 
   return (
     <View style={styles.fill}>
@@ -35,15 +37,15 @@ export function NativeIncomingCallScreen() {
           <Text style={styles.name} numberOfLines={1}>
             {name}
           </Text>
-          <Text style={styles.status}>Вхідний дзвінок</Text>
+          <Text style={styles.status}>{t(($) => $.incoming)}</Text>
         </View>
 
         <View style={styles.actions}>
           <CallControlButton
             icon={PhoneDisconnect}
             iconWeight="fill"
-            accessibilityLabel="Відхилити дзвінок"
-            label="Відхилити"
+            accessibilityLabel={t(($) => $.declineCall)}
+            label={t(($) => $.decline)}
             size={72}
             tone="danger"
             onPress={() => withCallKit((CallKit) => CallKit.endCall(call.sessionId))}
@@ -51,8 +53,8 @@ export function NativeIncomingCallScreen() {
           <CallControlButton
             icon={PhoneCall}
             iconWeight="fill"
-            accessibilityLabel="Прийняти дзвінок"
-            label="Прийняти"
+            accessibilityLabel={t(($) => $.acceptCall)}
+            label={t(($) => $.accept)}
             size={72}
             tone="accept"
             onPress={() => withCallKit((CallKit) => CallKit.answerCall(call.sessionId))}

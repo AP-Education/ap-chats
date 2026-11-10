@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 import type { Role } from '@/features/roles/types';
 
 import { compareNames } from '../../../shared/lib/compare-names';
@@ -17,6 +19,7 @@ export function groupMembersByRole(
   memberships: ChannelMembership[],
   roles: Role[],
   nameOf: (memberId: string) => string,
+  t: TFunction<'communities'>,
 ): MemberGroup[] {
   const byName = (a: ChannelMembership, b: ChannelMembership) =>
     compareNames(nameOf(a.memberId), nameOf(b.memberId));
@@ -38,7 +41,7 @@ export function groupMembersByRole(
     }))
     .filter((group) => group.members.length > 0);
   const restGroup = rest.length
-    ? [{ key: 'members', title: 'Учасники', members: rest.sort(byName) }]
+    ? [{ key: 'members', title: t(($) => $.members.title), members: rest.sort(byName) }]
     : [];
 
   return [...roleGroups, ...restGroup];

@@ -26,6 +26,9 @@ export const channels = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: 'cascade' }),
     categoryId: uuid('category_id'),
+    lastPublicEntrySeq: bigint('last_public_entry_seq', { mode: 'bigint' })
+      .notNull()
+      .default(sql`0`),
     kind: text('kind', { enum: channelKinds }).notNull(),
     name: text('name'),
     createdByMemberId: uuid('created_by_member_id').notNull(),

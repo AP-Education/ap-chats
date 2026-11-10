@@ -78,7 +78,7 @@ export class ReadStateService {
     if (seq > channel.lastEntrySeq)
       throw new BadRequestException('Sequence exceeds channel history');
 
-    const isEntry = await this.repository.entryExists(channelId, seq);
+    const isEntry = await this.repository.entryExists(channelId, seq, member.id);
     if (!isEntry) throw new BadRequestException('Sequence is not an entry');
 
     const current = await this.repository.lastReadSeq(channelId, member.id);
@@ -112,7 +112,7 @@ export class ReadStateService {
     if (seq > channel.lastEntrySeq)
       throw new BadRequestException('Sequence exceeds channel history');
 
-    const isEntry = seq === 0n || (await this.repository.entryExists(channelId, seq));
+    const isEntry = seq === 0n || (await this.repository.entryExists(channelId, seq, member.id));
     if (!isEntry) throw new BadRequestException('Sequence is not an entry');
 
     const current = await this.repository.lastReadSeq(channelId, member.id);
@@ -125,7 +125,7 @@ export class ReadStateService {
     if (!state) throw new ForbiddenException('Join this channel first');
     if (!isAhead) return { state, announce: nothingToAnnounce };
 
-    return { state, announce: await this.announceAdvance(member, channel, state) };
+    return { state, announce: await this.announceAdvance(member, channel, state, current) };
   }
 
   private async state(
@@ -148,6 +148,7 @@ export class ReadStateService {
     member: WorkspaceMember,
     channel: ChannelAccessSnapshot,
     state: ChannelReadState,
+    previousSeq: bigint,
   ): Promise<Announce> {
     const advanced = new ReadStateAdvancedEvent(
       member.profile.oidcUserId,
@@ -158,11 +159,17 @@ export class ReadStateService {
     const announceAdvanced = await this.events.record(READ_STATE_ADVANCED_EVENT, advanced);
     if (!sharesReadReceipts(channel.kind)) return announceAdvanced;
 
+    const sharedSeq = await this.repository.sharedSeqAtOrBefore(
+      channel.id,
+      BigInt(state.lastReadEntrySeq),
+    );
+    const previousShared = await this.repository.sharedSeqAtOrBefore(channel.id, previousSeq);
+    if (sharedSeq <= previousShared) return announceAdvanced;
     const receipt = new ReadReceiptEvent(
       member.workspaceId,
       channel.id,
       member.id,
-      state.lastReadEntrySeq,
+      sharedSeq.toString(),
     );
     const announceReceipt = await this.events.record(READ_RECEIPT_EVENT, receipt);
 

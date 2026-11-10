@@ -1,15 +1,23 @@
+/* The timeline package lays the row out by its side; the row adds its own stacking for the
+   selection band behind it. */
 .row {
-  position: relative;
   isolation: isolate;
-  display: flex;
-  align-items: flex-end;
-  gap: var(--ant-padding-xs);
-  min-width: 0;
-  color: var(--ant-color-text);
 }
 
-.row[data-own] {
-  justify-content: flex-end;
+/* A warm touch on the usual bubble rather than antd's warning fill, which turns into a muddy
+   olive block on dark. Dark keeps it faint: amber over blue-grey drifts to olive, so the amber
+   mention chip carries the signal there. */
+.row[data-mentions-me]:not([data-status='failed']) {
+  --attention-share: 14%;
+  --timeline-bubble-bg: color-mix(
+    in srgb,
+    var(--ant-color-warning) var(--attention-share),
+    var(--chat-incoming-bg, rgba(255, 255, 255, 0.8))
+  );
+}
+
+html[data-theme='dark'] .row[data-mentions-me] {
+  --attention-share: 7%;
 }
 
 /* Keyboard focus rings the bubble, not the whole row. */

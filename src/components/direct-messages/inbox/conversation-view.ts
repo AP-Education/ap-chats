@@ -22,6 +22,7 @@ export function conversationView(row: ConversationRow, isMuted: boolean) {
           id: row.lastMessage.id,
           markdown: row.lastMessage.deletedAt ? null : row.lastMessage.markdown,
           blocks: row.lastMessage.deletedAt ? [] : messageBlocks(row.lastMessage),
+          attachments: row.lastMessage.deletedAt ? [] : (row.lastMessage.attachments ?? []),
           authorMemberId: row.lastMessage.authorMemberId,
           createdAt: row.lastMessage.createdAt,
         }

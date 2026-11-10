@@ -4,6 +4,7 @@ import { AuthModule } from '@/components/auth';
 import { ChannelAccessPolicyModule } from '@/components/communities/channel-access/channel-access';
 import { WorkspaceMembersModule } from '@/components/workspaces/members';
 
+import { AttachmentsModule } from '../attachments';
 import { ReadStateModule } from '../read-state';
 import { HistoryController } from './history.controller';
 import { HistoryService } from './history.service';
@@ -11,7 +12,13 @@ import { DrizzleHistoryRepository } from './repository/drizzle-history.repositor
 import { HistoryRepository } from './repository/history.repository';
 
 @Module({
-  imports: [AuthModule, ChannelAccessPolicyModule, WorkspaceMembersModule, ReadStateModule],
+  imports: [
+    AuthModule,
+    ChannelAccessPolicyModule,
+    WorkspaceMembersModule,
+    ReadStateModule,
+    AttachmentsModule,
+  ],
   controllers: [HistoryController],
   providers: [HistoryService, { provide: HistoryRepository, useClass: DrizzleHistoryRepository }],
 })

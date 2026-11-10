@@ -8,6 +8,7 @@ import {
 import { SquaresFourIcon, WarningCircleIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Outlet } from 'react-router-dom';
 
 import { useActiveWorkspace } from '../hooks/useActiveWorkspace';
@@ -18,6 +19,7 @@ interface RequiredWorkspaceLayoutProps {
 }
 
 export function RequiredWorkspaceLayout({ loadingFallback }: RequiredWorkspaceLayoutProps) {
+  const { t } = useTranslation(['workspaces', 'common']);
   const { workspace, isLoading, isError, retry } = useActiveWorkspace();
 
   if (isLoading) return loadingFallback;
@@ -28,9 +30,9 @@ export function RequiredWorkspaceLayout({ loadingFallback }: RequiredWorkspaceLa
         <ContentStateIcon tone="danger">
           <WarningCircleIcon />
         </ContentStateIcon>
-        <ContentStateTitle>Не вдалося завантажити робочі простори</ContentStateTitle>
+        <ContentStateTitle>{t(($) => $.loadFailed)}</ContentStateTitle>
         <ContentStateActions>
-          <Button onClick={retry}>Спробувати ще раз</Button>
+          <Button onClick={retry}>{t(($) => $.common.actions.tryAgain)}</Button>
         </ContentStateActions>
       </StatePage>
     );
@@ -42,10 +44,8 @@ export function RequiredWorkspaceLayout({ loadingFallback }: RequiredWorkspaceLa
         <ContentStateIcon>
           <SquaresFourIcon />
         </ContentStateIcon>
-        <ContentStateTitle>Робочого простору ще немає</ContentStateTitle>
-        <ContentStateDescription>
-          Створіть його кнопкою «+» серед робочих просторів.
-        </ContentStateDescription>
+        <ContentStateTitle>{t(($) => $.noWorkspace.title)}</ContentStateTitle>
+        <ContentStateDescription>{t(($) => $.noWorkspace.description)}</ContentStateDescription>
       </StatePage>
     );
   }

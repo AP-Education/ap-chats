@@ -7,7 +7,6 @@ import {
   type TimelineActions,
   TimelineActionsContext,
 } from '@/features/social/messaging/timeline-actions-context';
-import { peerReadSeqOf } from '@/features/social/read-receipts/read-receipts';
 import { PeerReadContext } from '@/features/social/read-receipts/stores/peer-read-context';
 
 import type { useConversationActions } from './useConversationActions';
@@ -24,7 +23,7 @@ export function ConversationTimeline({
   interaction,
   operations,
 }: ConversationTimelineProps) {
-  const { historyWindow, historyTargetId, onJump } = navigation;
+  const { history, targetMessageId, historyTargetId, onJump } = navigation;
   const { actions, actionContext, onAction, onEdit } = interaction;
   // Stable, so every memoised row keeps skipping renders that only touch other rows.
   const timelineActions = useMemo<TimelineActions>(
@@ -35,11 +34,12 @@ export function ConversationTimeline({
   return (
     <TimelineActionsContext.Provider value={timelineActions}>
       <UnsentMessagesContext.Provider value={operations.unsent}>
-        <PeerReadContext.Provider value={peerReadSeqOf(historyWindow.pages)}>
+        <PeerReadContext.Provider value={history.meta?.peerReadSeq ?? null}>
           <MessageTimeline
             key={historyTargetId ?? 'unread'}
-            history={historyWindow}
-            displayItems={operations.displayItems}
+            view={history}
+            pending={operations.pending}
+            targetMessageId={targetMessageId}
           />
         </PeerReadContext.Provider>
       </UnsentMessagesContext.Provider>

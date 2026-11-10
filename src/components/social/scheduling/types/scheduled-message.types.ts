@@ -1,9 +1,12 @@
+import type { Attachment } from '../../messages/types/message.types';
+
 export interface ScheduledMessageModel {
   id: string;
   workspaceId: string;
   channelId: string;
   authorMemberId: string;
   contentMarkdown: string;
+  attachments: Attachment[];
   replyToMessageId: string | null;
   quoteText: string | null;
   sendAt: Date;
@@ -22,6 +25,7 @@ export type NewScheduledMessage = Pick<
   | 'channelId'
   | 'authorMemberId'
   | 'contentMarkdown'
+  | 'attachments'
   | 'replyToMessageId'
   | 'quoteText'
   | 'sendAt'

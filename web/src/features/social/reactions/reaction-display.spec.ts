@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { chipFaces, reactionsByPerson, reactionsLabel } from './reaction-display.ts';
+import { i18n, i18nReady } from '../../../shared/i18n/i18n';
+import { chipFaces, reactionsByPerson } from './reaction-display.ts';
+
+await i18nReady('uk');
+const t = i18n.getFixedT('uk', 'reactions');
 
 const chip = (count: number, recentMemberIds: string[]) => ({
   emoji: '👍',
@@ -31,11 +35,10 @@ test('people who reacted twice appear once, with both emoji', () => {
     emoji,
   });
 
-  const people = reactionsByPerson([
-    reactor('ann', '👍'),
-    reactor('bob', '🎉'),
-    reactor('ann', '🎉'),
-  ]);
+  const people = reactionsByPerson(
+    [reactor('ann', '👍'), reactor('bob', '🎉'), reactor('ann', '🎉')],
+    t,
+  );
 
   assert.deepEqual(
     people.map((person) => [person.name, person.emojis]),
@@ -47,10 +50,8 @@ test('people who reacted twice appear once, with both emoji', () => {
 });
 
 test('the reaction total reads naturally in Ukrainian', () => {
-  assert.deepEqual([1, 3, 7, 21].map(reactionsLabel), [
-    '1 реакція',
-    '3 реакції',
-    '7 реакцій',
-    '21 реакція',
-  ]);
+  assert.deepEqual(
+    [1, 3, 7, 21].map((count) => t(($) => $.total, { count })),
+    ['1 реакція', '3 реакції', '7 реакцій', '21 реакція'],
+  );
 });

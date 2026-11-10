@@ -246,6 +246,27 @@
       "when": 1792425682058,
       "tag": "0034_drop_star_me_question_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794095507492,
+      "tag": "0035_private_assistant",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794222576806,
+      "tag": "0036_scheduled_attachments",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794222768957,
+      "tag": "0037_user_locale",
+      "breakpoints": true
     }
   ]
 }

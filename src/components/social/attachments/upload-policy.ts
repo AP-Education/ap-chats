@@ -1,6 +1,6 @@
+import type { StoredPart } from '@ap-education/storage';
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 
-import type { StoredPart } from '@/components/uploads/storage/types';
 import { AppConfigService } from '@/globals/config';
 
 import { type AttachmentPolicy, MULTIPART_PART_BYTES } from './types';

@@ -1,0 +1,196 @@
+diff --git a/dist/media/viewer/components/MediaViewer.d.ts b/dist/media/viewer/components/MediaViewer.d.ts
+index a34026c09438e0bfd39b4b75d43a3070acd4d698..b56a5e3af0c05b93912b1baf37eb2431c4fdefc7 100644
+--- a/dist/media/viewer/components/MediaViewer.d.ts
++++ b/dist/media/viewer/components/MediaViewer.d.ts
+@@ -22,6 +22,8 @@ export interface MediaViewerProps<Item extends MediaItem> {
+     /** The accent preset id the viewer's dark theme keeps, such as the one the person picked. */
+     accent?: string | undefined;
+     labels?: MediaLabels | undefined;
++    onOpenError?: () => void;
++    renderVideo?: (item: Item, active: boolean) => ReactNode;
+     /** The parts: `MediaViewerTitle`, `MediaViewerCaption` and `MediaViewerActions`. */
+     children?: ReactNode;
+ }
+@@ -30,4 +32,4 @@ export interface MediaViewerProps<Item extends MediaItem> {
+  * and to close, videos that play, and the app's own parts in its bars. One item shows alone, with
+  * nothing to page through; several page here, and new ones around the one on screen join in place.
+  */
+-export declare function MediaViewer<Item extends MediaItem>({ open, items, index, onIndexChange, onClose, onEdge, urls, accent, labels, children, }: MediaViewerProps<Item>): import("react").ReactPortal | null;
++export declare function MediaViewer<Item extends MediaItem>({ open, items, index, onIndexChange, onClose, onEdge, urls, accent, labels, onOpenError, renderVideo, children, }: MediaViewerProps<Item>): import("react").ReactPortal | null;
+diff --git a/dist/media/viewer/components/MediaViewer.js b/dist/media/viewer/components/MediaViewer.js
+index fe9238f36d2061767dd9f7dee5008f393df75fe2..0d7e06fda25b9c144a3c9786e1193bd999819a51 100644
+--- a/dist/media/viewer/components/MediaViewer.js
++++ b/dist/media/viewer/components/MediaViewer.js
+@@ -17,13 +17,13 @@ import { VideoSlide } from './VideoSlide';
+  * and to close, videos that play, and the app's own parts in its bars. One item shows alone, with
+  * nothing to page through; several page here, and new ones around the one on screen join in place.
+  */
+-export function MediaViewer({ open, items, index = 0, onIndexChange, onClose, onEdge, urls, accent, labels, children, }) {
++export function MediaViewer({ open, items, index = 0, onIndexChange, onClose, onEdge, urls, accent, labels, onOpenError, renderVideo, children, }) {
+     const [gallery, setGallery] = useState(null);
+     const resolved = useMemo(() => resolveMediaLabels(labels), [labels]);
+     // Read by PhotoSwipe's callbacks and the opening import long after the render that set them.
+-    const latest = useRef({ items, index, urls, resolved, onIndexChange, onClose, onEdge });
++    const latest = useRef({ items, index, urls, resolved, onIndexChange, onClose, onEdge, onOpenError });
+     useLayoutEffect(() => {
+-        latest.current = { items, index, urls, resolved, onIndexChange, onClose, onEdge };
++        latest.current = { items, index, urls, resolved, onIndexChange, onClose, onEdge, onOpenError };
+     });
+     useEffect(() => {
+         if (!open || gallery)
+@@ -44,6 +44,11 @@ export function MediaViewer({ open, items, index = 0, onIndexChange, onClose, on
+                 onClosed: () => setGallery(null),
+             });
+             setGallery(opened);
++        }).catch(() => {
++            if (!isWanted)
++                return;
++            latest.current.onOpenError?.();
++            latest.current.onClose();
+         });
+         return () => {
+             isWanted = false;
+@@ -69,10 +74,10 @@ export function MediaViewer({ open, items, index = 0, onIndexChange, onClose, on
+     }, [viewIndex, viewItems]);
+     if (!gallery || !view)
+         return null;
+-    return createPortal(_jsx(AppearanceScope, { appearance: "dark", accent: accent, children: _jsx(ViewerScreen, { gallery: gallery, view: view, urls: urls, labels: resolved, children: children }) }), gallery.element);
++    return createPortal(_jsx(AppearanceScope, { appearance: "dark", accent: accent, children: _jsx(ViewerScreen, { gallery: gallery, view: view, urls: urls, labels: resolved, renderVideo, children: children }) }), gallery.element);
+ }
+ /** The bars over the open gallery, with slots the parts fill, and the videos in its slides. */
+-function ViewerScreen({ gallery, view, urls, labels, children, }) {
++function ViewerScreen({ gallery, view, urls, labels, renderVideo, children, }) {
+     const isMobile = useIsMobile();
+     const [title, setTitle] = useState(null);
+     const [caption, setCaption] = useState(null);
+@@ -98,8 +103,27 @@ function ViewerScreen({ gallery, view, urls, labels, children, }) {
+             slots: { title, caption, actions },
+         };
+     }, [item, index, edge, gallery, urls, labels, zoomable, zoomedIn, title, caption, actions]);
++    const kind = item?.kind;
++    useLayoutEffect(() => {
++        if (kind !== 'video')
++            return;
++        const top = gallery.element.querySelector('header');
++        const bottom = gallery.element.querySelector('footer');
++        if (!top || !bottom)
++            return;
++        const fit = () => gallery.fitVideoBetweenBars(top.getBoundingClientRect().height, bottom.getBoundingClientRect().height);
++        const observer = new ResizeObserver(fit);
++        observer.observe(top);
++        observer.observe(bottom);
++        fit();
++        return () => observer.disconnect();
++    }, [gallery, kind]);
+     if (!item || !context)
+         return null;
+     const { counter } = mediaPaging(index, items.length, item.position);
+-    return (_jsxs(ViewerContext, { value: context, children: [_jsxs("header", { className: styles.top, children: [_jsx("div", { ref: setTitle, className: styles.titleSlot }), counter && (_jsx("span", { className: styles.counter, children: labels.counter(counter.index + 1, counter.total) })), edge === 'top' && _jsx("div", { ref: setActions, className: styles.group }), _jsx("div", { className: styles.group, children: _jsx(IconButton, { size: 40, "aria-label": labels.close, onClick: () => gallery.close(), children: _jsx(XIcon, { size: 22 }) }) })] }), _jsxs("footer", { className: styles.bottom, children: [_jsx("div", { ref: setCaption, className: styles.captionSlot }), edge === 'bottom' && _jsx("div", { ref: setActions, className: styles.tools })] }), children, mounted.map((slide) => createPortal(_jsx(VideoSlide, { item: slide.item, active: slide.item.key === item.key }), slide.element, String(slide.id)))] }));
++    return (_jsxs(ViewerContext, { value: context, children: [_jsxs("header", { className: styles.top, children: [_jsx("div", { ref: setTitle, className: styles.titleSlot }), counter && (_jsx("span", { className: styles.counter, children: labels.counter(counter.index + 1, counter.total) })), edge === 'top' && _jsx("div", { ref: setActions, className: styles.group }), _jsx("div", { className: styles.group, children: _jsx(IconButton, { size: 40, "aria-label": labels.close, onClick: () => gallery.close(), children: _jsx(XIcon, { size: 22 }) }) })] }), _jsxs("footer", { className: styles.bottom, children: [_jsx("div", { ref: setCaption, className: styles.captionSlot }), edge === 'bottom' && _jsx("div", { ref: setActions, className: styles.tools })] }), children, mounted.map((slide) => {
++            const active = slide.item.key === item.key;
++            const player = renderVideo ? renderVideo(slide.item, active) : _jsx(VideoSlide, { item: slide.item, active });
++            return createPortal(player, slide.element, String(slide.id));
++        })] }));
+ }
+diff --git a/dist/media/viewer/media-gallery.js b/dist/media/viewer/media-gallery.js
+index 407caf4807c392ac9a06b7bacdf1aaf8ad8f1ce2..1d490c71a41b60af123bba00d634541977b9b616 100644
+--- a/dist/media/viewer/media-gallery.js
++++ b/dist/media/viewer/media-gallery.js
+@@ -45,6 +45,8 @@ export class MediaGallery {
+     mounted = new Map();
+     mountedCount = 0;
+     closed = false;
++    closeRequested = false;
++    videoPadding = { top: 80, bottom: 80, left: 0, right: 0 };
+     // Addresses asked afresh after the app's own failed, by item key and quality, so each is asked once.
+     renewed = new Map();
+     constructor(options) {
+@@ -65,6 +67,9 @@ export class MediaGallery {
+             ...MediaGallery.OPTIONS,
+             ...MediaGallery.WITHOUT_SPINNER,
+             errorMsg: labels.imageFailed,
++            paddingFn: (_viewport, data) => data.item?.kind === 'video'
++                ? this.videoPadding
++                : { top: 0, bottom: 0, left: 0, right: 0 },
+             index,
+         });
+         this.bind();
+@@ -84,12 +89,22 @@ export class MediaGallery {
+     };
+     getView = () => this.view;
+     close() {
++        this.closeRequested = true;
+         this.pswp.close();
+     }
+     /** Between the whole picture and a closer look, as a click on it does. */
+     toggleZoom() {
+         this.pswp.currSlide?.toggleZoom();
+     }
++    fitVideoBetweenBars(top, bottom) {
++        if (this.closed)
++            return;
++        const padding = { top: Math.ceil(top) + 12, bottom: Math.ceil(bottom) + 12, left: 0, right: 0 };
++        if (padding.top === this.videoPadding.top && padding.bottom === this.videoPadding.bottom)
++            return;
++        this.videoPadding = padding;
++        this.pswp.updateSize(true);
++    }
+     /** Gone at once, without the closing animation: whatever showed it is leaving. */
+     dispose() {
+         if (this.closed)
+@@ -124,6 +139,17 @@ export class MediaGallery {
+         pswp.on('loadError', ({ content }) => void this.renew(content));
+         pswp.on('contentDestroy', ({ content }) => this.unmount(content));
+         pswp.on('pointerDown', (event) => this.yieldToVideoControls(event));
++        pswp.on('keydown', (event) => {
++            const { target, key } = event.originalEvent;
++            if (target instanceof HTMLVideoElement && key.startsWith('Arrow'))
++                event.preventDefault();
++        });
++        pswp.on('openingAnimationEnd', () => {
++            if (this.closed)
++                queueMicrotask(() => pswp.destroy());
++            else if (this.closeRequested)
++                queueMicrotask(() => pswp.close());
++        });
+         pswp.on('change', () => this.settle());
+         pswp.on('zoomPanUpdate', ({ slide }) => {
+             if (slide === pswp.currSlide)
+diff --git a/dist/sheet/BottomSheet.js b/dist/sheet/BottomSheet.js
+index bb2c226e66806d087b0fa4e930616ad902418a79..5e309ef5edcd3f5657d71480a2b652ffd34a3afd 100644
+--- a/dist/sheet/BottomSheet.js
++++ b/dist/sheet/BottomSheet.js
+@@ -1,4 +1,5 @@
+ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
++import { theme } from 'antd';
+ import { useEffect, useEffectEvent } from 'react';
+ import { Drawer } from 'vaul';
+ import styles from './BottomSheet.module.css';
+@@ -6,7 +7,20 @@ import { sheetHeight } from './sheet-height';
+ import { useSheetDismissed } from './SheetDismissal';
+ /** A sheet rising from the bottom of a phone screen; a finger pulls it down to close. */
+ export function BottomSheet({ open, onClose, height, container, onClosed, children, 'aria-label': label, }) {
++    const { token } = theme.useToken();
+     const isDismissed = useSheetDismissed();
++    // The portal can mount outside the element that holds the theme variables.
++    const overlayStyle = {
++        '--ant-color-bg-mask': token.colorBgMask,
++        '--ant-z-index-popup-base': token.zIndexPopupBase,
++    };
++    const sheetStyle = {
++        '--ant-color-bg-elevated': token.colorBgElevated,
++        '--ant-color-border': token.colorBorder,
++        '--ant-box-shadow-secondary': token.boxShadowSecondary,
++        '--ant-z-index-popup-base': token.zIndexPopupBase,
++        height: height ? sheetHeight(height) : undefined,
++    };
+     const closeWhenDismissed = useEffectEvent(() => {
+         if (open)
+             onClose();
+@@ -23,5 +37,5 @@ export function BottomSheet({ open, onClose, height, container, onClosed, childr
+         repositionInputs: false, onAnimationEnd: (isOpen) => {
+             if (!isOpen)
+                 onClosed?.();
+-        }, children: _jsxs(Drawer.Portal, { container: container, children: [_jsx(Drawer.Overlay, { className: styles.overlay }), _jsxs(Drawer.Content, { className: styles.sheet, style: height ? { height: sheetHeight(height) } : undefined, "aria-modal": true, "aria-describedby": undefined, children: [_jsx(Drawer.Title, { className: styles.title, children: label }), _jsx("div", { className: styles.handle, "aria-hidden": "true" }), children] })] }) }));
++        }, children: _jsxs(Drawer.Portal, { container: container, children: [_jsx(Drawer.Overlay, { className: styles.overlay, style: overlayStyle }), _jsxs(Drawer.Content, { className: styles.sheet, style: sheetStyle, "aria-modal": true, "aria-describedby": undefined, children: [_jsx(Drawer.Title, { className: styles.title, children: label }), _jsx("div", { className: styles.handle, "aria-hidden": "true" }), children] })] }) }));
+ }

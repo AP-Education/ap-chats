@@ -2,12 +2,13 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { i18n } from '../../../shared/i18n/i18n';
 import type { PushPermission } from '../types';
 
 export async function ensureMessageChannel(): Promise<void> {
   if (Platform.OS === 'android')
     await Notifications.setNotificationChannelAsync('messages', {
-      name: 'Повідомлення',
+      name: i18n.t(($) => $.channelName, { ns: 'push' }),
       importance: Notifications.AndroidImportance.HIGH,
       sound: 'default',
     });

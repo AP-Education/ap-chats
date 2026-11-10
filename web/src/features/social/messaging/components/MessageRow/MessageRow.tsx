@@ -1,6 +1,9 @@
 import { memo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
+import { dateTimeFormat } from '@/shared/i18n/format';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import type { AttachmentDraft } from '../../attachments/types';
 import { useTimelineActions } from '../../timeline-actions-context';
@@ -14,7 +17,7 @@ import { MessageHeader } from './MessageHeader';
 import styles from './MessageRow.module.css';
 import { UnsentNotice } from './UnsentNotice';
 
-const timeFormat = new Intl.DateTimeFormat('uk-UA', { hour: '2-digit', minute: '2-digit' });
+const timeFormat = dateTimeFormat({ hour: '2-digit', minute: '2-digit' });
 
 interface MessageRowProps {
   item: MessageHistoryItem;
@@ -27,8 +30,10 @@ export const MessageRow = memo(function MessageRow({
   delivery,
   pendingAttachments,
 }: MessageRowProps) {
+  const { t } = useTranslation('messaging');
+  const locale = useChatsLanguage();
   const { viewer } = useTimelineActions();
-  const authorName = item.author.displayName ?? 'Ім’я недоступне';
+  const authorName = item.author.displayName ?? t(($) => $.message.nameUnavailable);
   const isOwnMessage = item.message.authorMemberId === viewer.memberId;
   const mentionsMe = !isOwnMessage && Boolean(item.mentionsMe);
   const isReplyToMe = !isOwnMessage && item.reply?.authorMemberId === viewer.memberId;
@@ -39,7 +44,6 @@ export const MessageRow = memo(function MessageRow({
   const editing = useConversation((state) => state.editingId === item.message.id);
   const setEditingId = useConversation((state) => state.setEditingId);
   const layout = bubbleLayout(item, pendingAttachments, editing);
-  const tone = delivery === 'failed' ? 'failed' : highlighted ? 'attention' : undefined;
   const contentRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -57,13 +61,14 @@ export const MessageRow = memo(function MessageRow({
         rowProps={{
           id: `message-${item.message.id}`,
           'data-seq': delivery ? undefined : item.seq,
-          'data-own': isOwnMessage || undefined,
           'data-selected': isSelected || undefined,
-          'data-failed': delivery === 'failed' || undefined,
           'data-mentions-me': highlighted || undefined,
           'data-sending': delivery === 'sending' || delivery === 'uploading' || undefined,
           tabIndex: delivery ? -1 : 0,
-          'aria-label': `Повідомлення від ${authorName}, ${timeFormat.format(new Date(item.message.createdAt))}`,
+          'aria-label': t(($) => $.message.from, {
+            author: authorName,
+            time: timeFormat(locale).format(new Date(item.message.createdAt)),
+          }),
           className: styles.row,
           onClick: (event) => {
             if (!hasSelection || window.getSelection()?.toString()) return;
@@ -93,12 +98,12 @@ export const MessageRow = memo(function MessageRow({
           <input
             type="checkbox"
             className={styles.checkbox}
-            aria-label={`Вибрати повідомлення ${authorName}`}
+            aria-label={t(($) => $.message.select, { author: authorName })}
             checked={isSelected}
             onChange={() => toggleSelected(item.message.id)}
           />
         )}
-        <Bubble own={isOwnMessage} variant={layout.variant} tone={tone} wide={editing}>
+        <Bubble variant={layout.variant} wide={editing}>
           <MessageHeader />
           <MessageBody
             layout={layout}

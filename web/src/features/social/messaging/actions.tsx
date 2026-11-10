@@ -9,7 +9,7 @@ export const messagingActions: ConversationAction[] = [
   {
     id: 'reply',
     icon: <ReplyIcon size={18} />,
-    label: () => 'Відповісти',
+    label: (_, t) => t(($) => $.common.actions.reply),
     available: (target, context) =>
       target.kind === 'message' &&
       context.canPost &&
@@ -19,7 +19,7 @@ export const messagingActions: ConversationAction[] = [
   {
     id: 'quote',
     icon: <QuoteIcon size={18} />,
-    label: () => 'Цитувати',
+    label: (_, t) => t(($) => $.actions.quote),
     available: (target, context) =>
       target.kind === 'text' && context.canPost && textAvailable(target.items[0].message.markdown),
     execute: (target, commands) => {
@@ -29,7 +29,7 @@ export const messagingActions: ConversationAction[] = [
   {
     id: 'copy',
     icon: <CopyIcon size={18} />,
-    label: () => 'Копіювати текст',
+    label: (_, t) => t(($) => $.actions.copyText),
     available: (target) => target.items.some((item) => Boolean(item.message.markdown?.trim())),
     execute: (target, commands) =>
       commands.copy(target.items, target.kind === 'text' ? target.selectedText : undefined),
@@ -37,14 +37,14 @@ export const messagingActions: ConversationAction[] = [
   {
     id: 'select',
     icon: <SelectionIcon size={18} />,
-    label: () => 'Вибрати',
+    label: (_, t) => t(($) => $.actions.select),
     available: (target) => target.kind === 'message',
     execute: (target, commands) => commands.select(target.items[0]!),
   },
   {
     id: 'edit',
     icon: <PencilSimpleIcon size={18} />,
-    label: () => 'Редагувати',
+    label: (_, t) => t(($) => $.common.actions.edit),
     available: (target, context) =>
       target.kind === 'message' &&
       context.canPost &&
@@ -56,14 +56,16 @@ export const messagingActions: ConversationAction[] = [
     id: 'delete',
     icon: <TrashIcon size={18} />,
     accent: 'danger',
-    label: () => 'Видалити',
+    label: (_, t) => t(($) => $.common.actions.delete),
     available: (target, context) =>
       context.canPost &&
       target.items.length > 0 &&
       target.items.every(
         (item) =>
           textAvailable(item.message.markdown) &&
-          (item.message.authorMemberId === context.memberId || context.canManage),
+          (item.message.authorMemberId === context.memberId ||
+            item.message.privateToMe ||
+            context.canManage),
       ),
     execute: (target, commands) => commands.remove(target.items),
   },

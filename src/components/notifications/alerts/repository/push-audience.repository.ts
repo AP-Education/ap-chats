@@ -1,5 +1,7 @@
 import type { ChannelKind } from '@/components/communities/channels/types';
 import type { MessageGif } from '@/components/social/content';
+import type { Attachment } from '@/components/social/messages/types/message.types';
+import type { Locale } from '@/database/drizzle/schema';
 
 import type { MemberNotificationSettings } from '../../preferences/types';
 import type { ConversationRange, ConversationScope } from '../types';
@@ -15,6 +17,7 @@ export interface AlertConversation {
 /** A member with someone else's unread message in the range. */
 export interface PushRecipient extends MemberNotificationSettings {
   userId: string;
+  locale?: Locale;
   lastReadEntrySeq: bigint;
   mentioned: boolean;
 }
@@ -22,6 +25,7 @@ export interface PushRecipient extends MemberNotificationSettings {
 export interface PushMessagePreview {
   contentMarkdown: string;
   gif: MessageGif | null;
+  attachments?: Attachment[];
   actorName: string | null;
 }
 

@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AppState, Platform } from 'react-native';
 
 import { fixCallCheck, readCallChecks } from '../../../../modules/call-readiness';
@@ -18,6 +19,7 @@ import { nextReadinessStep, type ReadinessStep } from '../utils/readiness-step';
  * and read again on every return from the settings.
  */
 export function CallReadinessGate({ children }: PropsWithChildren) {
+  const { t } = useTranslation('calls');
   const isAndroid = Platform.OS === 'android';
   const [step, setStep] = useState<ReadinessStep | null | 'checking'>(
     isAndroid ? 'checking' : null,
@@ -49,20 +51,29 @@ export function CallReadinessGate({ children }: PropsWithChildren) {
     setStep(null);
   }
 
-  if (step === 'checking') return <GateScreen icon="call" title="Перевіряємо" loading />;
+  if (step === 'checking') {
+    return <GateScreen icon="call" title={t(($) => $.readiness.checking)} loading />;
+  }
   if (step === 'fullScreen') {
     return (
       <GateScreen
         icon="call"
-        title={rangInTheDark ? 'Дзвінок не ввімкнув екран' : 'Щоб дзвінок вмикав екран'}
+        title={
+          rangInTheDark
+            ? t(($) => $.readiness.fullScreen.missedTitle)
+            : t(($) => $.readiness.fullScreen.title)
+        }
         description={
           rangInTheDark
-            ? 'Телефон спав, тому Android показав дзвінок лише сповіщенням. Дозволь повноекранні сповіщення, і наступний дзвінок увімкне екран.'
-            : 'Android показує вхідний дзвінок на весь екран заблокованого телефона лише з дозволом на повноекранні сповіщення.'
+            ? t(($) => $.readiness.fullScreen.missedDescription)
+            : t(($) => $.readiness.fullScreen.description)
         }
         actions={[
-          { label: 'Відкрити налаштування', onPress: () => fixCallCheck('fullScreen') },
-          { label: 'Пізніше', onPress: () => void later(), variant: 'secondary' },
+          {
+            label: t(($) => $.readiness.fullScreen.action),
+            onPress: () => fixCallCheck('fullScreen'),
+          },
+          { label: t(($) => $.readiness.later), onPress: () => void later(), variant: 'secondary' },
         ]}
       />
     );
@@ -71,11 +82,14 @@ export function CallReadinessGate({ children }: PropsWithChildren) {
     return (
       <GateScreen
         icon="battery-charging"
-        title="Щоб дзвінки приходили одразу"
-        description="Дозволь AP App працювати у фоні без обмежень, інакше Android притримує дзвінки й повідомлення, поки телефон спить."
+        title={t(($) => $.readiness.unrestricted.title)}
+        description={t(($) => $.readiness.unrestricted.description)}
         actions={[
-          { label: 'Дозволити', onPress: () => fixCallCheck('unrestricted') },
-          { label: 'Пізніше', onPress: () => void later(), variant: 'secondary' },
+          {
+            label: t(($) => $.readiness.unrestricted.action),
+            onPress: () => fixCallCheck('unrestricted'),
+          },
+          { label: t(($) => $.readiness.later), onPress: () => void later(), variant: 'secondary' },
         ]}
       />
     );

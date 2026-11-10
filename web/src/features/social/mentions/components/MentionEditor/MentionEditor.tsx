@@ -1,3 +1,10 @@
+import {
+  type ComposerDraft,
+  ComposerEditable,
+  type ComposerEditableHandle,
+  serializeEditable,
+  useComposerEditorSlot,
+} from '@ap-education/timeline/composer';
 import { type ComponentProps, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -5,9 +12,7 @@ import { useChannels } from '@/features/communities/channels/hooks/useChannels';
 import { useRoles } from '@/features/roles/hooks/useRoles';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 
-import { useMessageEditorSlot } from '../../MessageEditorSlot';
-import { ComposerEditor, type ComposerEditorHandle } from '../ComposerEditor/ComposerEditor';
-import { restoreEditor, serializeEditor, tokenChip } from './mention-editor-dom';
+import { restoreEditor, tokenChip } from './mention-editor-dom';
 import styles from './MentionEditor.module.css';
 import { SuggestionList } from './SuggestionList';
 import type { Suggestion, SuggestionQuery } from './suggestions';
@@ -26,24 +31,24 @@ export function MentionEditor() {
     initialDraft,
     draftKey,
     placeholder,
-    ariaLabel,
-    className,
+    label,
     autoFocus,
     onChange,
     onSubmit,
     onEscape,
     onPasteFiles,
+    onPointerDown,
     editorRef,
     suggestionsHost,
-  } = useMessageEditorSlot();
+  } = useComposerEditorSlot();
   const { workspaceId, composer } = useConversationScope();
   const channels = useChannels(workspaceId);
   const { query: roles } = useRoles(workspaceId);
-  const composerRef = useRef<ComposerEditorHandle>(null);
-  // Reseeded in onMount whenever the inner ComposerEditor remounts (a new
+  const editableRef = useRef<ComposerEditableHandle>(null);
+  // Reseeded in onMount whenever the inner editable remounts (a new
   // draftKey) rather than only once: this component instance outlives that,
   // since switching drafts no longer remounts MentionEditor itself.
-  const labels = useRef<Record<string, string>>(initialDraft?.labels ?? {});
+  const labels = useRef<Record<string, string>>(initialDraft.labels);
   const [query, setQuery] = useState<SuggestionQuery | null>(null);
   const [active, setActive] = useState(0);
   const peopleSuggestions = usePeopleSuggestions(query);
@@ -54,7 +59,7 @@ export function MentionEditor() {
 
   // TODO(everyone): every outgoing @everyone, picked or typed, passes here; confirm before a big channel.
   function currentMarkdown() {
-    const markdown = serializeEditor(composerRef.current?.rootElement() ?? null);
+    const markdown = serializeEditable(editableRef.current?.root() ?? null);
     return composer.groupMentions ? tokenizeTypedEveryone(markdown) : markdown;
   }
 
@@ -66,8 +71,8 @@ export function MentionEditor() {
   // position may have moved, so both the draft echo and the suggestion query
   // get re-derived from scratch rather than threaded through as separate state.
   function handleActivity() {
-    onChange?.(currentDraft());
-    const root = composerRef.current?.rootElement();
+    onChange(currentDraft());
+    const root = editableRef.current?.root();
     const selection = window.getSelection();
     if (
       !selection ||
@@ -102,28 +107,34 @@ export function MentionEditor() {
     if (token.kind !== 'everyone') labels.current[token.id] = label;
     const fragment = document.createDocumentFragment();
     fragment.append(tokenChip(token, labels.current, styles.chip), document.createTextNode(' '));
-    composerRef.current?.insertNode(fragment, range);
+    editableRef.current?.insertNode(fragment, range);
     setQuery(null);
     handleActivity();
-    composerRef.current?.focus();
+    editableRef.current?.focus();
   }
 
   useImperativeHandle(editorRef, () => ({
     draft: currentDraft,
+    replaceDraft: (draft: ComposerDraft) => {
+      const root = editableRef.current?.root();
+      if (!root) return;
+      labels.current = draft.labels;
+      restoreEditor(root, draft, styles.chip);
+      setQuery(null);
+      onChange?.(draft);
+    },
     clear: () => {
-      composerRef.current?.clear();
+      editableRef.current?.clear();
       labels.current = {};
       setQuery(null);
-      onChange?.({ markdown: '', labels: {} });
+      onChange({ markdown: '', labels: {} });
     },
-    focus: () => composerRef.current?.focus(),
-    blur: () => composerRef.current?.blur(),
-    insertText: (text) => composerRef.current?.insertText(text),
-    saveSelection: () => composerRef.current?.saveSelection(),
-    suspendInput: () => composerRef.current?.suspendInput(),
-    releaseInput: () => composerRef.current?.releaseInput(),
-    resumeInput: (point) => composerRef.current?.resumeInput(point),
-    focusAtPoint: (x, y) => composerRef.current?.focusAtPoint(x, y),
+    focus: () => editableRef.current?.focus(),
+    blur: () => editableRef.current?.blur(),
+    insertText: (text) => editableRef.current?.insertText(text),
+    suspendInput: () => editableRef.current?.suspendInput(),
+    releaseInput: () => editableRef.current?.releaseInput(),
+    resumeInput: (point?: { x: number; y: number }) => editableRef.current?.resumeInput(point),
   }));
 
   return (
@@ -158,30 +169,30 @@ export function MentionEditor() {
         }
       }}
     >
-      <ComposerEditor
+      <ComposerEditable
         key={draftKey}
-        editorRef={composerRef}
+        editableRef={editableRef}
         onMount={(root) => {
-          const draft = initialDraft ?? { markdown: '', labels: {} };
-          labels.current = draft.labels;
+          labels.current = initialDraft.labels;
           // A message being edited carries no channel or role names; the cached lists have them.
           const listedNames = Object.fromEntries(
             [...(channels.data ?? []), ...(roles.data ?? [])].map(({ id, name }) => [id, name]),
           );
           restoreEditor(
             root,
-            { ...draft, labels: { ...listedNames, ...draft.labels } },
+            { ...initialDraft, labels: { ...listedNames, ...initialDraft.labels } },
             styles.chip,
           );
         }}
-        className={[styles.editor, className].filter(Boolean).join(' ')}
-        ariaLabel={ariaLabel}
+        className={styles.editor}
+        label={label}
         placeholder={placeholder}
         autoFocus={autoFocus}
         onChange={handleActivity}
         onSubmit={onSubmit}
         onEscape={onEscape}
         onPasteFiles={onPasteFiles}
+        onPointerDown={onPointerDown}
       />
       {query && suggestions && items.length > 0 && (
         <SuggestionPopup

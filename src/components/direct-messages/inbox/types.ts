@@ -1,5 +1,6 @@
 import type { NotificationLevel } from '@/components/notifications/preferences/types';
 import type { MessageGif } from '@/components/social/content';
+import type { Attachment } from '@/components/social/messages/types/message.types';
 
 interface ConversationPerson {
   id: string;
@@ -18,6 +19,7 @@ export interface ConversationRow {
     id: string;
     markdown: string;
     gif: MessageGif | null;
+    attachments?: Attachment[];
     deletedAt: Date | null;
     authorMemberId: string;
     createdAt: Date;

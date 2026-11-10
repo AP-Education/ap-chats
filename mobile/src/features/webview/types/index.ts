@@ -5,6 +5,11 @@ import type { ComposerInputRequest, ComposerInputState } from '../../composer';
 import type { TabBarModel } from '../../navigation/types';
 import type { PushPermission } from '../../push/types';
 import type { NotificationIntent } from '../../push/utils/notification-intent';
+import type {
+  VoiceRequest,
+  VoiceStateMessage,
+  VoiceUploadResult,
+} from '../../voice-messages/types';
 
 // Bridge protocol: mirrors web/src/features/auth/types/index.ts. Keep additive.
 export interface NativeAuthTokenPayload {
@@ -15,6 +20,8 @@ export interface NativeAuthTokenPayload {
 }
 
 export type NativeToWebMessage =
+  | VoiceStateMessage
+  | VoiceUploadResult
   | { type: 'auth/token'; payload: NativeAuthTokenPayload }
   /** Native has no OIDC client configured (e.g. local dev) — no token is coming, ever. */
   | { type: 'auth/unavailable' }
@@ -45,6 +52,7 @@ export type NativeToWebMessage =
   | { type: 'navigation/back' };
 
 export type WebToNativeMessage =
+  | VoiceRequest
   /** A new document started: what the previous one announced (tabs, back, readiness) is gone. */
   | { type: 'page/started' }
   | { type: 'auth/sign-out' }
@@ -55,6 +63,8 @@ export type WebToNativeMessage =
   | { type: 'calls/readiness-fix'; id: CallCheckId }
   /** The theme the page resolved, for everything native draws around it. */
   | { type: 'appearance/changed'; payload: ShellPalette }
+  /** The language the person picked in the page, for the screens native draws without it. */
+  | { type: 'locale/changed'; payload: { locale: string } }
   /** The page's tab bar, which native draws over it. */
   | { type: 'navigation/tabs'; payload: TabBarModel }
   /** Whether the page takes Android's back; while it doesn't, the system's own back applies. */

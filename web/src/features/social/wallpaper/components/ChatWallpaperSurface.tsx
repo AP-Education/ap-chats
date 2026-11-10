@@ -11,7 +11,14 @@ import { ViewportFrame } from './ViewportFrame';
 import { PatternLayer } from './WallpaperLayers';
 
 const useStyles = createStyles(({ css }) => ({
+  // The timeline package's bubbles and service lines take the wallpaper's colours from here.
   surface: css`
+    --timeline-incoming-bg: var(--chat-incoming-bg);
+    --timeline-own-from: var(--chat-own-from);
+    --timeline-own-to: var(--chat-own-to);
+    --timeline-service-bg: var(--chat-service-bg);
+    --timeline-service-text: var(--ant-color-white);
+    --media-badge: var(--chat-service-strong);
     position: relative;
     isolation: isolate;
     overflow: hidden;
