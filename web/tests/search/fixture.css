@@ -1,0 +1,47 @@
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  font-family: system-ui, sans-serif;
+}
+.fixture-shell {
+  display: flex;
+  flex-direction: row;
+  min-height: 100dvh;
+  background: var(--ant-color-bg-container);
+  color: var(--ant-color-text);
+}
+.fixture-shell aside {
+  width: 320px;
+  border-right: 1px solid var(--ant-color-border-secondary);
+  padding-block: 16px;
+}
+.fixture-shell h1 {
+  font-size: 18px;
+  padding-inline: 20px;
+}
+.fixture-shell main {
+  padding: 24px;
+  flex: 1;
+}
+.fixture-help {
+  padding: 8px 20px;
+  color: var(--ant-color-text-secondary);
+}
+.fixture-shell aside > button {
+  margin: 8px 16px;
+}
+@media (max-width: 767px) {
+  .fixture-shell {
+    flex-direction: column;
+  }
+  .fixture-shell aside {
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--ant-color-border-secondary);
+  }
+  .fixture-shell main {
+    padding: 16px;
+  }
+}

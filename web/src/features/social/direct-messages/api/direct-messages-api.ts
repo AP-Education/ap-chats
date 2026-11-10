@@ -49,12 +49,12 @@ export function openDirectMessage(
   token: string,
   workspaceId: string,
   memberId: string,
+  signal?: AbortSignal,
 ): Promise<DirectMessage> {
-  return apiRequest(
-    `/api/workspaces/${workspaceId}/direct-messages`,
-    token,
-    jsonInit('POST', { memberId }),
-  );
+  return apiRequest(`/api/workspaces/${workspaceId}/direct-messages`, token, {
+    ...jsonInit('POST', { memberId }),
+    signal,
+  });
 }
 
 export function updateDirectMessageMute(
