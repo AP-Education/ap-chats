@@ -82,7 +82,10 @@ function VideoPoster({ attachment, messageId, available, overlay }: FileAttachme
           disabled={!available}
           aria-label={`Відкрити відео ${attachment.name}`}
           title={attachment.name}
-          onClick={() => open(media.key)}
+          onClick={(event) => {
+            event.currentTarget.focus({ preventScroll: true });
+            open(media.key);
+          }}
         >
           <span className={styles.playIcon} aria-hidden>
             <PlayIcon size={32} weight="fill" />

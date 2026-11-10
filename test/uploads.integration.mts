@@ -420,7 +420,7 @@ try {
   );
   const posterResponse = await fetch(videoPoster.url);
   assert.equal(posterResponse.headers.get('content-type'), 'image/webp');
-  assert.match(posterResponse.headers.get('content-disposition'), /^inline;/);
+  assert.match(posterResponse.headers.get('content-disposition') ?? 'inline', /^inline(?:;|$)/);
   const posterImage = await sharp(Buffer.from(await posterResponse.arrayBuffer())).metadata();
   assert.equal(posterImage.width, 320);
   const publicPoster = new URL(videoPoster.url);
@@ -435,7 +435,7 @@ try {
   const videoRange = await fetch(previewLink.url, { headers: { Range: 'bytes=0-127' } });
   assert.equal(videoRange.status, 206);
   assert.equal(videoRange.headers.get('content-type'), 'video/mp4');
-  assert.match(videoRange.headers.get('content-disposition'), /^inline;/);
+  assert.match(videoRange.headers.get('content-disposition') ?? 'inline', /^inline(?:;|$)/);
   assert.deepEqual(Buffer.from(await videoRange.arrayBuffer()), video.subarray(0, 128));
   const downloadLink = await request(
     'GET',

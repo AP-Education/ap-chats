@@ -570,7 +570,7 @@ test('keyboard recording uses hands-free controls and send works without a point
   await microphone.focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: 'Пауза запису' })).toBeVisible();
-  await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
+  await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).toMatch(/^0:0[2-9]$/);
   await page.keyboard.press('Enter');
   await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
   expect(data.posts).toHaveLength(1);
@@ -627,7 +627,7 @@ test('the first touch on Send finalizes a hands-free voice note and restores tex
   const data = await backend(page);
   await page.goto('/');
   await pressSend(page, 'Записати голосове повідомлення');
-  await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
+  await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).toMatch(/^0:0[2-9]$/);
   await pressSend(page, 'Надіслати голосове');
   await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
   await expect
