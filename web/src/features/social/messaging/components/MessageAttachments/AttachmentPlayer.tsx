@@ -17,14 +17,14 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
   error: css`
     padding: 6px 0 0;
-    color: var(--bubble-muted);
+    color: var(--timeline-bubble-muted);
     font-size: 12px;
   `,
   retry: css`
     padding: 0;
     border: 0;
     background: transparent;
-    color: var(--bubble-link);
+    color: var(--timeline-bubble-link);
     font: inherit;
     text-decoration: underline;
     cursor: pointer;

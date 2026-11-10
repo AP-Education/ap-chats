@@ -191,6 +191,7 @@ export class StarMeService {
       question.channelId,
       question.id,
       asker.id,
+      answerNonce(question.id),
       state,
       failure,
     );

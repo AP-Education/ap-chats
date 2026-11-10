@@ -1,4 +1,5 @@
-import { useBeforeSignOut } from '@ap-education/shell-sdk';
+import { useBeforeSignOut, useMobileMenu } from '@ap-education/shell-sdk';
+import { SheetDismissal } from '@ap-education/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { PropsWithChildren } from 'react';
 
@@ -25,26 +26,30 @@ const forgetPersistedQueries = persistQueries(queryClient);
 /** Long-lived state of the Chats application: data and realtime. Mounted while Chats is cached. */
 export function ChatsProviders({ children }: PropsWithChildren) {
   useBeforeSignOut(forgetPersistedQueries);
+  const { isOpen: isMenuOpen } = useMobileMenu();
 
   return (
-    <ShellRouter>
-      <QueryClientProvider client={queryClient}>
-        <ApiAuthSession />
-        <UserProfileSync />
-        <RealtimeProvider>
-          <ActiveWorkspaceProvider>
-            <WorkspaceUnreadScope>
-              <CommunitiesProvider>
-                <PeopleProvider>
-                  <OutboxesProvider>
-                    <NotificationsProvider>{children}</NotificationsProvider>
-                  </OutboxesProvider>
-                </PeopleProvider>
-              </CommunitiesProvider>
-            </WorkspaceUnreadScope>
-          </ActiveWorkspaceProvider>
-        </RealtimeProvider>
-      </QueryClientProvider>
-    </ShellRouter>
+    // The shell's menu slides over the page, so a sheet left open would float above it.
+    <SheetDismissal isDismissed={isMenuOpen}>
+      <ShellRouter>
+        <QueryClientProvider client={queryClient}>
+          <ApiAuthSession />
+          <UserProfileSync />
+          <RealtimeProvider>
+            <ActiveWorkspaceProvider>
+              <WorkspaceUnreadScope>
+                <CommunitiesProvider>
+                  <PeopleProvider>
+                    <OutboxesProvider>
+                      <NotificationsProvider>{children}</NotificationsProvider>
+                    </OutboxesProvider>
+                  </PeopleProvider>
+                </CommunitiesProvider>
+              </WorkspaceUnreadScope>
+            </ActiveWorkspaceProvider>
+          </RealtimeProvider>
+        </QueryClientProvider>
+      </ShellRouter>
+    </SheetDismissal>
   );
 }

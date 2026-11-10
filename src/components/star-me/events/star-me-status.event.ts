@@ -9,6 +9,8 @@ export class StarMeStatusEvent {
     public readonly channelId: string,
     public readonly questionId: string,
     public readonly askedByMemberId: string,
+    /** The nonce its answer will carry, so a client shows the answer on its way under it. */
+    public readonly answerNonce: string,
     public readonly state: StarMeState,
     public readonly failure: AnswerFailure | null = null,
   ) {}

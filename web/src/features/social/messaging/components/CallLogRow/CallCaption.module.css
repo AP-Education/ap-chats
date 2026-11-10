@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   gap: var(--ant-padding-xxs);
-  color: var(--bubble-muted);
+  color: var(--timeline-bubble-muted);
   font-size: var(--ant-font-size-sm);
   line-height: 1.4;
   white-space: nowrap;
@@ -14,12 +14,12 @@
 }
 
 /* Own bubbles keep their muted ink: red on the accent fill would not read. */
-[data-own] .missed {
+[data-side='end'] .missed {
   color: inherit;
 }
 
 .time {
   margin-left: var(--ant-margin-xs);
-  color: var(--bubble-meta);
+  color: var(--timeline-bubble-meta);
   font-size: 12px;
 }

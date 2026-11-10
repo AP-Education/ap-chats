@@ -1,24 +1,6 @@
+import type { ComposerDraft } from '@ap-education/timeline/composer';
+
 import { type MentionToken, splitTokens, tokenText, writeToken } from '../../mention-tokens';
-import type { ComposerDraft } from '../../types';
-
-function serialize(node: Node): string {
-  if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
-  if (!(node instanceof HTMLElement)) return '';
-
-  if (node.dataset.token) return node.dataset.token;
-  if (node.tagName === 'BR') return '\n';
-
-  const content = [...node.childNodes].map(serialize).join('');
-  if (node.tagName !== 'DIV' && node.tagName !== 'P') return content;
-
-  // Return on a phone keyboard opens a block: it starts a new line, and a lone <br> only holds it open.
-  const line = content === '\n' ? '' : content;
-  return node.previousSibling ? `\n${line}` : line;
-}
-
-export function serializeEditor(root: HTMLElement | null): string {
-  return root ? [...root.childNodes].map(serialize).join('') : '';
-}
 
 /** An uneditable chip that serializes back to the token it shows. */
 export function tokenChip(token: MentionToken, labels: Record<string, string>, className: string) {

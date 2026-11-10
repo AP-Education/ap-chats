@@ -1,3 +1,4 @@
+import { TimelineEntryBubble } from '@ap-education/timeline/react';
 import type { ReactNode } from 'react';
 
 import styles from './Bubble.module.css';
@@ -5,27 +6,21 @@ import styles from './Bubble.module.css';
 export type BubbleVariant = 'text' | 'media' | 'bare';
 
 interface BubbleProps {
-  own: boolean;
   variant?: BubbleVariant;
-  tone?: 'attention' | 'failed';
   wide?: boolean;
   children: ReactNode;
 }
 
-export function Bubble({ own, variant = 'text', tone, wide, children }: BubbleProps) {
-  const hasTail = variant !== 'bare';
-
+/** The timeline's bubble with what a chat adds: photos edge to edge, no bubble behind large emoji
+ * or a lone GIF, and the full width while editing. */
+export function Bubble({ variant = 'text', wide, children }: BubbleProps) {
   return (
-    <div
-      className={styles.stack}
-      data-side={own ? 'own' : 'incoming'}
-      data-tone={tone}
+    <TimelineEntryBubble
+      className={styles.bubble}
+      data-variant={variant}
       data-wide={wide || undefined}
     >
-      <div className={styles.bubble} data-variant={variant}>
-        {children}
-      </div>
-      {hasTail && <span className={styles.tail} aria-hidden />}
-    </div>
+      {children}
+    </TimelineEntryBubble>
   );
 }

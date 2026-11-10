@@ -1,6 +1,7 @@
+import { TimelineEntry, TimelineEntryBubble } from '@ap-education/timeline/react';
+
 import { useTimelineActions } from '../../timeline-actions-context';
 import type { CallHistoryItem } from '../../types';
-import { Bubble } from '../Bubble/Bubble';
 import { CallBubbleAction } from './CallBubbleAction';
 import { CallCaption } from './CallCaption';
 import styles from './CallLogRow.module.css';
@@ -14,8 +15,8 @@ export function CallLogRow({ item }: { item: CallHistoryItem }) {
   const outgoing = call.startedByMemberId === viewer.memberId;
 
   return (
-    <div className={styles.row} data-own={outgoing || undefined} role="status">
-      <Bubble own={outgoing}>
+    <TimelineEntry side={outgoing ? 'end' : 'start'} role="status">
+      <TimelineEntryBubble>
         <div className={styles.call}>
           <span className={styles.details}>
             <span className={styles.title}>{callTitle(call.status, outgoing)}</span>
@@ -23,8 +24,8 @@ export function CallLogRow({ item }: { item: CallHistoryItem }) {
           </span>
           <CallBubbleAction call={call} />
         </div>
-      </Bubble>
-    </div>
+      </TimelineEntryBubble>
+    </TimelineEntry>
   );
 }
 

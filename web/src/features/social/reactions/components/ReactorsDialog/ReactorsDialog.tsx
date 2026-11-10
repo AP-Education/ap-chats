@@ -1,10 +1,10 @@
 import { useIsMobile } from '@ap-education/ui';
+import { BottomSheet } from '@ap-education/ui/sheet';
 import { Modal } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
 
 import type { MessageHistoryItem } from '@/features/social/messaging/types';
-import { BottomSheet } from '@/shared/ui/BottomSheet';
 
 import { reactionsLabel, totalReactions } from '../../reaction-display';
 import { ReactionTabs } from './ReactionTabs';

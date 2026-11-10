@@ -1,8 +1,8 @@
 import { useShellLocation } from '@ap-education/shell-sdk';
+import { BottomSheet } from '@ap-education/ui/sheet';
 import { type PropsWithChildren, useMemo, useState } from 'react';
 
 import { useOverlay } from '@/shared/lib/overlay';
-import { BottomSheet } from '@/shared/ui/BottomSheet';
 
 import { MemberCard } from '../components/MemberProfile/MemberCard';
 import { memberProfileLabel } from '../components/MemberProfile/memberProfileLabel';

@@ -1,9 +1,9 @@
 import { useIsMobile } from '@ap-education/ui';
+import { BottomSheet } from '@ap-education/ui/sheet';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 
 import { AdaptiveModal } from '@/shared/ui/AdaptiveModal';
-import { BottomSheet } from '@/shared/ui/BottomSheet';
 
 import { useSendTimePick } from '../../hooks/useSendTimePick';
 import { sendTimeLabel } from '../../send-times';

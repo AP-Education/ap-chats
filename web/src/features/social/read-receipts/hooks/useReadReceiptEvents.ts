@@ -4,8 +4,9 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { messagingQueryKeys } from '@/features/social/messaging/queryKeys';
+import type { ChatTimelineData } from '@/features/social/messaging/timeline/chat-entry';
 
-import { type HistoryData, withPeerRead } from '../read-receipts';
+import { withPeerRead } from '../read-receipts';
 import type { ReadReceipt } from '../types';
 
 type ReadReceiptServerToClientEvents = {
@@ -24,7 +25,7 @@ export function useReadReceiptEvents(viewerMemberId: string | undefined) {
     const byViewer = receipt.memberId === viewerMemberId;
     if (!inThisConversation || byViewer) return;
 
-    queryClient.setQueriesData<HistoryData>(
+    queryClient.setQueriesData<ChatTimelineData>(
       { queryKey: messagingQueryKeys.histories(identity, workspaceId, channelId) },
       (history) => history && withPeerRead(history, receipt.seq),
     );

@@ -39,7 +39,6 @@ export const MessageRow = memo(function MessageRow({
   const editing = useConversation((state) => state.editingId === item.message.id);
   const setEditingId = useConversation((state) => state.setEditingId);
   const layout = bubbleLayout(item, pendingAttachments, editing);
-  const tone = delivery === 'failed' ? 'failed' : highlighted ? 'attention' : undefined;
   const contentRef = useRef<HTMLDivElement>(null);
 
   return (
@@ -57,9 +56,7 @@ export const MessageRow = memo(function MessageRow({
         rowProps={{
           id: `message-${item.message.id}`,
           'data-seq': delivery ? undefined : item.seq,
-          'data-own': isOwnMessage || undefined,
           'data-selected': isSelected || undefined,
-          'data-failed': delivery === 'failed' || undefined,
           'data-mentions-me': highlighted || undefined,
           'data-sending': delivery === 'sending' || delivery === 'uploading' || undefined,
           tabIndex: delivery ? -1 : 0,
@@ -98,7 +95,7 @@ export const MessageRow = memo(function MessageRow({
             onChange={() => toggleSelected(item.message.id)}
           />
         )}
-        <Bubble own={isOwnMessage} variant={layout.variant} tone={tone} wide={editing}>
+        <Bubble variant={layout.variant} wide={editing}>
           <MessageHeader />
           <MessageBody
             layout={layout}

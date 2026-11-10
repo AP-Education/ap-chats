@@ -1,9 +1,10 @@
+import type { Action } from '@ap-education/ui';
 import type { ReactNode } from 'react';
 
 import type { MemberSummary } from '@/features/workspaces/types';
 
 import type { MessageReaction } from '../reactions/types';
-import type { Attachment, AttachmentDraft } from './attachments/types';
+import type { Attachment } from './attachments/types';
 
 /** A GIF for a GIF link its message makes, loaded straight from its service's CDN. */
 export interface GifBlock {
@@ -128,21 +129,6 @@ export interface HistoryPage {
   peerReadSeq: string | null;
 }
 
-/** One end of the loaded history: whether more lies past it, and how to bring it in. */
-export interface HistoryEdge {
-  available: boolean;
-  loading: boolean;
-  load: () => Promise<unknown>;
-}
-
-/** The stretch of history a timeline shows, opened at a linked message or where reading stopped. */
-export interface HistoryWindow {
-  pages: HistoryPage[];
-  targetMessageId?: string;
-  older: HistoryEdge;
-  newer: HistoryEdge;
-}
-
 // The command this feature works with: full attachment objects, since the
 // composer already has them from the upload queue and the optimistic echo
 // needs to render them immediately. messages-api.ts alone knows how the wire
@@ -180,13 +166,6 @@ export type EditMessage = (
 // before it's even been POSTed at all; 'failed' waits for a retry.
 export type DeliveryStatus = 'uploading' | 'sending' | 'failed';
 
-export interface DisplayItem {
-  item: HistoryItem;
-  delivery: DeliveryStatus | undefined;
-  /** Set while the message waits on its files: their live progress, shown instead of `item.message.attachments`. */
-  pendingAttachments?: AttachmentDraft[];
-}
-
 // What any feature can offer on messages: the conversation gathers them, message rows show them.
 export type ActionTarget =
   | { kind: 'message'; items: [MessageHistoryItem] }
@@ -216,14 +195,8 @@ export interface ActionCommands {
   markUnread: (item: MessageHistoryItem) => void;
 }
 
-/** How an action stands out: a destructive one warns, an assistant's leads on its own sky. */
-export type ActionAccent = 'danger' | 'ai';
+export type { ActionAccent } from '@ap-education/ui';
 
-export interface ConversationAction {
-  id: string;
+export type ConversationAction = Action<ActionTarget, ActionContext, ActionCommands> & {
   icon: ReactNode;
-  accent?: ActionAccent;
-  label: (target: ActionTarget) => string;
-  available: (target: ActionTarget, context: ActionContext) => boolean;
-  execute: (target: ActionTarget, commands: ActionCommands) => void;
-}
+};

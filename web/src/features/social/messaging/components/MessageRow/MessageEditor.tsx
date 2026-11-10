@@ -1,10 +1,13 @@
+import {
+  type ComposerEditorApi,
+  type ComposerEditorSlot,
+  ComposerEditorSlotContext,
+} from '@ap-education/timeline/composer';
 import { CheckIcon, XIcon } from '@phosphor-icons/react';
 import { message as toast } from 'antd';
 import { createStyles } from 'antd-style';
 import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 
-import { MessageEditorSlotProvider } from '@/features/social/mentions/MessageEditorSlot';
-import type { ComposerEditorApi, ComposerEditorSlotProps } from '@/features/social/mentions/types';
 import { ApiError } from '@/shared/api/http';
 
 import { useLinkedGif } from '../../gifs/useLinkedGif';
@@ -12,15 +15,18 @@ import type { EditMessage, MessageHistoryItem } from '../../types';
 import { MessageInputSurface } from '../MessageInputSurface/MessageInputSurface';
 
 const useStyles = createStyles(({ token, css }) => ({
+  // The bubble's own text sets the editor's type, over the composer's.
   editor: css`
-    width: 100%;
-    min-height: 40px;
-    max-height: 240px;
-    overflow-y: auto;
-    padding: 8px 2px;
-    color: ${token.colorText};
-    font: inherit;
-    font-size: var(--app-text-size, 16px);
+    & [role='textbox'] {
+      width: 100%;
+      min-height: 40px;
+      max-height: 240px;
+      overflow-y: auto;
+      padding: 8px 2px;
+      color: ${token.colorText};
+      font: inherit;
+      font-size: var(--app-text-size, 16px);
+    }
   `,
   actions: css`
     display: flex;
@@ -55,7 +61,7 @@ interface MessageEditorProps {
   item: MessageHistoryItem;
   onEdit: EditMessage;
   onClose: () => void;
-  /** The text-input to edit with — e.g. `<MentionEditor />` — wired via MessageEditorSlotProvider. */
+  /** The editor to edit with, such as `<MentionEditor />`, wired the way a composer wires it. */
   children: ReactNode;
 }
 
@@ -95,24 +101,28 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
     [item, saving, onEdit, onClose, linkedGif],
   );
 
-  const slot = useMemo<ComposerEditorSlotProps>(
+  const slot = useMemo<ComposerEditorSlot>(
     () => ({
       editorRef: editor,
+      draftKey: item.id,
       initialDraft: { markdown: item.message.markdown ?? '', labels },
-      className: styles.editor,
+      label: 'Редагувати повідомлення',
+      placeholder: '',
       autoFocus: true,
-      ariaLabel: 'Редагувати повідомлення',
       onChange: ({ markdown }) => setHasContent(Boolean(markdown.trim())),
       onSubmit: () => void save(),
       onEscape: onClose,
+      onPasteFiles: undefined,
+      onPointerDown: undefined,
+      // Inline, the suggestions float beside the editor instead of docking above a composer.
+      suggestionsHost: null,
     }),
-    [item, labels, styles.editor, onClose, save],
+    [item, labels, onClose, save],
   );
 
   return (
     <>
       <MessageInputSurface
-        compact
         trailing={
           <div className={styles.actions}>
             <button
@@ -135,7 +145,9 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
           </div>
         }
       >
-        <MessageEditorSlotProvider slot={slot}>{children}</MessageEditorSlotProvider>
+        <div className={styles.editor}>
+          <ComposerEditorSlotContext value={slot}>{children}</ComposerEditorSlotContext>
+        </div>
       </MessageInputSurface>
       {conflict && (
         <div className={styles.conflict} role="alert">

@@ -31,16 +31,16 @@ export function ConversationHistoryContent({
   const { history } = navigation;
 
   // The wallpaper alone until the history lands, which then appears at once.
-  if (history.isPending) return null;
+  if (history.status === 'pending') return null;
 
-  if (history.isError && !history.data)
+  if (!history.isLoaded)
     return (
       <div className={styles.center}>
         <Alert
           type="error"
           showIcon
           message="Не вдалося завантажити повідомлення"
-          action={<Button onClick={() => void history.refetch()}>Повторити</Button>}
+          action={<Button onClick={() => void history.timeline.refresh()}>Повторити</Button>}
         />
       </div>
     );

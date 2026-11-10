@@ -1,3 +1,4 @@
+import { TimelineEntryText } from '@ap-education/timeline/react';
 import type { ReactNode, RefObject } from 'react';
 
 import { MessageMarkdown } from '@/features/social/mentions/components/MessageMarkdown/MessageMarkdown';
@@ -21,7 +22,7 @@ export function MessageReadContent({
   }
 
   return (
-    <div
+    <TimelineEntryText
       ref={contentRef}
       className={styles.markdown}
       data-jumbo={jumboEmoji || undefined}
@@ -37,6 +38,6 @@ export function MessageReadContent({
         }}
       />
       {meta}
-    </div>
+    </TimelineEntryText>
   );
 }
