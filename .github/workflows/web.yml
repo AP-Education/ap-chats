@@ -49,6 +49,7 @@ jobs:
       - run: pnpm --filter @ap-chats/web test:search
       - run: pnpm --filter @ap-chats/web test:media
       - run: pnpm --filter @ap-chats/web test:voice --project=desktop --project=phone --project=narrow-phone
+      - run: pnpm --filter @ap-chats/web test:composer --project=phone --project=narrow
       - run: pnpm build:web
       - run: pnpm exec prettier --check web
       - run: pnpm exec playwright test --config web/tests/starme/playwright.config.ts --project desktop --project phone --project narrow
@@ -69,3 +70,4 @@ jobs:
       - run: pnpm exec playwright install webkit
       - run: pnpm exec playwright test --config web/tests/starme/playwright.config.ts --project safari
       - run: pnpm --filter @ap-chats/web test:voice --project=webkit-phone
+      - run: pnpm --filter @ap-chats/web test:composer --project=webkit

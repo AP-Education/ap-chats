@@ -1,0 +1,4 @@
+{
+  "extends": "../../mobile/tsconfig.json",
+  "include": ["index.tsx", "../../mobile/src/**/*.d.ts"]
+}

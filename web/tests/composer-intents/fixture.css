@@ -1,0 +1,46 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+.fixture {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: var(--app-keyboard-inset, 0px);
+  background: #e2f2f0;
+}
+.fixture header {
+  background: white;
+  padding: 12px;
+}
+.fixture h1 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+.fixture nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.history {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+}
+.history p {
+  border-radius: 16px;
+  background: white;
+  padding: 12px;
+}
+.history output {
+  overflow-wrap: anywhere;
+}

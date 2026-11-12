@@ -29,6 +29,7 @@ import { parseComposerDraft } from './composer-draft';
 import { ComposerIntent } from './ComposerIntent';
 import type { ReplyPreview } from './composerIntents';
 import { ComposerVoice } from './ComposerVoice';
+import styles from './MessageComposer.module.css';
 import { MessageInput } from './MessageInput';
 import { PrivateAssistantMode } from './PrivateAssistantMode';
 import { SendButton } from './SendButton';
@@ -137,7 +138,7 @@ export function MessageComposer({
           <ComposerDropZone />
           <ComposerAttach placement="beside" />
           <ComposerField>
-            <ComposerHeader>
+            <ComposerHeader className={styles.header}>
               <ComposerUploadTray />
               {attachments.policyError && <UploadPolicyAlert onRetry={attachments.reloadPolicy} />}
               <ComposerIntent replyAuthor={replyAuthor} replyPreview={replyPreview} />

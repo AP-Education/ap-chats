@@ -14,7 +14,8 @@
     "test:search": "tsc --noEmit -p tests/search/tsconfig.json && vite build --config tests/search/vite.config.mts && playwright test --config tests/search/playwright.config.ts",
     "test:media": "tsc --noEmit -p tests/media/tsconfig.json && vite build --config tests/media/vite.config.mts && playwright test --config tests/media/playwright.config.ts",
     "icons": "pnpm dlx @vite-pwa/assets-generator@2.0.0 && pnpm dlx @vite-pwa/assets-generator@2.0.0 -c pwa-assets.favicon.mjs",
-    "test:voice": "tsc --noEmit -p tests/voice/tsconfig.json && vite build --config tests/voice/vite.config.mts && playwright test --config tests/voice/playwright.config.ts"
+    "test:voice": "tsc --noEmit -p tests/voice/tsconfig.json && vite build --config tests/voice/vite.config.mts && playwright test --config tests/voice/playwright.config.ts",
+    "test:composer": "tsc --noEmit -p tests/composer-intents/tsconfig.json && playwright test --config tests/composer-intents/playwright.config.ts"
   },
   "dependencies": {
     "@ap-education/shell-sdk": "^0.1.1",
