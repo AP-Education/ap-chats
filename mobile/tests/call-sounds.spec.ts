@@ -172,3 +172,27 @@ test('an earlier completion does not release a player whose replay is still rewi
   finish('leave');
   assert.deepEqual(removed(operations), ['leave']);
 });
+
+test('a player that fails while its replay is rewinding is not played or kept as playing', async () => {
+  const { operations, module, fail, endCall, holdSeeks, releaseSeeks } = fixture({
+    inCall: true,
+  });
+
+  module.playCallSound('leave');
+  await settle();
+  endCall();
+  holdSeeks();
+  module.playCallSound('leave');
+  await settle();
+  fail('leave');
+  assert.deepEqual(removed(operations), []);
+
+  releaseSeeks();
+  await settle();
+  assert.equal(operations.filter(([kind]) => kind === 'play').length, 1);
+  assert.deepEqual(removed(operations), ['leave']);
+
+  module.playCallSound('leave');
+  await settle();
+  assert.equal(operations.filter(([kind]) => kind === 'play').length, 2);
+});

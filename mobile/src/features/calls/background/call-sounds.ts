@@ -14,6 +14,9 @@ const players = new Map<AudioSource, AudioPlayer>();
 const starting = new Map<AudioPlayer, number>();
 // Players whose last play() has not yet finished or failed.
 const playing = new Set<AudioPlayer>();
+// Players that reported an error while a replay was rewinding: playing them would
+// leave them tracked as playing with no completion or error left to come.
+const failedWhileStarting = new Set<AudioPlayer>();
 
 function releaseWhenIdle(): void {
   if (useNativeCallStore.getState().call || starting.size > 0 || playing.size > 0) return;
@@ -23,8 +26,12 @@ function releaseWhenIdle(): void {
 
 function started(player: AudioPlayer): void {
   const remaining = (starting.get(player) ?? 1) - 1;
-  if (remaining > 0) starting.set(player, remaining);
-  else starting.delete(player);
+  if (remaining > 0) {
+    starting.set(player, remaining);
+  } else {
+    starting.delete(player);
+    failedWhileStarting.delete(player);
+  }
 }
 
 function stopped(player: AudioPlayer): void {
@@ -38,6 +45,7 @@ function playerFor(source: AudioSource): AudioPlayer {
   const player = createAudioPlayer(source, { keepAudioSessionActive: true });
   // A native playback failure arrives as a status error, without didJustFinish.
   player.addListener('playbackStatusUpdate', (status) => {
+    if (status.error && starting.has(player)) failedWhileStarting.add(player);
     if (status.didJustFinish || status.error) stopped(player);
   });
   players.set(source, player);
@@ -50,6 +58,11 @@ export function playCallSound(source: AudioSource): void {
   player
     .seekTo(0)
     .then(() => {
+      if (failedWhileStarting.has(player)) {
+        started(player);
+        releaseWhenIdle();
+        return;
+      }
       player.play();
       started(player);
       playing.add(player);
