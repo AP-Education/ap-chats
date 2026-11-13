@@ -92,7 +92,7 @@ function bubbleContent(
     hasFiles: pendingAttachments
       ? pendingAttachments.length > 0
       : media.length < attachments.length,
-    jumboEmoji: hasAttachments ? 0 : jumboEmojiCount(markdown),
+    jumboEmoji: hasAttachments || item.message.assistantAnswer ? 0 : jumboEmojiCount(markdown),
     reactions: Boolean(item.reactions?.length),
   };
 }

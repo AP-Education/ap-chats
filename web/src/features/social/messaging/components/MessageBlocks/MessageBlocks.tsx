@@ -1,4 +1,6 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, type ReactNode, type RefObject } from 'react';
+
+import { StarMeMessageBlock } from '@/features/star-me/components/StarMeBlock/StarMeMessageBlock';
 
 import type { Attachment, AttachmentDraft } from '../../attachments/types';
 import type { MessageBlock } from '../../types';
@@ -13,6 +15,7 @@ interface BlockPlace {
   attachments: Attachment[];
   drafts: AttachmentDraft[];
   available: boolean;
+  contentRef?: RefObject<HTMLDivElement | null>;
 }
 
 type BlockViews = {
@@ -24,6 +27,9 @@ type BlockViews = {
 
 // One view per kind of block: a new kind is a component here and a member of MessageBlock.
 const blockViews: BlockViews = {
+  'star-me': (block, { contentRef, meta }) => (
+    <StarMeMessageBlock block={block} contentRef={contentRef} meta={meta} />
+  ),
   gif: (block, { messageId, meta }) => (
     <GifView block={block} messageId={messageId} overlay={meta} />
   ),
@@ -62,6 +68,7 @@ export function MessageBlocks({
   attachments = [],
   drafts = [],
   available = true,
+  contentRef,
 }: {
   blocks: MessageBlock[];
   messageId: string;
@@ -69,6 +76,7 @@ export function MessageBlocks({
   attachments?: Attachment[];
   drafts?: AttachmentDraft[];
   available?: boolean;
+  contentRef?: RefObject<HTMLDivElement | null>;
 }) {
   return blocks.map((block, index) => (
     <Fragment key={`${block.type}:${index}`}>
@@ -78,6 +86,7 @@ export function MessageBlocks({
         attachments,
         drafts,
         available,
+        contentRef,
       })}
     </Fragment>
   ));

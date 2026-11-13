@@ -28,18 +28,8 @@ h1 {
   overflow: auto;
   padding: 16px;
 }
-.bubble {
-  max-width: 85%;
-  width: fit-content;
-  border-radius: 16px;
-  padding: 10px 14px;
+.history-row {
   margin: 8px 0;
-  background: #f2f4f5;
-  white-space: pre-wrap;
-}
-.bubble.own {
-  margin-left: auto;
-  background: #dff6f0;
 }
 .welcome {
   padding: 24px 16px;

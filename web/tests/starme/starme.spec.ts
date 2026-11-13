@@ -61,8 +61,10 @@ test('a human DM stays quiet until StarMe is mentioned; either message action ca
   await expect(page.locator('article')).toHaveCount(1);
   await mention(page, 'Допоможи з планом');
   await expect(page.getByText('Думаю над відповіддю')).toBeVisible();
+  await expect(page.getByRole('status').locator('[data-message-block="star-me"]')).toHaveCount(1);
   await expect(page.locator('article')).toHaveCount(3);
   const answer = page.locator('[data-message-id]').filter({ hasText: 'Привіт! Допоможу' }).last();
+  await expect(answer.locator('[data-message-block="star-me"]')).toHaveCount(1);
   await openActions(page, answer);
   await messageAction(page, 'Відповісти').click();
   await editor.fill('А детальніше?');
@@ -199,14 +201,36 @@ for (const kind of ['dm', 'group'] as const) {
       for (const id of privateIds) expect(result.events).not.toContain(id);
     }
     await editor.fill('Приватне продовження');
-    await page.reload();
-    await expect(editor).toHaveText('Приватне продовження');
-    const sent = page.waitForRequest(
-      (request) => request.method() === 'POST' && request.url().endsWith('/messages'),
+    let releaseMembers!: () => void;
+    const members = new Promise<void>((resolve) => {
+      releaseMembers = resolve;
+    });
+    const memberRoute = '**/api/workspaces/*/members';
+    const memberResponse = page.waitForResponse((response) =>
+      new URL(response.url()).pathname.endsWith('/members'),
     );
-    await press(page, 'Надіслати');
-    expect((await sent).postDataJSON().assistant).toBe(true);
-    await expect(page.locator('article')).toHaveCount(5);
+    await page.route(memberRoute, async (route) => {
+      await members;
+      await route.continue();
+    });
+    try {
+      await page.reload();
+      await expect(editor).toHaveText('Приватне продовження');
+      const sent = page.waitForRequest(
+        (request) => request.method() === 'POST' && request.url().endsWith('/messages'),
+      );
+      const asked = page.waitForRequest(
+        (request) => request.method() === 'POST' && request.url().endsWith('/star-me/answers'),
+      );
+      await press(page, 'Надіслати');
+      expect((await sent).postDataJSON().assistant).toBe(true);
+      await asked;
+      await expect(page.locator('article')).toHaveCount(5);
+    } finally {
+      releaseMembers();
+      await memberResponse;
+      await page.unroute(memberRoute);
+    }
     for (const peer of peers) await expect(peer.locator('article')).toHaveCount(1);
     await openActions(page, page.locator(`[data-message-id="${answerId}"]`));
     await expect(messageAction(page, 'Переслати')).toHaveCount(0);
@@ -218,6 +242,7 @@ for (const kind of ['dm', 'group'] as const) {
     await expect(page.locator('article')).toHaveCount(5);
     const published = page.locator(`[data-message-id="${answerId}"]`);
     await expect(published.getByText('Лише для вас', { exact: true })).toHaveCount(0);
+    await expect(published.locator('[data-message-block="star-me"]')).toHaveCount(0);
     const myAuthor = await published.getAttribute('data-author');
     for (const peer of peers) {
       await expect(peer.locator('article')).toHaveCount(2);

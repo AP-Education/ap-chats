@@ -1,7 +1,15 @@
 import './fixture.css';
 
 import { CurrentUserContext } from '@ap-education/shell-sdk';
+import { buildDays } from '@ap-education/timeline';
 import { UploadQueue } from '@ap-education/timeline/composer';
+import {
+  createRegistry,
+  defineEntryKind,
+  type EntryViewProps,
+  TimelineDays,
+  UKRAINIAN_LABELS,
+} from '@ap-education/timeline/react';
 import { ThemeProvider } from '@ap-education/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Button } from 'antd';
@@ -17,9 +25,12 @@ import { useConversationActions } from '@/features/social/conversation/component
 import { ConversationProvider } from '@/features/social/conversation-scope/store';
 import { sendMessage } from '@/features/social/messaging/api/messages-api';
 import { uploadTransport } from '@/features/social/messaging/attachments/attachments-api';
+import { Bubble } from '@/features/social/messaging/components/Bubble/Bubble';
+import { bubbleLayout } from '@/features/social/messaging/components/MessageRow/bubbleLayout';
 import { MessageActions } from '@/features/social/messaging/components/MessageRow/MessageActions';
 import { MessageActionProvider } from '@/features/social/messaging/components/MessageRow/MessageActionScope';
-import { PrivateMessageLabel } from '@/features/social/messaging/components/MessageRow/PrivateMessageLabel';
+import { MessageBody } from '@/features/social/messaging/components/MessageRow/MessageBody';
+import { MessageHeader } from '@/features/social/messaging/components/MessageRow/MessageHeader';
 import { useMessageOperations } from '@/features/social/messaging/hooks/useMessageOperations';
 import { ConversationOutbox } from '@/features/social/messaging/sending/stores/conversation-outbox';
 import type {
@@ -28,6 +39,7 @@ import type {
 } from '@/features/social/messaging/sending/stores/outboxes';
 import { OutboxesContext } from '@/features/social/messaging/sending/stores/outboxes-context';
 import { UnsentMessagesContext } from '@/features/social/messaging/sending/stores/unsent-messages-context';
+import { type MessageEntry, toEntry } from '@/features/social/messaging/timeline/chat-entry';
 import { TimelineActionsContext } from '@/features/social/messaging/timeline-actions-context';
 import type { MessageHistoryItem } from '@/features/social/messaging/types';
 import { MemberSheetProvider } from '@/features/social/people/providers/MemberSheetProvider';
@@ -181,9 +193,7 @@ function ChatContent({
     >
       <UnsentMessagesContext.Provider value={operations.unsent}>
         <section className="history" aria-label="Історія чату">
-          {items.map((item) => (
-            <HistoryRow key={item.id} item={item} own={item.author.memberId === state.user.id} />
-          ))}
+          <History items={items} />
           {answers
             .filter(({ nonce }) => !landed.has(nonce))
             .map(({ entry, status }) => (
@@ -203,8 +213,25 @@ function ChatContent({
     </TimelineActionsContext.Provider>
   );
 }
-function HistoryRow({ item, own }: { item: MessageHistoryItem; own: boolean }) {
+const historyRegistry = createRegistry([
+  defineEntryKind<MessageEntry, 'MESSAGE'>({ kind: 'MESSAGE', view: HistoryEntry }),
+]);
+
+function HistoryEntry({ entry }: EntryViewProps<MessageEntry>) {
+  return <HistoryRow item={entry.payload.item} />;
+}
+
+function History({ items }: { items: MessageHistoryItem[] }) {
+  const days = useMemo(() => {
+    const entries = items.map(toEntry).filter((entry) => entry.kind === 'MESSAGE');
+    return buildDays(entries, [], null, historyRegistry.rules);
+  }, [items]);
+  return <TimelineDays days={days} registry={historyRegistry} labels={UKRAINIAN_LABELS} />;
+}
+
+function HistoryRow({ item }: { item: MessageHistoryItem }) {
   const contentRef = useRef<HTMLDivElement>(null);
+  const layout = bubbleLayout(item, undefined, false);
   return (
     <MessageActionProvider
       value={{ item, author: item.author.displayName ?? '', editing: false }}
@@ -212,15 +239,19 @@ function HistoryRow({ item, own }: { item: MessageHistoryItem; own: boolean }) {
     >
       <MessageActions
         rowProps={{
-          className: `bubble${own ? ' own' : ''}`,
+          className: 'history-row',
           'data-message-id': item.message.id,
           'data-private': String(Boolean(item.message.privateToMe)),
           'data-author': item.author.memberId,
           'data-assistant-answer': String(Boolean(item.message.assistantAnswer)),
         }}
       >
-        <PrivateMessageLabel />
-        <article ref={contentRef}>{item.message.markdown}</article>
+        <Bubble variant={layout.variant}>
+          <MessageHeader />
+          <article>
+            <MessageBody layout={layout} contentRef={contentRef} onCloseEdit={() => {}} />
+          </article>
+        </Bubble>
       </MessageActions>
     </MessageActionProvider>
   );
