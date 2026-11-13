@@ -29,7 +29,10 @@
       "extends": "base",
       "environment": "production",
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      },
+      "autoIncrement": true
     }
   },
   "submit": {
