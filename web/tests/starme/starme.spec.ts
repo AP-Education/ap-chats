@@ -25,9 +25,10 @@ function messageAction(page: Page, name: string) {
 }
 
 async function openActions(page: Page, row: Locator) {
-  await row.scrollIntoViewIfNeeded();
+  const body = row.locator('article').first();
+  await body.scrollIntoViewIfNeeded();
   if (test.info().project.name === 'phone' || test.info().project.name === 'narrow') {
-    const box = (await row.boundingBox())!;
+    const box = (await body.boundingBox())!;
     const session = await page.context().newCDPSession(page);
     await session.send('Input.dispatchTouchEvent', {
       type: 'touchStart',
