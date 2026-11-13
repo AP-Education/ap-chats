@@ -169,23 +169,25 @@ for (const kind of ['dm', 'group'] as const) {
     await editor.fill('Повідомлення для всіх');
     await press(page, 'Надіслати');
     for (const peer of peers) await expect(peer.locator('article')).toHaveCount(1);
-    let releaseAnswer!: () => void;
-    const answerReady = new Promise<void>((resolve) => {
-      releaseAnswer = resolve;
+    const assistantControl = {
+      headers: { authorization: `Bearer fixture-only:${session}` },
+    };
+    const paused = await page.request.post('/api/qa/assistant', {
+      ...assistantControl,
+      data: { command: 'pause' },
     });
-    const answerRoute = '**/star-me/answers';
-    await page.route(answerRoute, async (route) => {
-      await answerReady;
-      await route.continue();
-    });
+    expect(paused.status()).toBe(200);
     try {
       await mention(page, 'Секретний план');
       const thinking = page.getByRole('status').filter({ hasText: 'Думаю над відповіддю' });
       await expect(thinking.getByText('Лише для вас', { exact: true })).toBeVisible();
       for (const peer of peers) await expect(peer.getByText('Думаю над відповіддю')).toHaveCount(0);
     } finally {
-      releaseAnswer();
-      await page.unroute(answerRoute);
+      const resumed = await page.request.post('/api/qa/assistant', {
+        ...assistantControl,
+        data: { command: 'resume' },
+      });
+      expect(resumed.status()).toBe(200);
     }
     await expect(page.locator('article')).toHaveCount(3);
     await expect(

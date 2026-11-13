@@ -33,6 +33,7 @@ async function main() {
   const members = new DrizzleWorkspaceMembersRepository(host as never);
   const access = new ChannelAccessPolicy(new DrizzleChannelAccessRepository(host as never));
   const attempts = new Map<string, number>();
+  const replyGates = new Map<string, { ready: Promise<void>; release: () => void }>();
   const activity = new StarMeActivity();
   class FixtureAssistant extends Assistant {
     async reply(turns: AssistantTurn[], token: string) {
@@ -40,6 +41,7 @@ async function main() {
       const key = `${token}:${text}`;
       const count = attempts.get(key) ?? 0;
       attempts.set(key, count + 1);
+      await replyGates.get(token)?.ready;
       await new Promise((resolve) => setTimeout(resolve, 900));
       if (text.includes('Помилка') && count === 0) throw new AssistantFailure('unavailable');
       return `Привіт! Допоможу з вашим запитом: ${text}`;
@@ -109,6 +111,21 @@ async function main() {
     const path = request.url.split('?')[0]!;
     const body = request.body as Record<string, string> | undefined;
     const channelId = path.match(/\/channels\/([^/]+)/u)?.[1];
+    if (path === '/api/qa/assistant' && request.method === 'POST') {
+      if (body?.command === 'pause') {
+        if (!replyGates.has(token)) {
+          let release!: () => void;
+          const ready = new Promise<void>((resolve) => {
+            release = resolve;
+          });
+          replyGates.set(token, { ready, release });
+        }
+      } else if (body?.command === 'resume') {
+        replyGates.get(token)?.release();
+        replyGates.delete(token);
+      } else return reply.code(400).send({ message: 'Unknown QA assistant command' });
+      return { ok: true };
+    }
     if (path === '/api/qa/session') return { ...state, user: actor };
     if (path === '/api/qa/result' && request.method === 'POST') {
       results.set(token, request.body);
