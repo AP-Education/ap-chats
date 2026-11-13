@@ -113,6 +113,45 @@ function setup({ stored = [] as unknown, post = 'resolve' as 'resolve' | 'reject
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+test('a voice block survives upload failure and is replaced by the verified attachment on retry', async () => {
+  const { outbox, uploads, posted } = setup();
+  const voice = { type: 'voice' as const, attachmentId: 'recording', durationMs: 3000 };
+  uploads.set('voice-send', [draft('recording', 'uploading')]);
+  const landed = outbox.send({ markdown: '', blocks: [voice] }, 'voice-send');
+  assert.deepEqual(outbox.getSnapshot().entries[0]?.input.blocks, [voice]);
+  uploads.set('voice-send', [draft('recording', 'error')]);
+  assert.deepEqual(outbox.getSnapshot().entries[0]?.input.blocks, [voice]);
+  outbox.retry('voice-send');
+
+  const ready = draft('recording', 'ready');
+  ready.attachment = {
+    ...ready.attachment!,
+    id: 'verified',
+    preview: 'audio',
+    voice: { durationMs: 3120 },
+  };
+  uploads.set('voice-send', [ready]);
+  await landed;
+
+  assert.equal(posted.length, 1);
+  assert.deepEqual(posted[0]?.blocks, [
+    { type: 'voice', attachmentId: 'verified', durationMs: 3120 },
+  ]);
+});
+
+test('cancelling a pending voice cannot post an empty message with its stale block', () => {
+  const { outbox, uploads, posted } = setup();
+  uploads.set('voice-send', [draft('recording', 'uploading')]);
+  void outbox.send(
+    { markdown: '', blocks: [{ type: 'voice', attachmentId: 'recording', durationMs: 3000 }] },
+    'voice-send',
+  );
+  outbox.cancelFile('voice-send', 'recording');
+
+  assert.deepEqual(outbox.getSnapshot().entries, []);
+  assert.equal(posted.length, 0);
+});
+
 test('a text message posts at once and leaves the outbox once the server has it', async () => {
   const { outbox, posted, statuses } = setup();
 

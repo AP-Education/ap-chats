@@ -5,7 +5,7 @@ import { UploadQueue } from '@ap-education/timeline/composer';
 import { ThemeProvider } from '@ap-education/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Button, Layout } from 'antd';
-import { StrictMode, Suspense, useEffect, useState, useSyncExternalStore } from 'react';
+import { StrictMode, Suspense, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 
@@ -20,7 +20,6 @@ import {
 import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { sendMessage } from '@/features/social/messaging/api/messages-api';
 import { uploadTransport } from '@/features/social/messaging/attachments/attachments-api';
-import { MessageAttachments } from '@/features/social/messaging/components/MessageAttachments/MessageAttachments';
 import { MessageComposer } from '@/features/social/messaging/components/MessageComposer/MessageComposer';
 import { ConversationOutbox } from '@/features/social/messaging/sending/stores/conversation-outbox';
 import type {
@@ -30,6 +29,9 @@ import type {
 import { OutboxesContext } from '@/features/social/messaging/sending/stores/outboxes-context';
 import type { Message } from '@/features/social/messaging/types';
 import { I18nProvider } from '@/shared/i18n/I18nProvider';
+
+import { runNativeTimelineScenario } from './native-timeline-scenario';
+import { VoiceHistory } from './voice-history';
 
 const workspaceId = '10000000-0000-4000-8000-000000000001';
 const first = '20000000-0000-4000-8000-000000000001';
@@ -91,6 +93,11 @@ function Fixture() {
     permissions: { canPost: true, canReact: true, canManage: false, canPin: false },
   };
   const sending = outboxes.for({ identity, workspaceId, channelId });
+  useEffect(() => {
+    if (!new URLSearchParams(location.search).has('native')) return;
+    const timer = setTimeout(() => void runNativeTimelineScenario(sending), 500);
+    return () => clearTimeout(timer);
+  }, [sending]);
   return (
     <CurrentUserContext.Provider
       value={{
@@ -112,18 +119,10 @@ function Fixture() {
           <ConversationProvider key={`${identity}:${channelId}`} scope={scope}>
             <section className="fixture-history" aria-label="Історія чату">
               <p>Запишіть голосове, прослухайте та надішліть його.</p>
-              {messages
-                .filter((message) => message.channelId === channelId)
-                .map((message) => (
-                  <article key={message.id} className="fixture-bubble">
-                    {message.markdown && <p>{message.markdown}</p>}
-                    <MessageAttachments
-                      attachments={message.attachments ?? []}
-                      messageId={message.id}
-                    />
-                  </article>
-                ))}
-              <Pending sending={sending} />
+              <VoiceHistory
+                messages={messages.filter((message) => message.channelId === channelId)}
+                sending={sending}
+              />
             </section>
             <MessageComposer
               onSend={(input, nonce) => {
@@ -139,27 +138,12 @@ function Fixture() {
   );
 }
 
-function Pending({ sending }: { sending: ConversationSending }) {
-  const state = useSyncExternalStore(sending.outbox.subscribe, sending.outbox.getSnapshot);
-  return (
-    <>
-      {state.entries.map((entry) => (
-        <div key={entry.input.clientNonce} role="status">
-          {entry.status === 'failed' ? 'Не вдалося надіслати голосове' : 'Надсилаємо голосове…'}
-          {entry.status === 'failed' && (
-            <Button onClick={() => sending.outbox.retry(entry.input.clientNonce)}>
-              Повторити надсилання
-            </Button>
-          )}
-        </div>
-      ))}
-    </>
-  );
-}
+const appearance = new URLSearchParams(location.search).has('dark') ? 'dark' : 'light';
+document.documentElement.dataset.theme = appearance;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider appearance="light">
+    <ThemeProvider appearance={appearance}>
       <QueryClientProvider client={client}>
         <RealtimeContext.Provider value={{ status: 'idle', socket, error: null }}>
           <BrowserRouter>

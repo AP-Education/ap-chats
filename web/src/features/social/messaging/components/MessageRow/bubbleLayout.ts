@@ -37,6 +37,7 @@ export interface BubbleLayout {
 interface BubbleContent {
   hasText: boolean;
   hasFiles: boolean;
+  closesWithVoice: boolean;
   /** A GIF under the text closes the bubble, as on Discord. */
   hasGif: boolean;
   /** Nothing but a GIF, which then shows without a bubble. */
@@ -74,12 +75,19 @@ function bubbleContent(
   const hasAttachments = attachments.length > 0 || Boolean(pendingAttachments);
   const gif = item.message.blocks?.find((block) => block.type === 'gif');
   const hasGif = Boolean(gif);
+  const lastDraft = pendingAttachments?.at(-1);
+  const closesWithVoice = pendingAttachments
+    ? item.message.blocks?.some(
+        (block) => block.type === 'voice' && block.attachmentId === lastDraft?.key,
+      )
+    : Boolean(attachments.filter((file) => file.preview !== 'image').at(-1)?.voice);
   // A lone GIF link says nothing the GIF itself does not, so only the GIF shows, as on Discord.
   const isOnlyGifLink = isLoneGif(item.message);
 
   return {
     hasText: Boolean(markdown?.trim()) && !isOnlyGifLink,
     hasGif,
+    closesWithVoice: Boolean(closesWithVoice),
     isLoneGif: hasGif && !hasAttachments && (!markdown?.trim() || isOnlyGifLink),
     hasFiles: pendingAttachments
       ? pendingAttachments.length > 0
@@ -90,8 +98,9 @@ function bubbleContent(
 }
 
 // A bubble with photos or a GIF lays them edge to edge through the timeline's media part.
-function bubbleVariant({ jumboEmoji, isLoneGif }: BubbleContent): BubbleVariant {
-  return jumboEmoji || isLoneGif ? 'bare' : 'text';
+function bubbleVariant({ jumboEmoji, isLoneGif, closesWithVoice }: BubbleContent): BubbleVariant {
+  if (jumboEmoji || isLoneGif) return 'bare';
+  return closesWithVoice ? 'voice' : 'text';
 }
 
 // The time closes whatever ends the bubble: the last line of text, the files, the reaction row,
@@ -102,10 +111,12 @@ function metaPlacement({
   hasFiles,
   hasGif,
   reactions,
+  closesWithVoice,
 }: BubbleContent): MessageMetaPlacement {
   if (jumboEmoji) return 'emoji';
   if (!hasText && !hasFiles) return 'overlay';
   if (reactions) return 'reactions';
   if (hasGif) return 'overlay';
+  if (!hasText && closesWithVoice) return 'voice';
   return hasText ? 'inline' : 'block';
 }

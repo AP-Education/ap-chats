@@ -19,7 +19,14 @@ export interface GifBlock {
 }
 
 /** What a message shows besides its text and files, told apart by `type`. */
-export type MessageBlock = GifBlock;
+export interface VoiceBlock {
+  type: 'voice';
+  /** The upload key while pending, then the verified attachment ID. */
+  attachmentId: string;
+  durationMs: number;
+}
+
+export type MessageBlock = GifBlock | VoiceBlock;
 
 export interface Message {
   privateToMe?: boolean;

@@ -2,9 +2,12 @@ import { formatFileSize } from '@ap-education/timeline/composer';
 import { TimelineEntryFile } from '@ap-education/timeline/media';
 import { FileCardBadge } from '@ap-education/ui/media';
 import { XIcon } from '@phosphor-icons/react';
+import type { ReactNode } from 'react';
 
 import type { AttachmentDraft } from '../../attachments/types';
 import { useUnsentMessages } from '../../sending/stores/unsent-messages-context';
+import type { MessageBlock } from '../../types';
+import { MessageBlocks } from '../MessageBlocks/MessageBlocks';
 
 const fileSize = (bytes: number) => formatFileSize(bytes, 'uk-UA');
 
@@ -33,28 +36,49 @@ function uploadProgress(draft: AttachmentDraft): number | undefined {
 export function PendingAttachments({
   rowId,
   drafts,
+  blocks = [],
+  meta,
 }: {
   rowId: string;
   drafts: AttachmentDraft[];
+  blocks?: MessageBlock[];
+  meta?: ReactNode;
 }) {
   const { discardFile } = useUnsentMessages();
 
-  return drafts.map((draft) => (
-    <TimelineEntryFile
-      key={draft.key}
-      name={draft.name}
-      size={draft.size}
-      meta={uploadMeta(draft)}
-      metaTone={draft.status === 'error' ? 'error' : undefined}
-    >
-      <FileCardBadge
-        label={`Скасувати надсилання ${draft.name}`}
-        progress={uploadProgress(draft)}
-        previewUrl={draft.previewUrl}
-        onClick={() => discardFile(rowId, draft.key)}
+  return drafts.map((draft, index) => {
+    const voice = blocks.find(
+      (block) => block.type === 'voice' && block.attachmentId === draft.key,
+    );
+    if (voice) {
+      return (
+        <MessageBlocks
+          key={draft.key}
+          blocks={[voice]}
+          messageId={rowId}
+          drafts={[draft]}
+          meta={index === drafts.length - 1 && meta}
+        />
+      );
+    }
+
+    return (
+      <TimelineEntryFile
+        key={draft.key}
+        name={draft.name}
+        size={draft.size}
+        meta={uploadMeta(draft)}
+        metaTone={draft.status === 'error' ? 'error' : undefined}
       >
-        <XIcon size={20} weight="bold" />
-      </FileCardBadge>
-    </TimelineEntryFile>
-  ));
+        <FileCardBadge
+          label={`Скасувати надсилання ${draft.name}`}
+          progress={uploadProgress(draft)}
+          previewUrl={draft.previewUrl}
+          onClick={() => discardFile(rowId, draft.key)}
+        >
+          <XIcon size={20} weight="bold" />
+        </FileCardBadge>
+      </TimelineEntryFile>
+    );
+  });
 }

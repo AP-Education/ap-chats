@@ -9,12 +9,14 @@ export function MessageAttachments({
   messageId,
   available = true,
   overlay,
+  footer,
 }: {
   attachments: MessageAttachment[];
   messageId: string;
   available?: boolean;
   /** The time, when media closes the bubble. */
   overlay?: ReactNode;
+  footer?: ReactNode;
 }) {
   const images = attachments.filter((file) => file.preview === 'image');
   const files = attachments.filter((file) => file.preview !== 'image');
@@ -44,6 +46,7 @@ export function MessageAttachments({
           messageId={messageId}
           available={available}
           overlay={index === files.length - 1 && overlay}
+          footer={index === files.length - 1 && footer}
         />
       ))}
     </>

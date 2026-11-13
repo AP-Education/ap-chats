@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import type { AttachmentDraft } from '../../attachments/types';
 import type { MessageHistoryItem } from '../../types';
 import { bubbleLayout, jumboEmojiCount } from './bubbleLayout.ts';
 
@@ -62,6 +63,49 @@ test('a lone GIF link shows the GIF alone, without a bubble; with words the word
 function pick(layout: ReturnType<typeof bubbleLayout>) {
   return [layout.meta, layout.reactions];
 }
+
+test('pending and verified voice notes keep one wide bubble with time beside the controls', () => {
+  const voice = { type: 'voice', attachmentId: 'draft', durationMs: 3000 };
+  const pending = {
+    key: 'draft',
+    name: 'voice.m4a',
+    size: 100,
+    status: 'uploading',
+    progress: 40,
+    description: '',
+  } as AttachmentDraft;
+  const message = {
+    message: { markdown: '', attachments: [], blocks: [voice] },
+  } as unknown as MessageHistoryItem;
+  const sent = {
+    message: {
+      markdown: '',
+      attachments: [{ id: 'stored', preview: 'audio', voice: { durationMs: 3100 } }],
+      blocks: [{ ...voice, attachmentId: 'stored' }],
+    },
+  } as unknown as MessageHistoryItem;
+
+  assert.deepEqual(bubbleLayout(message, [pending], false), bubbleLayout(sent, undefined, false));
+  assert.equal(bubbleLayout(sent, undefined, false).meta, 'voice');
+  assert.equal(bubbleLayout(sent, undefined, false).variant, 'voice');
+  assert.equal(
+    bubbleLayout({ ...sent, message: { ...sent.message, blocks: [] } }, undefined, false).meta,
+    'voice',
+  );
+  assert.equal(
+    bubbleLayout({ ...sent, message: { ...sent.message, markdown: 'Послухай' } }, undefined, false)
+      .meta,
+    'inline',
+  );
+  assert.equal(
+    bubbleLayout(
+      { ...sent, reactions: [{ emoji: '👍', count: 1, reacted: false, recentMemberIds: [] }] },
+      undefined,
+      false,
+    ).meta,
+    'reactions',
+  );
+});
 
 test('a video with a poster puts its timestamp on the poster, while legacy videos use a file row', () => {
   const message = (hasThumbnail: boolean) =>

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import styles from './Bubble.module.css';
 
-export type BubbleVariant = 'text' | 'bare';
+export type BubbleVariant = 'text' | 'bare' | 'voice';
 
 interface BubbleProps {
   variant?: BubbleVariant;
