@@ -25,6 +25,10 @@ function messageAction(page: Page, name: string) {
 }
 
 async function openActions(page: Page, row: Locator) {
+  const previousActions = page
+    .getByRole('menu')
+    .or(page.getByRole('dialog', { name: 'Дії з повідомленням' }));
+  await expect(previousActions).toBeHidden();
   const body = row.locator('article').first();
   await body.scrollIntoViewIfNeeded();
   if (test.info().project.name === 'phone' || test.info().project.name === 'narrow') {
