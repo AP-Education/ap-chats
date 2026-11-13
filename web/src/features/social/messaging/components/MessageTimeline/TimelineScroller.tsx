@@ -107,7 +107,7 @@ export function TimelineScroller({ anchoring, hasNewer, children }: TimelineScro
   useMobileMessageSelection(scrollRef, isMobile);
 
   return (
-    <div className={cx(styles.viewport, keyboardGlidePart)}>
+    <div className={cx(styles.viewport, keyboardGlidePart)} data-keyboard-glide-part>
       <RefreshOnPull>
         <div
           ref={scrollRef}

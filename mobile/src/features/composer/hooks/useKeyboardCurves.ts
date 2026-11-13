@@ -2,11 +2,11 @@ import { useCallback, useMemo } from 'react';
 import { runOnJS, useSharedValue } from 'react-native-reanimated';
 
 import {
-  DEFAULT_EASING,
   type InsetMotion,
   type KeyboardDirection,
   keyboardDirection,
   type KeyboardFrame,
+  keyboardMotion,
   learnedMotion,
 } from '../utils/keyboard-curve';
 
@@ -35,8 +35,7 @@ export function useKeyboardCurves() {
     /** How this keyboard move will play out, by what earlier moves that way showed. */
     const motion = (from: number, to: number, reported: number): InsetMotion => {
       'worklet';
-      const known = learned.get()[to > from ? 'up' : 'down'];
-      return known ?? { duration: reported, easing: DEFAULT_EASING };
+      return keyboardMotion(from, to, reported, learned.get());
     };
 
     const begin = (from: number, to: number) => {

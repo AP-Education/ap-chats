@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "AP Keyboard Tests",
+    "slug": "ap-keyboard-tests",
+    "ios": {
+      "bundleIdentifier": "com.apeducation.connect"
+    },
+    "android": {
+      "package": "com.apeducation.connect"
+    }
+  }
+}
