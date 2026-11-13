@@ -307,7 +307,7 @@ function Fixture({ state }: { state: Session }) {
 const state = await api<Session>('/qa/session');
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider appearance="light">
+    <ThemeProvider appearance={new URLSearchParams(location.search).has('dark') ? 'dark' : 'light'}>
       <QueryClientProvider client={client}>
         <CurrentUserContext.Provider
           value={{

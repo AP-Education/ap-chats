@@ -25,6 +25,10 @@ function messageAction(page: Page, name: string) {
 }
 
 async function openActions(page: Page, row: Locator) {
+  const previousActions = page
+    .getByRole('menu')
+    .or(page.getByRole('dialog', { name: 'Дії з повідомленням' }));
+  await expect(previousActions).toBeHidden();
   const body = row.locator('article').first();
   await body.scrollIntoViewIfNeeded();
   if (test.info().project.name === 'phone' || test.info().project.name === 'narrow') {
@@ -319,3 +323,54 @@ test('releasing a held StarMe answer is consumed and leaves its action sheet ope
   await expect(messageAction(page, 'Зробити моїм')).toBeVisible();
   await expect(page.getByText('Відповідь для StarMe', { exact: true })).toHaveCount(0);
 });
+
+for (const appearance of ['light', 'dark']) {
+  test('mobile message actions keep a readable themed surface: ' + appearance, async ({ page }) => {
+    test.skip(test.info().project.name === 'desktop', 'Desktop uses its context menu.');
+    if (appearance === 'dark') {
+      const url = new URL(page.url());
+      url.searchParams.set('dark', 'true');
+      await page.goto(url.href);
+    }
+    const editor = page.getByRole('textbox', { name: 'Повідомлення', exact: true });
+    await editor.fill('Перевірка теми меню');
+    await press(page, 'Надіслати');
+    const row = page.locator('[data-message-id]').filter({ hasText: 'Перевірка теми меню' });
+    await openActions(page, row);
+    const sheet = page.getByRole('dialog', { name: 'Дії з повідомленням' });
+    await expect(sheet).toBeVisible();
+    const reply = sheet.getByRole('button', { name: 'Відповісти', exact: true });
+    await expect(reply).toBeVisible();
+    const colors = await reply.evaluate((button) => {
+      const dialog = button.closest('[role="dialog"]')!;
+      const surface = getComputedStyle(dialog).backgroundColor;
+      const ink = getComputedStyle(button).color;
+      const channels = (color: string) => color.match(/[\d.]+/gu)!.map(Number);
+      const surfaceRgba = channels(surface);
+      const inkRgba = channels(ink);
+      const alpha = inkRgba[3] ?? 1;
+      const visibleInk = inkRgba
+        .slice(0, 3)
+        .map((channel, index) => channel * alpha + surfaceRgba[index]! * (1 - alpha));
+      const luminance = (rgb: number[]) => {
+        const [red, green, blue] = rgb.slice(0, 3).map((channel) => {
+          const value = channel / 255;
+          return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+        });
+        return red! * 0.2126 + green! * 0.7152 + blue! * 0.0722;
+      };
+      const background = luminance(surfaceRgba);
+      const foreground = luminance(visibleInk);
+      const contrast =
+        (Math.max(background, foreground) + 0.05) / (Math.min(background, foreground) + 0.05);
+      return { surfaceAlpha: surfaceRgba[3] ?? 1, contrast, background };
+    });
+    expect(colors.surfaceAlpha).toBe(1);
+    expect(colors.contrast).toBeGreaterThanOrEqual(4.5);
+    if (appearance === 'light') expect(colors.background).toBeGreaterThan(0.8);
+    else expect(colors.background).toBeLessThan(0.1);
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+    await expect(editor).toHaveText('');
+  });
+}
