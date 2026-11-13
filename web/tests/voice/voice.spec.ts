@@ -107,7 +107,7 @@ async function backend(
       try {
         completionAttempts++;
         if (failFirst && completionAttempts === 1)
-          return route.fulfill({ status: 400, json: { message: 'Test interruption' } });
+          return await route.fulfill({ status: 400, json: { message: 'Test interruption' } });
         await beforeComplete?.();
         const id = url.pathname.split('/').at(-2)!;
         const upload = uploads.get(id)!;
@@ -278,7 +278,11 @@ test('cancelling an uploading voice block removes it without posting a file or m
   page,
 }) => {
   const completion = completionGate();
-  const data = await backend(page, false, () => completion.promise);
+  const entered = completionGate();
+  const data = await backend(page, false, () => {
+    entered.resolve();
+    return completion.promise;
+  });
   await page.goto('/');
   await start(page);
   await page.getByRole('button', { name: 'Завершити запис', exact: true }).click();
@@ -286,6 +290,7 @@ test('cancelling an uploading voice block removes it without posting a file or m
   await page.getByRole('button', { name: 'Надіслати голосове', exact: true }).click();
 
   try {
+    await entered.promise;
     await page.getByRole('button', { name: 'Скасувати надсилання голосового' }).click();
     completion.resolve();
     await expect.poll(() => data.settledCompletions).toBe(1);

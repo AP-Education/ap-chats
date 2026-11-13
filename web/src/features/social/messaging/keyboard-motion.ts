@@ -21,11 +21,19 @@ export class KeyboardMotion {
   private motion: Motion | null = null;
   private animations = new Map<HTMLElement, Animation>();
   private parts = new Set<HTMLElement>();
+  private readonly observer: MutationObserver;
 
   constructor(surface: HTMLElement) {
     this.surface = surface;
     this.bottom = surface.getBoundingClientRect().bottom;
     this.inset = committedInset();
+    this.observer = new MutationObserver((records) => {
+      if (!this.motion) return;
+
+      const changed = records.some(changesMotionParts);
+      if (changed) this.follow();
+    });
+    this.observer.observe(surface, { childList: true, subtree: true });
   }
 
   receive(message: KeyboardInset) {
@@ -48,6 +56,7 @@ export class KeyboardMotion {
   }
 
   dispose() {
+    this.observer.disconnect();
     this.animations.forEach((animation) => animation.cancel());
     this.parts.forEach((part) => part.style.removeProperty('translate'));
     this.animations.clear();
@@ -73,10 +82,15 @@ export class KeyboardMotion {
     const committed = committedInset();
     const target = committed - this.inset;
     const duration = Math.max(0, motion.until - performance.now());
+    const reference = this.parts.values().next().value;
+    const inherited = reference ? verticalTranslation(getComputedStyle(reference).translate) : 0;
 
     this.surface.querySelectorAll<HTMLElement>(PART).forEach((part) => {
-      const translate = getComputedStyle(part).translate;
-      const from = verticalTranslation(translate) - layoutChange;
+      const registered = this.parts.has(part);
+      const translation = registered
+        ? verticalTranslation(getComputedStyle(part).translate)
+        : inherited;
+      const from = translation - layoutChange;
       const previous = this.animations.get(part);
       this.parts.add(part);
       part.style.translate = `0 ${target}px`;
@@ -107,4 +121,16 @@ function verticalTranslation(translate: string): number {
 function committedInset(): number {
   const value = getComputedStyle(document.documentElement).getPropertyValue('--app-keyboard-inset');
   return Number.parseFloat(value) || 0;
+}
+
+function changesMotionParts(record: MutationRecord): boolean {
+  const insidePart = record.target instanceof Element && record.target.closest(PART);
+  if (insidePart) return false;
+
+  return [...record.addedNodes, ...record.removedNodes].some((node) => {
+    const element = node instanceof Element ? node : null;
+    if (!element) return false;
+
+    return element.matches(PART) || Boolean(element.querySelector(PART));
+  });
 }

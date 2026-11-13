@@ -59,13 +59,28 @@ test('a new keyboard height during a rise continues from the current position', 
   page,
 }) => {
   const height = page.viewportSize()!.height;
-  await send(page, 260, 800);
-  await expect.poll(() => position(page), { intervals: [16] }).toBeLessThan(height - 60);
-  const before = await position(page);
-  await send(page, 300, 600);
-  await nextFrame(page);
-  const after = await position(page);
-  expect(after - before).toBeLessThan(20);
+  const change = await page.evaluate(async () => {
+    const composer = document.querySelector<HTMLElement>('[data-composer]')!;
+    window.keyboardFixture.send(260, 800);
+    while (composer.getBoundingClientRect().bottom >= innerHeight - 60) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    }
+    const before = composer.getBoundingClientRect().bottom;
+    const started = performance.now();
+    window.keyboardFixture.send(300, 600);
+    const immediate = composer.getBoundingClientRect().bottom;
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+    return {
+      jump: immediate - before,
+      distance: composer.getBoundingClientRect().bottom - before,
+      elapsed: performance.now() - started,
+    };
+  });
+  expect(Math.abs(change.jump)).toBeLessThan(1);
+  const allowedProgress = change.elapsed * 2 + 1;
+  expect(Math.abs(change.distance)).toBeLessThan(allowedProgress);
   await expect.poll(() => position(page)).toBeCloseTo(height - 300, 0);
 });
 
@@ -147,25 +162,64 @@ test('switching conversation with an open keyboard still follows its closing mot
   await expect.poll(() => position(page)).toBeCloseTo(height, 0);
 });
 
-test('replacing history during a keyboard move releases its old animation and styles', async ({
+test('replacement history inherits the current keyboard motion without a new inset', async ({
   page,
 }) => {
   const history = await page.getByRole('log').elementHandle();
   if (!history) throw new Error('The timeline is missing');
 
   try {
-    await send(page, 300, 1200);
-    await expect.poll(() => history.evaluate((element) => element.getAnimations().length)).toBe(1);
-    await page.evaluate(() => window.keyboardFixture.remountHistory());
-    await expect.poll(() => history.evaluate((element) => element.isConnected)).toBe(false);
-    await send(page, 260, 1200);
-
-    await expect.poll(() => history.evaluate((element) => element.getAnimations().length)).toBe(0);
-    await expect
-      .poll(() => history.evaluate((element) => (element as HTMLElement).style.translate))
-      .toBe('');
-    await expect.poll(() => position(page)).toBeCloseTo(page.viewportSize()!.height - 260, 0);
+    const replacement = await history.evaluate(async (old) => {
+      const composer = document.querySelector<HTMLElement>('[data-composer]')!;
+      window.keyboardFixture.send(300, 2000);
+      while (composer.getBoundingClientRect().bottom >= innerHeight - 60) {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      }
+      window.keyboardFixture.remountHistory();
+      while (old.isConnected) {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      }
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      );
+      const next = document.querySelector<HTMLElement>('[role="log"]')!;
+      const translation = (element: Element) =>
+        Number.parseFloat(getComputedStyle(element).translate.split(' ')[1] ?? '0');
+      return {
+        difference: Math.abs(translation(next) - translation(composer)),
+        moving: next.getAnimations().some((animation) => animation.playState === 'running'),
+        oldTranslation: (old as HTMLElement).style.translate,
+        oldAnimations: old.getAnimations().length,
+      };
+    });
+    expect(replacement.difference).toBeLessThan(2);
+    expect(replacement.moving).toBe(true);
+    expect(replacement.oldTranslation).toBe('');
+    expect(replacement.oldAnimations).toBe(0);
+    await expect.poll(() => position(page)).toBeCloseTo(page.viewportSize()!.height - 300, 0);
   } finally {
     await history.dispose();
   }
+});
+
+test('new messages inside a history part do not restart its keyboard animation', async ({
+  page,
+}) => {
+  const continued = await page.evaluate(async () => {
+    const composer = document.querySelector<HTMLElement>('[data-composer]')!;
+    window.keyboardFixture.send(300, 1200);
+    while (composer.getBoundingClientRect().bottom >= innerHeight - 60) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    }
+    const animation = composer.getAnimations().find((entry) => entry.playState === 'running');
+    const message = document.createElement('p');
+    message.textContent = 'Нове повідомлення';
+    document.querySelector('[role="log"]')!.append(message);
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+    return Boolean(animation && composer.getAnimations().includes(animation));
+  });
+  expect(continued).toBe(true);
+  await expect.poll(() => position(page)).toBeCloseTo(page.viewportSize()!.height - 300, 0);
 });
