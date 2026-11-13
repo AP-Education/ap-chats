@@ -22,6 +22,10 @@ button.sendAction {
   height: 100%;
 }
 
+.header {
+  min-width: 0;
+}
+
 .intent {
   position: relative;
   display: flex;

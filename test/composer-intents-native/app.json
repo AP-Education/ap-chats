@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "AP Composer Tests",
+    "slug": "ap-composer-tests",
+    "ios": {
+      "bundleIdentifier": "com.apeducation.connect"
+    }
+  }
+}
