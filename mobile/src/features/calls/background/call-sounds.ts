@@ -9,15 +9,25 @@ import { useNativeCallStore } from '../store/native-call-store';
 // as a call is up, and released only once no call remains and the last sound has finished:
 // that release is what hands the session back to other apps after a hangup or busy tone.
 const players = new Map<AudioSource, AudioPlayer>();
+// Replays still rewinding, counted per player: a completion from an earlier playback
+// must not let a release remove the player before its replay starts.
+const starting = new Map<AudioPlayer, number>();
+// Players whose last play() has not yet finished or failed.
 const playing = new Set<AudioPlayer>();
 
 function releaseWhenIdle(): void {
-  if (useNativeCallStore.getState().call || playing.size > 0) return;
+  if (useNativeCallStore.getState().call || starting.size > 0 || playing.size > 0) return;
   for (const player of players.values()) player.remove();
   players.clear();
 }
 
-function finished(player: AudioPlayer): void {
+function started(player: AudioPlayer): void {
+  const remaining = (starting.get(player) ?? 1) - 1;
+  if (remaining > 0) starting.set(player, remaining);
+  else starting.delete(player);
+}
+
+function stopped(player: AudioPlayer): void {
   playing.delete(player);
   releaseWhenIdle();
 }
@@ -26,8 +36,9 @@ function playerFor(source: AudioSource): AudioPlayer {
   const existing = players.get(source);
   if (existing) return existing;
   const player = createAudioPlayer(source, { keepAudioSessionActive: true });
+  // A native playback failure arrives as a status error, without didJustFinish.
   player.addListener('playbackStatusUpdate', (status) => {
-    if (status.didJustFinish) finished(player);
+    if (status.didJustFinish || status.error) stopped(player);
   });
   players.set(source, player);
   return player;
@@ -35,12 +46,17 @@ function playerFor(source: AudioSource): AudioPlayer {
 
 export function playCallSound(source: AudioSource): void {
   const player = playerFor(source);
-  playing.add(player);
+  starting.set(player, (starting.get(player) ?? 0) + 1);
   player
     .seekTo(0)
-    .then(() => player.play())
+    .then(() => {
+      player.play();
+      started(player);
+      playing.add(player);
+    })
     .catch((error: unknown) => {
-      finished(player);
+      started(player);
+      stopped(player);
       if (__DEV__) console.warn('[calls] sound failed', error);
     });
 }

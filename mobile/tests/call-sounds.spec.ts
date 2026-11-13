@@ -8,11 +8,14 @@ import ts from 'typescript';
 
 type Operation = ['create', unknown] | ['seek', unknown] | ['play', unknown] | ['remove', unknown];
 type CallState = { call: object | null };
+type StatusUpdate = { didJustFinish: boolean; error: string | null };
 type CallSoundsModule = { playCallSound: (source: unknown) => void };
 
 function fixture({ inCall }: { inCall: boolean }) {
   const operations: Operation[] = [];
-  const finishers = new Map<unknown, () => void>();
+  const listeners = new Map<unknown, (status: StatusUpdate) => void>();
+  const heldSeeks: (() => void)[] = [];
+  let holdSeeks = false;
   let state: CallState = { call: inCall ? {} : null };
   const subscribers: ((next: CallState, previous: CallState) => void)[] = [];
 
@@ -31,6 +34,7 @@ function fixture({ inCall }: { inCall: boolean }) {
     return {
       async seekTo() {
         operations.push(['seek', source]);
+        if (holdSeeks) await new Promise<void>((done) => heldSeeks.push(done));
       },
       play() {
         operations.push(['play', source]);
@@ -38,8 +42,8 @@ function fixture({ inCall }: { inCall: boolean }) {
       remove() {
         operations.push(['remove', source]);
       },
-      addListener(_event: string, listener: (status: { didJustFinish: boolean }) => void) {
-        finishers.set(source, () => listener({ didJustFinish: true }));
+      addListener(_event: string, listener: (status: StatusUpdate) => void) {
+        listeners.set(source, listener);
       },
     };
   };
@@ -62,7 +66,16 @@ function fixture({ inCall }: { inCall: boolean }) {
   return {
     operations,
     module: exports as CallSoundsModule,
-    finish: (sound: unknown) => finishers.get(sound)?.(),
+    finish: (sound: unknown) => listeners.get(sound)?.({ didJustFinish: true, error: null }),
+    fail: (sound: unknown) =>
+      listeners.get(sound)?.({ didJustFinish: false, error: 'decoder failed' }),
+    holdSeeks: () => {
+      holdSeeks = true;
+    },
+    releaseSeeks: () => {
+      holdSeeks = false;
+      for (const done of heldSeeks.splice(0)) done();
+    },
     endCall: () => {
       const previous = state;
       state = { call: null };
@@ -120,4 +133,42 @@ test('waits for a sound still playing when the call ends', async () => {
 
   finish('mute');
   assert.deepEqual(removed(operations), ['mute']);
+});
+
+test('a native playback error stops tracking the sound, so the call can still release', async () => {
+  const { operations, module, fail, finish, endCall } = fixture({ inCall: true });
+
+  module.playCallSound('unmute');
+  await settle();
+  fail('unmute');
+  endCall();
+  assert.deepEqual(removed(operations), ['unmute']);
+
+  module.playCallSound('leave');
+  await settle();
+  finish('leave');
+  assert.deepEqual(removed(operations), ['unmute', 'leave']);
+});
+
+test('an earlier completion does not release a player whose replay is still rewinding', async () => {
+  const { operations, module, finish, endCall, holdSeeks, releaseSeeks } = fixture({
+    inCall: true,
+  });
+
+  module.playCallSound('leave');
+  await settle();
+  endCall();
+  holdSeeks();
+  module.playCallSound('leave');
+  await settle();
+  finish('leave');
+  assert.deepEqual(removed(operations), []);
+
+  releaseSeeks();
+  await settle();
+  assert.deepEqual(operations.filter(([kind]) => kind === 'play').length, 2);
+  assert.deepEqual(removed(operations), []);
+
+  finish('leave');
+  assert.deepEqual(removed(operations), ['leave']);
 });
