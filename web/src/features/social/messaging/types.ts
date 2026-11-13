@@ -19,7 +19,12 @@ export interface GifBlock {
 }
 
 /** What a message shows besides its text and files, told apart by `type`. */
-export type MessageBlock = GifBlock;
+export interface StarMeBlock {
+  type: 'star-me';
+  questionId?: string;
+}
+
+export type MessageBlock = GifBlock | StarMeBlock;
 
 export interface Message {
   privateToMe?: boolean;

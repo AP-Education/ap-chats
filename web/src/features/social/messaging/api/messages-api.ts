@@ -55,7 +55,7 @@ export function sendMessage(
       id: attachment.id,
       description: attachment.description ?? undefined,
     })),
-    blocks: input.blocks,
+    blocks: input.blocks?.filter((block) => block.type === 'gif'),
   };
   return apiRequest(messagesUrl(workspaceId, channelId), token, {
     ...jsonInit('POST', payload),

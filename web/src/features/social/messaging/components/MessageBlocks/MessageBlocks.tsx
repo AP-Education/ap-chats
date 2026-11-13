@@ -1,4 +1,6 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, type ReactNode, type RefObject } from 'react';
+
+import { StarMeMessageBlock } from '@/features/star-me/components/StarMeBlock/StarMeMessageBlock';
 
 import type { MessageBlock } from '../../types';
 import { GifView } from './GifView';
@@ -6,7 +8,8 @@ import { GifView } from './GifView';
 interface BlockPlace {
   messageId: string;
   /** The time, on the block that closes the bubble. */
-  overlay: ReactNode;
+  meta: ReactNode;
+  contentRef?: RefObject<HTMLDivElement | null>;
 }
 
 type BlockViews = {
@@ -18,8 +21,11 @@ type BlockViews = {
 
 // One view per kind of block: a new kind is a component here and a member of MessageBlock.
 const blockViews: BlockViews = {
-  gif: (block, { messageId, overlay }) => (
-    <GifView block={block} messageId={messageId} overlay={overlay} />
+  gif: (block, { messageId, meta }) => (
+    <GifView block={block} messageId={messageId} overlay={meta} />
+  ),
+  'star-me': (block, { contentRef, meta }) => (
+    <StarMeMessageBlock block={block} contentRef={contentRef} meta={meta} />
   ),
 };
 
@@ -27,18 +33,29 @@ const blockViews: BlockViews = {
 export function MessageBlocks({
   blocks,
   messageId,
-  overlay,
+  meta,
+  contentRef,
 }: {
   blocks: MessageBlock[];
   messageId: string;
-  overlay?: ReactNode;
+  meta?: ReactNode;
+  contentRef?: RefObject<HTMLDivElement | null>;
 }) {
   return blocks.map((block, index) => (
     <Fragment key={`${block.type}:${index}`}>
-      {blockViews[block.type](block, {
+      {renderBlock(block, {
         messageId,
-        overlay: index === blocks.length - 1 ? overlay : null,
+        meta: index === blocks.length - 1 ? meta : null,
+        contentRef,
       })}
     </Fragment>
   ));
+}
+
+function renderBlock<Type extends MessageBlock['type']>(
+  block: Extract<MessageBlock, { type: Type }>,
+  place: BlockPlace,
+) {
+  const view = blockViews[block.type] as BlockViews[Type];
+  return view(block, place);
 }

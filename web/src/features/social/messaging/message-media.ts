@@ -81,7 +81,9 @@ export function messageMedia(entry: ChatEntry): ChatMedia[] {
   const files = (message.attachments ?? [])
     .filter((attachment) => attachment.preview === 'image' || attachment.preview === 'video')
     .map((attachment) => attachmentMedia(message.id, attachment, caption));
-  const gifs = (message.blocks ?? []).map((block) => gifMedia(message.id, block, caption));
+  const gifs = (message.blocks ?? [])
+    .filter((block) => block.type === 'gif')
+    .map((block) => gifMedia(message.id, block, caption));
 
   return [...files, ...gifs];
 }

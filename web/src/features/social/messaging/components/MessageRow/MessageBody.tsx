@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 
 import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { MessageReactions } from '@/features/social/reactions/components/MessageReactions/MessageReactions';
+import { starMeMessageBlocks } from '@/features/star-me/message-blocks';
 
 import { useTimelineActions } from '../../timeline-actions-context';
 import { MessageAttachments } from '../MessageAttachments/MessageAttachments';
@@ -28,10 +29,12 @@ export function MessageBody({ layout, contentRef, onCloseEdit }: MessageBodyProp
   const textMeta = (layout.meta === 'inline' || layout.meta === 'emoji') && (
     <MessageMeta placement={layout.meta} />
   );
-  const blocks = item.message.blocks ?? [];
+  const blocks = starMeMessageBlocks(item.message);
+  const assistantBlock = blocks.find((block) => block.type === 'star-me');
+  const mediaBlocks = blocks.filter((block) => block.type !== 'star-me');
   // On media the time sits on whatever closes the bubble, in its colours: a GIF, else the photos.
   const mediaMeta = layout.meta === 'overlay' && <MessageMeta placement="overlay" />;
-  const blocksClose = blocks.length > 0;
+  const blocksClose = mediaBlocks.length > 0;
 
   return (
     <>
@@ -50,17 +53,25 @@ export function MessageBody({ layout, contentRef, onCloseEdit }: MessageBodyProp
           <MentionEditor />
         </MessageEditor>
       )}
-      {!editing && layout.hasText && (
+      {!editing && layout.hasText && !assistantBlock && (
         <MessageReadContent
           contentRef={contentRef}
           jumboEmoji={layout.jumboEmoji}
           meta={textMeta}
         />
       )}
+      {!editing && assistantBlock && (
+        <MessageBlocks
+          blocks={[assistantBlock]}
+          messageId={item.message.id}
+          contentRef={contentRef}
+          meta={textMeta}
+        />
+      )}
       <MessageBlocks
-        blocks={blocks}
+        blocks={mediaBlocks}
         messageId={item.message.id}
-        overlay={blocksClose && mediaMeta}
+        meta={blocksClose && mediaMeta}
       />
       {layout.meta === 'block' && <MessageMeta placement="block" />}
       {layout.reactions && (
