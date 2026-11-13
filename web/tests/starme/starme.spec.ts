@@ -25,6 +25,7 @@ function messageAction(page: Page, name: string) {
 }
 
 async function openActions(page: Page, row: Locator) {
+  await row.scrollIntoViewIfNeeded();
   if (test.info().project.name === 'phone' || test.info().project.name === 'narrow') {
     const box = (await row.boundingBox())!;
     const session = await page.context().newCDPSession(page);
@@ -167,10 +168,24 @@ for (const kind of ['dm', 'group'] as const) {
     await editor.fill('Повідомлення для всіх');
     await press(page, 'Надіслати');
     for (const peer of peers) await expect(peer.locator('article')).toHaveCount(1);
-    await mention(page, 'Секретний план');
-    const thinking = page.getByRole('status').filter({ hasText: 'Думаю над відповіддю' });
-    await expect(thinking.getByText('Лише для вас', { exact: true })).toBeVisible();
-    for (const peer of peers) await expect(peer.getByText('Думаю над відповіддю')).toHaveCount(0);
+    let releaseAnswer!: () => void;
+    const answerReady = new Promise<void>((resolve) => {
+      releaseAnswer = resolve;
+    });
+    const answerRoute = '**/star-me/answers';
+    await page.route(answerRoute, async (route) => {
+      await answerReady;
+      await route.continue();
+    });
+    try {
+      await mention(page, 'Секретний план');
+      const thinking = page.getByRole('status').filter({ hasText: 'Думаю над відповіддю' });
+      await expect(thinking.getByText('Лише для вас', { exact: true })).toBeVisible();
+      for (const peer of peers) await expect(peer.getByText('Думаю над відповіддю')).toHaveCount(0);
+    } finally {
+      releaseAnswer();
+      await page.unroute(answerRoute);
+    }
     await expect(page.locator('article')).toHaveCount(3);
     await expect(
       page.getByText('Приватно зі StarMe · Лише для вас', { exact: true }),
