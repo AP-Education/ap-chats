@@ -18,9 +18,9 @@
     "test:composer": "tsc --noEmit -p tests/composer-intents/tsconfig.json && playwright test --config tests/composer-intents/playwright.config.ts"
   },
   "dependencies": {
-    "@ap-education/shell-sdk": "^0.1.1",
-    "@ap-education/timeline": "^0.1.3",
-    "@ap-education/ui": "^0.5.0",
+    "@ap-education/shell-sdk": "^0.2.0",
+    "@ap-education/timeline": "^0.1.4",
+    "@ap-education/ui": "^0.6.0",
     "@emoji-mart/data": "^1.2.1",
     "@livekit/components-react": "^2.9.24",
     "@livekit/components-styles": "^1.2.0",
@@ -49,7 +49,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@ap-education/federation": "^0.1.1",
+    "@ap-education/federation": "^0.2.0",
     "@module-federation/vite": "^1.23.2",
     "@playwright/test": "1.63.0",
     "@types/node": "^24.13.3",
