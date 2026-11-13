@@ -27,13 +27,18 @@ const useStyles = createStyles(({ css }) => ({
 
 window.ReactNativeWebView = { postMessage() {} };
 
-function Conversation() {
+function Conversation({ historyVersion }: { historyVersion: number }) {
   const surface = useRef<HTMLDivElement>(null);
   const glide = useKeyboardGlide(surface);
   const { styles, cx } = useStyles();
   return (
     <section ref={surface} className="conversation" {...glide}>
-      <div className={cx(styles.history, keyboardGlidePart)} data-keyboard-glide-part role="log">
+      <div
+        key={historyVersion}
+        className={cx(styles.history, keyboardGlidePart)}
+        data-keyboard-glide-part
+        role="log"
+      >
         {Array.from({ length: 30 }, (_, index) => (
           <p key={index}>Повідомлення {index + 1}</p>
         ))}
@@ -56,6 +61,7 @@ function Conversation() {
 
 function Fixture() {
   const [conversation, setConversation] = useState(0);
+  const [historyVersion, setHistoryVersion] = useState(0);
   useEffect(() => {
     const root = document.documentElement;
     let committed = 0;
@@ -82,6 +88,7 @@ function Fixture() {
       },
       commit,
       remount: () => setConversation((value) => value + 1),
+      remountHistory: () => setHistoryVersion((value) => value + 1),
     };
     return () => {
       clearTimeout(pending);
@@ -92,7 +99,7 @@ function Fixture() {
     <>
       <header>Тестовий чат</header>
       <main>
-        <Conversation key={conversation} />
+        <Conversation key={conversation} historyVersion={historyVersion} />
       </main>
     </>
   );

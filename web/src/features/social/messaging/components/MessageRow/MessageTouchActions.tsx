@@ -34,7 +34,8 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
   const reply = available.find((action) => action.id === 'reply');
   const swipe = useMessageReplySwipe({
     messageId: scope.item.message.id,
-    enabled: !scope.editing && !sheetOpen && !picking,
+    // Keep the held touch until release so it cannot click the sheet underneath.
+    enabled: !scope.editing && !picking,
     canReply: !!reply,
     onLongPress: () => setSheetOpen(true),
     onReply: () => {

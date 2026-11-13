@@ -283,3 +283,39 @@ for (const kind of ['dm', 'group'] as const) {
     for (const peer of peers) await peer.close();
   });
 }
+
+test('releasing a held StarMe answer is consumed and leaves its action sheet open', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== 'chromium' || !test.info().project.use.hasTouch,
+    'Trusted long press uses CDP touch input',
+  );
+  await mention(page, 'План для перевірки жесту');
+  const answer = page.locator('[data-assistant-answer="true"]').first();
+  await expect(answer).toBeVisible();
+  await page.evaluate(() => {
+    Object.assign(window, { starmeReleasePrevented: null });
+    window.addEventListener(
+      'touchend',
+      (event) => {
+        Object.assign(window, { starmeReleasePrevented: event.defaultPrevented });
+      },
+      { once: true },
+    );
+  });
+
+  await openActions(page, answer);
+
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as unknown as { starmeReleasePrevented: boolean | null }).starmeReleasePrevented,
+      ),
+    )
+    .toBe(true);
+  await expect(messageAction(page, 'Зробити моїм')).toBeVisible();
+  await expect(page.getByText('Відповідь для StarMe', { exact: true })).toHaveCount(0);
+});

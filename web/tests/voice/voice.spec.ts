@@ -62,6 +62,7 @@ async function backend(
   const uploads = new Map<string, { name: string; bytes: Buffer; attachment?: object }>();
   const posts: Record<string, unknown>[] = [];
   let completionAttempts = 0;
+  let settledCompletions = 0;
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -103,29 +104,33 @@ async function backend(
       return route.fulfill({ status: 200, body: '' });
     }
     if (url.pathname.endsWith('/complete')) {
-      completionAttempts++;
-      if (failFirst && completionAttempts === 1)
-        return route.fulfill({ status: 400, json: { message: 'Test interruption' } });
-      await beforeComplete?.();
-      const id = url.pathname.split('/').at(-2)!;
-      const upload = uploads.get(id)!;
-      expect(request.postDataJSON()).toEqual({ kind: 'voice' });
-      let media;
       try {
-        media = await inspectVoice(upload.bytes);
-      } catch (error) {
-        await writeFile(test.info().outputPath('recording.bin'), upload.bytes);
-        throw error;
+        completionAttempts++;
+        if (failFirst && completionAttempts === 1)
+          return route.fulfill({ status: 400, json: { message: 'Test interruption' } });
+        await beforeComplete?.();
+        const id = url.pathname.split('/').at(-2)!;
+        const upload = uploads.get(id)!;
+        expect(request.postDataJSON()).toEqual({ kind: 'voice' });
+        let media;
+        try {
+          media = await inspectVoice(upload.bytes);
+        } catch (error) {
+          await writeFile(test.info().outputPath('recording.bin'), upload.bytes);
+          throw error;
+        }
+        upload.attachment = {
+          id,
+          name: upload.name,
+          size: upload.bytes.length,
+          description: null,
+          ...media,
+          ...(durationMs ? { voice: { durationMs } } : {}),
+        };
+        return await route.fulfill({ json: upload.attachment });
+      } finally {
+        settledCompletions++;
       }
-      upload.attachment = {
-        id,
-        name: upload.name,
-        size: upload.bytes.length,
-        description: null,
-        ...media,
-        ...(durationMs ? { voice: { durationMs } } : {}),
-      };
-      return route.fulfill({ json: upload.attachment });
     }
     if (url.pathname.endsWith('/messages') && request.method() === 'POST') {
       const body = request.postDataJSON();
@@ -158,7 +163,13 @@ async function backend(
     }
     return route.fulfill({ json: [] });
   });
-  return { uploads, posts };
+  return {
+    uploads,
+    posts,
+    get settledCompletions() {
+      return settledCompletions;
+    },
+  };
 }
 
 async function start(page: Page) {
@@ -276,6 +287,8 @@ test('cancelling an uploading voice block removes it without posting a file or m
 
   try {
     await page.getByRole('button', { name: 'Скасувати надсилання голосового' }).click();
+    completion.resolve();
+    await expect.poll(() => data.settledCompletions).toBe(1);
     await expect(
       page.getByRole('group', { name: 'Голосове повідомлення', exact: true }),
     ).toHaveCount(0);

@@ -1,4 +1,4 @@
-import { expect, openSampleVideo, test, videoName } from './media-test';
+import { expect, expectVideoDownload, openSampleVideo, test, videoName } from './media-test';
 
 test('unavailable attachments cannot request a poster, open playback or download', async ({
   page,
@@ -34,6 +34,7 @@ test('a denied poster URL preserves the distinct play and download actions', asy
 
 test('download reports denied access, blocks duplicate presses while pending and can be retried', async ({
   page,
+  browserName,
 }) => {
   let release!: () => void;
   const held = new Promise<void>((resolve) => {
@@ -68,7 +69,7 @@ test('download reports denied access, blocks duplicate presses while pending and
   denied = false;
   const saved = page.waitForEvent('download');
   await download.click();
-  expect((await saved).suggestedFilename()).toBe(videoName);
+  await expectVideoDownload(await saved, browserName);
   expect(requests).toBe(2);
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });

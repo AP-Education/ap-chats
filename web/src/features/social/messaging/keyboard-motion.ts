@@ -58,6 +58,15 @@ export class KeyboardMotion {
     const motion = this.motion;
     if (!motion) return;
 
+    for (const part of this.parts) {
+      if (this.surface.contains(part)) continue;
+
+      this.animations.get(part)?.cancel();
+      this.animations.delete(part);
+      part.style.removeProperty('translate');
+      this.parts.delete(part);
+    }
+
     const bottom = this.surface.getBoundingClientRect().bottom;
     const layoutChange = bottom - this.bottom;
     this.bottom = bottom;

@@ -38,13 +38,20 @@ test('opening and closing keeps the composer at the keyboard edge', async ({ pag
 
 test('closing during a rise starts from the current position', async ({ page }) => {
   const height = page.viewportSize()!.height;
-  await send(page, 300, 800);
-  await expect.poll(() => position(page), { intervals: [16] }).toBeLessThan(height - 90);
-  const before = await position(page);
-  await send(page, 0, 600);
-  await nextFrame(page);
-  const after = await position(page);
-  expect(after - before).toBeLessThan(65);
+  const change = await page.evaluate(async () => {
+    const composer = document.querySelector<HTMLElement>('[data-composer]')!;
+    window.keyboardFixture.send(300, 800);
+    while (composer.getBoundingClientRect().bottom >= innerHeight - 90) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    }
+    const before = composer.getBoundingClientRect().bottom;
+    window.keyboardFixture.send(0, 600);
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+    return composer.getBoundingClientRect().bottom - before;
+  });
+  expect(Math.abs(change)).toBeLessThan(65);
   await expect.poll(() => position(page)).toBeCloseTo(height, 0);
 });
 
@@ -76,13 +83,31 @@ test('an early shell resize does not snap the composer to the final height', asy
 
 test('a repeated inset cannot cancel an active keyboard move', async ({ page }) => {
   const height = page.viewportSize()!.height;
-  await send(page, 300, 800);
-  await expect.poll(() => position(page), { intervals: [16] }).toBeLessThan(height - 60);
-  const before = await position(page);
-  await send(page, 300, 0);
-  await nextFrame(page);
-  const after = await position(page);
-  expect(after - before).toBeLessThan(20);
+  const motion = await page.evaluate(async () => {
+    const composer = document.querySelector<HTMLElement>('[data-composer]')!;
+    window.keyboardFixture.send(300, 800);
+    while (composer.getBoundingClientRect().bottom >= innerHeight - 60) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    }
+    const animation = composer.getAnimations().find((entry) => entry.playState === 'running');
+    const before = composer.getBoundingClientRect().bottom;
+    const started = Number(animation?.currentTime);
+    window.keyboardFixture.send(300, 0);
+    const immediate = composer.getBoundingClientRect().bottom;
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+    return {
+      jump: immediate - before,
+      moved: before - composer.getBoundingClientRect().bottom,
+      continued: animation?.playState === 'running' && composer.getAnimations().includes(animation),
+      elapsed: Number(animation?.currentTime) - started,
+    };
+  });
+  expect(Math.abs(motion.jump)).toBeLessThan(1);
+  expect(motion.continued).toBe(true);
+  expect(motion.moved).toBeGreaterThan(0);
+  expect(motion.elapsed).toBeGreaterThan(0);
   await expect.poll(() => position(page)).toBeCloseTo(height - 300, 0);
 });
 
@@ -109,9 +134,38 @@ test('switching conversation with an open keyboard still follows its closing mot
   await expect.poll(() => position(page)).toBeCloseTo(height - 300, 0);
   await page.evaluate(() => window.keyboardFixture.remount());
   await nextFrame(page);
-  const before = await position(page);
-  await send(page, 0, 600);
-  await nextFrame(page);
-  expect((await position(page)) - before).toBeLessThan(65);
+  const change = await page.evaluate(async () => {
+    const composer = document.querySelector<HTMLElement>('[data-composer]')!;
+    const before = composer.getBoundingClientRect().bottom;
+    window.keyboardFixture.send(0, 600);
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+    return composer.getBoundingClientRect().bottom - before;
+  });
+  expect(Math.abs(change)).toBeLessThan(65);
   await expect.poll(() => position(page)).toBeCloseTo(height, 0);
+});
+
+test('replacing history during a keyboard move releases its old animation and styles', async ({
+  page,
+}) => {
+  const history = await page.getByRole('log').elementHandle();
+  if (!history) throw new Error('The timeline is missing');
+
+  try {
+    await send(page, 300, 1200);
+    await expect.poll(() => history.evaluate((element) => element.getAnimations().length)).toBe(1);
+    await page.evaluate(() => window.keyboardFixture.remountHistory());
+    await expect.poll(() => history.evaluate((element) => element.isConnected)).toBe(false);
+    await send(page, 260, 1200);
+
+    await expect.poll(() => history.evaluate((element) => element.getAnimations().length)).toBe(0);
+    await expect
+      .poll(() => history.evaluate((element) => (element as HTMLElement).style.translate))
+      .toBe('');
+    await expect.poll(() => position(page)).toBeCloseTo(page.viewportSize()!.height - 260, 0);
+  } finally {
+    await history.dispose();
+  }
 });
