@@ -25,6 +25,7 @@ allowBuilds:
   msgpackr-extract: false
 
 patchedDependencies:
+  '@livekit/react-native-webrtc@144.2.0': patches/@livekit__react-native-webrtc@144.2.0.patch
   '@ap-education/timeline@0.1.4': patches/@ap-education__timeline@0.1.4.patch
   '@ap-education/ui@0.6.0': patches/@ap-education__ui@0.6.0.patch
   expo-callkit-telecom@0.5.0: patches/expo-callkit-telecom@0.5.0.patch
