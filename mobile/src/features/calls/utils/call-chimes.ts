@@ -2,7 +2,7 @@ import joinSound from '../../../../assets/sounds/join.wav';
 import leaveSound from '../../../../assets/sounds/leave.wav';
 import muteSound from '../../../../assets/sounds/mute.wav';
 import unmuteSound from '../../../../assets/sounds/unmute.wav';
-import { playCallSound } from './call-sound';
+import { playCallSound } from '../background/call-sounds';
 
 // Static WAV re-synthesis of web/'s sound/callChimes.ts, see
 // scripts/generate-call-chimes.mjs — the same bell voice, offline since
