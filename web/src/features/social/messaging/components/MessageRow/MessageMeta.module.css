@@ -16,6 +16,14 @@
   margin-left: auto;
 }
 
+.meta[data-placement='voice'] {
+  top: 0;
+  float: none;
+  flex: none;
+  height: 28px;
+  margin: 0 0 0 auto;
+}
+
 /* Over the corner of large emoji that have no bubble behind them. Over a photo or GIF the
    timeline's media part places it. */
 .meta[data-placement='emoji'] {

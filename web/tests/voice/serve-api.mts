@@ -98,6 +98,8 @@ const server = createServer(async (request, response) => {
       return;
     }
     if (url.pathname.endsWith('/complete')) {
+      // Leave pending observable before this disposable API acknowledges the upload.
+      await new Promise((resolve) => setTimeout(resolve, 400));
       const id = url.pathname.split('/').at(-2)!;
       const file = files.get(id)!;
       const media = await inspectVoice(file.bytes);

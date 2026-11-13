@@ -20,6 +20,14 @@
   width: min(560px, 85%);
 }
 
+:has(> .bubble[data-variant='voice']) {
+  width: min(23rem, 85%);
+}
+
+[data-timeline-bubble].bubble[data-variant='voice'] {
+  width: 100%;
+}
+
 /* The timeline lays media edge to edge by the bubble's attribute and :has(), so the rules that
    undo it name that attribute too. */
 [data-timeline-bubble].bubble[data-wide] {

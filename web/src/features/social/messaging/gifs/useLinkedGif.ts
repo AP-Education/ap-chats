@@ -30,7 +30,8 @@ export function useLinkedGif() {
       /** The blocks to send with a text, or none when there is no new GIF to bring. */
       async blocksFor(markdown: string, current: MessageBlock[] = []) {
         const link = firstGifLink(markdown);
-        const isNew = link !== null && !current.some((block) => block.link === link);
+        const isNew =
+          link !== null && !current.some((block) => block.type === 'gif' && block.link === link);
         if (!isNew) return undefined;
 
         const timeout = new Promise<null>((resolve) => setTimeout(resolve, FIND_TIMEOUT_MS, null));

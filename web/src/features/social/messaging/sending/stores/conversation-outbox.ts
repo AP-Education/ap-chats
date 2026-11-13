@@ -1,10 +1,13 @@
 import type { AttachmentDraft } from '../../attachments/types';
 import type { ComposedMessage, Message, SendMessageCommand } from '../../types';
+import { voiceBlocks } from '../../voice/voice-blocks';
 import type { OutboxEntry, OutboxPorts, OutboxSnapshot } from '../types';
 import { enqueue, persistable, restore, unsent, update, without } from '../utils/outbox-entries';
 
 function speaksWithoutFiles(input: SendMessageCommand): boolean {
-  return Boolean(input.markdown.trim()) || Boolean(input.blocks?.length);
+  return (
+    Boolean(input.markdown.trim()) || Boolean(input.blocks?.some((block) => block.type !== 'voice'))
+  );
 }
 
 function sentAttachments(drafts: AttachmentDraft[]) {
@@ -126,9 +129,15 @@ export class ConversationOutbox {
 
   private post(entry: OutboxEntry, drafts: AttachmentDraft[]) {
     const nonce = entry.input.clientNonce;
-    const input = drafts.length
-      ? { ...entry.input, attachments: sentAttachments(drafts) }
-      : entry.input;
+    const attachments = sentAttachments(drafts);
+    const input = {
+      ...entry.input,
+      attachments: drafts.length ? attachments : entry.input.attachments,
+      blocks: [
+        ...voiceBlocks(attachments),
+        ...(entry.input.blocks ?? []).filter((block) => block.type !== 'voice'),
+      ],
+    };
 
     this.change(update(this.entries, nonce, { input, status: 'sending', awaitsFiles: false }));
     this.ports.uploads.releaseCommitted(nonce);

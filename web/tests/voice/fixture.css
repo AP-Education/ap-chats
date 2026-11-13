@@ -1,6 +1,12 @@
 * {
   box-sizing: border-box;
 }
+:root {
+  color-scheme: light;
+}
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
 html,
 body,
 #root {
@@ -14,7 +20,7 @@ body,
   flex-direction: column;
   max-width: 800px;
   margin: 0 auto;
-  background: #f3f7f6;
+  background: var(--ant-color-bg-layout, #f3f7f6);
 }
 header {
   display: flex;
@@ -22,7 +28,7 @@ header {
   flex-wrap: wrap;
   gap: 8px;
   padding: 14px;
-  background: white;
+  background: var(--ant-color-bg-container, white);
   border-bottom: 1px solid #dde7e4;
 }
 h1 {
@@ -36,11 +42,9 @@ h1 {
   overflow: auto;
   padding: 20px 12px;
 }
-.fixture-bubble {
-  width: fit-content;
-  max-width: 100%;
-  margin: 14px 0 14px auto;
-  padding: 6px 10px;
-  border-radius: 18px;
-  background: #d9f1e8;
+.fixture-timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
 }

@@ -2,7 +2,9 @@
 
 This isolated Expo Go app mounts the production `VoiceMessageRuntime` and the real web composer. It uses disposable `fixture-only` auth, a synthetic local API, and an opaque native recording handle. No real dotenv, accounts, release credentials, or cloud builds are used.
 
-Prerequisites: the workspace dependencies, Node 24, Expo Go for SDK 57, and local Android/iOS simulators. Link dependencies once from this directory: `ln -s ../../mobile/node_modules node_modules`.
+Prerequisites: the workspace dependencies, Node 24, Expo Go for SDK 58, and local Android/iOS simulators. Link dependencies once from this directory: `ln -s ../../mobile/node_modules node_modules`.
+
+For focused timeline verification, a system WebView can open the voice fixture with `?native=ios` or `?native=android`. This opt-in scenario uploads a prerecorded disposable clip through the production queue and outbox, checks pending and delivered dimensions, inline time, speed and phone width, then reports `voice-timeline` to the synthetic QA API. It verifies rendering and upload integration separately from microphone capture.
 
 From the repository root, start the local API:
 

@@ -28,21 +28,29 @@ export function MessageBody({ layout, contentRef, onCloseEdit }: MessageBodyProp
   const textMeta = (layout.meta === 'inline' || layout.meta === 'emoji') && (
     <MessageMeta placement={layout.meta} />
   );
-  const blocks = item.message.blocks ?? [];
+  const allBlocks = item.message.blocks ?? [];
+  const blocks = allBlocks.filter((block) => block.type !== 'voice');
   // On media the time sits on whatever closes the bubble, in its colours: a GIF, else the photos.
   const mediaMeta = layout.meta === 'overlay' && <MessageMeta placement="overlay" />;
   const blocksClose = blocks.length > 0;
+  const voiceMeta = layout.meta === 'voice' && <MessageMeta placement="voice" />;
 
   return (
     <>
       {pendingAttachments ? (
-        <PendingAttachments rowId={item.id} drafts={pendingAttachments} />
+        <PendingAttachments
+          rowId={item.id}
+          drafts={pendingAttachments}
+          blocks={allBlocks}
+          meta={voiceMeta}
+        />
       ) : (
         <MessageAttachments
           attachments={item.message.attachments ?? []}
           messageId={item.message.id}
           available={!delivery}
           overlay={!blocksClose && mediaMeta}
+          footer={voiceMeta}
         />
       )}
       {editing && (
@@ -57,11 +65,7 @@ export function MessageBody({ layout, contentRef, onCloseEdit }: MessageBodyProp
           meta={textMeta}
         />
       )}
-      <MessageBlocks
-        blocks={blocks}
-        messageId={item.message.id}
-        overlay={blocksClose && mediaMeta}
-      />
+      <MessageBlocks blocks={blocks} messageId={item.message.id} meta={blocksClose && mediaMeta} />
       {layout.meta === 'block' && <MessageMeta placement="block" />}
       {layout.reactions && (
         <MessageReactions
