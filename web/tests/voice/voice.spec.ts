@@ -53,10 +53,16 @@ test.beforeEach(async ({ page, browserName, context }) => {
   });
 });
 
-async function backend(page: Page, failFirst = false) {
+async function backend(
+  page: Page,
+  failFirst = false,
+  beforeComplete?: () => Promise<void>,
+  durationMs?: number,
+) {
   const uploads = new Map<string, { name: string; bytes: Buffer; attachment?: object }>();
   const posts: Record<string, unknown>[] = [];
   let completionAttempts = 0;
+  let settledCompletions = 0;
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -98,27 +104,33 @@ async function backend(page: Page, failFirst = false) {
       return route.fulfill({ status: 200, body: '' });
     }
     if (url.pathname.endsWith('/complete')) {
-      completionAttempts++;
-      if (failFirst && completionAttempts === 1)
-        return route.fulfill({ status: 400, json: { message: 'Test interruption' } });
-      const id = url.pathname.split('/').at(-2)!;
-      const upload = uploads.get(id)!;
-      expect(request.postDataJSON()).toEqual({ kind: 'voice' });
-      let media;
       try {
-        media = await inspectVoice(upload.bytes);
-      } catch (error) {
-        await writeFile(test.info().outputPath('recording.bin'), upload.bytes);
-        throw error;
+        completionAttempts++;
+        if (failFirst && completionAttempts === 1)
+          return await route.fulfill({ status: 400, json: { message: 'Test interruption' } });
+        await beforeComplete?.();
+        const id = url.pathname.split('/').at(-2)!;
+        const upload = uploads.get(id)!;
+        expect(request.postDataJSON()).toEqual({ kind: 'voice' });
+        let media;
+        try {
+          media = await inspectVoice(upload.bytes);
+        } catch (error) {
+          await writeFile(test.info().outputPath('recording.bin'), upload.bytes);
+          throw error;
+        }
+        upload.attachment = {
+          id,
+          name: upload.name,
+          size: upload.bytes.length,
+          description: null,
+          ...media,
+          ...(durationMs ? { voice: { durationMs } } : {}),
+        };
+        return await route.fulfill({ json: upload.attachment });
+      } finally {
+        settledCompletions++;
       }
-      upload.attachment = {
-        id,
-        name: upload.name,
-        size: upload.bytes.length,
-        description: null,
-        ...media,
-      };
-      return route.fulfill({ json: upload.attachment });
     }
     if (url.pathname.endsWith('/messages') && request.method() === 'POST') {
       const body = request.postDataJSON();
@@ -137,7 +149,7 @@ async function backend(page: Page, failFirst = false) {
           contentVersion: 1,
           revision: 1,
           markdown: body.markdown ?? '',
-          authorMemberId: 'fixture',
+          authorMemberId: new URL(page.url()).searchParams.has('incoming') ? 'peer' : 'fixture',
         },
       });
     }
@@ -151,7 +163,13 @@ async function backend(page: Page, failFirst = false) {
     }
     return route.fulfill({ json: [] });
   });
-  return { uploads, posts };
+  return {
+    uploads,
+    posts,
+    get settledCompletions() {
+      return settledCompletions;
+    },
+  };
 }
 
 async function start(page: Page) {
@@ -162,6 +180,128 @@ async function start(page: Page) {
   await expect(page.getByText('Триває запис', { exact: true })).toBeVisible();
   await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
 }
+
+function completionGate() {
+  let complete!: () => void;
+  const promise = new Promise<void>((resolve) => {
+    complete = resolve;
+  });
+  return { promise, resolve: () => complete() };
+}
+
+test('the production timeline keeps a wide compact voice block from upload through delivery', async ({
+  page,
+}) => {
+  const completion = completionGate();
+  const data = await backend(page, false, () => completion.promise);
+  await page.goto('/');
+  await start(page);
+  await page.getByRole('button', { name: 'Завершити запис', exact: true }).click();
+  await expect(page.getByLabel('Прослухати запис')).toBeVisible();
+  await page.getByRole('button', { name: 'Надіслати голосове', exact: true }).click();
+
+  const voice = page.getByRole('group', { name: 'Голосове повідомлення', exact: true });
+  const bubble = page.locator('[data-timeline-bubble]').filter({ has: voice });
+  try {
+    await expect(voice.getByRole('progressbar', { name: 'Завантаження голосового' })).toBeVisible();
+    await expect(
+      voice.getByRole('button', { name: 'Надсилаємо голосове', exact: true }),
+    ).toBeDisabled();
+    const pending = await bubble.boundingBox();
+    expect(pending!.width).toBeGreaterThan(220);
+    expect(pending!.height).toBeLessThan(90);
+    const background = await bubble.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        image: style.backgroundImage,
+        scheme: style.colorScheme,
+        bubble: style.getPropertyValue('--timeline-bubble-bg'),
+        light: style.getPropertyValue('--timeline-own-light-shown'),
+        from: style.getPropertyValue('--chat-own-from'),
+        to: style.getPropertyValue('--chat-own-to'),
+      };
+    });
+    expect(background.image, JSON.stringify(background)).toMatch(/^linear-gradient/);
+    await expect(voice.locator('time')).toHaveCount(1);
+    await page.screenshot({ path: test.info().outputPath('voice-pending-timeline.png') });
+    completion.resolve();
+
+    await expect(
+      voice.getByRole('button', { name: 'Відтворити голосове', exact: true }),
+    ).toBeEnabled();
+    const delivered = await bubble.boundingBox();
+    expect(Math.abs(delivered!.width - pending!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(delivered!.height - pending!.height)).toBeLessThanOrEqual(1);
+    const duration = await voice
+      .locator('span')
+      .filter({ hasText: /^0:\d{2}$/ })
+      .first()
+      .boundingBox();
+    const time = await voice.locator('time').boundingBox();
+    expect(Math.abs(time!.y - duration!.y)).toBeLessThan(6);
+    await expect.poll(() => data.posts.length).toBe(1);
+    expect(data.posts[0]?.blocks).toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({ path: test.info().outputPath('voice-delivered-timeline.png') });
+  } finally {
+    completion.resolve();
+  }
+});
+
+test('a ten-minute voice keeps its time and controls inside the bubble during playback', async ({
+  page,
+}) => {
+  await backend(page, false, undefined, 600_000);
+  await page.goto('/');
+  await start(page);
+  await page.getByRole('button', { name: 'Завершити запис', exact: true }).click();
+  await expect(page.getByLabel('Прослухати запис')).toBeVisible();
+  await page.getByRole('button', { name: 'Надіслати голосове', exact: true }).click();
+  const voice = page.getByRole('group', { name: 'Голосове повідомлення', exact: true });
+  const play = voice.getByRole('button', { name: 'Відтворити голосове', exact: true });
+  await expect(play).toBeEnabled();
+  await expect(voice.getByLabel('Тривалість 10:00', { exact: true })).toBeVisible();
+  await play.click();
+  await expect(voice.getByLabel(/^Залишилося /)).toBeVisible();
+  const bubble = await voice.locator('xpath=..').boundingBox();
+  for (const control of await voice.locator('button, time').all()) {
+    const bounds = (await control.boundingBox())!;
+    expect(bounds.x).toBeGreaterThanOrEqual(bubble!.x);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(bubble!.x + bubble!.width + 1);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('cancelling an uploading voice block removes it without posting a file or message', async ({
+  page,
+}) => {
+  const completion = completionGate();
+  const entered = completionGate();
+  const data = await backend(page, false, () => {
+    entered.resolve();
+    return completion.promise;
+  });
+  await page.goto('/');
+  await start(page);
+  await page.getByRole('button', { name: 'Завершити запис', exact: true }).click();
+  await expect(page.getByLabel('Прослухати запис')).toBeVisible();
+  await page.getByRole('button', { name: 'Надіслати голосове', exact: true }).click();
+
+  try {
+    await entered.promise;
+    await page.getByRole('button', { name: 'Скасувати надсилання голосового' }).click();
+    completion.resolve();
+    await expect.poll(() => data.settledCompletions).toBe(1);
+    await expect(
+      page.getByRole('group', { name: 'Голосове повідомлення', exact: true }),
+    ).toHaveCount(0);
+    expect(data.posts).toHaveLength(0);
+  } finally {
+    completion.resolve();
+  }
+});
 
 test('record, pause, preview and send a real audio file through the composer, upload queue and outbox', async ({
   page,
@@ -198,9 +338,12 @@ test('record, pause, preview and send a real audio file through the composer, up
   const voice = page.getByRole('group', { name: 'Голосове повідомлення', exact: true });
   const seek = voice.getByRole('slider', { name: 'Позиція голосового' });
   await expect(voice).toBeVisible();
+  await expect(
+    voice.getByRole('button', { name: 'Відтворити голосове', exact: true }),
+  ).toBeEnabled();
   await expect(seek).toBeDisabled();
   await expect(seek).toHaveAttribute('aria-valuetext', /^0:00 з 0:\d{2}$/);
-  expect(data.posts).toHaveLength(1);
+  await expect.poll(() => data.posts.length).toBe(1);
   expect(data.uploads.size).toBe(1);
   await voice.getByRole('button', { name: 'Відтворити голосове', exact: true }).click();
   await expect(seek).toBeEnabled();
@@ -273,11 +416,14 @@ test('failed completion retries the same voice upload and sends one message', as
   await page.getByRole('button', { name: 'Завершити запис', exact: true }).click();
   await page.getByRole('button', { name: 'Надіслати голосове', exact: true }).click();
   await expect(
-    page.getByRole('status').filter({ hasText: 'Не вдалося надіслати голосове' }),
+    page.getByRole('status').filter({ hasText: 'Не вдалося завантажити голосове' }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Повторити надсилання' }).click();
+  await page.getByRole('button', { name: 'Повторити', exact: true }).click();
   await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
-  expect(data.posts).toHaveLength(1);
+  await expect(
+    page.getByRole('button', { name: 'Відтворити голосове', exact: true }),
+  ).toBeEnabled();
+  await expect.poll(() => data.posts.length).toBe(1);
   expect(data.uploads.size).toBe(1);
 });
 
@@ -461,7 +607,7 @@ test('hold and release sends one real voice note and keeps pointer capture acros
   await page.screenshot({ path: test.info().outputPath('hold.png') });
   await pointer.up();
   await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
-  expect(data.posts).toHaveLength(1);
+  await expect.poll(() => data.posts.length).toBe(1);
   expect(data.uploads.size).toBe(1);
 });
 
@@ -506,7 +652,7 @@ test('sliding up locks capture, release keeps recording, and send finalizes the 
   ).toBe(1);
   await page.getByRole('button', { name: 'Надіслати голосове', exact: true }).click();
   await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
-  expect(data.posts).toHaveLength(1);
+  await expect.poll(() => data.posts.length).toBe(1);
 });
 
 test('an interrupted pointer keeps the recording for review instead of sending on release', async ({
@@ -567,13 +713,12 @@ test('keyboard recording uses hands-free controls and send works without a point
   const data = await backend(page);
   await page.goto('/');
   const microphone = page.getByRole('button', { name: 'Записати голосове повідомлення' });
-  await microphone.focus();
-  await page.keyboard.press('Enter');
+  await microphone.press('Enter');
   await expect(page.getByRole('button', { name: 'Пауза запису' })).toBeVisible();
   await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).toMatch(/^0:0[2-9]$/);
   await page.keyboard.press('Enter');
   await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
-  expect(data.posts).toHaveLength(1);
+  await expect.poll(() => data.posts.length).toBe(1);
 });
 
 async function pressSend(page: Page, label: string) {
@@ -617,7 +762,7 @@ test('text and voice use one consistent primary action and a tap sends text once
   await expect(page.getByText('ї', { exact: true })).toBeVisible();
   await expect(microphone).toBeEnabled();
   await expect(send).toHaveCount(0);
-  expect(data.posts).toHaveLength(1);
+  await expect.poll(() => data.posts.length).toBe(1);
   expect(data.posts[0]!.markdown).toBe('ї');
 });
 
@@ -637,7 +782,7 @@ test('the first touch on Send finalizes a hands-free voice note and restores tex
       ),
     )
     .toBe(0);
-  expect(data.posts).toHaveLength(1);
+  await expect.poll(() => data.posts.length).toBe(1);
   await page.getByRole('textbox', { name: 'Повідомлення' }).fill('Текст після голосового');
   await pressSend(page, 'Надіслати');
   await expect(page.getByText('Текст після голосового', { exact: true })).toBeVisible();
@@ -658,5 +803,43 @@ test('a locked hold can be reviewed and sent with the first touch', async ({
   await expect(page.getByRole('button', { name: 'Прослухати запис' })).toBeVisible();
   await pressSend(page, 'Надіслати голосове');
   await expect(page.getByLabel('Голосове повідомлення', { exact: true })).toBeVisible();
-  expect(data.posts).toHaveLength(1);
+  await expect.poll(() => data.posts.length).toBe(1);
 });
+
+for (const theme of ['light', 'dark']) {
+  test(`an incoming ten-minute voice fits the ${theme} phone timeline with its avatar and inline time`, async ({
+    page,
+  }) => {
+    await backend(page, false, undefined, 600_000);
+    await page.goto(`/?incoming${theme === 'dark' ? '&dark' : ''}`);
+    await start(page);
+    await page.getByRole('button', { name: 'Завершити запис', exact: true }).click();
+    await expect(page.getByLabel('Прослухати запис')).toBeVisible();
+    await page.getByRole('button', { name: 'Надіслати голосове', exact: true }).click();
+    const voice = page.getByRole('group', { name: 'Голосове повідомлення', exact: true });
+    const play = voice.getByRole('button', { name: 'Відтворити голосове', exact: true });
+    await expect(play).toBeEnabled();
+    await expect(page.locator('[data-has-avatar]')).toHaveCount(1);
+    const bubble = page
+      .locator('[data-side="start"] [data-timeline-bubble]')
+      .filter({ has: voice });
+    await expect(bubble).toBeVisible();
+    await expect(voice.locator('[data-placement="voice"] time')).toHaveCount(1);
+    const bounds = (await bubble.boundingBox())!;
+    expect(bounds.height).toBeLessThan(116);
+    for (const control of await voice.locator('button, time').all()) {
+      const controlBounds = (await control.boundingBox())!;
+      expect(controlBounds.x).toBeGreaterThanOrEqual(bounds.x);
+      expect(controlBounds.x + controlBounds.width).toBeLessThanOrEqual(
+        bounds.x + bounds.width + 1,
+      );
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({
+      path: test.info().outputPath(`incoming-voice-${theme}.png`),
+      animations: 'disabled',
+    });
+  });
+}

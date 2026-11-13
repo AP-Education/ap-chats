@@ -35,11 +35,11 @@ export const NATIVE_WEB_SCENARIO = `
     await wait(() => textButton('Пауза прослуховування'));
     checks.push('native preview controlled from WebView');
     (await wait(() => textButton('Надіслати голосове'))).click();
-    await wait(() => document.querySelector('.fixture-bubble [aria-label="Голосове повідомлення"]'));
+    await wait(() => document.querySelector('[data-seq] [data-voice-message]'));
     checks.push('native file uploads through production web queue and outbox', 'voice bubble appears in chat');
     const play = await wait(() => button('Відтворити голосове'));
     play.click();
-    await wait(() => document.querySelector('.fixture-bubble audio')?.src);
+    await wait(() => document.querySelector('[data-seq] [data-voice-message] audio')?.src);
     play.click();
     checks.push('chat audio URL resolves');
     const cancelledMic = await wait(() => button('Записати голосове повідомлення'));
@@ -48,13 +48,13 @@ export const NATIVE_WEB_SCENARIO = `
     pointer(cancelledMic, 'pointermove', point.x - 110, point.y);
     pointer(cancelledMic, 'pointerup', point.x - 110, point.y);
     await wait(() => !document.querySelector('[aria-label="Запис голосового повідомлення"]'));
-    if (document.querySelectorAll('.fixture-bubble').length !== 1) throw new Error('Cancel posted a voice message');
+    if (document.querySelectorAll('[data-seq] [data-voice-message]').length !== 1) throw new Error('Cancel posted a voice message');
     checks.push('slide-left cancellation releases native capture without posting');
     const heldMic = await wait(() => button('Записати голосове повідомлення'));
     pointer(heldMic, 'pointerdown', point.x, point.y);
     await wait(() => recorded(1));
     pointer(heldMic, 'pointerup', point.x, point.y);
-    await wait(() => document.querySelectorAll('.fixture-bubble').length === 2);
+    await wait(() => document.querySelectorAll('[data-seq] [data-voice-message]').length === 2);
     checks.push('held release finalizes and sends native voice once');
     await fetch('/api/qa-result', { method: 'POST', headers: { 'content-type': 'application/json', authorization: 'Bearer fixture-only' }, body: JSON.stringify({ platform: navigator.userAgent, scenario: 'web-native-bridge', checks }) });
   } catch (error) {

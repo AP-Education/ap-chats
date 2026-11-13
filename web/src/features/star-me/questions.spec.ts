@@ -58,6 +58,15 @@ test('a message asks StarMe by mentioning it or replying to it', () => {
   assert.equal(asksStarMe(sent('просто повідомлення'), starMe), false);
 });
 
+test('an explicit private continuation invokes StarMe before workspace members finish loading', () => {
+  assert.equal(
+    asksStarMe(sent('Продовження', { input: { markdown: 'Продовження', assistant: true } })),
+    true,
+  );
+  assert.equal(asksStarMe(sent('Звичайне повідомлення')), false);
+  assert.equal(asksStarMe(sent('@StarMe текст без справжньої згадки')), false);
+});
+
 function shown(question: QuestionStatus, since: string): OpenQuestion {
   return { ...question, shownSince: since };
 }

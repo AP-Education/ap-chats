@@ -10,7 +10,7 @@ import styles from './MessageMeta.module.css';
 
 const fullFormat = new Intl.DateTimeFormat('uk-UA', { dateStyle: 'long', timeStyle: 'short' });
 
-export type MessageMetaPlacement = 'inline' | 'block' | 'overlay' | 'emoji' | 'reactions';
+export type MessageMetaPlacement = 'inline' | 'block' | 'overlay' | 'emoji' | 'reactions' | 'voice';
 
 export function MessageMeta({ placement }: { placement: MessageMetaPlacement }) {
   const { item } = useMessageActionScope();

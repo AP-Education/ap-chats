@@ -36,7 +36,7 @@ export function VoiceComposer({
   visible?: boolean;
   children: ReactNode;
   onStart: () => void;
-  onSend: (file: UploadFile) => boolean;
+  onSend: (file: UploadFile, durationMs: number) => boolean;
 }) {
   const [active, setActive] = useState(false);
   const [state, setState] = useState<VoiceState>(EMPTY);
@@ -112,7 +112,7 @@ export function VoiceComposer({
     if (sending.current) return;
     sending.current = true;
     setSent(true);
-    if (!onSend(file)) {
+    if (!onSend(file, latest.current.durationMs)) {
       sending.current = false;
       pendingSend.current = false;
       setSent(false);

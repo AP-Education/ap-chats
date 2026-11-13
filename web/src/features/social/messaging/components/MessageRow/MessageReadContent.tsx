@@ -11,7 +11,7 @@ export function MessageReadContent({
   jumboEmoji,
   meta,
 }: {
-  contentRef: RefObject<HTMLDivElement | null>;
+  contentRef?: RefObject<HTMLDivElement | null>;
   jumboEmoji: number;
   meta: ReactNode;
 }) {

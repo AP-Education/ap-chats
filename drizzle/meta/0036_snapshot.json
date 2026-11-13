@@ -89,12 +89,8 @@
           "name": "calls_workspace_id_workspaces_id_fk",
           "tableFrom": "calls",
           "tableTo": "workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -102,14 +98,8 @@
           "name": "calls_channel_workspace_fk",
           "tableFrom": "calls",
           "tableTo": "channels",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -117,14 +107,8 @@
           "name": "calls_started_by_workspace_fk",
           "tableFrom": "calls",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "started_by_member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "started_by_member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -134,18 +118,12 @@
         "calls_room_name_unique": {
           "name": "calls_room_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "room_name"
-          ]
+          "columns": ["room_name"]
         },
         "calls_workspace_channel_id_key": {
           "name": "calls_workspace_channel_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "channel_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "channel_id", "id"]
         }
       },
       "policies": {},
@@ -230,12 +208,8 @@
           "name": "channel_categories_workspace_id_workspaces_id_fk",
           "tableFrom": "channel_categories",
           "tableTo": "workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -245,10 +219,7 @@
         "channel_categories_workspace_id_key": {
           "name": "channel_categories_workspace_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "id"]
         }
       },
       "policies": {},
@@ -332,14 +303,8 @@
           "name": "channel_entries_channel_workspace_fk",
           "tableFrom": "channel_entries",
           "tableTo": "channels",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -347,16 +312,8 @@
           "name": "channel_entries_message_channel_fk",
           "tableFrom": "channel_entries",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "channel_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id", "message_id"],
+          "columnsTo": ["workspace_id", "channel_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -364,16 +321,8 @@
           "name": "channel_entries_call_channel_fk",
           "tableFrom": "channel_entries",
           "tableTo": "calls",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id",
-            "call_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "channel_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id", "call_id"],
+          "columnsTo": ["workspace_id", "channel_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -383,24 +332,17 @@
         "channel_entries_channel_seq_key": {
           "name": "channel_entries_channel_seq_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "channel_id",
-            "seq"
-          ]
+          "columns": ["channel_id", "seq"]
         },
         "channel_entries_message_key": {
           "name": "channel_entries_message_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "message_id"
-          ]
+          "columns": ["message_id"]
         },
         "channel_entries_call_key": {
           "name": "channel_entries_call_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "call_id"
-          ]
+          "columns": ["call_id"]
         }
       },
       "policies": {},
@@ -520,14 +462,8 @@
           "name": "channel_grants_channel_workspace_fk",
           "tableFrom": "channel_grants",
           "tableTo": "channels",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -535,14 +471,8 @@
           "name": "channel_grants_role_workspace_fk",
           "tableFrom": "channel_grants",
           "tableTo": "roles",
-          "columnsFrom": [
-            "workspace_id",
-            "role_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "role_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -550,14 +480,8 @@
           "name": "channel_grants_member_workspace_fk",
           "tableFrom": "channel_grants",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -567,12 +491,7 @@
         "channel_grants_principal_key": {
           "name": "channel_grants_principal_key",
           "nullsNotDistinct": true,
-          "columns": [
-            "channel_id",
-            "capability",
-            "role_id",
-            "member_id"
-          ]
+          "columns": ["channel_id", "capability", "role_id", "member_id"]
         }
       },
       "policies": {},
@@ -669,14 +588,8 @@
           "name": "channel_memberships_channel_workspace_fk",
           "tableFrom": "channel_memberships",
           "tableTo": "channels",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -684,14 +597,8 @@
           "name": "channel_memberships_member_workspace_fk",
           "tableFrom": "channel_memberships",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -699,10 +606,7 @@
       "compositePrimaryKeys": {
         "channel_memberships_channel_id_member_id_pk": {
           "name": "channel_memberships_channel_id_member_id_pk",
-          "columns": [
-            "channel_id",
-            "member_id"
-          ]
+          "columns": ["channel_id", "member_id"]
         }
       },
       "uniqueConstraints": {},
@@ -847,12 +751,8 @@
           "name": "channels_workspace_id_workspaces_id_fk",
           "tableFrom": "channels",
           "tableTo": "workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -860,14 +760,8 @@
           "name": "channels_category_workspace_fk",
           "tableFrom": "channels",
           "tableTo": "channel_categories",
-          "columnsFrom": [
-            "workspace_id",
-            "category_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "category_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -875,14 +769,8 @@
           "name": "channels_creator_workspace_fk",
           "tableFrom": "channels",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "created_by_member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "created_by_member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -892,10 +780,7 @@
         "channels_workspace_id_key": {
           "name": "channels_workspace_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "id"]
         }
       },
       "policies": {},
@@ -1111,14 +996,8 @@
           "name": "chat_messages_channel_workspace_fk",
           "tableFrom": "chat_messages",
           "tableTo": "channels",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1126,14 +1005,8 @@
           "name": "chat_messages_author_workspace_fk",
           "tableFrom": "chat_messages",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "author_member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "author_member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1141,14 +1014,8 @@
           "name": "chat_messages_assistant_owner_workspace_fk",
           "tableFrom": "chat_messages",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "assistant_owner_member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "assistant_owner_member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1156,16 +1023,8 @@
           "name": "chat_messages_assistant_question_channel_fk",
           "tableFrom": "chat_messages",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id",
-            "assistant_question_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "channel_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id", "assistant_question_id"],
+          "columnsTo": ["workspace_id", "channel_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1173,16 +1032,8 @@
           "name": "chat_messages_reply_channel_fk",
           "tableFrom": "chat_messages",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id",
-            "reply_to_message_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "channel_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id", "reply_to_message_id"],
+          "columnsTo": ["workspace_id", "channel_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1190,12 +1041,8 @@
           "name": "chat_messages_forward_source_fk",
           "tableFrom": "chat_messages",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "forwarded_from_message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["forwarded_from_message_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1203,14 +1050,8 @@
           "name": "chat_messages_forward_author_workspace_fk",
           "tableFrom": "chat_messages",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "forwarded_from_member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "forwarded_from_member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1220,27 +1061,17 @@
         "chat_messages_workspace_channel_id_key": {
           "name": "chat_messages_workspace_channel_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "channel_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "channel_id", "id"]
         },
         "chat_messages_channel_author_nonce_key": {
           "name": "chat_messages_channel_author_nonce_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "channel_id",
-            "author_member_id",
-            "client_nonce"
-          ]
+          "columns": ["channel_id", "author_member_id", "client_nonce"]
         },
         "chat_messages_assistant_question_key": {
           "name": "chat_messages_assistant_question_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "assistant_question_id"
-          ]
+          "columns": ["assistant_question_id"]
         }
       },
       "policies": {},
@@ -1406,12 +1237,8 @@
           "name": "chat_uploads_channel_id_channels_id_fk",
           "tableFrom": "chat_uploads",
           "tableTo": "channels",
-          "columnsFrom": [
-            "channel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["channel_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -1419,12 +1246,8 @@
           "name": "chat_uploads_owner_member_id_workspace_members_id_fk",
           "tableFrom": "chat_uploads",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "owner_member_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_member_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1434,9 +1257,7 @@
         "chat_uploads_object_key_unique": {
           "name": "chat_uploads_object_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "object_key"
-          ]
+          "columns": ["object_key"]
         }
       },
       "policies": {},
@@ -1544,9 +1365,7 @@
         "devices_installation_key": {
           "name": "devices_installation_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "installation_id"
-          ]
+          "columns": ["installation_id"]
         }
       },
       "policies": {},
@@ -1631,14 +1450,8 @@
           "name": "direct_messages_channel_fk",
           "tableFrom": "direct_messages",
           "tableTo": "channels",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1646,14 +1459,8 @@
           "name": "direct_messages_first_member_fk",
           "tableFrom": "direct_messages",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "first_member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "first_member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1661,14 +1468,8 @@
           "name": "direct_messages_second_member_fk",
           "tableFrom": "direct_messages",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "second_member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "second_member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1676,20 +1477,14 @@
       "compositePrimaryKeys": {
         "direct_messages_channel_id_pk": {
           "name": "direct_messages_channel_id_pk",
-          "columns": [
-            "channel_id"
-          ]
+          "columns": ["channel_id"]
         }
       },
       "uniqueConstraints": {
         "direct_messages_pair_key": {
           "name": "direct_messages_pair_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "first_member_id",
-            "second_member_id"
-          ]
+          "columns": ["workspace_id", "first_member_id", "second_member_id"]
         }
       },
       "policies": {},
@@ -1831,16 +1626,8 @@
           "name": "message_context_message_fk",
           "tableFrom": "message_context",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "channel_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id", "message_id"],
+          "columnsTo": ["workspace_id", "channel_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1848,16 +1635,8 @@
           "name": "message_context_context_fk",
           "tableFrom": "message_context",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id",
-            "context_message_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "channel_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id", "context_message_id"],
+          "columnsTo": ["workspace_id", "channel_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1865,10 +1644,7 @@
       "compositePrimaryKeys": {
         "message_context_message_id_context_message_id_pk": {
           "name": "message_context_message_id_context_message_id_pk",
-          "columns": [
-            "message_id",
-            "context_message_id"
-          ]
+          "columns": ["message_id", "context_message_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1940,16 +1716,8 @@
           "name": "message_mentions_message_channel_fk",
           "tableFrom": "message_mentions",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "channel_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id", "message_id"],
+          "columnsTo": ["workspace_id", "channel_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1957,14 +1725,8 @@
           "name": "message_mentions_member_workspace_fk",
           "tableFrom": "message_mentions",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1972,10 +1734,7 @@
       "compositePrimaryKeys": {
         "message_mentions_message_id_member_id_pk": {
           "name": "message_mentions_message_id_member_id_pk",
-          "columns": [
-            "message_id",
-            "member_id"
-          ]
+          "columns": ["message_id", "member_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2033,12 +1792,8 @@
           "name": "message_role_mentions_role_id_roles_id_fk",
           "tableFrom": "message_role_mentions",
           "tableTo": "roles",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["role_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2046,14 +1801,8 @@
           "name": "message_role_mentions_mention_fk",
           "tableFrom": "message_role_mentions",
           "tableTo": "message_mentions",
-          "columnsFrom": [
-            "message_id",
-            "member_id"
-          ],
-          "columnsTo": [
-            "message_id",
-            "member_id"
-          ],
+          "columnsFrom": ["message_id", "member_id"],
+          "columnsTo": ["message_id", "member_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2061,11 +1810,7 @@
       "compositePrimaryKeys": {
         "message_role_mentions_message_id_member_id_role_id_pk": {
           "name": "message_role_mentions_message_id_member_id_role_id_pk",
-          "columns": [
-            "message_id",
-            "member_id",
-            "role_id"
-          ]
+          "columns": ["message_id", "member_id", "role_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2115,16 +1860,8 @@
           "name": "message_pins_message_channel_fk",
           "tableFrom": "message_pins",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "channel_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id", "message_id"],
+          "columnsTo": ["workspace_id", "channel_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2132,14 +1869,8 @@
           "name": "message_pins_actor_workspace_fk",
           "tableFrom": "message_pins",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "pinned_by_member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "pinned_by_member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2147,10 +1878,7 @@
       "compositePrimaryKeys": {
         "message_pins_channel_id_message_id_pk": {
           "name": "message_pins_channel_id_message_id_pk",
-          "columns": [
-            "channel_id",
-            "message_id"
-          ]
+          "columns": ["channel_id", "message_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2206,16 +1934,8 @@
           "name": "message_reactions_message_channel_fk",
           "tableFrom": "message_reactions",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "channel_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id", "message_id"],
+          "columnsTo": ["workspace_id", "channel_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2223,14 +1943,8 @@
           "name": "message_reactions_member_workspace_fk",
           "tableFrom": "message_reactions",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2238,11 +1952,7 @@
       "compositePrimaryKeys": {
         "message_reactions_message_id_emoji_member_id_pk": {
           "name": "message_reactions_message_id_emoji_member_id_pk",
-          "columns": [
-            "message_id",
-            "emoji",
-            "member_id"
-          ]
+          "columns": ["message_id", "emoji", "member_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2302,14 +2012,8 @@
           "name": "role_members_role_workspace_fk",
           "tableFrom": "role_members",
           "tableTo": "roles",
-          "columnsFrom": [
-            "workspace_id",
-            "role_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "role_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2317,14 +2021,8 @@
           "name": "role_members_member_workspace_fk",
           "tableFrom": "role_members",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2332,10 +2030,7 @@
       "compositePrimaryKeys": {
         "role_members_role_id_member_id_pk": {
           "name": "role_members_role_id_member_id_pk",
-          "columns": [
-            "role_id",
-            "member_id"
-          ]
+          "columns": ["role_id", "member_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2429,12 +2124,8 @@
           "name": "roles_workspace_id_workspaces_id_fk",
           "tableFrom": "roles",
           "tableTo": "workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2444,10 +2135,7 @@
         "roles_workspace_id_key": {
           "name": "roles_workspace_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "id"]
         }
       },
       "policies": {},
@@ -2619,14 +2307,8 @@
           "name": "scheduled_messages_channel_workspace_fk",
           "tableFrom": "scheduled_messages",
           "tableTo": "channels",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2634,14 +2316,8 @@
           "name": "scheduled_messages_author_workspace_fk",
           "tableFrom": "scheduled_messages",
           "tableTo": "workspace_members",
-          "columnsFrom": [
-            "workspace_id",
-            "author_member_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "author_member_id"],
+          "columnsTo": ["workspace_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2649,16 +2325,8 @@
           "name": "scheduled_messages_reply_channel_fk",
           "tableFrom": "scheduled_messages",
           "tableTo": "chat_messages",
-          "columnsFrom": [
-            "workspace_id",
-            "channel_id",
-            "reply_to_message_id"
-          ],
-          "columnsTo": [
-            "workspace_id",
-            "channel_id",
-            "id"
-          ],
+          "columnsFrom": ["workspace_id", "channel_id", "reply_to_message_id"],
+          "columnsTo": ["workspace_id", "channel_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2668,11 +2336,7 @@
         "scheduled_messages_channel_author_nonce_key": {
           "name": "scheduled_messages_channel_author_nonce_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "channel_id",
-            "author_member_id",
-            "client_nonce"
-          ]
+          "columns": ["channel_id", "author_member_id", "client_nonce"]
         }
       },
       "policies": {},
@@ -2738,9 +2402,7 @@
         "user_profiles_oidc_user_id_key": {
           "name": "user_profiles_oidc_user_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "oidc_user_id"
-          ]
+          "columns": ["oidc_user_id"]
         }
       },
       "policies": {},
@@ -2782,12 +2444,8 @@
           "name": "web_push_subscriptions_id_devices_id_fk",
           "tableFrom": "web_push_subscriptions",
           "tableTo": "devices",
-          "columnsFrom": [
-            "id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2797,9 +2455,7 @@
         "web_push_endpoint_key": {
           "name": "web_push_endpoint_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "endpoint"
-          ]
+          "columns": ["endpoint"]
         }
       },
       "policies": {},
@@ -2890,12 +2546,8 @@
           "name": "workspace_members_workspace_id_workspaces_id_fk",
           "tableFrom": "workspace_members",
           "tableTo": "workspaces",
-          "columnsFrom": [
-            "workspace_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2903,12 +2555,8 @@
           "name": "workspace_members_user_profile_id_user_profiles_id_fk",
           "tableFrom": "workspace_members",
           "tableTo": "user_profiles",
-          "columnsFrom": [
-            "user_profile_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_profile_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2918,18 +2566,12 @@
         "workspace_members_workspace_profile_key": {
           "name": "workspace_members_workspace_profile_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "user_profile_id"
-          ]
+          "columns": ["workspace_id", "user_profile_id"]
         },
         "workspace_members_workspace_id_key": {
           "name": "workspace_members_workspace_id_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "workspace_id",
-            "id"
-          ]
+          "columns": ["workspace_id", "id"]
         }
       },
       "policies": {},

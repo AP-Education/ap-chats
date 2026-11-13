@@ -1,4 +1,6 @@
-import { expect, type Page, test as base } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+
+import { type Download, expect, type Page, test as base } from '@playwright/test';
 
 export { expect };
 
@@ -32,4 +34,16 @@ export function activeVideo(page: Page) {
   return page
     .getByRole('dialog', { name: 'Перегляд медіа' })
     .locator('[role="group"]:not([aria-hidden="true"]) video');
+}
+
+export async function expectVideoDownload(download: Download, browserName: string) {
+  // WebKitGTK on Linux sanitizes spaces in its suggested download name.
+  const webkitLinux = browserName === 'webkit' && process.platform === 'linux';
+  const name = webkitLinux ? videoName.replaceAll(' ', '_') : videoName;
+  expect(download.suggestedFilename()).toBe(name);
+  expect(await download.failure()).toBeNull();
+
+  const actual = await readFile(await download.path());
+  const expected = await readFile(new URL('./public/media/sample.mp4', import.meta.url));
+  expect(actual.equals(expected)).toBe(true);
 }

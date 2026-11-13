@@ -18,18 +18,28 @@ export function ComposerVoice({ scope, attachments, onSend, children }: Composer
   const composer = useComposer();
   const { queue, policy } = attachments;
 
-  function send(file: UploadFile) {
+  function send(file: UploadFile, durationMs: number) {
     if (!policy) return false;
 
+    const previousKeys = new Set(queue.getSnapshot().map((draft) => draft.key));
     const rejected = queue.add([file], policy);
     if (rejected.length) {
       void message.error('Не вдалося додати голосове повідомлення до чернетки.');
       return false;
     }
 
+    const recording = queue.getSnapshot().find((draft) => !previousKeys.has(draft.key));
+    if (!recording) return false;
+
     const { message: draft, nonce } = composer.compose();
     queue.commit(nonce);
-    onSend(draft, nonce);
+    onSend(
+      {
+        ...draft,
+        blocks: [{ type: 'voice', attachmentId: recording.key, durationMs }],
+      },
+      nonce,
+    );
     composer.clear();
     return true;
   }

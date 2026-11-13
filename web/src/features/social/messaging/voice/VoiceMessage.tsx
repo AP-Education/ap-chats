@@ -10,8 +10,9 @@ import {
 import { claimAudioPlayback, releaseAudioPlayback } from './playback';
 import { voiceTime } from './types';
 import styles from './VoiceMessage.module.css';
+import { VoiceMessageFrame } from './VoiceMessageFrame';
 
-export function VoiceMessage({ attachment, messageId, available }: FileAttachmentProps) {
+export function VoiceMessage({ attachment, messageId, available, footer }: FileAttachmentProps) {
   const player = useRef<HTMLAudioElement>(null);
   const [requested, setRequested] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -25,6 +26,7 @@ export function VoiceMessage({ attachment, messageId, available }: FileAttachmen
   const progress = Math.min(position, duration);
   const elapsedLabel = voiceTime(progress * 1000);
   const durationLabel = voiceTime(durationMs);
+  const remainingLabel = voiceTime(Math.max(0, durationMs - position * 1000));
   const loading = requested && access.isPending;
   const showError = failed || (requested && access.isError);
   const PlaybackIcon = playing ? PauseIcon : PlayIcon;
@@ -64,18 +66,20 @@ export function VoiceMessage({ attachment, messageId, available }: FileAttachmen
   }
 
   return (
-    <div className={styles.root} role="group" aria-label="Голосове повідомлення">
-      <button
-        type="button"
-        className={styles.play}
-        aria-label={playing ? 'Призупинити голосове' : 'Відтворити голосове'}
-        disabled={!available || loading}
-        onClick={play}
-      >
-        {loading ? <LoadingIcon size={20} /> : <PlaybackIcon size={20} weight="fill" />}
-      </button>
-      <div className={styles.body}>
-        <div className={styles.seek}>
+    <VoiceMessageFrame
+      playback={
+        <button
+          type="button"
+          className={styles.play}
+          aria-label={playing ? 'Призупинити голосове' : 'Відтворити голосове'}
+          disabled={!available || loading}
+          onClick={play}
+        >
+          {loading ? <LoadingIcon size={20} /> : <PlaybackIcon size={20} weight="fill" />}
+        </button>
+      }
+      seek={
+        <>
           <progress className={styles.track} value={progress} max={duration} aria-hidden="true" />
           <input
             type="range"
@@ -92,37 +96,39 @@ export function VoiceMessage({ attachment, messageId, available }: FileAttachmen
               setPosition(seconds);
             }}
           />
-        </div>
-        <div className={styles.details}>
-          <span className={styles.time}>
-            {position > 0 && `${elapsedLabel} / `}
-            {durationLabel}
-          </span>
-          <button
-            type="button"
-            className={styles.speed}
-            aria-label="Швидкість відтворення"
-            onClick={() => {
-              const next = rate === 1 ? 1.5 : rate === 1.5 ? 2 : 1;
-              setRate(next);
-              if (player.current) player.current.playbackRate = next;
-            }}
-          >
-            {rate}×
-          </button>
-          <IconButton
-            size={36}
-            className={styles.download}
-            aria-label={`Завантажити ${attachment.name}`}
-            disabled={!available || download.downloading}
-            onClick={() => void download.download()}
-          >
-            {download.downloading ? <LoadingIcon size={20} /> : <DownloadSimpleIcon size={20} />}
-          </IconButton>
-        </div>
-      </div>
+        </>
+      }
+      time={position > 0 ? remainingLabel : durationLabel}
+      timeLabel={position > 0 ? `Залишилося ${remainingLabel}` : `Тривалість ${durationLabel}`}
+      speed={
+        <button
+          type="button"
+          className={styles.speed}
+          aria-label="Швидкість відтворення"
+          onClick={() => {
+            const next = rate === 1 ? 1.5 : rate === 1.5 ? 2 : 1;
+            setRate(next);
+            if (player.current) player.current.playbackRate = next;
+          }}
+        >
+          {rate}×
+        </button>
+      }
+      action={
+        <IconButton
+          size={32}
+          className={styles.download}
+          aria-label={`Завантажити ${attachment.name}`}
+          disabled={!available || download.downloading}
+          onClick={() => void download.download()}
+        >
+          {download.downloading ? <LoadingIcon size={20} /> : <DownloadSimpleIcon size={20} />}
+        </IconButton>
+      }
+      meta={footer}
+    >
       {loading && (
-        <span className={styles.status} role="status">
+        <span className={styles.uploadStatus} role="status">
           Завантажуємо голосове
         </span>
       )}
@@ -145,6 +151,6 @@ export function VoiceMessage({ attachment, messageId, available }: FileAttachmen
         onEnded={() => setPlaying(false)}
         onError={() => setFailed(true)}
       />
-    </div>
+    </VoiceMessageFrame>
   );
 }

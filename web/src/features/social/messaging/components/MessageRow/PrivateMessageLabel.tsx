@@ -4,7 +4,7 @@ import { useMessageActionScope } from './MessageActionScope';
 
 export function PrivateMessageLabel() {
   const { item } = useMessageActionScope();
-  if (!item.message.privateToMe) return null;
+  if (!item.message.privateToMe || item.message.assistantAnswer) return null;
 
   return <StarMePrivateHeading showName={!item.message.assistantAnswer} />;
 }

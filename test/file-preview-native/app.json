@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "AP File Preview Tests",
+    "slug": "ap-file-preview-tests",
+    "ios": {
+      "bundleIdentifier": "com.apeducation.connect"
+    }
+  }
+}

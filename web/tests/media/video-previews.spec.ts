@@ -1,4 +1,4 @@
-import { expect, test } from './media-test';
+import { expect, expectVideoDownload, test } from './media-test';
 
 test('a poster and duration appear without fetching or playing the original', async ({
   page,
@@ -87,11 +87,14 @@ test('an unsupported codec gives an actionable download instead of a blank playe
   await expect(page.getByRole('button', { name: 'Завантажити відео', exact: true })).toBeEnabled();
 });
 
-test('downloading from the poster saves the file without opening the viewer', async ({ page }) => {
+test('downloading from the poster saves the file without opening the viewer', async ({
+  page,
+  browserName,
+}) => {
   await page.goto('/');
   const saved = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Завантажити Зустріч команди.mp4' }).click();
-  expect((await saved).suggestedFilename()).toBe('Зустріч команди.mp4');
+  await expectVideoDownload(await saved, browserName);
   await expect(page.getByRole('dialog', { name: 'Перегляд медіа' })).toHaveCount(0);
   await expect(page.locator('video')).toHaveCount(0);
 });

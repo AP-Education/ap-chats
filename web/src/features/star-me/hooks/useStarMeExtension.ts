@@ -21,21 +21,21 @@ const answerKind = defineEntryKind<ConversationEntry | AnswerEntry, typeof STAR_
 });
 
 /** StarMe in a channel or human DM, summoned by a mention or reply to its answer. */
-export function useStarMeExtension(workspaceId: string): ConversationExtension | undefined {
+export function useStarMeExtension(workspaceId: string): ConversationExtension {
   const starMe = useStarMe(workspaceId);
   const ask = useAskStarMe(workspaceId);
 
+  // A restored private draft can be sent before the member directory arrives.
   return useMemo(() => {
-    if (!starMe) return undefined;
-
     return {
       id: 'star-me',
-      privateAssistantMemberId: starMe.memberId,
-      actions: [askStarMeAction(starMe), makeStarMeAnswerOwnAction],
+      privateAssistantMemberId: starMe?.memberId,
+      actions: starMe ? [askStarMeAction(starMe), makeStarMeAnswerOwnAction] : [],
       kinds: [answerKind],
       usePending: useStarMePending,
       sent: (message) => {
-        if (!asksStarMe(message, starMe.memberId)) return;
+        const invoked = asksStarMe(message, starMe?.memberId);
+        if (!invoked) return;
         void message.landed
           .then((question) => ask(askRequest(message, question.id)))
           .catch(() => {});

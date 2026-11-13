@@ -25,8 +25,10 @@ function messageAction(page: Page, name: string) {
 }
 
 async function openActions(page: Page, row: Locator) {
+  const body = row.locator('article').first();
+  await body.scrollIntoViewIfNeeded();
   if (test.info().project.name === 'phone' || test.info().project.name === 'narrow') {
-    const box = (await row.boundingBox())!;
+    const box = (await body.boundingBox())!;
     const session = await page.context().newCDPSession(page);
     await session.send('Input.dispatchTouchEvent', {
       type: 'touchStart',
@@ -61,8 +63,10 @@ test('a human DM stays quiet until StarMe is mentioned; either message action ca
   await expect(page.locator('article')).toHaveCount(1);
   await mention(page, 'Допоможи з планом');
   await expect(page.getByText('Думаю над відповіддю')).toBeVisible();
+  await expect(page.getByRole('status').locator('[data-message-block="star-me"]')).toHaveCount(1);
   await expect(page.locator('article')).toHaveCount(3);
   const answer = page.locator('[data-message-id]').filter({ hasText: 'Привіт! Допоможу' }).last();
+  await expect(answer.locator('[data-message-block="star-me"]')).toHaveCount(1);
   await openActions(page, answer);
   await messageAction(page, 'Відповісти').click();
   await editor.fill('А детальніше?');
@@ -165,10 +169,26 @@ for (const kind of ['dm', 'group'] as const) {
     await editor.fill('Повідомлення для всіх');
     await press(page, 'Надіслати');
     for (const peer of peers) await expect(peer.locator('article')).toHaveCount(1);
-    await mention(page, 'Секретний план');
-    const thinking = page.getByRole('status').filter({ hasText: 'Думаю над відповіддю' });
-    await expect(thinking.getByText('Лише для вас', { exact: true })).toBeVisible();
-    for (const peer of peers) await expect(peer.getByText('Думаю над відповіддю')).toHaveCount(0);
+    const assistantControl = {
+      headers: { authorization: `Bearer fixture-only:${session}` },
+    };
+    const paused = await page.request.post('/api/qa/assistant', {
+      ...assistantControl,
+      data: { command: 'pause' },
+    });
+    expect(paused.status()).toBe(200);
+    try {
+      await mention(page, 'Секретний план');
+      const thinking = page.getByRole('status').filter({ hasText: 'Думаю над відповіддю' });
+      await expect(thinking.getByText('Лише для вас', { exact: true })).toBeVisible();
+      for (const peer of peers) await expect(peer.getByText('Думаю над відповіддю')).toHaveCount(0);
+    } finally {
+      const resumed = await page.request.post('/api/qa/assistant', {
+        ...assistantControl,
+        data: { command: 'resume' },
+      });
+      expect(resumed.status()).toBe(200);
+    }
     await expect(page.locator('article')).toHaveCount(3);
     await expect(
       page.getByText('Приватно зі StarMe · Лише для вас', { exact: true }),
@@ -199,14 +219,36 @@ for (const kind of ['dm', 'group'] as const) {
       for (const id of privateIds) expect(result.events).not.toContain(id);
     }
     await editor.fill('Приватне продовження');
-    await page.reload();
-    await expect(editor).toHaveText('Приватне продовження');
-    const sent = page.waitForRequest(
-      (request) => request.method() === 'POST' && request.url().endsWith('/messages'),
+    let releaseMembers!: () => void;
+    const members = new Promise<void>((resolve) => {
+      releaseMembers = resolve;
+    });
+    const memberRoute = '**/api/workspaces/*/members';
+    const memberResponse = page.waitForResponse((response) =>
+      new URL(response.url()).pathname.endsWith('/members'),
     );
-    await press(page, 'Надіслати');
-    expect((await sent).postDataJSON().assistant).toBe(true);
-    await expect(page.locator('article')).toHaveCount(5);
+    await page.route(memberRoute, async (route) => {
+      await members;
+      await route.continue();
+    });
+    try {
+      await page.reload();
+      await expect(editor).toHaveText('Приватне продовження');
+      const sent = page.waitForRequest(
+        (request) => request.method() === 'POST' && request.url().endsWith('/messages'),
+      );
+      const asked = page.waitForRequest(
+        (request) => request.method() === 'POST' && request.url().endsWith('/star-me/answers'),
+      );
+      await press(page, 'Надіслати');
+      expect((await sent).postDataJSON().assistant).toBe(true);
+      await asked;
+      await expect(page.locator('article')).toHaveCount(5);
+    } finally {
+      releaseMembers();
+      await memberResponse;
+      await page.unroute(memberRoute);
+    }
     for (const peer of peers) await expect(peer.locator('article')).toHaveCount(1);
     await openActions(page, page.locator(`[data-message-id="${answerId}"]`));
     await expect(messageAction(page, 'Переслати')).toHaveCount(0);
@@ -218,6 +260,7 @@ for (const kind of ['dm', 'group'] as const) {
     await expect(page.locator('article')).toHaveCount(5);
     const published = page.locator(`[data-message-id="${answerId}"]`);
     await expect(published.getByText('Лише для вас', { exact: true })).toHaveCount(0);
+    await expect(published.locator('[data-message-block="star-me"]')).toHaveCount(0);
     const myAuthor = await published.getAttribute('data-author');
     for (const peer of peers) {
       await expect(peer.locator('article')).toHaveCount(2);
@@ -240,3 +283,39 @@ for (const kind of ['dm', 'group'] as const) {
     for (const peer of peers) await peer.close();
   });
 }
+
+test('releasing a held StarMe answer is consumed and leaves its action sheet open', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== 'chromium' || !test.info().project.use.hasTouch,
+    'Trusted long press uses CDP touch input',
+  );
+  await mention(page, 'План для перевірки жесту');
+  const answer = page.locator('[data-assistant-answer="true"]').first();
+  await expect(answer).toBeVisible();
+  await page.evaluate(() => {
+    Object.assign(window, { starmeReleasePrevented: null });
+    window.addEventListener(
+      'touchend',
+      (event) => {
+        Object.assign(window, { starmeReleasePrevented: event.defaultPrevented });
+      },
+      { once: true },
+    );
+  });
+
+  await openActions(page, answer);
+
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as unknown as { starmeReleasePrevented: boolean | null }).starmeReleasePrevented,
+      ),
+    )
+    .toBe(true);
+  await expect(messageAction(page, 'Зробити моїм')).toBeVisible();
+  await expect(page.getByText('Відповідь для StarMe', { exact: true })).toHaveCount(0);
+});

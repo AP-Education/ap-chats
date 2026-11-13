@@ -12,8 +12,12 @@ export async function loadLastLocation(appUrl: string): Promise<string | null> {
   }
 }
 
-export function rememberLocation(url: string, appUrl: string): void {
-  if (sameOrigin(url, appUrl)) void AsyncStorage.setItem(KEY, url).catch(() => undefined);
+export function rememberLocation(
+  { url, loading }: { url: string; loading: boolean },
+  appUrl: string,
+): void {
+  const isAppPage = !loading && sameOrigin(url, appUrl);
+  if (isAppPage) void AsyncStorage.setItem(KEY, url).catch(() => undefined);
 }
 
 export function forgetLastLocation(): void {
