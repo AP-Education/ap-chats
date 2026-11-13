@@ -15,6 +15,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Portal } from 'react-native-teleport';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 import type {
+  FileDownloadEvent,
+  ShouldStartLoadRequest,
   WebViewErrorEvent,
   WebViewHttpErrorEvent,
   WebViewTerminatedEvent,
@@ -33,6 +35,9 @@ import {
   isComposerInputRequest,
   useComposerInput,
 } from '../../composer';
+import { FilePreview } from '../../file-preview/components/FilePreview';
+import type { FilePreviewSource } from '../../file-preview/types';
+import { filePreviewSource, requestedFilePreview } from '../../file-preview/utils/preview-source';
 import { isLocale, useLocaleStore } from '../../locale';
 import { NativeTabs } from '../../navigation/components/NativeTabs';
 import { OverlayTabs } from '../../navigation/components/OverlayTabs';
@@ -78,6 +83,7 @@ export function WebViewHost() {
   // reload) so the effect below only fires once there's a page to inject into, and
   // re-fires on every reload since the injected globals don't survive one.
   const [loadCount, setLoadCount] = useState(0);
+  const [filePreview, setFilePreview] = useState<FilePreviewSource | null>(null);
   const [messageSoundRequest, setMessageSoundRequest] = useState(0);
   const [tabBar, setTabBar] = useState<TabBarModel | null>(null);
   const insets = useSafeAreaInsets();
@@ -210,6 +216,23 @@ export function WebViewHost() {
 
     webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'navigation/back' }));
     return true;
+  }
+
+  function handleFileNavigation(request: ShouldStartLoadRequest): boolean {
+    const source = requestedFilePreview(request);
+    if (!source) return true;
+
+    input.close();
+    setFilePreview(source);
+    return false;
+  }
+
+  function handleFileDownload(event: FileDownloadEvent) {
+    const source = filePreviewSource(event.nativeEvent.downloadUrl);
+    if (!source) return;
+
+    input.close();
+    setFilePreview(source);
   }
 
   function handleMessage(event: WebViewMessageEvent) {
@@ -368,7 +391,11 @@ export function WebViewHost() {
                 bounces={false}
                 onLoadStart={clearPageInsets}
                 applicationNameForUserAgent={APP_SHELL_USER_AGENT}
-                onNavigationStateChange={(event) => rememberLocation(event.url, webUrl)}
+                onNavigationStateChange={(event) => rememberLocation(event, webUrl)}
+                onFileDownload={Platform.OS === 'ios' ? handleFileDownload : undefined}
+                onShouldStartLoadWithRequest={
+                  Platform.OS === 'ios' ? handleFileNavigation : undefined
+                }
                 onMessage={handleMessage}
                 // A message's links open in the system browser, not over the app.
                 onOpenWindow={(event) => {
@@ -425,6 +452,13 @@ export function WebViewHost() {
         onPickEmoji={handlePickEmoji}
         onPickGif={handlePickGif}
       />
+      {filePreview && (
+        <FilePreview
+          key={filePreview.uri}
+          source={filePreview}
+          onClose={() => setFilePreview(null)}
+        />
+      )}
       <StatusBar style={statusBarOnDark ? 'light' : 'dark'} />
     </SafeAreaView>
   );
