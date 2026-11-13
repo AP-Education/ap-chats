@@ -117,7 +117,11 @@ export function ConversationView({ currentMember, readOnlyFooter }: Conversation
           calleeAvatarPath={avatarPath}
         />
       </div>
-      <div ref={bottomRef} className={cx(styles.bottom, keyboardGlidePart)}>
+      <div
+        ref={bottomRef}
+        className={cx(styles.bottom, keyboardGlidePart)}
+        data-keyboard-glide-part
+      >
         {historyReady && <ConversationSelectionBar interaction={interaction} />}
         {/* Hidden rather than unmounted while selecting, so a draft and its uploads live on. */}
         <div hidden={interaction.selectedItems.length > 0}>

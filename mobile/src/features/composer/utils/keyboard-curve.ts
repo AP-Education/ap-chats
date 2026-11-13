@@ -53,3 +53,17 @@ export function learnedMotion(
   );
   return { duration, easing: `linear(0, ${stops.join(', ')}, 1)` };
 }
+
+/** A height adjustment or an instant move keeps the timing reported by the keyboard. */
+export function keyboardMotion(
+  from: number,
+  to: number,
+  reported: number,
+  learned: Partial<Record<KeyboardDirection, InsetMotion>>,
+): InsetMotion {
+  'worklet';
+  const direction = keyboardDirection(from, to);
+  const isAnimated = reported > 0;
+  const known = isAnimated && direction ? learned[direction] : undefined;
+  return known ?? { duration: Math.max(0, reported), easing: DEFAULT_EASING };
+}
