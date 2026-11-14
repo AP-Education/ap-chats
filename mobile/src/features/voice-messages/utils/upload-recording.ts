@@ -62,7 +62,7 @@ export async function uploadRecording(
       if (!upload.completed.has(number)) {
         const { url } = await post<{ url: string }>(`${base}/${session.id}/part`, { number });
         handle.offset = start;
-        const bytes = handle.readBytesSync(end - start);
+        const bytes = handle.readBytes(end - start);
         if (bytes.length !== end - start) throw new Error('Локальний запис неповний.');
         const response = await expoFetch(url, { method: 'PUT', body: bytes, signal });
         if (!response.ok) throw new Error('Не вдалося передати файл. Спробуйте ще раз.');
