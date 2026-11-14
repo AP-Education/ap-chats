@@ -75,3 +75,17 @@ test('a multiline draft can cancel quotes above an open keyboard repeatedly', as
     await expect(editor).toHaveText(draft, { useInnerText: true });
   }
 });
+
+test('holding send opens scheduling with the keyboard dismissed', async ({ page }) => {
+  await page.getByRole('textbox', { name: 'Повідомлення' }).fill('Пізніше');
+  // The open sheet hides the page behind it from the accessibility tree.
+  const editor = page.locator('[role="textbox"][aria-label="Повідомлення"]');
+  const send = page.locator('button[aria-label="Надіслати"]');
+  await expect(editor).toBeFocused();
+  // A finger's hold: iOS keeps the keyboard up, over the sheet, while the composer has focus.
+  await send.dispatchEvent('pointerdown', { pointerType: 'touch', isPrimary: true });
+  await expect(page.getByRole('dialog', { name: 'Запланувати повідомлення' })).toBeVisible();
+  await send.dispatchEvent('pointerup', { pointerType: 'touch', isPrimary: true });
+  await expect(editor).not.toBeFocused();
+  await expect(editor).toHaveText('Пізніше');
+});

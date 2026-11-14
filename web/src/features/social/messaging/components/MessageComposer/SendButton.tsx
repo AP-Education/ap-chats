@@ -27,7 +27,7 @@ export function SendButton({ privateAssistant = false }: { privateAssistant?: bo
     [extensions],
   );
   const intent = useConversation((state) => state.intent);
-  const { canSend, compose, clear } = useComposer();
+  const { canSend, compose, clear, blur } = useComposer();
   const [menuOpen, setMenuOpen] = useState(false);
   const [chosen, setChosen] = useState<SendOption | null>(null);
   const scheduleAttempt = useRef<{ draft: string; nonce: string }>(null);
@@ -76,8 +76,15 @@ export function SendButton({ privateAssistant = false }: { privateAssistant?: bo
     const [only] = options;
     const takesDraft =
       pointer === 'finger' && options.length === 1 && only && !only.unavailable?.(draft);
-    if (takesDraft) setChosen(only);
+    if (takesDraft) choose(only);
     else setMenuOpen(true);
+  }
+
+  // iOS keeps the keyboard up while the composer holds focus, covering the option's sheet.
+  function choose(option: SendOption | undefined) {
+    if (!option) return;
+    blur();
+    setChosen(option);
   }
 
   const menu: MenuProps = {
@@ -92,7 +99,7 @@ export function SendButton({ privateAssistant = false }: { privateAssistant?: bo
     }),
     onClick: ({ key }) => {
       setMenuOpen(false);
-      setChosen(options.find((option) => option.id === key) ?? null);
+      choose(options.find((option) => option.id === key));
     },
   };
 
