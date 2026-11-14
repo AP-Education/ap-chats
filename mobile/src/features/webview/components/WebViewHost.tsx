@@ -2,15 +2,7 @@ import { selectionAsync } from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  AppState,
-  BackHandler,
-  Linking,
-  Platform,
-  StyleSheet,
-  View,
-  type ViewInstance,
-} from 'react-native';
+import { AppState, BackHandler, Linking, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Portal } from 'react-native-teleport';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
@@ -99,8 +91,8 @@ export function WebViewHost() {
     webViewRef.current?.injectJavaScript(buildBridgeScript({ type: 'composer/state', ...state }));
   }, []);
   // Measured rather than assumed: where the page ends depends on the tab it is teleported into.
-  const containerRef = useRef<ViewInstance>(null);
-  const pageRef = useRef<ViewInstance>(null);
+  const containerRef = useRef<View>(null);
+  const pageRef = useRef<View>(null);
   const [pageGap, setPageGap] = useState(0);
   // The page's own safe area can't tell its bottom inside a tab: it grows under the tab bar and
   // empties under the keyboard. Native knows, and writes it into the page's CSS.
