@@ -43,7 +43,7 @@
     "test:uploads:integration": "pnpm build && node --import tsx test/uploads.integration.mts"
   },
   "dependencies": {
-    "@ap-education/storage": "^0.1.0",
+    "@ap-education/storage": "^0.2.0",
     "@fastify/multipart": "^10.1.2",
     "@nestjs-cls/transactional": "^4.0.1",
     "@nestjs-cls/transactional-adapter-drizzle-orm": "^2.0.1",
