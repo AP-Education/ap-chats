@@ -11,6 +11,7 @@ import { BrowserRouter } from 'react-router-dom';
 
 import { RealtimeContext } from '@/features/realtime/stores/realtime-context';
 import type { RealtimeSocketClient } from '@/features/realtime/types';
+import type { ConversationExtension } from '@/features/social/conversation-scope/extensions';
 import {
   ConversationProvider,
   type ConversationScope,
@@ -22,6 +23,7 @@ import { MessageComposer } from '@/features/social/messaging/components/MessageC
 import { ConversationOutbox } from '@/features/social/messaging/sending/stores/conversation-outbox';
 import { OutboxesContext } from '@/features/social/messaging/sending/stores/outboxes-context';
 import type { ComposedMessage } from '@/features/social/messaging/types';
+import { schedulingExtension } from '@/features/social/scheduling/extension';
 import { I18nProvider } from '@/shared/i18n/I18nProvider';
 
 const workspaceId = '10000000-0000-4000-8000-000000000001';
@@ -37,6 +39,10 @@ const scope: ConversationScope = {
   composer: { ariaLabel: 'Повідомлення', placeholder: 'Написати повідомлення' },
   permissions: { canPost: true, canReact: true, canManage: false, canPin: false },
 };
+// The send button's other way to send, without the list entry that would fetch the schedule.
+const extensions: ConversationExtension[] = [
+  { id: 'scheduling', sendOptions: schedulingExtension.sendOptions },
+];
 const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const socket = { on() {}, off() {}, emit() {} } as unknown as RealtimeSocketClient;
 const uploads = new UploadQueue(uploadTransport({ workspaceId, channelId }, () => 'fixture-only'));
@@ -132,7 +138,7 @@ createRoot(document.getElementById('root')!).render(
               <BrowserRouter>
                 <Suspense>
                   <I18nProvider>
-                    <ConversationProvider scope={scope}>
+                    <ConversationProvider scope={scope} extensions={extensions}>
                       <Fixture />
                     </ConversationProvider>
                   </I18nProvider>
