@@ -5,7 +5,7 @@ import { UploadQueue } from '@ap-education/timeline/composer';
 import { ThemeProvider } from '@ap-education/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Button } from 'antd';
-import { StrictMode, Suspense, useEffect, useState } from 'react';
+import { StrictMode, Suspense, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 
@@ -20,9 +20,21 @@ import {
 import { MentionEditor } from '@/features/social/mentions/components/MentionEditor/MentionEditor';
 import { uploadTransport } from '@/features/social/messaging/attachments/attachments-api';
 import { MessageComposer } from '@/features/social/messaging/components/MessageComposer/MessageComposer';
+import { MessageActionProvider } from '@/features/social/messaging/components/MessageRow/MessageActionScope';
+import { MessageTouchActions } from '@/features/social/messaging/components/MessageRow/MessageTouchActions';
 import { ConversationOutbox } from '@/features/social/messaging/sending/stores/conversation-outbox';
 import { OutboxesContext } from '@/features/social/messaging/sending/stores/outboxes-context';
-import type { ComposedMessage } from '@/features/social/messaging/types';
+import { UnsentMessagesContext } from '@/features/social/messaging/sending/stores/unsent-messages-context';
+import type { UnsentMessages } from '@/features/social/messaging/sending/types';
+import {
+  type TimelineActions,
+  TimelineActionsContext,
+} from '@/features/social/messaging/timeline-actions-context';
+import type {
+  ComposedMessage,
+  ConversationAction,
+  MessageHistoryItem,
+} from '@/features/social/messaging/types';
 import { schedulingExtension } from '@/features/social/scheduling/extension';
 import { I18nProvider } from '@/shared/i18n/I18nProvider';
 
@@ -55,6 +67,62 @@ const outbox = new ConversationOutbox({
   recordSent: async () => {},
 });
 const outboxes = { setSession() {}, for: () => ({ uploads, outbox }) };
+// One message of the history, with the production touch actions and a single synthetic action.
+const sourceItem = {
+  type: 'MESSAGE',
+  id: 'source',
+  seq: '1',
+  createdAt: '2026-11-16T09:00:00.000Z',
+  message: {
+    id: 'source',
+    seq: '1',
+    authorMemberId: '30000000-0000-4000-8000-000000000002',
+    clientNonce: null,
+    markdown: 'Чи можна з обмеженим доступом?',
+    contentVersion: 1,
+    revision: 1,
+    replyToMessageId: null,
+    quoteText: null,
+    isForwarded: false,
+    forwardedFromMemberId: null,
+    createdAt: '2026-11-16T09:00:00.000Z',
+    editedAt: null,
+    deletedAt: null,
+  },
+  reply: null,
+} as unknown as MessageHistoryItem;
+const timelineActions: TimelineActions = {
+  viewer: { memberId, canManage: false, canPin: false, canPost: true, canReact: false },
+  actions: [
+    {
+      id: 'copy',
+      label: () => 'Копіювати текст',
+      available: () => true,
+      execute() {},
+    } as unknown as ConversationAction,
+  ],
+  run() {},
+  jumpTo() {},
+  saveEdit: async () => {},
+};
+
+function SourceMessage() {
+  const contentRef = useRef<HTMLDivElement>(null);
+  return (
+    <TimelineActionsContext.Provider value={timelineActions}>
+      <UnsentMessagesContext.Provider value={{} as UnsentMessages}>
+        <MessageActionProvider
+          value={{ item: sourceItem, author: longName, editing: false }}
+          contentRef={contentRef}
+        >
+          <MessageTouchActions rowProps={{ 'aria-label': 'Повідомлення в історії' }}>
+            <div ref={contentRef}>Чи можна з обмеженим доступом?</div>
+          </MessageTouchActions>
+        </MessageActionProvider>
+      </UnsentMessagesContext.Provider>
+    </TimelineActionsContext.Provider>
+  );
+}
 
 function NativeInsets() {
   useEffect(() => {
@@ -107,7 +175,7 @@ function Fixture() {
         </nav>
       </header>
       <section className="history" aria-label="Історія чату">
-        <p>Чи можна з обмеженим доступом?</p>
+        <SourceMessage />
         <output aria-label="Надіслані повідомлення">{JSON.stringify(sent)}</output>
       </section>
       <MessageComposer
