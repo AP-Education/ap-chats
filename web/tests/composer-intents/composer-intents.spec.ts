@@ -89,3 +89,15 @@ test('holding send opens scheduling with the keyboard dismissed', async ({ page 
   await expect(editor).not.toBeFocused();
   await expect(editor).toHaveText('Пізніше');
 });
+
+test('holding a message opens its actions with the keyboard dismissed', async ({ page }) => {
+  await page.getByRole('textbox', { name: 'Повідомлення' }).fill('Чернетка');
+  // The open sheet hides the page behind it from the accessibility tree.
+  const editor = page.locator('[role="textbox"][aria-label="Повідомлення"]');
+  await expect(editor).toBeFocused();
+  // A long press on a phone arrives as a context menu on the message.
+  await page.locator('[aria-label="Повідомлення в історії"]').dispatchEvent('contextmenu');
+  await expect(page.getByRole('dialog', { name: 'Дії з повідомленням' })).toBeVisible();
+  await expect(editor).not.toBeFocused();
+  await expect(editor).toHaveText('Чернетка');
+});

@@ -37,13 +37,18 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
     // Keep the held touch until release so it cannot click the sheet underneath.
     enabled: !scope.editing && !picking,
     canReply: !!reply,
-    onLongPress: () => setSheetOpen(true),
+    onLongPress: openSheet,
     onReply: () => {
       if (reply) scope.onAction(reply, scope.messageTarget);
     },
   });
   useRunAvatarFollow(areaRef, swipe.offset, swipe.dragging);
 
+  // iOS keeps the keyboard up while the composer holds focus, covering the sheet's lower actions.
+  function openSheet() {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    setSheetOpen(true);
+  }
   const closeSheet = () => setSheetOpen(false);
   const pickAnyReaction = () => {
     closeSheet();
@@ -56,7 +61,7 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
     if (scope.editing || inEditableField) return;
 
     event.preventDefault();
-    setSheetOpen(true);
+    openSheet();
   };
   const quickReactions = scope.canReact && (
     <QuickReactions
