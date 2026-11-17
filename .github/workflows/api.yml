@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'scripts/updates/**'
+      - 'tsconfig.scripts.json'
       - 'infra/docker-compose.search-test.yml'
       - 'test/**'
       - 'web/tests/media/public/media/**'
@@ -19,6 +21,8 @@ on:
   pull_request:
     paths:
       - 'src/**'
+      - 'scripts/updates/**'
+      - 'tsconfig.scripts.json'
       - 'infra/docker-compose.search-test.yml'
       - 'test/**'
       - 'web/tests/media/public/media/**'
@@ -52,6 +56,8 @@ jobs:
           cache: true
       - run: pnpm lint
       - run: pnpm typecheck
+      - run: pnpm typecheck:scripts
+      - run: pnpm test:scripts
       # Queue and attention tests start their own isolated server; Redis speaks the same protocol.
       - run: sudo apt-get update && sudo apt-get install -y redis-server ffmpeg
       - run: pnpm test:api
@@ -70,4 +76,4 @@ jobs:
       - run: node --import tsx test/voice.integration.mts
       - if: always()
         run: docker compose --env-file /dev/null -f infra/docker-compose.voice-test.yml down
-      - run: pnpm exec prettier --check src package.json eslint.config.mjs
+      - run: pnpm exec prettier --check src scripts/updates package.json eslint.config.mjs
