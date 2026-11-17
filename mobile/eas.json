@@ -21,6 +21,7 @@
       "env": {
         "APP_UPDATES_CHANNEL": "preview"
       },
+      "environment": "preview",
       "distribution": "internal"
     },
     "production": {
@@ -34,7 +35,7 @@
     "apk": {
       "extends": "base",
       "env": {
-        "APP_UPDATES_CHANNEL": "preview"
+        "APP_UPDATES_CHANNEL": "production"
       },
       "environment": "production",
       "distribution": "internal",

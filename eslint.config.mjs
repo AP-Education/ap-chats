@@ -49,8 +49,8 @@ export default defineConfig(
     },
   },
   {
-    // Expo requires config plugins in Node during prebuild, outside the app bundle.
-    files: ['mobile/plugins/**/*.js'],
+    // Expo requires config plugins and the fingerprint config in Node, outside the app bundle.
+    files: ['mobile/plugins/**/*.js', 'mobile/fingerprint.config.js'],
     languageOptions: {
       sourceType: 'commonjs',
       globals: { ...globals.node, ...globals.es2023 },
