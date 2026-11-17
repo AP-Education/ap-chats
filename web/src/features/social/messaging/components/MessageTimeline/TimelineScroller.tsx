@@ -11,6 +11,7 @@ import { RefreshOnPull } from '@/shared/ui/PullToRefresh/RefreshOnPull';
 
 import { keyboardGlidePart } from '../../keyboard-glide-part';
 import { useDragDismissesKeyboard } from './useDragDismissesKeyboard';
+import { useFloatingDates } from './useFloatingDates';
 import { useMobileMessageSelection } from './useMobileMessageSelection';
 
 const useStyles = createStyles(({ token, css }) => ({
@@ -105,6 +106,7 @@ export function TimelineScroller({ anchoring, hasNewer, children }: TimelineScro
   const { scrollRef, onScroll, awayFromBottom, goDown } = anchoring;
   const downLabel = hasNewer ? t(($) => $.timeline.toNewer) : t(($) => $.timeline.toBottom);
   useMobileMessageSelection(scrollRef, isMobile);
+  useFloatingDates(scrollRef);
 
   return (
     <div className={cx(styles.viewport, keyboardGlidePart)} data-keyboard-glide-part>
