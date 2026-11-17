@@ -29,3 +29,12 @@ export function pageBottom(gap: number, systemBar: number): PageBottom {
 export function insetBottomScript(bottom: number): string {
   return `document.documentElement.style.setProperty('--app-inset-bottom', '${bottom}px');\ntrue;\n`;
 }
+
+/**
+ * Writes the page's top inset as `--app-inset-top`. On Android native keeps the page below the
+ * status bar, yet newer WebViews still report the bar through env(), and the shell then leaves room
+ * for it twice; this pins the inset to what is actually over the page.
+ */
+export function insetTopScript(top: number): string {
+  return `document.documentElement.style.setProperty('--app-inset-top', '${top}px');\ntrue;\n`;
+}
