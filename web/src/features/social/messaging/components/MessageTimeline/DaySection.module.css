@@ -7,6 +7,8 @@
   position: sticky;
   top: calc(var(--chat-inset-top, 0px) + var(--ant-padding-xs));
   z-index: 2;
+  /* One sticky bar per day: containment keeps its repaint inside it (web/AGENTS.md). */
+  contain: paint;
   display: flex;
   justify-content: center;
   margin-block: var(--ant-margin-xs);

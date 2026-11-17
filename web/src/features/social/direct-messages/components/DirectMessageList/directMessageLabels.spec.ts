@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import {
   conversationPreview,
   formatRecentTime,
+  lastActivityAt,
   lastMessagePreview,
 } from './directMessageLabels.ts';
 
@@ -42,6 +43,19 @@ test('a call that came after every message is what the preview names, from the v
     'Пропущений дзвінок',
   );
   assert.equal(conversationPreview({ participant, lastMessage: message('Hi') }), 'Hi');
+});
+
+test('the time beside a conversation is the time of what its preview names', () => {
+  const earlier = message('Hi');
+  const call = {
+    id: 'call',
+    status: 'ended' as const,
+    startedByMemberId: 'bob',
+    startedAt: '2026-10-19T12:05:00Z',
+  };
+
+  assert.equal(lastActivityAt({ lastMessage: earlier, lastCall: call }), call.startedAt);
+  assert.equal(lastActivityAt({ lastMessage: earlier, lastCall: null }), earlier.createdAt);
 });
 
 test('recent times read as minutes, hours or days ago, then as a date', () => {

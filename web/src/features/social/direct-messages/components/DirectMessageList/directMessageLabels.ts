@@ -29,12 +29,12 @@ export function conversationPreview({
   return lastMessagePreview(lastMessage);
 }
 
-/** When the last thing happened, a message or a call. */
+/** When the last thing happened: a call only stays on the conversation while it is the newest. */
 export function lastActivityAt({
   lastMessage,
   lastCall,
 }: Pick<DirectMessage, 'lastMessage' | 'lastCall'>): string | undefined {
-  return lastMessage?.createdAt ?? lastCall?.startedAt;
+  return lastCall?.startedAt ?? lastMessage?.createdAt;
 }
 
 /** Minutes, hours or days ago within a week, a short date beyond that. */
