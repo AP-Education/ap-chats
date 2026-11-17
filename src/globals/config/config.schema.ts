@@ -87,6 +87,12 @@ const schema = z
     ),
     UPDATES_STORE_URL_IOS: z.preprocess((value) => value || undefined, z.url().optional()),
     UPDATES_STORE_URL_ANDROID: z.preprocess((value) => value || undefined, z.url().optional()),
+    // PEM key that signs Expo update manifests; its certificate is embedded in the native build.
+    // Escaped newlines are accepted so the key fits in one env line.
+    EXPO_UPDATES_PRIVATE_KEY: z.preprocess(
+      (value) => (typeof value === 'string' && value ? value.replaceAll('\\n', '\n') : undefined),
+      z.string().includes('PRIVATE KEY').optional(),
+    ),
   })
   .superRefine((config, context) => {
     if (config.CHAT_UPLOAD_MAX_MESSAGE_BYTES < config.CHAT_UPLOAD_MAX_FILE_BYTES) {
