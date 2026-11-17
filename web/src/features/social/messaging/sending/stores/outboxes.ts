@@ -7,6 +7,7 @@ import type { Attachment } from '../../attachments/types';
 import { localOutboxStorage } from '../api/outbox-storage';
 import { recordSentMessage } from '../api/record-sent';
 import type { ConversationKey } from '../types';
+import { sendingInFlight } from '../utils/sending-in-flight';
 import { ConversationOutbox } from './conversation-outbox';
 
 /** A conversation's outgoing side: the files its composer holds and the messages on their way. */
@@ -19,11 +20,24 @@ export interface Outboxes {
   for: (conversation: ConversationKey) => ConversationSending;
   /** Another person's conversations stop and go. */
   setSession: (identity: string | undefined, token: string | undefined) => void;
+  /** Whether any conversation has a message on its way or a composer file going up. */
+  isSending: () => boolean;
+  /** Hears every change to any conversation's sends and files. */
+  subscribe: (listener: () => void) => () => void;
+}
+
+interface OpenConversation extends ConversationSending, ConversationKey {
+  stopListening: () => void;
 }
 
 export function createOutboxes(queryClient: QueryClient): Outboxes {
-  const conversations = new Map<string, ConversationSending & ConversationKey>();
+  const conversations = new Map<string, OpenConversation>();
+  const listeners = new Set<() => void>();
   let token: string | undefined;
+
+  function changed() {
+    listeners.forEach((listener) => listener());
+  }
 
   function requireToken() {
     if (!token) throw new Error('Not signed in');
@@ -45,7 +59,8 @@ export function createOutboxes(queryClient: QueryClient): Outboxes {
     return { uploads, outbox };
   }
 
-  function close({ uploads, outbox }: ConversationSending) {
+  function close({ uploads, outbox, stopListening }: OpenConversation) {
+    stopListening();
     outbox.dispose();
     uploads.dispose();
   }
@@ -56,9 +71,15 @@ export function createOutboxes(queryClient: QueryClient): Outboxes {
       const existing = conversations.get(key);
       if (existing) return existing;
 
-      const opened = { ...conversation, ...open(conversation) };
-      conversations.set(key, opened);
-      return opened;
+      const sending = open(conversation);
+      const stopUploads = sending.uploads.subscribe(changed);
+      const stopOutbox = sending.outbox.subscribe(changed);
+      const stopListening = () => {
+        stopUploads();
+        stopOutbox();
+      };
+      conversations.set(key, { ...conversation, ...sending, stopListening });
+      return sending;
     },
     setSession: (identity, nextToken) => {
       token = nextToken;
@@ -67,6 +88,17 @@ export function createOutboxes(queryClient: QueryClient): Outboxes {
         close(conversation);
         conversations.delete(key);
       }
+      changed();
+    },
+    isSending: () =>
+      [...conversations.values()].some(({ outbox, uploads }) =>
+        sendingInFlight(outbox.getSnapshot().entries, uploads.getSnapshot()),
+      ),
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     },
   };
 }
