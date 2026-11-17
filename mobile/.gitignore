@@ -29,6 +29,8 @@ yarn-error.*
 # macOS
 .DS_Store
 *.pem
+# Public half of the update signing key: every build embeds it.
+!certs/updates-certificate.pem
 
 # local env files
 .env*.local

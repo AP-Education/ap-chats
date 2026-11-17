@@ -18,15 +18,24 @@
     },
     "preview": {
       "extends": "base",
+      "env": {
+        "APP_UPDATES_CHANNEL": "preview"
+      },
       "distribution": "internal"
     },
     "production": {
       "extends": "base",
+      "env": {
+        "APP_UPDATES_CHANNEL": "production"
+      },
       "environment": "production",
       "autoIncrement": true
     },
     "apk": {
       "extends": "base",
+      "env": {
+        "APP_UPDATES_CHANNEL": "preview"
+      },
       "environment": "production",
       "distribution": "internal",
       "android": {
