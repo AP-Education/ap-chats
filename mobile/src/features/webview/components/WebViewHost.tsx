@@ -209,6 +209,7 @@ export function WebViewHost() {
     pageWatchesCalls.current = false;
     useNotificationStore.getState().setWebReady(false);
     useUpdateStore.getState().pageStarted();
+    useUpdateStore.getState().markPageLoaded();
   }
 
   function sendBackToPage(): boolean {
