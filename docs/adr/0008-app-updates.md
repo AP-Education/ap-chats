@@ -195,16 +195,30 @@ Rollout детермінований: сервер бере перші 4 бай�
 
 CI-джоб `publish-update`:
 
-1. `expo export --platform ios|android` у `mobile/`.
-2. Обчислення fingerprint.
-3. Завантаження бандла й ассетів у Spaces.
-4. `POST /api/updates/admin/releases`. Якщо збірки з таким fingerprint немає в `app_runtimes`, API відповідає 409 і публікація зупиняється.
+1. `eas env:pull` для EAS-оточення з назвою каналу: бандл несе ті самі `EXPO_PUBLIC_*`, що й збірки цього каналу.
+2. Обчислення fingerprint (`expo-updates runtimeversion:resolve`) з тим самим `APP_UPDATES_CHANNEL`.
+3. `expo export --platform ios|android` у `mobile/`.
+4. Завантаження бандла й ассетів у Spaces під `app-updates/<sha256><розширення>`, публічно, з `Cache-Control: immutable`. Файл, який уже є в бакеті, не надсилається повторно.
+5. `POST /api/updates/admin/releases`. Якщо збірки з таким fingerprint немає в `app_runtimes`, API відповідає 409 і публікація зупиняється.
 
-Після кожного релізу в стор CI-джоб `register-runtime` записує fingerprint і номер збірки в `app_runtimes`. Розширення rollout, пауза й відкат — окремі ручні CI-джоби.
+Після кожного релізу в стор CI-джоб `register-runtime` записує fingerprint і номер збірки в `app_runtimes`. Fingerprint береться з EAS (`eas build:list`), тобто той, з яким збірку справді зроблено. Розширення rollout, пауза й відкат — окремі ручні CI-джоби. Скрипти лежать у `scripts/updates/`, workflows — у `.github/workflows/`.
+
+**Fingerprint.** `mobile/fingerprint.config.js` виключає версії й номери збірок, `.gitignore` і `eas.json`: вони не змінюють нативний код, а інакше кожна збірка мала б свій runtime і правка `eas.json` відрізала б збірки в сторах від оновлень. Конфіг застосунку, зокрема адреса API й канал, у fingerprint входить.
+
+**Налаштування GitHub.**
+
+| Що                                                 | Де       | Значення                                                             |
+| -------------------------------------------------- | -------- | -------------------------------------------------------------------- |
+| `UPDATES_ADMIN_TOKEN`                              | secret   | той самий, що в Ansible Vault                                        |
+| `UPDATES_SPACES_KEY`, `UPDATES_SPACES_SECRET`      | secret   | ключ Spaces з правом запису в бакет оновлень                         |
+| `EXPO_TOKEN`                                       | secret   | токен робота Expo (безкоштовний): `env:pull` і `build:list`          |
+| `UPDATES_API_URL`                                  | variable | адреса API без `/api`                                                |
+| `UPDATES_SPACES_ENDPOINT`, `UPDATES_SPACES_BUCKET` | variable | напр. `fra1.digitaloceanspaces.com` і назва бакета                   |
+| `UPDATES_ASSETS_URL`                               | variable | публічна адреса бакета (або CDN), з якої телефони завантажують файли |
 
 **Ключ підпису маніфестів.** Сервер підписує маніфести під час відповіді, тому приватний ключ зберігається лише в секретах сервера. CI його не має: публікацію обмежує `UPDATES_ADMIN_TOKEN`. Сертифікат вшивається в бінарник. Ротація ключа потребує нового бінарника, тому сертифікат одразу випускається з довгим строком дії.
 
-**Канали.** Профілі `preview` і `production` в `eas.json` отримують однойменний `channel`. Збірка отримує OTA лише зі свого каналу. Профіль `development` канал не має: dev client працює з Metro, а не з OTA.
+**Канали.** Кожен профіль `eas.json` задає `APP_UPDATES_CHANNEL`, що збігається з його EAS-оточенням: `preview` — `preview`, `production` і `apk` — `production`. Збірка отримує OTA лише зі свого каналу. Профіль `development` канал не має: dev client працює з Metro, а не з OTA.
 
 ## Як публікувати OTA
 
@@ -217,7 +231,7 @@ CI-джоб `publish-update`:
    ```bash
    gh workflow run publish-update -f channel=preview -f platform=all -f notes="fix: call screen freeze"
    ```
-   Якщо fingerprint не збігається з жодною збіркою в сторі, джоб падає. У summary джоба є `updateId`.
+   Якщо fingerprint не збігається з жодною збіркою в сторі, джоб падає. У summary джоба є `updateId`. Публікація в `production` іде через GitHub environment `production`, де можна вимагати підтвердження.
 3. Перевірка на preview-збірці (TestFlight / internal testing): закрити й відкрити застосунок двічі. Перший запуск завантажує update, другий його застосовує.
 4. Публікація в `production` з того самого коміту. Стартовий rollout — 10 %:
    ```bash
@@ -237,6 +251,12 @@ CI-джоб `publish-update`:
 - коміт і автора.
 
 **Обовʼязкове оновлення** — `-f mandatory=true` у `publish-update`. Перезапуск відкладається за правилами з «Мобільний клієнт». Використовується лише для виправлень, без яких оболонка не працює.
+
+**Після релізу в стор:**
+
+```bash
+gh workflow run register-runtime -f platform=ios -f build=12
+```
 
 **Інцидент:**
 
