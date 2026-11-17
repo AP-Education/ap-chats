@@ -30,7 +30,8 @@ fi
 
 # The shell knows its applications only from this list; one missing here is absent from the rail.
 CHATS_URL="${VITE_APP_ORIGIN%/}/remotes/chats"
-VITE_APPS='[{"id":"chats","label":"Чати","icon":"ChatsIcon","basePath":"/c","rail":"contributed","url":"'"$CHATS_URL"'"},{"id":"ai","label":"AI","icon":"HouseIcon","basePath":"/","rail":"tile","url":"'"$VITE_MFE_AI_URL"'"}]'
+CRM_URL="${VITE_MFE_CRM_URL:-https://crm.ap-platform.online}"
+VITE_APPS='[{"id":"chats","label":{"uk":"Чати","en":"Chats"},"icon":"ChatsIcon","basePath":"/c","rail":"contributed","url":"'"$CHATS_URL"'"},{"id":"ai","label":"AI","icon":"HouseIcon","basePath":"/","rail":"tile","url":"'"$VITE_MFE_AI_URL"'"},{"id":"crm","label":{"uk":"CRM","en":"CRM"},"icon":"KanbanIcon","basePath":"/crm","rail":"contributed","url":"'"$CRM_URL"'"}]'
 
 # Both the private ap-app repository and GitHub Packages accept the gh CLI token.
 GITHUB_TOKEN="${GITHUB_TOKEN:-$(gh auth token)}"
@@ -55,6 +56,10 @@ docker build \
 # A shell that can't find Chats serves "no applications" to everyone, so it never ships.
 if ! grep -q "$CHATS_URL/remoteEntry.js" "$WORK_DIR/host/srv/host/index.html"; then
   echo "The shell from ap-app@${AP_APP_REF} does not load Chats from ${CHATS_URL}" >&2
+  exit 1
+fi
+if ! grep -q "$CRM_URL/remoteEntry.js" "$WORK_DIR/host/srv/host/index.html"; then
+  echo "The shell from ap-app@${AP_APP_REF} does not load the CRM from ${CRM_URL}" >&2
   exit 1
 fi
 
