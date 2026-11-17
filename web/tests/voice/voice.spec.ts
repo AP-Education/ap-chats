@@ -172,12 +172,18 @@ async function backend(
   };
 }
 
+// Opening the microphone is the slow step: WebKit on a CI runner can take longer than the
+// default 5 s. Waiting for the recording itself first leaves the rest of the swap settled.
+const MICROPHONE_START_MS = 20_000;
+
 async function start(page: Page) {
   await page.getByRole('button', { name: 'Записати голосове повідомлення' }).click();
+  await expect(page.getByText('Триває запис', { exact: true })).toBeVisible({
+    timeout: MICROPHONE_START_MS,
+  });
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Почати запис', exact: true })).toHaveCount(0);
   await expect(page.getByRole('textbox', { name: 'Повідомлення' })).toHaveCount(0);
-  await expect(page.getByText('Триває запис', { exact: true })).toBeVisible();
   await expect.poll(() => page.getByLabel('Тривалість запису').textContent()).not.toBe('0:00');
 }
 

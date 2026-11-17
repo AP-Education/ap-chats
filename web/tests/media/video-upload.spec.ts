@@ -26,7 +26,11 @@ test('sending while video processing continues becomes one playable message with
     .locator('input[type=file]')
     .first()
     .setInputFiles({ name, mimeType: 'video/mp4', buffer: video });
-  await expect(page.getByRole('status').filter({ hasText: 'Обробка файлу' })).toBeVisible();
+  // The whole file uploads before processing shows, slow on a CI runner; completion is held
+  // above, so a longer wait cannot miss this state.
+  await expect(page.getByRole('status').filter({ hasText: 'Обробка файлу' })).toBeVisible({
+    timeout: 20_000,
+  });
   await page
     .getByRole('textbox', { name: 'Повідомлення', exact: true })
     .fill('Запис нашої зустрічі');
