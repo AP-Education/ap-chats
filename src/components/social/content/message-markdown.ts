@@ -236,6 +236,8 @@ export async function messagePreviewText(markdown: string): Promise<string> {
   return readTree(await parseMarkdown(markdown), markdown, 'shut').plain.join('');
 }
 
+const MAX_MESSAGE_BYTES = 32_768;
+
 function containsType(node: MarkdownNode, type: string): boolean {
   return node.type === type || !!node.children?.some((child) => containsType(child, type));
 }
@@ -247,16 +249,18 @@ function containsType(node: MarkdownNode, type: string): boolean {
  */
 function literalMarks(source: string, tree: MarkdownNode): string | null {
   if (containsType(tree, 'thematicBreak')) return null;
+  // Only a mark that opens a block: four spaces in, a line is code and keeps its characters.
   const escaped = source
-    .replace(/^([ \t]*)([-+*>#])/gmu, '$1\\$2')
-    .replace(/^([ \t]*)(\d+)([.)])/gmu, '$1$2\\$3');
-  return escaped === source ? null : escaped;
+    .replace(/^( {0,3})([-+*>#])/gmu, '$1\\$2')
+    .replace(/^( {0,3})(\d+)([.)])/gmu, '$1$2\\$3');
+  if (escaped === source || Buffer.byteLength(escaped, 'utf8') > MAX_MESSAGE_BYTES) return null;
+  return escaped;
 }
 
 @Injectable()
 export class MessageMarkdownService {
   async normalize(source: string, allowBlank = false): Promise<NormalizedMessageContent> {
-    if (Buffer.byteLength(source, 'utf8') > 32_768)
+    if (Buffer.byteLength(source, 'utf8') > MAX_MESSAGE_BYTES)
       throw new BadRequestException('Message is too long');
     const normalizedSource = source.replace(/\r\n?/gu, '\n');
     // eslint-disable-next-line no-control-regex

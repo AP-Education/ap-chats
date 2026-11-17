@@ -80,6 +80,17 @@ test('a list, heading or quote mark sent on its own is kept as the character', a
   assert.equal((await markdown.normalize('- так')).plainText.trim(), 'так');
 });
 
+test('escapes only marks that open a block, and never past the length limit', async () => {
+  // Four spaces in after a blank line is code once the marks above are text: it keeps its "-".
+  const indented = await markdown.normalize('-\n  +\n\n    -');
+  assert.equal(indented.markdown, '\\-\n  \\+\n\n    -');
+  assert.equal(indented.plainText, '-\n+\n-');
+  assert.deepEqual(await markdown.normalize(indented.markdown), indented);
+
+  // Escaping would grow it past the limit, so it stays the blank it parses as.
+  await assert.rejects(markdown.normalize(Array(16_384).fill('+').join('\n')), /blank/u);
+});
+
 test('does not index text that only resembles a mention', async () => {
   const result = await markdown.normalize('`@Alex` and @Alex');
   assert.deepEqual(result.mentions, { memberIds: [], roleIds: [], everyone: false });
