@@ -69,6 +69,10 @@ const useStyles = createStyles(({ token, css }) => ({
       background: ${token.colorError};
       box-shadow: 0 0 10px ${token.colorError};
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   `,
   info: css`
     display: flex;

@@ -11,10 +11,11 @@ class FakeRoom extends EventEmitter {
   remoteParticipants = new Map();
 }
 
-test('reports when the call service starts and stops recording the room', () => {
+test('reports when the call service starts and stops recording the room', (t) => {
   const room = new FakeRoom();
   const updates: RemoteParticipantUpdate[] = [];
   const stop = trackRemoteParticipant(room as unknown as Room, (update) => updates.push(update));
+  t.after(stop);
 
   assert.equal(updates.at(-1)?.recording, false);
   room.isRecording = true;
@@ -23,6 +24,4 @@ test('reports when the call service starts and stops recording the room', () => 
   room.isRecording = false;
   room.emit(RoomEvent.RecordingStatusChanged, false);
   assert.equal(updates.at(-1)?.recording, false);
-
-  stop();
 });

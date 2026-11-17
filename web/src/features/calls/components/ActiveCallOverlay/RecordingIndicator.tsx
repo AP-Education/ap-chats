@@ -40,12 +40,16 @@ export function RecordingIndicator() {
   const { t } = useTranslation('calls');
   const { styles } = useStyles();
   const recording = useIsRecording();
-  if (!recording) return null;
 
+  // The live region stays in place, so a screen reader hears the moment recording starts.
   return (
-    <span className={styles.indicator} role="status">
-      <span className={styles.dot} aria-hidden />
-      {t(($) => $.overlay.recording)}
+    <span role="status">
+      {recording && (
+        <span className={styles.indicator}>
+          <span className={styles.dot} aria-hidden />
+          {t(($) => $.overlay.recording)}
+        </span>
+      )}
     </span>
   );
 }
