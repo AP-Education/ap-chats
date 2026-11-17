@@ -12,6 +12,7 @@ import { CallReadinessGate } from './features/calls/components/CallReadinessGate
 import { NotificationResponses } from './features/push/components/NotificationResponses';
 import { PushPrimingGate } from './features/push/components/PushPrimingGate';
 import { PushRegistration } from './features/push/components/PushRegistration';
+import { CompatGate } from './features/updates';
 import { WebViewHost } from './features/webview';
 import { AppProviders } from './shell/AppProviders';
 import { ErrorBoundary } from './shell/ErrorBoundary';
@@ -35,13 +36,15 @@ export default function App() {
         <ErrorBoundary label="native-mini-call-bar">
           <NativeMiniCallBar />
         </ErrorBoundary>
-        <AuthGate>
-          <PushPrimingGate>
-            <CallReadinessGate>
-              <WebViewHost />
-            </CallReadinessGate>
-          </PushPrimingGate>
-        </AuthGate>
+        <CompatGate>
+          <AuthGate>
+            <PushPrimingGate>
+              <CallReadinessGate>
+                <WebViewHost />
+              </CallReadinessGate>
+            </PushPrimingGate>
+          </AuthGate>
+        </CompatGate>
       </View>
       <ErrorBoundary label="native-incoming-call-screen">
         <NativeIncomingCallScreen />
