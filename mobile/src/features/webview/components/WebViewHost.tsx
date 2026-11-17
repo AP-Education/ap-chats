@@ -49,7 +49,12 @@ import { forgetLastLocation, loadLastLocation, rememberLocation } from '../api/l
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
 import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
 import { buildBridgeScript } from '../utils/inject-bridge';
-import { insetBottomScript, insetTopScript, pageBottom, pageKeyboardInset } from '../utils/page-inset';
+import {
+  insetBottomScript,
+  insetTopScript,
+  pageBottom,
+  pageKeyboardInset,
+} from '../utils/page-inset';
 import { APP_SHELL_USER_AGENT } from '../utils/shell-user-agent';
 import { tokenMessage } from '../utils/token-message';
 import { ConnectionErrorScreen } from './ConnectionErrorScreen';
