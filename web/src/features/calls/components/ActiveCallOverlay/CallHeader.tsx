@@ -3,6 +3,7 @@ import { createStyles } from 'antd-style';
 import { useTranslation } from 'react-i18next';
 
 import { CallActionButton } from '../CallActionButton/CallActionButton';
+import { RecordingIndicator } from './RecordingIndicator';
 
 const useStyles = createStyles(({ token, css }) => ({
   header: css`
@@ -77,6 +78,7 @@ export function CallHeader({ title, duration, onMinimize }: CallHeaderProps) {
       </CallActionButton>
       <span className={styles.title}>{title}</span>
       <span className={styles.duration}>{duration}</span>
+      <RecordingIndicator />
     </header>
   );
 }

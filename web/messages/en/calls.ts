@@ -64,6 +64,8 @@ export const calls = {
     dialog: 'Call',
     minimize: 'Minimize call',
     returnTo: 'Return to call: {{title}}',
+    recording: 'Recording',
+    recordingNotice: 'This call is being recorded',
     calling: 'Calling',
     waitingForParticipants: 'Waiting for participants',
     sharingScreen: '{{name}} is sharing their screen',

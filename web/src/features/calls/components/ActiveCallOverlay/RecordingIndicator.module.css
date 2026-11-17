@@ -1,0 +1,38 @@
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ant-padding-xxs);
+  margin-top: var(--ant-padding-xxs);
+  padding: 2px var(--ant-padding-xs);
+  border-radius: var(--ant-border-radius-lg);
+  background: color-mix(in srgb, var(--ant-color-error) 18%, transparent);
+  color: var(--ant-color-text);
+  font-size: var(--ant-font-size-sm);
+  line-height: 18px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ant-color-error);
+  animation: blink 1.6s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none;
+  }
+}

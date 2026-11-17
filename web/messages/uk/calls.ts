@@ -61,6 +61,8 @@ export const calls = {
     dialog: 'Дзвінок',
     minimize: 'Згорнути дзвінок',
     returnTo: 'Повернутися до дзвінка: {{title}}',
+    recording: 'Запис',
+    recordingNotice: 'Дзвінок записується',
     calling: 'Дзвонимо',
     waitingForParticipants: 'Очікуємо на учасників',
     sharingScreen: '{{name}} демонструє екран',

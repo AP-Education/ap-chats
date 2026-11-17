@@ -1,3 +1,4 @@
+import { useIsRecording } from '@livekit/components-react';
 import { createStyles, keyframes } from 'antd-style';
 import { useTranslation } from 'react-i18next';
 
@@ -62,6 +63,12 @@ const useStyles = createStyles(({ token, css }) => ({
     background: ${CALL_PALETTE.live};
     box-shadow: 0 0 10px ${CALL_PALETTE.live};
     animation: ${pulse} 1.6s ease-in-out infinite;
+
+    // A recorded call keeps saying so while it is minimized.
+    &[data-recording] {
+      background: ${token.colorError};
+      box-shadow: 0 0 10px ${token.colorError};
+    }
   `,
   info: css`
     display: flex;
@@ -107,16 +114,27 @@ interface MiniCallBarProps {
 export function MiniCallBar({ title, duration, onExpand }: MiniCallBarProps) {
   const { t } = useTranslation('calls');
   const { styles } = useStyles();
+  const recording = useIsRecording();
 
   return (
     <div className={styles.bar} role="status">
       <button
         type="button"
         className={styles.expand}
-        aria-label={t(($) => $.overlay.returnTo, { title })}
+        aria-label={[
+          t(($) => $.overlay.returnTo, { title }),
+          recording && t(($) => $.overlay.recordingNotice),
+        ]
+          .filter(Boolean)
+          .join('. ')}
         onClick={onExpand}
       >
-        <span className={styles.dot} aria-hidden />
+        <span
+          className={styles.dot}
+          data-recording={recording || undefined}
+          title={recording ? t(($) => $.overlay.recordingNotice) : undefined}
+          aria-hidden
+        />
         <span className={styles.info}>
           <span className={styles.title}>{title}</span>
           <span className={styles.duration}>{duration}</span>
