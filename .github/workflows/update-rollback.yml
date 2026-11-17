@@ -1,0 +1,39 @@
+# Revokes an update and moves its phones to the previous one or the store bundle (docs/adr/0008-app-updates.md).
+name: update-rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      update:
+        description: Update id
+        type: string
+        required: true
+      embedded:
+        description: Return to the bundle in the store build instead of the previous update
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: updates
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      UPDATES_API_URL: ${{ vars.UPDATES_API_URL }}
+      UPDATES_ADMIN_TOKEN: ${{ secrets.UPDATES_ADMIN_TOKEN }}
+      UPDATE: ${{ inputs.update }}
+      EMBEDDED: ${{ inputs.embedded }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          node-auth-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: node --import tsx scripts/updates/admin.ts rollback --update "$UPDATE" $([ "$EMBEDDED" = "true" ] && echo --embedded)

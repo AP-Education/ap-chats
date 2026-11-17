@@ -1,0 +1,34 @@
+# Shows the updates on a channel and how their launches go (docs/adr/0008-app-updates.md).
+name: update-status
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        type: choice
+        options: [production, preview]
+        default: production
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: updates
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      UPDATES_API_URL: ${{ vars.UPDATES_API_URL }}
+      UPDATES_ADMIN_TOKEN: ${{ secrets.UPDATES_ADMIN_TOKEN }}
+      CHANNEL: ${{ inputs.channel }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          node-auth-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: node --import tsx scripts/updates/admin.ts status --channel "$CHANNEL"

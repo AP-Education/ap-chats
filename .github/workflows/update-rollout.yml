@@ -1,0 +1,39 @@
+# Changes the share of phones an update reaches; resumes a paused one (docs/adr/0008-app-updates.md).
+name: update-rollout
+
+on:
+  workflow_dispatch:
+    inputs:
+      update:
+        description: Update id
+        type: string
+        required: true
+      percent:
+        description: Percent of phones, 0-100
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: updates
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      UPDATES_API_URL: ${{ vars.UPDATES_API_URL }}
+      UPDATES_ADMIN_TOKEN: ${{ secrets.UPDATES_ADMIN_TOKEN }}
+      UPDATE: ${{ inputs.update }}
+      PERCENT: ${{ inputs.percent }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          node-auth-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: node --import tsx scripts/updates/admin.ts rollout --update "$UPDATE" --percent "$PERCENT"
