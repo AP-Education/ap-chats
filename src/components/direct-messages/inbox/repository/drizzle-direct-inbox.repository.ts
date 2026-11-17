@@ -5,6 +5,7 @@ import { alias } from 'drizzle-orm/pg-core';
 
 import type { DrizzleTransactionAdapter } from '@/database/drizzle';
 import {
+  calls,
   channelEntries,
   channelMemberships,
   channels,
@@ -163,7 +164,7 @@ export class DrizzleDirectInboxRepository extends DirectInboxRepository {
     const secondProfile = alias(userProfiles, 'dm_second_profile');
     const viewerMembership = alias(channelMemberships, 'dm_viewer_membership');
     const visibleEntry = this.txHost.tx
-      .select({ messageId: channelEntries.messageId })
+      .select({ messageId: channelEntries.messageId, callId: channelEntries.callId })
       .from(channelEntries)
       .leftJoin(chatMessages, eq(chatMessages.id, channelEntries.messageId))
       .where(
@@ -209,6 +210,13 @@ export class DrizzleDirectInboxRepository extends DirectInboxRepository {
               chatMessages.createdAt,
             ),
         },
+        // A call is an entry of its own: when it came last, the row has no message to preview.
+        lastCall: {
+          id: calls.id,
+          status: calls.status,
+          startedByMemberId: calls.startedByMemberId,
+          startedAt: calls.startedAt,
+        },
       })
       .from(directMessages)
       .innerJoin(channels, and(eq(channels.id, directMessages.channelId), eq(channels.kind, 'dm')))
@@ -225,6 +233,7 @@ export class DrizzleDirectInboxRepository extends DirectInboxRepository {
       .innerJoin(secondProfile, eq(secondProfile.id, second.userProfileId))
       .leftJoinLateral(visibleEntry, sql`true`)
       .leftJoin(chatMessages, eq(chatMessages.id, visibleEntry.messageId))
+      .leftJoin(calls, eq(calls.id, visibleEntry.callId))
       .$dynamic();
   }
 }

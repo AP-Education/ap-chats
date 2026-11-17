@@ -1,7 +1,7 @@
 import { createStyles } from 'antd-style';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
-import { lastMessagePreview } from './directMessageLabels';
+import { conversationPreview } from './directMessageLabels';
 
 const useStyles = createStyles(({ token, css }) => ({
   body: css`
@@ -66,7 +66,7 @@ export function DirectMessageSummary({ item, isUnread }: DirectMessageSummaryPro
         {item.participant.displayName ?? 'Ім’я недоступне'}
       </span>
       <span className={cx(styles.preview, isUnread && styles.unreadPreview)}>
-        {lastMessagePreview(item.lastMessage)}
+        {conversationPreview(item)}
       </span>
     </span>
   );

@@ -76,6 +76,7 @@ export function confirmDirectMessage(
       authorMemberId: message.authorMemberId,
       createdAt: message.createdAt,
     },
+    lastCall: null,
   };
   mergeDirectMessage(queryClient, identity, updated);
 }

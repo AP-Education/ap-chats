@@ -97,6 +97,24 @@ test('direct messages across workspaces on PostgreSQL', async (t) => {
     );
   });
 
+  await t.test('previews a call that came after the last message', async () => {
+    const ann = await seed.person('Ann');
+    const bob = await seed.person('Bob');
+    const office = await seed.workspace();
+    const annAtOffice = await seed.join(office, ann);
+    const bobAtOffice = await seed.join(office, bob);
+    const withBob = await seed.conversation(annAtOffice, bobAtOffice);
+    await seed.post(withBob, annAtOffice);
+    const callId = await seed.call(withBob, bobAtOffice, 'ended');
+
+    const opened = await inbox.get(ann.oidcUserId, withBob.channelId);
+
+    assert.equal(opened.lastMessage, null);
+    assert.equal(opened.lastCall?.id, callId);
+    assert.equal(opened.lastCall?.status, 'ended');
+    assert.equal(opened.lastCall?.startedByMemberId, bobAtOffice.id);
+  });
+
   await t.test('reuses a conversation from another shared workspace', async () => {
     const ann = await seed.person('Ann');
     const bob = await seed.person('Bob');

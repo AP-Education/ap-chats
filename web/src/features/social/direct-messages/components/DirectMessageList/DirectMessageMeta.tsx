@@ -3,7 +3,7 @@ import { BellSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
-import { formatRecentTime } from './directMessageLabels';
+import { formatRecentTime, lastActivityAt } from './directMessageLabels';
 
 const useStyles = createStyles(({ token, css }) => ({
   trailing: css`
@@ -50,7 +50,7 @@ export function DirectMessageMeta({ item, badge }: DirectMessageMetaProps) {
   const { styles } = useStyles();
   const isMuted = item.notification.isMuted;
   // A waiting count takes the place of the time.
-  const sentAt = badge > 0 ? undefined : item.lastMessage?.createdAt;
+  const sentAt = badge > 0 ? undefined : lastActivityAt(item);
   const hasIndicators = isMuted || badge > 0;
   if (!sentAt && !hasIndicators) return null;
 

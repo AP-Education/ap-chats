@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { formatRecentTime, lastMessagePreview } from './directMessageLabels.ts';
+import {
+  conversationPreview,
+  formatRecentTime,
+  lastMessagePreview,
+} from './directMessageLabels.ts';
 
 const now = new Date('2026-10-19T12:00:00Z');
 
@@ -14,6 +18,30 @@ test('the preview says what the last message was, even when there is no text to 
   assert.equal(lastMessagePreview(message(null)), 'Повідомлення видалено');
   assert.equal(lastMessagePreview(message('')), 'Вкладення');
   assert.equal(lastMessagePreview(message('See   you\nsoon')), 'See you soon');
+});
+
+test('a call that came after every message is what the preview names, from the viewer side', () => {
+  const participant = { memberId: 'bob', displayName: 'Bob', avatarPath: null, active: true };
+  const call = (startedByMemberId: string, status: 'ended' | 'missed') => ({
+    id: 'call',
+    status,
+    startedByMemberId,
+    startedAt: now.toISOString(),
+  });
+
+  assert.equal(
+    conversationPreview({ participant, lastMessage: null, lastCall: call('bob', 'ended') }),
+    'Вхідний дзвінок',
+  );
+  assert.equal(
+    conversationPreview({ participant, lastMessage: null, lastCall: call('ann', 'ended') }),
+    'Вихідний дзвінок',
+  );
+  assert.equal(
+    conversationPreview({ participant, lastMessage: null, lastCall: call('bob', 'missed') }),
+    'Пропущений дзвінок',
+  );
+  assert.equal(conversationPreview({ participant, lastMessage: message('Hi') }), 'Hi');
 });
 
 test('recent times read as minutes, hours or days ago, then as a date', () => {
