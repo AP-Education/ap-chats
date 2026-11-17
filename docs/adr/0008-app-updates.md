@@ -10,11 +10,11 @@
 
 ## Шари оновлення
 
-| Шар | Що містить | Канал доставки |
-|---|---|---|
-| Web | `web/`, весь UI чатів | деплой сервера, одразу всім |
-| JS оболонки | RN-код `mobile/src` | OTA через `expo-updates` |
-| Нативний код | модулі, config plugins, entitlements, SDK; уся збірка Electron | стор або новий інсталятор |
+| Шар          | Що містить                                                     | Канал доставки              |
+| ------------ | -------------------------------------------------------------- | --------------------------- |
+| Web          | `web/`, весь UI чатів                                          | деплой сервера, одразу всім |
+| JS оболонки  | RN-код `mobile/src`                                            | OTA через `expo-updates`    |
+| Нативний код | модулі, config plugins, entitlements, SDK; уся збірка Electron | стор або новий інсталятор   |
 
 OTA ніколи не змінює нативний шар. Нові нативні можливості (LiveKit, CallKit, WebRTC тощо) і далі йдуть через ревʼю.
 
@@ -32,6 +32,7 @@ EAS Update тарифікується за MAU, і безкоштовний пл
 Electron на цей вибір не впливає. `electron-updater` публікує артефакти й `latest*.yml` прямо в Spaces і сам підтримує поступовий rollout через `stagingPercentage`.
 
 **Ціна власного сервера:**
+
 - реалізація й підтримка протоколу Expo Updates та code signing, а також сумісність з новими версіями `expo-updates` при кожному оновленні Expo SDK;
 - діагностика, яку EAS дає з коробки: які пристрої на якому update, помилки за updateId. Її треба побудувати самим (див. «Rollout»);
 - відновлення після збоїв: недоступний API чи Spaces не має ламати запуск. Клієнт тоді працює на останньому завантаженому або вбудованому бандлі;
@@ -60,6 +61,7 @@ Fingerprint (`runtimeVersion`) — це хеш нативного шару. Ві
 - Це аварійний важіль на випадок, коли web більше не може підтримувати старий bridge. Для звичайних функцій використовуються токени.
 
 Збій `/compat` не блокує застосунок (fail open):
+
 - запит має короткий таймаут;
 - при помилці оболонка бере останню успішну відповідь з локального сховища;
 - якщо збереженої відповіді немає, оболонка працює далі.
@@ -68,41 +70,66 @@ Fingerprint (`runtimeVersion`) — це хеш нативного шару. Ві
 
 ## Модуль `updates` (мобільна оболонка)
 
-Модуль `src/components/updates` і таблиця `app_updates` (Drizzle):
+Модуль `src/components/updates`, три таблиці (Drizzle, міграція `0038_app_updates`):
 
 ```
-app_updates:
-  id (uuid — це updateId протоколу), platform (ios | android),
-  channel (production | preview), runtime_version (fingerprint),
-  manifest (jsonb: launch asset, assets з hash і url),
-  rollout_percent, status (active | paused | revoked),
-  mandatory, source_update_id (для republish під час відкату),
-  notes, created_by, created_at
+app_runtimes             — нативні збірки в сторах
+  (platform, runtime_version) pk, build_number, created_at
+
+app_updates              — що пропонується оболонкам
+  id (uuid — це updateId протоколу),
+  kind (update | rollback_to_embedded),
+  platform (ios | android), channel (production | preview),
+  runtime_version → app_runtimes,
+  manifest (jsonb: launch asset, assets з hash і url; null для rollback_to_embedded),
+  rollout_percent (0–100), status (active | paused | revoked),
+  mandatory, source_update_id (оригінал при republish),
+  git_commit, notes, created_by, created_at
+
+app_update_launch_stats  — запуски за день
+  (platform, runtime_version, update_id, day) unique nulls not distinct,
+  launches, successes, emergency_launches
 ```
 
-Ендпоінти:
+`rollBackToEmbedded` — звичайний запис з `kind = rollback_to_embedded`. Він бере участь у rollout і виборі так само, як бандл. Update не можна створити для runtime, якого немає в `app_runtimes`: таке оновлення не запуститься на жодному бінарнику.
+
+Публічні ендпоінти (оновлення має дійти й до пристрою без сесії):
 
 - `GET /api/updates/expo/manifest` — протокол Expo Updates.
-  - Сервер читає заголовки `expo-platform`, `expo-runtime-version` і `expo-channel-name`.
-  - У multipart-відповіді повертає одне з трьох: маніфест найновішого `active` update для цього runtime, директиву `noUpdateAvailable` або директиву `rollBackToEmbedded`.
-  - Маніфест підписується ключем сервісу, а клієнт перевіряє підпис через `codeSigningCertificate`.
-- `GET /api/updates/compat` — див. «Примусове оновлення». Спільний для мобільної й десктопної оболонки.
+  - Сервер читає заголовки `expo-protocol-version` (лише `1`), `expo-platform`, `expo-runtime-version`, `expo-channel-name` та ідентифікатор установки.
+  - У multipart-відповіді повертає одне з трьох: маніфест найновішого `active` update для цього runtime, директиву `noUpdateAvailable` або директиву `rollBackToEmbedded`. Невідомий канал отримує `noUpdateAvailable`.
+  - Якщо клієнт надсилає `expo-expect-signature`, маніфест і директива підписуються ключем `EXPO_UPDATES_PRIVATE_KEY`. Клієнт перевіряє підпис через `codeSigningCertificate`. Без налаштованого ключа сервер відповідає 503, а не непідписаною відповіддю.
+- `GET /api/updates/compat` — див. «Примусове оновлення». Значення беруться з env (`UPDATES_MIN_BUILD_*`, `UPDATES_STORE_URL_*`).
+- `POST /api/updates/launches` — телеметрія запуску (див. «Rollout і критерії успіху»). Звіти для runtime або update, яких немає в базі, відкидаються.
 
-Ендпоінти публічні, бо оновлення має дійти й до пристрою без сесії. Бандли й ассети лежать у Spaces за незмінними URL з hash в імені та віддаються через CDN, а не через API.
+Адмін-ендпоінти `/api/updates/admin/*` доступні лише з токеном `UPDATES_ADMIN_TOKEN`, який зберігається тільки в секретах CI. Без налаштованого токена адмін-API вимкнений.
 
-Rollout детермінований: сервер хешує ідентифікатор установки разом з updateId і порівнює результат з `rollout_percent`. Тоді один пристрій не перемикається між версіями від запиту до запиту. Пристрій поза rollout отримує попередній `active` update. Цей update не новіший за той, що вже стоїть на пристрої, тож клієнт нічого не змінює.
+| Ендпоінт                          | Дія                                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `POST runtimes`                   | зареєструвати fingerprint і номер збірки після релізу в стор                                            |
+| `POST releases`                   | опублікувати update. Production стартує з 10 %, preview — зі 100 %. 409, якщо runtime не зареєстрований |
+| `GET releases?channel=&platform=` | список з сумарними запусками                                                                            |
+| `PATCH releases/:id/rollout`      | змінити відсоток. Відновлює `paused`                                                                    |
+| `POST releases/:id/pause`         | `paused`                                                                                                |
+| `POST releases/:id/rollback`      | у транзакції: republish або `rollback_to_embedded`, проблемний — `revoked`                              |
+
+Бандли й ассети лежать у Spaces за незмінними URL з hash в імені та віддаються через CDN, а не через API.
+
+Rollout детермінований: сервер бере перші 4 байти sha256 від `installationId:updateId` за модулем 100 і порівнює з `rollout_percent`. Тоді один пристрій не перемикається між версіями від запиту до запиту, а кожен update отримує власну вибірку пристроїв. Пристрій поза rollout отримує попередній `active` update. Цей update не новіший за той, що вже стоїть на пристрої, тож клієнт нічого не змінює. Пристрій без ідентифікатора отримує лише update на 100 %.
 
 ## Відкат
 
 Клієнт `expo-updates` запускає найновіший сумісний update, який має. Якщо почати віддавати старіший маніфест, пристрої, що вже оновились, лишаться на проблемному update. Тому відкат для кожного клієнта описаний окремо.
 
 **Expo:**
+
 - Проблемний update отримує статус `paused`: нові пристрої його більше не отримують.
 - **Відкат на попередній OTA.** Вміст попереднього update перепублікується як новий update з новим `id` і `created_at`. `source_update_id` вказує на оригінал. Ассети ті самі, нового `expo export` не треба. Оновлені пристрої сприймають його як новіший і переходять на нього.
 - **Відкат до вбудованого бандла.** Застосовується, якщо попереднього OTA немає або він теж зламаний. Сервер віддає директиву `rollBackToEmbedded`, і клієнт повертається до бандла з бінарника.
 - Проблемний update переходить у `revoked` і більше ніколи не віддається.
 
 **Electron:**
+
 - `electron-updater` не робить даунгрейд за замовчуванням. Стандартний шлях — випустити виправлену збірку з вищою версією.
 - До виходу виправлення поширення зупиняється: `stagingPercentage: 0` у `latest*.yml`.
 
@@ -111,7 +138,7 @@ Rollout детермінований: сервер хешує ідентифік
 ## Мобільний клієнт
 
 - `expo-updates`, `updates.url` вказує на `/api/updates/expo/manifest`, `runtimeVersion: { policy: 'fingerprint' }`.
-- Оболонка передає в запиті стабільний ідентифікатор установки для rollout. Можна взяти наявний `installationId` з модуля `devices`.
+- Ідентифікатор установки для rollout сервер бере із заголовка `eas-client-id`, який надсилає `expo-updates`, або з `ap-installation-id`, якщо оболонка задає його сама. Який з них реально приходить від SDK 57, перевіряється на release-збірці перед першим релізом.
 - Оновлення перевіряється на старті й при поверненні у foreground. Завантаження йде у фоні, застосування — на наступному холодному старті.
 - **Mandatory.** Перезапуск (`reloadAsync`) відкладається, поки триває робота, яку він може знищити:
   - активний або вхідний дзвінок;
@@ -120,6 +147,7 @@ Rollout детермінований: сервер хешує ідентифік
   - непорожній composer.
 
   Оболонка питає web через bridge, чи можна перезапускатися. Web відповідає, якщо має відповідний capability-токен; без відповіді перезапуск чекає наступного переходу у background. Відкладений перезапуск виконується, коли застосунок іде у background або на наступному холодному старті.
+
 - Перший реліз з `expo-updates` іде через стор. Після нього JS оболонки оновлюється OTA.
 
 ## Десктоп (Electron)
@@ -134,7 +162,8 @@ Rollout детермінований: сервер хешує ідентифік
 ## Rollout і критерії успіху
 
 **Телеметрія.** Оболонка після запуску надсилає в API:
-- `updateId`, `runtimeVersion`, номер збірки;
+
+- платформу, `runtimeVersion` і `updateId` (null для бандла з бінарника);
 - `isEmergencyLaunch` з `expo-updates`: `true`, якщо клієнт відкотився через падіння нового бандла;
 - подію «оболонка стартувала й завантажила web» через 10 секунд після запуску.
 
@@ -143,6 +172,7 @@ Rollout детермінований: сервер хешує ідентифік
 **Етапи:** 10 % → 50 % → 100 %, з паузою щонайменше 24 години між етапами.
 
 Етап розширюється лише за таких умов:
+
 - успішних запусків не менше, ніж у попередньому update;
 - emergency launch немає;
 - нових типів помилок оболонки немає.
@@ -152,6 +182,7 @@ Rollout детермінований: сервер хешує ідентифік
 **Відповідальний.** Розширення й відкат виконує черговий за релізом. Він вказується в описі CI-джоба. Автоматичного розширення немає.
 
 **Перевірка відкату.** Перед першим production OTA кожен сценарій відкату проходить на реальному release-білді (TestFlight / internal testing) через канал `preview`:
+
 - republish попереднього update;
 - `rollBackToEmbedded`;
 - `paused` під час rollout.
@@ -161,19 +192,19 @@ Rollout детермінований: сервер хешує ідентифік
 CI-джоб `publish-update`:
 
 1. `expo export --platform ios|android` у `mobile/`.
-2. Обчислення fingerprint і перевірка, що production-збірка з таким fingerprint уже є в сторі. Інакше публікація зупиняється.
+2. Обчислення fingerprint.
 3. Завантаження бандла й ассетів у Spaces.
-4. Запис у `app_updates` з `rollout_percent = 10` і підписом маніфесту.
+4. `POST /api/updates/admin/releases`. Якщо збірки з таким fingerprint немає в `app_runtimes`, API відповідає 409 і публікація зупиняється.
 
-Розширення rollout, пауза й відкат — окремі ручні CI-джоби.
+Після кожного релізу в стор CI-джоб `register-runtime` записує fingerprint і номер збірки в `app_runtimes`. Розширення rollout, пауза й відкат — окремі ручні CI-джоби.
 
-**Ключ підпису маніфестів.** Приватний ключ зберігається лише в секретах CI і сервера. Сертифікат вшивається в бінарник. Ротація ключа потребує нового бінарника, тому сертифікат одразу випускається з довгим строком дії.
+**Ключ підпису маніфестів.** Сервер підписує маніфести під час відповіді, тому приватний ключ зберігається лише в секретах сервера. CI його не має: публікацію обмежує `UPDATES_ADMIN_TOKEN`. Сертифікат вшивається в бінарник. Ротація ключа потребує нового бінарника, тому сертифікат одразу випускається з довгим строком дії.
 
 **Канали.** Профілі `preview` і `production` в `eas.json` отримують однойменний `channel`. Збірка отримує OTA лише зі свого каналу. Профіль `development` канал не має: dev client працює з Metro, а не з OTA.
 
 ## Як публікувати OTA
 
-Усі дії — GitHub Actions з ручним запуском (`workflow_dispatch`): через вкладку Actions або через `gh`. Локальної публікації немає, бо ключ підпису є лише в CI. Кожна дія лишає запис: хто, коли й з якого коміту.
+Усі дії — GitHub Actions з ручним запуском (`workflow_dispatch`): через вкладку Actions або через `gh`. Локальної публікації немає, бо адмін-токен є лише в CI. Кожна дія лишає запис: хто, коли й з якого коміту.
 
 **Звичайний цикл:**
 
@@ -196,6 +227,7 @@ CI-джоб `publish-update`:
    ```
 
 `update-status` виводить у summary джоба всі update каналу:
+
 - статус і rollout;
 - кількість запусків, частку успішних запусків і emergency launch;
 - коміт і автора.
@@ -219,7 +251,7 @@ gh workflow run update-rollback -f update=<updateId> -f embedded=true # пове
 1. Capability-токени для наявних нативних можливостей і `/api/updates/compat` з fail-open логікою в оболонці.
 2. Модуль `updates`: таблиця, маніфест Expo, підпис, rollout, відкат, телеметрія запуску.
 3. `expo-updates` у `mobile/`, перевірка сценаріїв відкату на release-білді, реліз через стор.
-4. `channel` у профілях `eas.json`. CI-джоби `publish-update`, `update-status`, `update-rollout`, `update-pause`, `update-rollback`.
+4. `channel` у профілях `eas.json`. CI-джоби `publish-update`, `update-status`, `update-rollout`, `update-pause`, `update-rollback`, `register-runtime`.
 5. Electron з провайдером Spaces — разом з появою десктопної оболонки.
 
 ## Відкриті питання
