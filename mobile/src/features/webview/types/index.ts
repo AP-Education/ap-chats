@@ -55,6 +55,11 @@ export type WebToNativeMessage =
   | VoiceRequest
   /** A new document started: what the previous one announced (tabs, back, readiness) is gone. */
   | { type: 'page/started' }
+  /**
+   * Whether `source` (an upload queue, a recording) holds work a reload would lose. Sent on every
+   * change, and once as not busy when the source starts, so the shell knows the page reports.
+   */
+  | { type: 'updates/busy'; source: string; busy: boolean }
   | { type: 'auth/sign-out' }
   | { type: 'auth/refresh-request' }
   | { type: 'calls/connect'; payload: NativeCallConnectPayload }

@@ -21,6 +21,8 @@ export const SHELL_CAPABILITIES = {
   Mobile: 1,
   /** This shell draws the tab bar, so the page hides its own. */
   TabBar: 1,
+  /** The page sends `updates/busy`, and an urgent update waits until nothing it reports is lost. */
+  ReloadGuard: 1,
 } as const satisfies Record<string, number>;
 
 export function shellUserAgent(capabilities: Record<string, number>): string {

@@ -40,6 +40,7 @@ import { dismissPresentedNotifications } from '../../push/api/presented-notifica
 import { getPushPermissionStatus } from '../../push/api/push-token';
 import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
 import { useNotificationStore } from '../../push/store/notification-store';
+import { useUpdateStore } from '../../updates';
 import {
   VoiceMessageRuntime,
   type VoiceRuntimeHandle,
@@ -157,6 +158,12 @@ export function WebViewHost() {
 
   useEffect(() => () => useNotificationStore.getState().setWebReady(false), []);
 
+  // A mounted page may hold work until it reports otherwise; ReloadGuard reads this.
+  useEffect(() => {
+    useUpdateStore.getState().pageStarted();
+    return () => useUpdateStore.getState().pageGone();
+  }, []);
+
   // A reloaded page, or one that now ends elsewhere, takes its geometry at once.
   useEffect(() => {
     if (loadCount === 0) return;
@@ -201,6 +208,7 @@ export function WebViewHost() {
     pageTakesBack.current = false;
     pageWatchesCalls.current = false;
     useNotificationStore.getState().setWebReady(false);
+    useUpdateStore.getState().pageStarted();
   }
 
   function sendBackToPage(): boolean {
@@ -240,6 +248,9 @@ export function WebViewHost() {
       input.request(message);
     } else if (message.type === 'page/started') {
       startPage();
+    } else if (message.type === 'updates/busy') {
+      if (typeof message.source === 'string' && message.source.length <= 100)
+        useUpdateStore.getState().setPageBusy(message.source, message.busy === true);
     } else if (message.type === 'notifications/ready') {
       useNotificationStore.getState().setWebReady(true);
     } else if (message.type === 'notifications/ack') {

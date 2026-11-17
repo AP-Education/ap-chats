@@ -12,7 +12,7 @@ import { CallReadinessGate } from './features/calls/components/CallReadinessGate
 import { NotificationResponses } from './features/push/components/NotificationResponses';
 import { PushPrimingGate } from './features/push/components/PushPrimingGate';
 import { PushRegistration } from './features/push/components/PushRegistration';
-import { CompatGate, UpdateRuntime } from './features/updates';
+import { CompatGate, ReloadGuard, UpdateRuntime } from './features/updates';
 import { WebViewHost } from './features/webview';
 import { AppProviders } from './shell/AppProviders';
 import { ErrorBoundary } from './shell/ErrorBoundary';
@@ -30,6 +30,7 @@ export default function App() {
       <CallRuntime />
       <ErrorBoundary label="updates">
         <UpdateRuntime />
+        <ReloadGuard />
       </ErrorBoundary>
       {/* A normal flex column, not a Fragment: NativeMiniCallBar is a regular
           sibling here (not an absolute overlay) so the WebView actually
