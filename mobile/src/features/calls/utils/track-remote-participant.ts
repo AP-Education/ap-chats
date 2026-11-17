@@ -10,6 +10,8 @@ export interface RemoteParticipantUpdate {
   remoteMuted: boolean;
   remoteSpeaking: boolean;
   remoteAudioLevel: number;
+  /** Not the participant's: the room's own, while the call service records it. */
+  recording: boolean;
 }
 
 /** Mirrors web/'s ParticipantAvatarTile: a live glow ring driven by the remote
@@ -39,6 +41,7 @@ export function trackRemoteParticipant(
       remoteMuted: remoteMicMuted(participant),
       remoteSpeaking: participant?.isSpeaking ?? false,
       remoteAudioLevel: participant?.audioLevel ?? 0,
+      recording: room.isRecording,
     });
   }
 
@@ -51,6 +54,7 @@ export function trackRemoteParticipant(
   room.on(RoomEvent.TrackUnmuted, onTrackMuteChange);
   room.on(RoomEvent.ActiveSpeakersChanged, emit);
   room.on(RoomEvent.ParticipantConnected, emit);
+  room.on(RoomEvent.RecordingStatusChanged, emit);
   const interval = setInterval(emit, 150);
   emit();
 
@@ -60,5 +64,6 @@ export function trackRemoteParticipant(
     room.off(RoomEvent.TrackUnmuted, onTrackMuteChange);
     room.off(RoomEvent.ActiveSpeakersChanged, emit);
     room.off(RoomEvent.ParticipantConnected, emit);
+    room.off(RoomEvent.RecordingStatusChanged, emit);
   };
 }

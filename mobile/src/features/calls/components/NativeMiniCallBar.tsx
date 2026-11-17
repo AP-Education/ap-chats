@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CALL_TEXT_MUTED } from '../callTheme';
+import { CALL_PALETTE, CALL_TEXT_MUTED } from '../callTheme';
 import { useIsMiniCallBarVisible, useNativeCallStore } from '../store/native-call-store';
 import { useCallDuration } from '../utils/use-call-duration';
 import { CallSurfaceBackground } from './CallSurfaceBackground';
@@ -34,9 +34,15 @@ export function NativeMiniCallBar() {
           <Pressable
             style={styles.info}
             accessibilityRole="button"
-            accessibilityLabel={t(($) => $.returnToCall, { title })}
+            accessibilityLabel={[
+              t(($) => $.returnToCall, { title }),
+              call.recording && t(($) => $.recordingNotice),
+            ]
+              .filter(Boolean)
+              .join('. ')}
             onPress={restore}
           >
+            {call.recording && <View style={styles.recordingDot} />}
             <Text style={styles.title} numberOfLines={1}>
               {title}
             </Text>
@@ -61,10 +67,12 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 10,
   },
-  // No dot here — the system already shows its own "call in progress"
+  // No "live" dot here — the system already shows its own "call in progress"
   // indicator (the Dynamic Island pill) above this whenever an active CallKit
   // call isn't being shown full-screen; a second one here just doubled up.
-  info: { flex: 1, flexDirection: 'row', alignItems: 'baseline', gap: 8, minWidth: 0 },
+  // Recording is news the system can't tell, so that one gets a red dot.
+  info: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 },
+  recordingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: CALL_PALETTE.danger },
   title: { color: '#fff', fontSize: 15, fontWeight: '600', flexShrink: 1 },
   duration: { color: CALL_TEXT_MUTED, fontSize: 13, fontVariant: ['tabular-nums'] },
 });

@@ -19,6 +19,8 @@ export interface NativeCallState {
   remoteMuted?: boolean;
   remoteSpeaking?: boolean;
   remoteAudioLevel?: number;
+  /** While the call service records the room; everyone in the call is told. */
+  recording?: boolean;
   /** The real output route, per call, so a new call never inherits the last one's speaker. */
   audioRoute?: CallAudioRoute;
 }

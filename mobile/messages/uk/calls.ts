@@ -9,6 +9,8 @@ export const calls = {
   acceptCall: 'Прийняти дзвінок',
   minimize: 'Згорнути дзвінок',
   returnToCall: 'Повернутися до дзвінка: {{title}}',
+  recording: 'Запис',
+  recordingNotice: 'Дзвінок записується',
   microphone: 'Мікрофон',
   camera: 'Камера',
   end: 'Завершити',

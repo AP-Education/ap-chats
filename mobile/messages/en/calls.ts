@@ -12,6 +12,8 @@ export const calls = {
   acceptCall: 'Accept call',
   minimize: 'Minimize call',
   returnToCall: 'Return to call: {{title}}',
+  recording: 'Recording',
+  recordingNotice: 'This call is being recorded',
   microphone: 'Mic',
   camera: 'Camera',
   end: 'End',

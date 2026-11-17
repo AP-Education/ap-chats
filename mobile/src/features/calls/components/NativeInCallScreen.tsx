@@ -17,6 +17,7 @@ import {
   MuteControl,
   MutedMicrophoneHint,
 } from './NativeCallControls';
+import { RecordingBadge } from './RecordingBadge';
 
 interface NativeInCallScreenProps {
   /** Set in the call window: the call stays on screen there whatever the app's mini bar shows,
@@ -62,6 +63,7 @@ export function NativeInCallScreen({ onLeaveWindow }: NativeInCallScreenProps) {
             {title}
           </Text>
           <CallStatusLine call={call} />
+          {call.recording && <RecordingBadge />}
         </View>
 
         <View style={styles.stage}>
