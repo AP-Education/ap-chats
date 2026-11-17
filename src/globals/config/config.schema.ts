@@ -2,6 +2,12 @@ import { z } from 'zod';
 
 // Adapted locally from backend-LMS/src/globals/config. Keep this copy small:
 // Chats owns its deployment settings and does not have a shared package yet.
+
+/** A PEM with real `\n` line breaks, whether it arrived escaped, with CRLF, or both. */
+export function normalizePem(value: string): string {
+  return value.replaceAll('\\r', '').replaceAll('\\n', '\n').replaceAll('\r\n', '\n');
+}
+
 const schema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -88,9 +94,10 @@ const schema = z
     UPDATES_STORE_URL_IOS: z.preprocess((value) => value || undefined, z.url().optional()),
     UPDATES_STORE_URL_ANDROID: z.preprocess((value) => value || undefined, z.url().optional()),
     // PEM key that signs Expo update manifests; its certificate is embedded in the native build.
-    // Escaped newlines are accepted so the key fits in one env line.
+    // Escaped newlines are accepted so the key fits in one env line, and Windows line endings
+    // (which `expo-updates codesigning:generate` writes) are normalized either way.
     EXPO_UPDATES_PRIVATE_KEY: z.preprocess(
-      (value) => (typeof value === 'string' && value ? value.replaceAll('\\n', '\n') : undefined),
+      (value) => (typeof value === 'string' && value ? normalizePem(value) : undefined),
       z.string().includes('PRIVATE KEY').optional(),
     ),
     // Bearer token CI uses to publish and roll back updates; unset turns the admin API off.
