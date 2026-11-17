@@ -21,3 +21,12 @@ export interface UpdateTarget {
   channel: UpdateChannel;
   runtimeVersion: string;
 }
+
+/** One cold start of a shell, as it reports it. */
+export interface LaunchReport {
+  platform: ShellPlatform;
+  runtimeVersion: string;
+  updateId: string | null;
+  isEmergencyLaunch: boolean;
+  ok: boolean;
+}
