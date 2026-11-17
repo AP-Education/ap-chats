@@ -76,6 +76,17 @@ const schema = z
       (value) => value || undefined,
       z.string().min(1).optional(),
     ),
+    // Native builds below these numbers are told to update from the store; unset keeps all working.
+    UPDATES_MIN_BUILD_IOS: z.preprocess(
+      (value) => value || undefined,
+      z.coerce.number().int().min(1).optional(),
+    ),
+    UPDATES_MIN_BUILD_ANDROID: z.preprocess(
+      (value) => value || undefined,
+      z.coerce.number().int().min(1).optional(),
+    ),
+    UPDATES_STORE_URL_IOS: z.preprocess((value) => value || undefined, z.url().optional()),
+    UPDATES_STORE_URL_ANDROID: z.preprocess((value) => value || undefined, z.url().optional()),
   })
   .superRefine((config, context) => {
     if (config.CHAT_UPLOAD_MAX_MESSAGE_BYTES < config.CHAT_UPLOAD_MAX_FILE_BYTES) {

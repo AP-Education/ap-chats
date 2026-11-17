@@ -13,6 +13,7 @@ import { DirectMessagesModule } from '@/components/direct-messages';
 import { NotificationsModule } from '@/components/notifications';
 import { SocialModule } from '@/components/social';
 import { StarMeModule } from '@/components/star-me';
+import { UpdatesModule } from '@/components/updates';
 import { UploadsModule } from '@/components/uploads';
 import { UserProfilesModule } from '@/components/user-profiles/user-profiles.module';
 import { VoipPushModule } from '@/components/voip-push';
@@ -56,6 +57,7 @@ import { HealthController } from '@/health/health.controller';
     CallsModule,
     VoipPushModule,
     StarMeModule,
+    UpdatesModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_FILTER, useClass: HttpExceptionFilter }],
