@@ -1,5 +1,6 @@
 import type {
   AppUpdateKind,
+  AppUpdateStatus,
   ShellPlatform,
   StoredUpdateManifest,
   UpdateChannel,
@@ -29,4 +30,42 @@ export interface LaunchReport {
   updateId: string | null;
   isEmergencyLaunch: boolean;
   ok: boolean;
+}
+
+export interface NewAppUpdate extends UpdateTarget {
+  kind: AppUpdateKind;
+  manifest: StoredUpdateManifest | null;
+  rolloutPercent: number;
+  mandatory: boolean;
+  sourceUpdateId: string | null;
+  gitCommit: string | null;
+  notes: string | null;
+  createdBy: string | null;
+}
+
+/** An update with what its launches looked like so far, for deciding whether to widen it. */
+export interface AppUpdateSummary {
+  id: string;
+  kind: AppUpdateKind;
+  platform: ShellPlatform;
+  channel: UpdateChannel;
+  runtimeVersion: string;
+  buildNumber: number;
+  rolloutPercent: number;
+  status: AppUpdateStatus;
+  mandatory: boolean;
+  sourceUpdateId: string | null;
+  gitCommit: string | null;
+  notes: string | null;
+  createdBy: string | null;
+  createdAt: Date;
+  launches: number;
+  successes: number;
+  emergencyLaunches: number;
+}
+
+export interface UpdateListFilter {
+  channel: UpdateChannel;
+  platform?: ShellPlatform;
+  limit: number;
 }

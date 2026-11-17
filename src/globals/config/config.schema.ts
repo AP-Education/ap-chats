@@ -93,6 +93,8 @@ const schema = z
       (value) => (typeof value === 'string' && value ? value.replaceAll('\\n', '\n') : undefined),
       z.string().includes('PRIVATE KEY').optional(),
     ),
+    // Bearer token CI uses to publish and roll back updates; unset turns the admin API off.
+    UPDATES_ADMIN_TOKEN: z.preprocess((value) => value || undefined, z.string().min(32).optional()),
   })
   .superRefine((config, context) => {
     if (config.CHAT_UPLOAD_MAX_MESSAGE_BYTES < config.CHAT_UPLOAD_MAX_FILE_BYTES) {
