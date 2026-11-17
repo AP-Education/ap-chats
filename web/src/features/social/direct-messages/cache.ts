@@ -76,7 +76,11 @@ export function confirmDirectMessage(
       authorMemberId: message.authorMemberId,
       createdAt: message.createdAt,
     },
-    lastCall: null,
+    // A call that started after this message stays the newest thing in the conversation.
+    lastCall:
+      detail.lastCall && Date.parse(detail.lastCall.startedAt) > Date.parse(message.createdAt)
+        ? detail.lastCall
+        : null,
   };
   mergeDirectMessage(queryClient, identity, updated);
 }
