@@ -1,3 +1,4 @@
+export * from './app-updates';
 export * from './calls';
 export * from './channel-categories';
 export * from './channel-entries';

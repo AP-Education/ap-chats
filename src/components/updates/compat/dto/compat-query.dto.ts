@@ -1,8 +1,8 @@
 import { IsIn } from 'class-validator';
 
-import { type ShellPlatform, shellPlatforms } from '../../types';
+import { type ShellPlatform, shellPlatformEnum } from '@/database/drizzle/schema';
 
 export class CompatQueryDto {
-  @IsIn(shellPlatforms)
+  @IsIn(shellPlatformEnum)
   platform!: ShellPlatform;
 }

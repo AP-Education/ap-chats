@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+import type { ShellPlatform } from '@/database/drizzle/schema';
 import { AppConfigService } from '@/globals/config';
-
-import type { ShellPlatform } from '../types';
 
 export interface ShellCompat {
   /** Native builds below this number must update from the store; null keeps every build working. */
