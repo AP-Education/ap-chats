@@ -55,6 +55,18 @@ web_push_public_key: ''
 web_push_private_key: ''
 web_push_subject: ''
 
+# Over-the-air shell updates (docs/adr/0008-app-updates.md). Paste the complete
+# keys/updates/private-key.pem as a YAML literal block with REAL newlines:
+# expo_updates_private_key: |-
+#   -----BEGIN RSA PRIVATE KEY-----
+#   <base64 contents>
+#   -----END RSA PRIVATE KEY-----
+# updates_admin_token is the same value as the UPDATES_ADMIN_TOKEN secret in
+# GitHub Actions (e.g. d540cd1814c62910e2b2aed2f01dbe439e57f15ed78b8130175ba7c5d721aff7). Leave either empty to keep that
+# part off.
+expo_updates_private_key: ''
+updates_admin_token: ''
+
 # ap-connect's own Spaces buckets from infra/terraform/prod: attachments
 # (private uploads, public-read avatars) and backups (always private). The
 # key pair is the same spaces_access_key_id / spaces_secret_access_key passed
