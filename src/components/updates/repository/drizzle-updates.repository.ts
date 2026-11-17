@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, lt, ne, sql } from 'drizzle-orm';
 
 import {
   appRuntimes,
   appUpdateLaunchStats,
   appUpdates,
+  type AppUpdateStatus,
   type ShellPlatform,
 } from '@/database/drizzle/schema';
 import type { DrizzleTransactionAdapter } from '@/database/drizzle/transactional-drizzle.module';
@@ -15,6 +16,7 @@ import type {
   LaunchReport,
   NewAppUpdate,
   OfferedAppUpdate,
+  StoredAppUpdate,
   UpdateListFilter,
   UpdateTarget,
 } from '../types';
@@ -161,6 +163,55 @@ export class DrizzleUpdatesRepository extends UpdatesRepository {
       )
       .orderBy(desc(appUpdates.createdAt), desc(appUpdates.id))
       .limit(limit);
+  }
+
+  async find(id: string): Promise<StoredAppUpdate | undefined> {
+    const [found] = await this.selectStored().where(eq(appUpdates.id, id)).limit(1);
+    return found;
+  }
+
+  async setRollout(id: string, rolloutPercent: number): Promise<void> {
+    await this.txHost.tx
+      .update(appUpdates)
+      .set({ rolloutPercent, status: 'active' })
+      .where(and(eq(appUpdates.id, id), ne(appUpdates.status, 'revoked')));
+  }
+
+  async setStatus(id: string, status: AppUpdateStatus): Promise<void> {
+    await this.txHost.tx.update(appUpdates).set({ status }).where(eq(appUpdates.id, id));
+  }
+
+  async findPreviousBundle(update: StoredAppUpdate): Promise<StoredAppUpdate | undefined> {
+    const [found] = await this.selectStored()
+      .where(
+        and(
+          eq(appUpdates.platform, update.platform),
+          eq(appUpdates.channel, update.channel),
+          eq(appUpdates.runtimeVersion, update.runtimeVersion),
+          eq(appUpdates.kind, 'update'),
+          eq(appUpdates.status, 'active'),
+          ne(appUpdates.id, update.id),
+          lt(appUpdates.createdAt, update.createdAt),
+        ),
+      )
+      .orderBy(desc(appUpdates.createdAt), desc(appUpdates.id))
+      .limit(1);
+    return found;
+  }
+
+  private selectStored() {
+    return this.txHost.tx
+      .select({
+        id: appUpdates.id,
+        kind: appUpdates.kind,
+        status: appUpdates.status,
+        platform: appUpdates.platform,
+        channel: appUpdates.channel,
+        runtimeVersion: appUpdates.runtimeVersion,
+        manifest: appUpdates.manifest,
+        createdAt: appUpdates.createdAt,
+      })
+      .from(appUpdates);
   }
 
   private async isPublished({

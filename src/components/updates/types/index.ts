@@ -69,3 +69,19 @@ export interface UpdateListFilter {
   platform?: ShellPlatform;
   limit: number;
 }
+
+/** An update as admin actions see it before changing it. */
+export interface StoredAppUpdate extends UpdateTarget {
+  id: string;
+  kind: AppUpdateKind;
+  status: AppUpdateStatus;
+  manifest: StoredUpdateManifest | null;
+  createdAt: Date;
+}
+
+/** What a rollback published in place of the update it revoked. */
+export interface RollbackResult {
+  id: string;
+  kind: AppUpdateKind;
+  sourceUpdateId: string | null;
+}

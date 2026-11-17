@@ -1,10 +1,11 @@
-import type { ShellPlatform } from '@/database/drizzle/schema';
+import type { AppUpdateStatus, ShellPlatform } from '@/database/drizzle/schema';
 
 import type {
   AppUpdateSummary,
   LaunchReport,
   NewAppUpdate,
   OfferedAppUpdate,
+  StoredAppUpdate,
   UpdateListFilter,
   UpdateTarget,
 } from '../types';
@@ -36,4 +37,17 @@ export abstract class UpdatesRepository {
 
   /** Newest first, with launch counts summed over all days. */
   abstract list(filter: UpdateListFilter): Promise<AppUpdateSummary[]>;
+
+  abstract find(id: string): Promise<StoredAppUpdate | undefined>;
+
+  /** Changing the rollout also resumes a paused update. */
+  abstract setRollout(id: string, rolloutPercent: number): Promise<void>;
+
+  abstract setStatus(id: string, status: AppUpdateStatus): Promise<void>;
+
+  /**
+   * The newest bundle still offered on the same runtime and channel that was published before
+   * `update`: the one a rollback republishes.
+   */
+  abstract findPreviousBundle(update: StoredAppUpdate): Promise<StoredAppUpdate | undefined>;
 }

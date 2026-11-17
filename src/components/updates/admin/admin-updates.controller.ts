@@ -1,8 +1,25 @@
-import { Body, Controller, Get, HttpCode, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 
-import type { AppUpdateSummary } from '../types';
+import type { AppUpdateSummary, RollbackResult } from '../types';
 import { AdminUpdatesService } from './admin-updates.service';
-import { ListUpdatesQueryDto, PublishUpdateDto, RegisterRuntimeDto } from './dto';
+import {
+  ListUpdatesQueryDto,
+  PublishUpdateDto,
+  RegisterRuntimeDto,
+  RollbackUpdateDto,
+  SetRolloutDto,
+} from './dto';
 import { AdminTokenGuard } from './guards/admin-token.guard';
 
 @Controller('updates/admin')
@@ -24,5 +41,25 @@ export class AdminUpdatesController {
   @Get('releases')
   list(@Query() query: ListUpdatesQueryDto): Promise<AppUpdateSummary[]> {
     return this.admin.list(query);
+  }
+
+  @Patch('releases/:id/rollout')
+  @HttpCode(204)
+  setRollout(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SetRolloutDto): Promise<void> {
+    return this.admin.setRollout(id, dto.percent);
+  }
+
+  @Post('releases/:id/pause')
+  @HttpCode(204)
+  pause(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    return this.admin.pause(id);
+  }
+
+  @Post('releases/:id/rollback')
+  rollback(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RollbackUpdateDto,
+  ): Promise<RollbackResult> {
+    return this.admin.rollback(id, dto.embedded);
   }
 }
