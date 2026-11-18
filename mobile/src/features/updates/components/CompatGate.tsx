@@ -7,6 +7,7 @@ import { AppState, Linking } from 'react-native';
 import { GateScreen } from '../../../components/GateScreen';
 import { useNativeCallStore } from '../../calls/store/native-call-store';
 import { fetchCompat, loadRememberedCompat } from '../api/compat-api';
+import { useUpdateStore } from '../store/update-store';
 import type { CompatDecision } from '../types';
 import { decideCompat, parseBuildNumber } from '../utils/decide-compat';
 
@@ -15,12 +16,15 @@ const build = parseBuildNumber(Application.nativeBuildVersion);
 /**
  * Stops a build the API no longer supports and sends it to the store. Children render at once
  * and keep rendering until a check says otherwise, so the gate never delays a launch. It asks
- * again on every return to the app, and never interrupts a call in progress.
+ * again on every return to the app, and never interrupts a call, a recording or an upload.
  */
 export function CompatGate({ children }: PropsWithChildren) {
   const { t } = useTranslation('updates');
   const [decision, setDecision] = useState<CompatDecision>({ kind: 'ok' });
   const inCall = useNativeCallStore((state) => state.call !== null);
+  // The gate replaces the page, so it waits like a reload does: a recording or an upload in
+  // the page would be lost with it.
+  const pageBusy = useUpdateStore((state) => state.busySources.length > 0);
 
   useEffect(() => {
     let current = true;
@@ -39,7 +43,7 @@ export function CompatGate({ children }: PropsWithChildren) {
     };
   }, []);
 
-  if (decision.kind === 'ok' || inCall) return <>{children}</>;
+  if (decision.kind === 'ok' || inCall || pageBusy) return <>{children}</>;
 
   const { storeUrl } = decision;
   return (
