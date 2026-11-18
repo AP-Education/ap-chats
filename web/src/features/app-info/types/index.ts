@@ -4,7 +4,9 @@
 export interface ShellInfo {
   appVersion: string | null;
   buildNumber: string | null;
-  /** Null when updates are off in this build. */
+  /** False in a build that never checks for updates. */
+  updatesEnabled: boolean;
+  /** Null when updates are off, or on in a build made without a channel. */
   channel: string | null;
   runtimeVersion: string | null;
   /** Null while the bundle embedded in the binary runs. */

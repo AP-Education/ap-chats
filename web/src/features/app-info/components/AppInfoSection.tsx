@@ -63,9 +63,11 @@ export function AppInfoSection() {
         <dd className={styles.value}>{version || '—'}</dd>
 
         <dt className={styles.term}>{t(($) => $.channel)}</dt>
-        <dd className={styles.value}>{info.channel ?? t(($) => $.updatesOff)}</dd>
+        <dd className={styles.value}>
+          {info.updatesEnabled ? (info.channel ?? t(($) => $.noChannel)) : t(($) => $.updatesOff)}
+        </dd>
 
-        {info.channel && (
+        {info.updatesEnabled && (
           <>
             <dt className={styles.term}>{t(($) => $.update)}</dt>
             <dd className={styles.value}>

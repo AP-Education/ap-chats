@@ -2,7 +2,9 @@
 export interface ShellInfo {
   appVersion: string | null;
   buildNumber: string | null;
-  /** Null when updates are off, e.g. a build without an API URL. */
+  /** False in a build without an API URL, which never checks for updates. */
+  updatesEnabled: boolean;
+  /** Null when updates are off, or on in a build made without a channel. */
   channel: string | null;
   runtimeVersion: string | null;
   /** Null while the bundle embedded in the binary runs. */
@@ -27,6 +29,7 @@ export function describeShell(input: ShellInfoInput): ShellInfo {
   return {
     appVersion: input.appVersion,
     buildNumber: input.buildNumber,
+    updatesEnabled: input.updatesEnabled,
     channel: (input.updatesEnabled && input.channel) || null,
     runtimeVersion: (input.updatesEnabled && input.runtimeVersion) || null,
     updateId: (fromUpdate && input.updateId) || null,

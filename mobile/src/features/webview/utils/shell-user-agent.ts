@@ -23,6 +23,8 @@ export const SHELL_CAPABILITIES = {
   TabBar: 1,
   /** The page sends `updates/busy`, and an urgent update waits until nothing it reports is lost. */
   ReloadGuard: 1,
+  /** The page may send `shell/info-request`; the shell answers with its version and update. */
+  ShellInfo: 1,
 } as const satisfies Record<string, number>;
 
 export function shellUserAgent(capabilities: Record<string, number>): string {

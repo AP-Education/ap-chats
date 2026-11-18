@@ -6,6 +6,7 @@ export const appInfo = {
   version: 'Version',
   channel: 'Update channel',
   updatesOff: 'Updates are off',
+  noChannel: 'Not set',
   update: 'Update',
   embedded: 'Built into the app',
   published: 'Published {{date}}',

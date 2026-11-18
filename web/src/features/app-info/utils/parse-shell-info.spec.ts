@@ -7,6 +7,7 @@ test('reads the shell info a phone sends', () => {
   const payload = {
     appVersion: '1.4.0',
     buildNumber: '42',
+    updatesEnabled: true,
     channel: 'preview',
     runtimeVersion: 'abc123',
     updateId: '0c2f6e1a-6b8f-4c55-9a51-2f9e2b1d7c11',
@@ -23,6 +24,7 @@ test('turns missing, empty and odd fields into null', () => {
   assert.deepEqual(info, {
     appVersion: '1.4.0',
     buildNumber: null,
+    updatesEnabled: false,
     channel: null,
     runtimeVersion: null,
     updateId: null,
