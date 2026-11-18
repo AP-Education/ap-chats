@@ -220,6 +220,17 @@ Accounts issuer, `EXPO_PUBLIC_OIDC_CLIENT_ID=ap-connect-mobile` and the Chats au
 EAS environment values take precedence. An EAS cloud build does not upload gitignored files,
 so there the same values come from the EAS `production` environment. Keep any local overrides
 in `.env.local` out of release builds.
+
+The EAS `preview` environment (used by the `preview` build profile and the `preview` update
+channel) shares the production variables: `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_WEB_URL`,
+`EXPO_PUBLIC_OIDC_ISSUER`, `EXPO_PUBLIC_OIDC_AUDIENCE`, `EXPO_PUBLIC_OIDC_CLIENT_ID` and
+`EXPO_PUBLIC_KLIPY_API_KEY` are each one EAS variable assigned to both environments, so
+preview builds talk to the production servers and only the update channel tells them apart.
+Editing one of these variables in Expo changes both environments. To point preview at a test
+server, give the variable its own `preview` value instead. Without these variables a preview
+build has no API URL: sign-in fails and over-the-air updates are turned off. Check with
+`eas env:list --environment preview`.
+
 Localhost and Expo Go callbacks are development settings.
 
 The public `VITE_*` values are compiled into the web image at build time.
