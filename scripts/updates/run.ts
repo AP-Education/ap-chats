@@ -27,34 +27,53 @@ export function run(
   options: { cwd?: string; env?: NodeJS.ProcessEnv; timeoutMs?: number } = {},
 ): Promise<string> {
   return new Promise((resolve, reject) => {
+    // Its own process group, so a timeout also stops what it started (pnpm starts expo, which
+    // starts Metro) and nothing is left holding the output pipe open.
     const child = spawn(command, args, {
       cwd: options.cwd,
       env: childEnv(process.env, options.env),
       stdio: ['ignore', 'pipe', 'inherit'],
+      detached: true,
     });
+    const line = `${command} ${args.join(' ')}`;
     const limit = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    let timedOut = false;
+    let settled = false;
+    const settle = (finish: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      process.off('exit', stopGroup);
+      finish();
+    };
+    const stopGroup = () => signalGroup(child.pid, 'SIGKILL');
+    // Without this an interrupted script would leave the group running.
+    process.once('exit', stopGroup);
     const timer = setTimeout(() => {
-      timedOut = true;
-      child.kill('SIGTERM');
-      setTimeout(() => child.kill('SIGKILL'), 10_000).unref();
+      signalGroup(child.pid, 'SIGTERM');
+      setTimeout(() => signalGroup(child.pid, 'SIGKILL'), 10_000).unref();
+      // Settles now: a stuck grandchild may hold the pipe open, so 'close' could never come.
+      settle(() => reject(new Error(`${line} took longer than ${limit / 60_000} min`)));
     }, limit);
     let output = '';
     child.stdout.on('data', (chunk: Buffer) => {
       output += chunk.toString();
     });
-    child.on('error', (error) => {
-      clearTimeout(timer);
-      reject(error);
-    });
-    child.on('close', (code) => {
-      clearTimeout(timer);
-      const line = `${command} ${args.join(' ')}`;
-      if (timedOut) reject(new Error(`${line} took longer than ${limit / 60_000} min`));
-      else if (code === 0) resolve(output);
-      else reject(new Error(`${line} exited with ${code}`));
-    });
+    child.on('error', (error) => settle(() => reject(error)));
+    child.on('close', (code) =>
+      settle(() =>
+        code === 0 ? resolve(output) : reject(new Error(`${line} exited with ${code}`)),
+      ),
+    );
   });
+}
+
+function signalGroup(pid: number | undefined, signal: NodeJS.Signals): void {
+  if (pid === undefined) return;
+  try {
+    process.kill(-pid, signal);
+  } catch {
+    // The group is already gone.
+  }
 }
 
 /** The last line of output that is a JSON object or array: tools print notes before it. */

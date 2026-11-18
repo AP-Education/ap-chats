@@ -22,3 +22,18 @@ test('stops a command that hangs', async () => {
     /took longer than/u,
   );
 });
+
+test('stops a hung grandchild that holds the output open', async () => {
+  // The child exits at once; the process it started keeps stdout open, as Metro under expo
+  // under pnpm would.
+  const script = [
+    "const { spawn } = require('node:child_process');",
+    "spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60_000)'], { stdio: 'inherit' });",
+  ].join('\n');
+  const started = Date.now();
+  await assert.rejects(
+    run(process.execPath, ['-e', script], { timeoutMs: 300 }),
+    /took longer than/u,
+  );
+  assert.ok(Date.now() - started < 5_000);
+});

@@ -3,7 +3,7 @@
  * update-* and register-runtime workflows with UPDATES_API_URL and UPDATES_ADMIN_TOKEN set.
  *
  *   node --import tsx scripts/updates/admin.ts status --channel <production|preview> [--platform <p>]
- *   node --import tsx scripts/updates/admin.ts rollout --update <id> --percent <0-100>
+ *   node --import tsx scripts/updates/admin.ts rollout --update <id> --percent <0-100> [--resume]
  *   node --import tsx scripts/updates/admin.ts pause --update <id>
  *   node --import tsx scripts/updates/admin.ts rollback --update <id> [--embedded]
  *   node --import tsx scripts/updates/admin.ts register-runtime --platform <p> --build <number> \
@@ -32,6 +32,7 @@ async function main() {
       update: { type: 'string' },
       percent: { type: 'string' },
       embedded: { type: 'boolean', default: false },
+      resume: { type: 'boolean', default: false },
       build: { type: 'string' },
       profile: { type: 'string', default: 'production' },
       runtime: { type: 'string' },
@@ -56,8 +57,12 @@ async function main() {
     }
     case 'rollout': {
       const percent = parsePercent(values.percent);
-      await api.setRollout(update(), percent);
-      await summarize(`Update \`${update()}\` now reaches ${percent}% of phones.`);
+      // A paused update keeps its pause unless this run says to lift it.
+      await api.setRollout(update(), percent, values.resume);
+      await summarize(
+        `Update \`${update()}\` now reaches ${percent}% of phones` +
+          (values.resume ? ' (resumed).' : '.'),
+      );
       return;
     }
     case 'pause':

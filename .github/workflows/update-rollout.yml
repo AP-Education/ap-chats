@@ -12,6 +12,10 @@ on:
         description: Percent of phones, 0-100
         type: string
         required: true
+      resume:
+        description: Lift a pause too (a paused update otherwise stays paused)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -24,11 +28,15 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
+    # The admin token is an environment secret, and the environment only deploys from main,
+    # so no other branch can run code that holds it.
+    environment: updates
     timeout-minutes: 10
     env:
       UPDATES_API_URL: ${{ vars.UPDATES_API_URL }}
       UPDATE: ${{ inputs.update }}
       PERCENT: ${{ inputs.percent }}
+      RESUME: ${{ inputs.resume }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -39,4 +47,4 @@ jobs:
       # Only the step that calls the API gets the admin token.
       - env:
           UPDATES_ADMIN_TOKEN: ${{ secrets.UPDATES_ADMIN_TOKEN }}
-        run: node --import tsx scripts/updates/admin.ts rollout --update "$UPDATE" --percent "$PERCENT"
+        run: node --import tsx scripts/updates/admin.ts rollout --update "$UPDATE" --percent "$PERCENT" $([ "$RESUME" = "true" ] && echo --resume)

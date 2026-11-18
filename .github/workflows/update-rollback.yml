@@ -23,6 +23,9 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
+    # The admin token is an environment secret, and the environment only deploys from main,
+    # so no other branch can run code that holds it.
+    environment: updates
     timeout-minutes: 10
     env:
       UPDATES_API_URL: ${{ vars.UPDATES_API_URL }}

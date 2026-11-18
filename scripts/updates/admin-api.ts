@@ -72,8 +72,8 @@ export function adminApi(options: { apiUrl: string; token: string; fetch?: typeo
         'GET',
         `/releases?${new URLSearchParams({ channel, ...(platform ? { platform } : {}) })}`,
       ),
-    setRollout: (id: string, percent: number) =>
-      call<void>('PATCH', `/releases/${encodeURIComponent(id)}/rollout`, { percent }),
+    setRollout: (id: string, percent: number, resume = false) =>
+      call<void>('PATCH', `/releases/${encodeURIComponent(id)}/rollout`, { percent, resume }),
     pause: (id: string) => call<void>('POST', `/releases/${encodeURIComponent(id)}/pause`),
     rollback: (id: string, embedded: boolean) =>
       call<{ id: string; kind: UpdateSummary['kind']; sourceUpdateId: string | null }>(
