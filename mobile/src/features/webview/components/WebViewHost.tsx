@@ -41,6 +41,14 @@ import { getPushPermissionStatus } from '../../push/api/push-token';
 import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
 import { useNotificationStore } from '../../push/store/notification-store';
 import {
+  CHATS_ONLY_ACCOUNT_IDS,
+  chatsHomeUrl,
+  chatsOnlyTabs,
+  hideAccountBlockScript,
+  isChatsOnlyAccount,
+  isChatsPage,
+} from '../../review-mode';
+import {
   VoiceMessageRuntime,
   type VoiceRuntimeHandle,
 } from '../../voice-messages/components/VoiceMessageRuntime';
@@ -69,6 +77,11 @@ export function WebViewHost() {
   const webViewRef = useRef<WebView<object>>(null);
   const voiceRuntime = useRef<VoiceRuntimeHandle>(null);
   const auth = useAuthStore();
+  // Store reviewers' accounts see Chats only: no other application's tab, page or link.
+  const chatsOnly = isChatsOnlyAccount(
+    auth.status === 'signed-in' ? auth.tokens.accessToken : undefined,
+    CHATS_ONLY_ACCOUNT_IDS,
+  );
   const pendingNotification = useNotificationStore((state) => state.pending);
   const webReady = useNotificationStore((state) => state.webReady);
   const miniCallBarVisible = useIsMiniCallBarVisible();
@@ -145,7 +158,11 @@ export function WebViewHost() {
   const [startUrl, setStartUrl] = useState<string>();
 
   useEffect(() => {
-    if (webUrl) void loadLastLocation(webUrl).then((url) => setStartUrl(url ?? webUrl));
+    if (!webUrl) return;
+    void loadLastLocation(webUrl).then((url) => {
+      if (!chatsOnlyNow()) return setStartUrl(url ?? webUrl);
+      setStartUrl(url && isChatsPage(url, webUrl) ? url : chatsHomeUrl(webUrl));
+    });
   }, []);
 
   // Pushes the current token into web/ whenever it changes (sign-in, renewal).
@@ -172,6 +189,11 @@ export function WebViewHost() {
     webViewRef.current?.injectJavaScript(pageInsets);
     sendInset(INSTANT);
   }, [pageInsets, loadCount, sendInset]);
+
+  // Reviewers never see the profile's broken account block; every new document gets the rule again.
+  useEffect(() => {
+    if (chatsOnly && loadCount > 0) webViewRef.current?.injectJavaScript(hideAccountBlockScript());
+  }, [chatsOnly, loadCount]);
 
   // The page asked how calls reach this phone; it hears again whenever that may have changed.
   const pageWatchesCalls = useRef(false);
@@ -289,7 +311,7 @@ export function WebViewHost() {
       const { locale } = message.payload;
       useLocaleStore.getState().setLocale(isLocale(locale) ? locale : 'uk');
     } else if (message.type === 'navigation/tabs') {
-      setTabBar(message.payload);
+      setTabBar(chatsOnly ? chatsOnlyTabs(message.payload) : message.payload);
     } else if (message.type === 'navigation/handles-back') {
       pageTakesBack.current = message.handles;
     } else if (message.type === 'navigation/back-unhandled') {
@@ -306,6 +328,18 @@ export function WebViewHost() {
     } else if (__DEV__ && message.type === 'debug/error') {
       console.error('[webview] uncaught error:', message.message);
     }
+  }
+
+  // A Chats-only account that reaches another application's page — a link, the profile's way
+  // back to the root, a stored location — is sent back to Chats before it settles there.
+  function handleNavigationStateChange(event: { url: string; loading: boolean }) {
+    if (!webUrl) return;
+    if (chatsOnly && !isChatsPage(event.url, webUrl)) {
+      const home = JSON.stringify(chatsHomeUrl(webUrl));
+      webViewRef.current?.injectJavaScript(`window.location.replace(${home});true;`);
+      return;
+    }
+    rememberLocation(event, webUrl);
   }
 
   // The page moves into the chosen tab at once; the page then confirms it in its next model.
@@ -391,7 +425,7 @@ export function WebViewHost() {
                 bounces={false}
                 onLoadStart={clearPageInsets}
                 applicationNameForUserAgent={APP_SHELL_USER_AGENT}
-                onNavigationStateChange={(event) => rememberLocation(event, webUrl)}
+                onNavigationStateChange={handleNavigationStateChange}
                 onFileDownload={Platform.OS === 'ios' ? handleFileDownload : undefined}
                 onShouldStartLoadWithRequest={
                   Platform.OS === 'ios' ? handleFileNavigation : undefined
@@ -465,6 +499,14 @@ export function WebViewHost() {
 }
 
 const INSTANT: InsetMotion = { duration: 0, easing: 'linear' };
+
+function chatsOnlyNow(): boolean {
+  const auth = useAuthStore.getState();
+  return isChatsOnlyAccount(
+    auth.status === 'signed-in' ? auth.tokens.accessToken : undefined,
+    CHATS_ONLY_ACCOUNT_IDS,
+  );
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
