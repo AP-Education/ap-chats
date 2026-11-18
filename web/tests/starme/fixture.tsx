@@ -119,7 +119,16 @@ function Chat({ state, channelId }: { state: Session; channelId: string }) {
     });
     return { uploads, outbox };
   });
-  const outboxes = useMemo<Outboxes>(() => ({ setSession() {}, for: () => sending }), [sending]);
+  const outboxes = useMemo<Outboxes>(
+    // The reload guard is not under test here.
+    () => ({
+      setSession() {},
+      isSending: () => false,
+      subscribe: () => () => {},
+      for: () => sending,
+    }),
+    [sending],
+  );
   useEffect(() => {
     let active = true;
     const update = async () => {
