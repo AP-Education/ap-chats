@@ -66,27 +66,62 @@ export function confirmDirectMessage(
     .find((item) => item.id === channelId);
   const detail = queryClient.getQueryData<DirectMessage>(detailKey) ?? row;
   if (!detail) return;
-  // A call signal refetches the list but not a closed conversation's detail, so either may hold
-  // the newer call.
-  const call = laterCall(detail.lastCall, row?.lastCall);
+
+  const confirmed: LastMessage = {
+    id: message.id,
+    markdown: message.markdown,
+    authorMemberId: message.authorMemberId,
+    createdAt: message.createdAt,
+  };
+  // Either cache may be ahead: a call signal refetches the list but not a closed conversation's
+  // detail, and a list refetch may already hold a later message than the one being confirmed.
+  const lastMessage = newest([confirmed, detail.lastMessage, row?.lastMessage], (each) =>
+    Date.parse(each.createdAt),
+  )!;
+  const call = freshestCall([row?.lastCall, detail.lastCall]);
+  const callIsLatest = call && Date.parse(call.startedAt) > Date.parse(lastMessage.createdAt);
+
   const updated: DirectMessage = {
     ...detail,
-    updatedAt: message.createdAt,
-    lastMessage: {
-      id: message.id,
-      markdown: message.markdown,
-      authorMemberId: message.authorMemberId,
-      createdAt: message.createdAt,
-    },
-    // A call that started after this message stays the newest thing in the conversation.
-    lastCall: call && Date.parse(call.startedAt) > Date.parse(message.createdAt) ? call : null,
+    updatedAt: newest([message.createdAt, detail.updatedAt, row?.updatedAt], Date.parse)!,
+    lastMessage,
+    lastCall: callIsLatest ? call : null,
   };
   mergeDirectMessage(queryClient, identity, updated);
 }
 
-type LastCall = DirectMessage['lastCall'];
+type LastMessage = NonNullable<DirectMessage['lastMessage']>;
+type LastCall = NonNullable<DirectMessage['lastCall']>;
 
-function laterCall(first: LastCall | undefined, second: LastCall | undefined): LastCall {
-  if (!first || !second) return first ?? second ?? null;
-  return Date.parse(second.startedAt) > Date.parse(first.startedAt) ? second : first;
+/** The latest of the values present by `time`; on a tie the earlier argument stays. */
+function newest<T>(values: (T | null | undefined)[], time: (value: T) => number): T | undefined {
+  let best: T | undefined;
+  for (const value of values) {
+    if (value == null) continue;
+    if (best === undefined || time(value) > time(best)) best = value;
+  }
+  return best;
+}
+
+// How far a call has gone; a status never moves back, so the further snapshot is the fresher one.
+const CALL_PROGRESS: Record<LastCall['status'], number> = {
+  ringing: 0,
+  active: 1,
+  ended: 2,
+  declined: 2,
+  missed: 2,
+};
+
+/** The later call, and of two snapshots of one call the one further along. The list row is
+ * passed first: it refetches on call signals, so it wins what is otherwise a tie. */
+function freshestCall(calls: (LastCall | null | undefined)[]): LastCall | null {
+  let best: LastCall | null = null;
+  for (const call of calls) {
+    if (!call) continue;
+    if (!best) best = call;
+    else if (call.id === best.id) {
+      if (CALL_PROGRESS[call.status] > CALL_PROGRESS[best.status]) best = call;
+    } else if (Date.parse(call.startedAt) > Date.parse(best.startedAt)) best = call;
+  }
+  return best;
 }

@@ -11,53 +11,84 @@ import { directMessageKey } from './queryKeys.ts';
 const identity = 'viewer';
 const key = directMessageKey(identity);
 
-function conversation(lastCall: DirectMessage['lastCall']): DirectMessage {
+type LastCall = NonNullable<DirectMessage['lastCall']>;
+
+const at = (minute: number) => `2026-11-18T10:${String(minute).padStart(2, '0')}:00Z`;
+
+function call(minute: number, status: LastCall['status'] = 'ended', id = `call-${minute}`) {
+  return { id, status, startedByMemberId: 'bob', startedAt: at(minute) };
+}
+
+function otherMessage(minute: number) {
+  return {
+    id: `message-${minute}`,
+    markdown: 'From Bob',
+    authorMemberId: 'bob',
+    createdAt: at(minute),
+  };
+}
+
+function conversation(
+  lastCall: DirectMessage['lastCall'],
+  lastMessage: DirectMessage['lastMessage'] = null,
+): DirectMessage {
   return {
     id: 'dm',
     workspaceId: 'workspace',
     participant: { memberId: 'bob', displayName: 'Bob', avatarPath: null, active: true },
     notification: { isMuted: false, mutedUntil: null },
-    lastMessage: null,
+    lastMessage,
     lastCall,
-    updatedAt: '2026-11-18T10:00:00Z',
+    updatedAt: at(0),
   };
 }
 
-function sent(createdAt: string): Message {
-  return { id: 'message', authorMemberId: 'viewer', markdown: 'Hi', createdAt } as Message;
+function sent(minute: number): Message {
+  return { id: 'sent', authorMemberId: 'viewer', markdown: 'Hi', createdAt: at(minute) } as Message;
 }
 
-const call = {
-  id: 'call',
-  status: 'ended' as const,
-  startedByMemberId: 'bob',
-  startedAt: '2026-11-18T10:05:00Z',
-};
-
-function cached(detail: DirectMessage, row: DirectMessage) {
+/** Confirms a message over a detail and a list row, and reads back what both caches now hold. */
+function confirm(detail: DirectMessage, row: DirectMessage, minute: number) {
   const queryClient = new QueryClient();
   queryClient.setQueryData([...key, 'dm'], detail);
   queryClient.setQueryData(key, { pages: [{ items: [row], nextCursor: null }], pageParams: [] });
-  return queryClient;
+
+  confirmDirectMessage(queryClient, identity, 'dm', sent(minute));
+
+  const listed = queryClient.getQueryData<{ pages: { items: DirectMessage[] }[] }>(key)!.pages[0]!
+    .items[0]!;
+  assert.deepEqual(queryClient.getQueryData([...key, 'dm']), listed, 'both caches agree');
+  return listed;
 }
 
-const listed = (queryClient: QueryClient) =>
-  queryClient.getQueryData<{ pages: { items: DirectMessage[] }[] }>(key)!.pages[0]!.items[0]!;
+test('a later call stays, whichever cache holds it', () => {
+  assert.deepEqual(confirm(conversation(null), conversation(call(5)), 1).lastCall, call(5));
+  assert.deepEqual(confirm(conversation(call(5)), conversation(null), 1).lastCall, call(5));
+});
 
-test('a delayed confirmation keeps a newer call the list holds though the detail lacks it', () => {
-  const queryClient = cached(conversation(null), conversation(call));
+test('of two different calls the later one stays, whichever cache holds it', () => {
+  assert.deepEqual(confirm(conversation(call(5)), conversation(call(7)), 1).lastCall, call(7));
+  assert.deepEqual(confirm(conversation(call(7)), conversation(call(5)), 1).lastCall, call(7));
+});
 
-  confirmDirectMessage(queryClient, identity, 'dm', sent('2026-11-18T10:01:00Z'));
+test('of two snapshots of one call the one further along stays', () => {
+  const ringing = call(5, 'ringing', 'call');
+  const active = call(5, 'active', 'call');
 
-  assert.deepEqual(listed(queryClient).lastCall, call);
-  assert.deepEqual(queryClient.getQueryData<DirectMessage>([...key, 'dm'])!.lastCall, call);
+  assert.deepEqual(confirm(conversation(ringing), conversation(active), 1).lastCall, active);
+  assert.deepEqual(confirm(conversation(active), conversation(ringing), 1).lastCall, active);
+});
+
+test('a later message one cache already holds outranks the confirmed one and an older call', () => {
+  const listed = confirm(conversation(call(5)), conversation(null, otherMessage(9)), 1);
+
+  assert.equal(listed.lastCall, null);
+  assert.equal(listed.lastMessage?.id, 'message-9');
 });
 
 test('a message sent after the call takes the preview from it', () => {
-  const queryClient = cached(conversation(null), conversation(call));
+  const listed = confirm(conversation(null), conversation(call(5)), 9);
 
-  confirmDirectMessage(queryClient, identity, 'dm', sent('2026-11-18T10:09:00Z'));
-
-  assert.equal(listed(queryClient).lastCall, null);
-  assert.equal(listed(queryClient).lastMessage?.id, 'message');
+  assert.equal(listed.lastCall, null);
+  assert.equal(listed.lastMessage?.id, 'sent');
 });
