@@ -1,3 +1,4 @@
+export { appInfo } from './appInfo';
 export { calls } from './calls';
 export { common } from './common';
 export { communities } from './communities';

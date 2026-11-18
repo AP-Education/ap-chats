@@ -18,6 +18,7 @@ export function chatsLanguage(locale: string | undefined): ChatsLanguage {
 
 // All of a language's words arrive together, so no component waits for its own later.
 const namespaces = Object.keys({
+  appInfo: true,
   calls: true,
   common: true,
   communities: true,
