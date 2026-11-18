@@ -62,23 +62,33 @@ test('a new keyboard height during a rise continues from the current position', 
   const change = await page.evaluate(async () => {
     const composer = document.querySelector<HTMLElement>('[data-composer]')!;
     window.keyboardFixture.send(260, 800);
+    let frame = performance.now();
     while (composer.getBoundingClientRect().bottom >= innerHeight - 60) {
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame((time) => {
+          frame = time;
+          resolve();
+        }),
+      );
     }
     const before = composer.getBoundingClientRect().bottom;
     const started = performance.now();
     window.keyboardFixture.send(300, 600);
     const immediate = composer.getBoundingClientRect().bottom;
+    const sinceFrame = performance.now() - frame;
     await new Promise<void>((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
     );
     return {
       jump: immediate - before,
+      sinceFrame,
       distance: composer.getBoundingClientRect().bottom - before,
       elapsed: performance.now() - started,
     };
   });
-  expect(Math.abs(change.jump)).toBeLessThan(1);
+  // The move runs on time, so the new target starts where the time since the last frame put it:
+  // a slow runner can be a pixel or two along, but never a jump.
+  expect(Math.abs(change.jump)).toBeLessThan(change.sinceFrame * 2 + 1);
   const allowedProgress = change.elapsed * 2 + 1;
   expect(Math.abs(change.distance)).toBeLessThan(allowedProgress);
   await expect.poll(() => position(page)).toBeCloseTo(height - 300, 0);
