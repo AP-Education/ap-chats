@@ -197,11 +197,13 @@ CI-джоб `publish-update`:
 
 1. `eas env:pull` для EAS-оточення з назвою каналу: бандл несе ті самі `EXPO_PUBLIC_*`, що й збірки цього каналу.
 2. Обчислення fingerprint (`expo-updates runtimeversion:resolve`) з тим самим `APP_UPDATES_CHANNEL`.
-3. `expo export --platform ios|android` у `mobile/`.
+3. `expo export --platform ios|android` у `mobile/` і `expo config --type public` з тим самим оточенням. Конфіг іде в маніфест як `extra.expoClient` і `extra.eas`: після запуску оновлення `Constants.expoConfig` читається з маніфесту, а не з бінарника, і без нього застосунок втрачає `extra.eas.projectId`, а з ним і push-токен.
 4. Завантаження бандла й ассетів у Spaces під `app-updates/<sha256><розширення>`, публічно, з `Cache-Control: immutable`. Файл, який уже є в бакеті, не надсилається повторно.
 5. `POST /api/updates/admin/releases`. Якщо збірки з таким fingerprint немає в `app_runtimes`, API відповідає 409 і публікація зупиняється.
 
 Після кожного релізу в стор CI-джоб `register-runtime` записує fingerprint і номер збірки в `app_runtimes`. Fingerprint береться з EAS (`eas build:list`), тобто той, з яким збірку справді зроблено. Розширення rollout, пауза й відкат — окремі ручні CI-джоби. Скрипти лежать у `scripts/updates/`, workflows — у `.github/workflows/`.
+
+**Черга.** `publish-update`, `update-rollout` і `register-runtime` ідуть по одному (concurrency-група `updates`). `update-pause`, `update-rollback` і `update-status` — поза чергою: GitHub скасовує run, що чекає, коли в групу стає наступний, тож у черзі статус або rollout могли б скасувати відкат, а завислий publish — тримати його. Від одночасних змін захищає API: запис статусу й rollout умовний, `revoked` назавжди лишається `revoked`, а з двох одночасних відкатів проходить один. Кожен job має `timeout-minutes`, а скрипти — таймаути на export, Spaces і API. Адмін-токен і ключі Spaces отримує лише крок, якому вони потрібні, а скрипти не передають їх у `expo`, `eas` чи `git`.
 
 **Fingerprint.** `mobile/fingerprint.config.js` виключає версії й номери збірок, `.gitignore` і `eas.json`: вони не змінюють нативний код, а інакше кожна збірка мала б свій runtime і правка `eas.json` відрізала б збірки в сторах від оновлень. Конфіг застосунку, зокрема адреса API й канал, у fingerprint входить.
 
