@@ -64,3 +64,12 @@ test('turns a refusal into an error that says why', async () => {
     { message: 'The API refused the admin token: check UPDATES_ADMIN_TOKEN' },
   );
 });
+
+test('never sends the admin token over plain HTTP to another host', () => {
+  const { fake } = recorder(200, '[]');
+  assert.throws(
+    () => adminApi({ apiUrl: 'http://chats.example.com', token: 't', fetch: fake }),
+    /must use https/u,
+  );
+  assert.doesNotThrow(() => adminApi({ apiUrl: 'http://localhost:3211', token: 't', fetch: fake }));
+});

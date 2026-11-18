@@ -13,16 +13,15 @@ permissions:
   contents: read
   packages: read
 
-concurrency:
-  group: updates
-  cancel-in-progress: false
+# Urgent, so outside the updates queue: it neither waits behind a hung publish nor is
+# cancelled by a run queued after it. The API keeps a revoked update revoked either way.
 
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       UPDATES_API_URL: ${{ vars.UPDATES_API_URL }}
-      UPDATES_ADMIN_TOKEN: ${{ secrets.UPDATES_ADMIN_TOKEN }}
       UPDATE: ${{ inputs.update }}
     steps:
       - uses: actions/checkout@v6
@@ -31,4 +30,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           node-auth-token: ${{ secrets.GITHUB_TOKEN }}
-      - run: node --import tsx scripts/updates/admin.ts pause --update "$UPDATE"
+      # Only the step that calls the API gets the admin token.
+      - env:
+          UPDATES_ADMIN_TOKEN: ${{ secrets.UPDATES_ADMIN_TOKEN }}
+        run: node --import tsx scripts/updates/admin.ts pause --update "$UPDATE"

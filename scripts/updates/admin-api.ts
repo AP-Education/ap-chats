@@ -44,7 +44,7 @@ export class AdminApiError extends Error {
 
 /** The CI side of `/api/updates/admin`, which only the bearer of the admin token may call. */
 export function adminApi(options: { apiUrl: string; token: string; fetch?: typeof fetch }) {
-  const base = `${options.apiUrl.replace(/\/+$/u, '')}/api/updates/admin`;
+  const base = `${secureOrigin(options.apiUrl)}/api/updates/admin`;
   const send = options.fetch ?? fetch;
 
   async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -55,6 +55,8 @@ export function adminApi(options: { apiUrl: string; token: string; fetch?: typeo
         ...(body === undefined ? {} : { 'content-type': 'application/json' }),
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      // A hung API must not hold the shared queue that an urgent rollback waits in.
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     const text = await response.text();
     if (!response.ok) throw new AdminApiError(response.status, errorMessage(response.status, text));
@@ -80,6 +82,17 @@ export function adminApi(options: { apiUrl: string; token: string; fetch?: typeo
         { embedded },
       ),
   };
+}
+
+const REQUEST_TIMEOUT_MS = 60_000;
+
+/** The admin token travels in a header, so only HTTPS is allowed, or plain HTTP to this machine. */
+function secureOrigin(apiUrl: string): string {
+  const url = new URL(apiUrl);
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local))
+    throw new Error(`UPDATES_API_URL must use https: ${url.origin}`);
+  return `${url.origin}${url.pathname.replace(/\/+$/u, '')}`;
 }
 
 function errorMessage(status: number, text: string): string {

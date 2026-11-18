@@ -30,7 +30,9 @@ permissions:
   contents: read
   packages: read
 
-# One change to the updates at a time.
+# One publish, rollout change or runtime registration at a time. Pause and rollback stay
+# outside this queue: GitHub cancels a waiting run when another one queues, and an urgent
+# action must neither wait behind a hung publish nor be cancelled by one.
 concurrency:
   group: updates
   cancel-in-progress: false
@@ -38,17 +40,14 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     # Required reviewers can be set on the production environment without touching this file.
     environment: ${{ inputs.channel }}
     env:
       UPDATES_API_URL: ${{ vars.UPDATES_API_URL }}
-      UPDATES_ADMIN_TOKEN: ${{ secrets.UPDATES_ADMIN_TOKEN }}
       UPDATES_SPACES_ENDPOINT: ${{ vars.UPDATES_SPACES_ENDPOINT }}
       UPDATES_SPACES_BUCKET: ${{ vars.UPDATES_SPACES_BUCKET }}
       UPDATES_ASSETS_URL: ${{ vars.UPDATES_ASSETS_URL }}
-      UPDATES_SPACES_KEY: ${{ secrets.UPDATES_SPACES_KEY }}
-      UPDATES_SPACES_SECRET: ${{ secrets.UPDATES_SPACES_SECRET }}
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       CHANNEL: ${{ inputs.channel }}
       PLATFORM: ${{ inputs.platform }}
       NOTES: ${{ inputs.notes }}
@@ -64,8 +63,15 @@ jobs:
       # The bundle must carry the same EXPO_PUBLIC_* values as the builds of this channel.
       - name: Pull the channel's EAS environment
         working-directory: mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: npx --yes eas-cli@27.2.0 env:pull --environment "$CHANNEL" --path .env.updates --non-interactive
+      # Only the step that uploads and calls the API gets those secrets.
       - name: Publish
+        env:
+          UPDATES_ADMIN_TOKEN: ${{ secrets.UPDATES_ADMIN_TOKEN }}
+          UPDATES_SPACES_KEY: ${{ secrets.UPDATES_SPACES_KEY }}
+          UPDATES_SPACES_SECRET: ${{ secrets.UPDATES_SPACES_SECRET }}
         run: |
           args=(--platform "$PLATFORM" --channel "$CHANNEL" --notes "$NOTES")
           if [ "$MANDATORY" = "true" ]; then args+=(--mandatory); fi

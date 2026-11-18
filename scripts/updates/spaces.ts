@@ -26,6 +26,9 @@ export function spacesStore(options: {
     requestChecksumCalculation: 'WHEN_REQUIRED',
     responseChecksumValidation: 'WHEN_REQUIRED',
     credentials: { accessKeyId: options.accessKey, secretAccessKey: options.secretKey },
+    // A stalled connection fails and is retried instead of holding the shared updates queue.
+    // The request timeout counts idle time on the socket, so a large bundle still uploads.
+    requestHandler: { connectionTimeout: 10_000, requestTimeout: 120_000 },
   });
 
   return {
