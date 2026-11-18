@@ -1,5 +1,6 @@
 import { StorageModule } from '@ap-education/storage';
 import { MediaModule } from '@ap-education/storage/media';
+import { createS3Storage, spacesOptions } from '@ap-education/storage/s3';
 import { ThumbHashPlaceholder } from '@ap-education/storage/thumbhash';
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
@@ -35,12 +36,15 @@ import { HealthController } from '@/health/health.controller';
     StorageModule.forRootAsync({
       isGlobal: true,
       inject: [AppConfigService],
-      useFactory: (config: AppConfigService) => ({
-        bucket: config.get('DIGITAL_OCEAN_SPACES_BUCKET'),
-        endpoint: config.get('DIGITAL_OCEAN_SPACES_ENDPOINT'),
-        accessKey: config.get('DIGITAL_OCEAN_SPACES_ACCESS_KEY'),
-        secretKey: config.get('DIGITAL_OCEAN_SPACES_SECRET_KEY'),
-      }),
+      useFactory: (config: AppConfigService) =>
+        createS3Storage(
+          spacesOptions({
+            bucket: config.get('DIGITAL_OCEAN_SPACES_BUCKET'),
+            endpoint: config.get('DIGITAL_OCEAN_SPACES_ENDPOINT'),
+            accessKey: config.get('DIGITAL_OCEAN_SPACES_ACCESS_KEY'),
+            secretKey: config.get('DIGITAL_OCEAN_SPACES_SECRET_KEY'),
+          }),
+        ),
     }),
     MediaModule.forRoot({ isGlobal: true, placeholder: new ThumbHashPlaceholder() }),
     AuthModule,

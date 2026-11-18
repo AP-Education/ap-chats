@@ -13,9 +13,9 @@
  */
 import { parseArgs } from 'node:util';
 
-import { ObjectStorage, StorageModule } from '@ap-education/storage';
+import type { ObjectStorage } from '@ap-education/storage';
+import { createS3Storage, spacesOptions } from '@ap-education/storage/s3';
 import { ConfigService } from '@nestjs/config';
-import { NestFactory } from '@nestjs/core';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
@@ -44,19 +44,16 @@ import {
 
 class DryRunRollback extends Error {}
 
-// The Spaces adapter is the storage package's own, so it is reached through its module.
-async function openStorage(): Promise<ObjectStorage> {
+function openStorage(): ObjectStorage {
   const config = new AppConfigService(new ConfigService<AppConfig, true>());
-  const context = await NestFactory.createApplicationContext(
-    StorageModule.forRoot({
+  return createS3Storage(
+    spacesOptions({
       bucket: config.get('DIGITAL_OCEAN_SPACES_BUCKET'),
       endpoint: config.get('DIGITAL_OCEAN_SPACES_ENDPOINT'),
       accessKey: config.get('DIGITAL_OCEAN_SPACES_ACCESS_KEY'),
       secretKey: config.get('DIGITAL_OCEAN_SPACES_SECRET_KEY'),
     }),
-    { logger: false },
   );
-  return context.get(ObjectStorage);
 }
 
 async function main(): Promise<void> {
@@ -98,7 +95,7 @@ async function main(): Promise<void> {
 
   const pool = new Pool({ connectionString: databaseUrl });
   const db = drizzle(pool);
-  const storage = isDryRun ? null : await openStorage();
+  const storage = isDryRun ? null : openStorage();
   const report: Record<string, unknown> = {};
 
   try {

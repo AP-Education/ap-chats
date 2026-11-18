@@ -17,8 +17,8 @@ importers:
   .:
     dependencies:
       '@ap-education/storage':
-        specifier: ^0.1.0
-        version: 0.1.0(@nestjs/common@12.1.0(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(file-type@22.1.1(supports-color@8.1.1))(sharp@0.35.4(@types/node@24.13.6))(thumbhash@0.1.1)
+        specifier: ^0.2.0
+        version: 0.2.0(@nestjs/common@12.1.0(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(file-type@22.1.1(supports-color@8.1.1))(sharp@0.35.4(@types/node@24.13.6))(thumbhash@0.1.1)
       '@fastify/multipart':
         specifier: ^10.1.2
         version: 10.1.2
@@ -539,8 +539,8 @@ packages:
     peerDependencies:
       react: ^19.0.0
 
-  '@ap-education/storage@0.1.0':
-    resolution: {integrity: sha512-HP0M3wEOvzE+S8WkP+8+XBjqwdaPvSEPRDawfpk344BcHJO6I7i3eUdshk2G1eRvD8TipodNHUUFfZixdN4F9A==, tarball: https://npm.pkg.github.com/download/@ap-education/storage/0.1.0/ace14fe90b1f091c0f2503c098a90c87a318be5b}
+  '@ap-education/storage@0.2.0':
+    resolution: {integrity: sha512-Ltwc9twLlSaSdhHRC46+8EXbVvq3GO8v5iPp4o7hc7NEeDXQ7bdDOKbkDj1esteisLepdoOkDd3CYYhVdoWtAA==, tarball: https://npm.pkg.github.com/download/@ap-education/storage/0.2.0/e3de695580b31527561f639e70e1b294a8cf4953}
     peerDependencies:
       '@nestjs/common': ^11.0.0 || ^12.0.0
       file-type: ^22.0.0
@@ -7915,7 +7915,7 @@ snapshots:
     dependencies:
       react: 19.2.8
 
-  '@ap-education/storage@0.1.0(@nestjs/common@12.1.0(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(file-type@22.1.1(supports-color@8.1.1))(sharp@0.35.4(@types/node@24.13.6))(thumbhash@0.1.1)':
+  '@ap-education/storage@0.2.0(@nestjs/common@12.1.0(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(file-type@22.1.1(supports-color@8.1.1))(sharp@0.35.4(@types/node@24.13.6))(thumbhash@0.1.1)':
     dependencies:
       '@aws-sdk/client-s3': 3.1139.0
       '@aws-sdk/s3-request-presigner': 3.1144.0
