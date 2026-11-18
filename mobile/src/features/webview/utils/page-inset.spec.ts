@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { insetBottomScript, pageBottom, pageKeyboardInset } from './page-inset';
+import { insetBottomScript, insetTopScript, pageBottom, pageKeyboardInset } from './page-inset';
 
 test('a page down to the screen edge pads for the keyboard less the system bar', () => {
   assert.equal(pageKeyboardInset(345, pageBottom(0, 34)), 311);
@@ -19,4 +19,8 @@ test('a page ending above the screen edge pads only for what reaches it', () => 
 
 test('the bottom inset is written into the page as the shell reads it', () => {
   assert.match(insetBottomScript(34), /setProperty\('--app-inset-bottom', '34px'\)/);
+});
+
+test('the top inset is pinned in the page as the shell reads it', () => {
+  assert.match(insetTopScript(0), /setProperty\('--app-inset-top', '0px'\)/);
 });

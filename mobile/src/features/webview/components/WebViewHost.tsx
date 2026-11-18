@@ -49,7 +49,12 @@ import { forgetLastLocation, loadLastLocation, rememberLocation } from '../api/l
 import type { NativeToWebMessage, WebToNativeMessage } from '../types';
 import { DEBUG_CONSOLE_SCRIPT } from '../utils/debug-console';
 import { buildBridgeScript } from '../utils/inject-bridge';
-import { insetBottomScript, pageBottom, pageKeyboardInset } from '../utils/page-inset';
+import {
+  insetBottomScript,
+  insetTopScript,
+  pageBottom,
+  pageKeyboardInset,
+} from '../utils/page-inset';
 import { APP_SHELL_USER_AGENT } from '../utils/shell-user-agent';
 import { tokenMessage } from '../utils/token-message';
 import { ConnectionErrorScreen } from './ConnectionErrorScreen';
@@ -96,7 +101,10 @@ export function WebViewHost() {
   const [pageGap, setPageGap] = useState(0);
   // The page's own safe area can't tell its bottom inside a tab: it grows under the tab bar and
   // empties under the keyboard. Native knows, and writes it into the page's CSS.
-  const insetBottom = insetBottomScript(pageBottom(pageGap, insets.bottom).safeArea);
+  // Only iOS lets the page run under the status bar; elsewhere nothing covers its top.
+  const pageInsets =
+    (edgeToEdge ? '' : insetTopScript(0)) +
+    insetBottomScript(pageBottom(pageGap, insets.bottom).safeArea);
   const room = useRef(0);
   const sendInset = useCallback(
     ({ duration, easing }: InsetMotion) => {
@@ -161,9 +169,9 @@ export function WebViewHost() {
   useEffect(() => {
     if (loadCount === 0) return;
 
-    webViewRef.current?.injectJavaScript(insetBottom);
+    webViewRef.current?.injectJavaScript(pageInsets);
     sendInset(INSTANT);
-  }, [insetBottom, loadCount, sendInset]);
+  }, [pageInsets, loadCount, sendInset]);
 
   // The page asked how calls reach this phone; it hears again whenever that may have changed.
   const pageWatchesCalls = useRef(false);
@@ -404,7 +412,7 @@ export function WebViewHost() {
                   webViewRef.current?.requestFocus();
                 }}
                 injectedJavaScriptBeforeContentLoaded={
-                  __DEV__ ? DEBUG_CONSOLE_SCRIPT + insetBottom : insetBottom
+                  __DEV__ ? DEBUG_CONSOLE_SCRIPT + pageInsets : pageInsets
                 }
                 onError={(event: WebViewErrorEvent) =>
                   console.error('[webview] onError', event.nativeEvent)
