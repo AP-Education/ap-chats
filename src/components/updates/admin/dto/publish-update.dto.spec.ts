@@ -21,6 +21,7 @@ const valid = {
   manifest: {
     launchAsset: asset,
     assets: [{ ...asset, contentType: 'image/png', fileExtension: '.png' }],
+    expoClient: { name: 'AP App', extra: { eas: { projectId: 'project-1' } } },
   },
 };
 const errors = (body: object) => validateSync(plainToInstance(PublishUpdateDto, body));
@@ -47,4 +48,11 @@ test('rejects a release without a bundle or outside the known channels', () => {
   assert.notEqual(errors({ ...valid, manifest: undefined }).length, 0);
   assert.notEqual(errors({ ...valid, channel: 'staging' }).length, 0);
   assert.notEqual(errors({ ...valid, rolloutPercent: 101 }).length, 0);
+});
+
+test('requires the app config the bundle was exported with', () => {
+  const manifest: Partial<typeof valid.manifest> = { ...valid.manifest };
+  delete manifest.expoClient;
+  assert.notEqual(errors({ ...valid, manifest }).length, 0);
+  assert.notEqual(errors({ ...valid, manifest: { ...manifest, expoClient: 'AP App' } }).length, 0);
 });

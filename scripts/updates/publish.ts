@@ -88,6 +88,7 @@ async function main() {
         { cwd: mobileDir, env },
       );
       const bundle = await readExport(exportDir, platform, assetsUrl);
+      const expoClient = await appConfig(env);
       const uploaded = await uploadMissing(store, [bundle.launchAsset, ...bundle.assets]);
       console.log(`${platform}: ${uploaded.sent} files sent, ${uploaded.kept} already there`);
 
@@ -95,7 +96,7 @@ async function main() {
         platform,
         channel,
         runtimeVersion,
-        manifest: manifestOf(bundle),
+        manifest: { ...manifestOf(bundle), expoClient },
         mandatory: values.mandatory,
         gitCommit,
         ...(rolloutPercent === undefined ? {} : { rolloutPercent }),
@@ -115,6 +116,25 @@ async function main() {
       await rm(exportDir, { recursive: true, force: true });
     }
   }
+}
+
+/**
+ * The public app config, as the binary embeds it. After an update launches, `Constants.expoConfig`
+ * comes from the manifest instead, and the app needs it for `extra.eas.projectId` (push tokens).
+ */
+async function appConfig(env: NodeJS.ProcessEnv): Promise<Record<string, unknown>> {
+  const config = lastJson(
+    await run('pnpm', ['exec', 'expo', 'config', '--json', '--type', 'public'], {
+      cwd: mobileDir,
+      env,
+    }),
+  );
+  if (typeof config !== 'object' || config === null || Array.isArray(config))
+    throw new Error('expo config printed no app config');
+  const { extra } = config as { extra?: { eas?: { projectId?: unknown } } };
+  if (typeof extra?.eas?.projectId !== 'string')
+    throw new Error('The app config has no extra.eas.projectId, which push tokens need');
+  return config as Record<string, unknown>;
 }
 
 main().catch((error: unknown) => {

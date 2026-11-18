@@ -41,6 +41,12 @@ export interface StoredUpdateAsset {
 export interface StoredUpdateManifest {
   launchAsset: StoredUpdateAsset;
   assets: StoredUpdateAsset[];
+  /**
+   * The public app config the bundle was exported with. After an update launches,
+   * `Constants.expoConfig` reads it from the manifest instead of the binary, so without it the
+   * app loses `extra.eas.projectId` and with it its Expo push token.
+   */
+  expoClient?: Record<string, unknown>;
 }
 
 /** A native build in the stores, by the fingerprint of its native layer. */

@@ -30,6 +30,7 @@ const bundle: OfferedAppUpdate = {
       url: 'https://cdn.test/bundle',
     },
     assets: [],
+    expoClient: { name: 'AP App', extra: { eas: { projectId: 'project-1' } } },
   },
   rolloutPercent: 100,
   mandatory: false,
@@ -88,7 +89,11 @@ test('serves the selected update as a manifest', async () => {
     launchAsset: bundle.manifest!.launchAsset,
     assets: [],
     metadata: {},
-    extra: { mandatory: false },
+    extra: {
+      expoClient: bundle.manifest!.expoClient,
+      eas: { projectId: 'project-1' },
+      mandatory: false,
+    },
   });
   assert.match(body, /name="extensions"/u);
 });

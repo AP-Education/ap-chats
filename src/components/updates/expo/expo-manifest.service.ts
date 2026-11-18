@@ -86,7 +86,7 @@ export class ExpoManifestService {
           launchAsset: update.manifest.launchAsset,
           assets: update.manifest.assets,
           metadata: {},
-          extra: { mandatory: update.mandatory },
+          extra: { ...appConfigExtra(update.manifest.expoClient), mandatory: update.mandatory },
         },
       },
     ];
@@ -101,4 +101,15 @@ export class ExpoManifestService {
     }
     return (body) => signPart(body, key);
   }
+}
+
+/**
+ * Once an update launches, expo-constants reads `Constants.expoConfig` from `extra.expoClient`
+ * and `Constants.easConfig` from `extra.eas`, not from the binary. Without them the app loses
+ * `extra.eas.projectId`, and with it its Expo push token.
+ */
+function appConfigExtra(expoClient: Record<string, unknown> | undefined): Record<string, unknown> {
+  if (!expoClient) return {};
+  const { extra } = expoClient as { extra?: { eas?: unknown } };
+  return { expoClient, ...(extra?.eas ? { eas: extra.eas } : {}) };
 }

@@ -11,7 +11,7 @@ import { selectUpdate } from '../expo/helpers/select-update';
 import { DrizzleUpdatesRepository } from '../repository';
 import { AdminUpdatesService } from './admin-updates.service';
 
-const bundle = (name: string): schema.StoredUpdateManifest => ({
+const bundle = (name: string): Required<schema.StoredUpdateManifest> => ({
   launchAsset: {
     hash: name.padEnd(43, 'x'),
     key: name,
@@ -19,6 +19,7 @@ const bundle = (name: string): schema.StoredUpdateManifest => ({
     url: `https://cdn.test/${name}`,
   },
   assets: [],
+  expoClient: { name: 'AP App' },
 });
 const target = { platform: 'ios', channel: 'production', runtimeVersion: 'fp-1' } as const;
 

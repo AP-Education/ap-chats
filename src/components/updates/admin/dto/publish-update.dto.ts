@@ -6,6 +6,7 @@ import {
   IsDefined,
   IsIn,
   IsInt,
+  IsObject,
   IsOptional,
   IsString,
   IsUrl,
@@ -57,6 +58,10 @@ export class UpdateManifestDto {
   @ValidateNested({ each: true })
   @Type(() => UpdateAssetDto)
   assets!: UpdateAssetDto[];
+
+  /** The public app config (`expo config --type public`) the bundle was exported with. */
+  @IsObject()
+  expoClient!: Record<string, unknown>;
 }
 
 export class PublishUpdateDto {

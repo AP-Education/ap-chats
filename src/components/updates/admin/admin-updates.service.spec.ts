@@ -26,6 +26,7 @@ function service(hasRuntime = true) {
 const manifest = {
   launchAsset: { hash: 'h', key: 'k', contentType: 'application/javascript', url: 'https://x' },
   assets: [],
+  expoClient: { name: 'AP App' },
 };
 const dto = (overrides: Partial<PublishUpdateDto> = {}): PublishUpdateDto => ({
   platform: 'ios',
