@@ -52,14 +52,15 @@ export class AdminUpdatesService {
 
   async setRollout(id: string, percent: number): Promise<void> {
     await this.requireLive(id);
-    await this.updates.setRollout(id, percent);
+    // Revoked between the read and the write: the write itself refuses it.
+    if (!(await this.updates.setRollout(id, percent))) throw alreadyRevoked();
     this.logger.info({ updateId: id, percent }, 'Update rollout changed');
   }
 
   /** Stops new phones from taking the update; phones that already run it keep it. */
   async pause(id: string): Promise<void> {
     await this.requireLive(id);
-    await this.updates.setStatus(id, 'paused');
+    if (!(await this.updates.setStatus(id, 'paused'))) throw alreadyRevoked();
     this.logger.info({ updateId: id }, 'Update paused');
   }
 
@@ -79,6 +80,9 @@ export class AdminUpdatesService {
     const bad = await this.requireLive(id);
     if (bad.kind !== 'update')
       throw new ConflictException('A rollback is undone by publishing a new update');
+    // Revoking first claims the update: of two rollbacks at once, the second waits on the row
+    // and then finds it revoked, so only one replacement is ever made.
+    if (!(await this.updates.setStatus(bad.id, 'revoked'))) throw alreadyRevoked();
 
     const previous = embedded ? undefined : await this.updates.findPreviousBundle(bad);
     const target = {
@@ -107,14 +111,17 @@ export class AdminUpdatesService {
         };
 
     const newId = await this.updates.create({ ...replacement, rolloutPercent: 100 });
-    await this.updates.setStatus(bad.id, 'revoked');
     return { id: newId, kind: replacement.kind, sourceUpdateId: replacement.sourceUpdateId };
   }
 
   private async requireLive(id: string): Promise<StoredAppUpdate> {
     const update = await this.updates.find(id);
     if (!update) throw new NotFoundException('Update not found');
-    if (update.status === 'revoked') throw new ConflictException('Update is already revoked');
+    if (update.status === 'revoked') throw alreadyRevoked();
     return update;
   }
+}
+
+function alreadyRevoked(): ConflictException {
+  return new ConflictException('Update is already revoked');
 }

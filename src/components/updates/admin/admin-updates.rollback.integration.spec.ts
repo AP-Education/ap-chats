@@ -112,3 +112,27 @@ test('refuses to touch an unknown or already revoked update, or to roll back a r
   await assert.rejects(admin.pause(bad), ConflictException);
   await assert.rejects(admin.rollback(rollback.id), ConflictException);
 });
+
+test('skips an update at 0% when picking what to republish', async (t) => {
+  const { pg, admin, publish } = await setup();
+  t.after(() => pg.close());
+  const good = await publish('good');
+  await publish('unseen', 0);
+  const bad = await publish('bad');
+
+  assert.equal((await admin.rollback(bad)).sourceUpdateId, good);
+});
+
+test('a revoked update stays revoked when a pause or rollout lands after the rollback', async (t) => {
+  const { pg, db, updates, admin, publish } = await setup();
+  t.after(() => pg.close());
+  const bad = await publish('bad');
+  await admin.rollback(bad);
+
+  // What a pause or rollout that read the update before the rollback would write next.
+  assert.equal(await updates.setStatus(bad, 'paused'), false);
+  assert.equal(await updates.setRollout(bad, 100), false);
+  const rows = await db.select().from(schema.appUpdates);
+  assert.equal(rows.find(({ id }) => id === bad)?.status, 'revoked');
+  assert.equal(rows.length, 2);
+});

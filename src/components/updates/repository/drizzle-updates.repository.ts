@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, desc, eq, lt, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, lt, ne, sql } from 'drizzle-orm';
 
 import {
   appRuntimes,
@@ -170,15 +170,23 @@ export class DrizzleUpdatesRepository extends UpdatesRepository {
     return found;
   }
 
-  async setRollout(id: string, rolloutPercent: number): Promise<void> {
-    await this.txHost.tx
+  async setRollout(id: string, rolloutPercent: number): Promise<boolean> {
+    const changed = await this.txHost.tx
       .update(appUpdates)
       .set({ rolloutPercent, status: 'active' })
-      .where(and(eq(appUpdates.id, id), ne(appUpdates.status, 'revoked')));
+      .where(and(eq(appUpdates.id, id), ne(appUpdates.status, 'revoked')))
+      .returning({ id: appUpdates.id });
+    return changed.length > 0;
   }
 
-  async setStatus(id: string, status: AppUpdateStatus): Promise<void> {
-    await this.txHost.tx.update(appUpdates).set({ status }).where(eq(appUpdates.id, id));
+  async setStatus(id: string, status: AppUpdateStatus): Promise<boolean> {
+    // A concurrent write to the row waits for this one, then sees `revoked` and changes nothing.
+    const changed = await this.txHost.tx
+      .update(appUpdates)
+      .set({ status })
+      .where(and(eq(appUpdates.id, id), ne(appUpdates.status, 'revoked')))
+      .returning({ id: appUpdates.id });
+    return changed.length > 0;
   }
 
   async findPreviousBundle(update: StoredAppUpdate): Promise<StoredAppUpdate | undefined> {
@@ -190,6 +198,7 @@ export class DrizzleUpdatesRepository extends UpdatesRepository {
           eq(appUpdates.runtimeVersion, update.runtimeVersion),
           eq(appUpdates.kind, 'update'),
           eq(appUpdates.status, 'active'),
+          gt(appUpdates.rolloutPercent, 0),
           ne(appUpdates.id, update.id),
           lt(appUpdates.createdAt, update.createdAt),
         ),
