@@ -5,6 +5,7 @@ import type { ComposerInputRequest, ComposerInputState } from '../../composer';
 import type { TabBarModel } from '../../navigation/types';
 import type { PushPermission } from '../../push/types';
 import type { NotificationIntent } from '../../push/utils/notification-intent';
+import type { ShellInfo } from '../../updates/utils/shell-info';
 import type {
   VoiceRequest,
   VoiceStateMessage,
@@ -45,6 +46,8 @@ export type NativeToWebMessage =
   | { type: 'notifications/permission'; status: PushPermission }
   /** What a call needs from this phone; again on every return to the app once the page asked. */
   | { type: 'calls/readiness'; checks: CallCheck[] }
+  /** The app's version and the update it runs, answering `shell/info-request`. */
+  | { type: 'shell/info'; payload: ShellInfo }
   | { type: 'navigation/select'; id: string }
   /** How much of the page's bottom the native tab bar covers. */
   | { type: 'navigation/inset'; bottom: number }
@@ -60,6 +63,7 @@ export type WebToNativeMessage =
    * change, and once as not busy when the source starts, so the shell knows the page reports.
    */
   | { type: 'updates/busy'; source: string; busy: boolean }
+  | { type: 'shell/info-request' }
   | { type: 'auth/sign-out' }
   | { type: 'auth/refresh-request' }
   | { type: 'calls/connect'; payload: NativeCallConnectPayload }

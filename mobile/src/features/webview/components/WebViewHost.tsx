@@ -40,7 +40,7 @@ import { dismissPresentedNotifications } from '../../push/api/presented-notifica
 import { getPushPermissionStatus } from '../../push/api/push-token';
 import { MessageNotificationSound } from '../../push/components/MessageNotificationSound';
 import { useNotificationStore } from '../../push/store/notification-store';
-import { useUpdateStore } from '../../updates';
+import { readShellInfo, useUpdateStore } from '../../updates';
 import {
   VoiceMessageRuntime,
   type VoiceRuntimeHandle,
@@ -269,6 +269,10 @@ export function WebViewHost() {
       fixCallCheck(message.id);
     } else if (message.type === 'notifications/permission-check') {
       sendPushPermission();
+    } else if (message.type === 'shell/info-request') {
+      webViewRef.current?.injectJavaScript(
+        buildBridgeScript({ type: 'shell/info', payload: readShellInfo() }),
+      );
     } else if (message.type === 'notifications/settings') {
       void changePushPermission().then(sendPushPermission);
     } else if (message.type === 'auth/sign-out') {
