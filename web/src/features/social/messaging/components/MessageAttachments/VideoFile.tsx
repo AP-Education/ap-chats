@@ -9,8 +9,11 @@ import { thumbHashStyle } from '@ap-education/ui/thumbhash';
 import { DownloadSimpleIcon, PlayIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
+
 import { formatFileSize } from '../../attachments/file-presentation';
 import { attachmentMedia, mediaKey } from '../../message-media';
+import { intlLocale } from '../packageLabels';
 import { attachmentSize } from './attachment-size';
 import type { FileAttachmentProps } from './FileAttachment';
 import { useAttachmentDownload, useAttachmentImage } from './useAttachmentAccess';
@@ -60,6 +63,7 @@ function VideoFileCard({ attachment, messageId, available }: FileAttachmentProps
 
 function VideoPoster({ attachment, messageId, available, overlay }: FileAttachmentProps) {
   const { t } = useTranslation('messaging');
+  const locale = intlLocale(useChatsLanguage());
   const { open } = useTimelineMediaActions();
   const download = useAttachmentDownload(messageId, attachment);
   const media = attachmentMedia(messageId, attachment);
@@ -99,7 +103,7 @@ function VideoPoster({ attachment, messageId, available, overlay }: FileAttachme
             <span aria-label={t(($) => $.attachments.duration, { duration })}>{duration}</span>
           )}
           {duration && <span aria-hidden>·</span>}
-          <span>{formatFileSize(attachment.size)}</span>
+          <span>{formatFileSize(attachment.size, locale)}</span>
         </span>
         <button
           type="button"

@@ -108,8 +108,8 @@ export const communities = {
     menuLoading: 'Loading notifications',
     reload: 'Try loading again',
     updateFailed: 'Couldn’t update channel notifications.',
-    mute: 'Mute channel',
-    unmute: 'Unmute channel',
+    mute: 'Mute channel notifications',
+    unmute: 'Unmute channel notifications',
     levels: {
       default: 'Default',
       all: 'All messages',
@@ -125,8 +125,8 @@ export const communities = {
     },
     workspace: {
       title: 'Workspace notifications',
-      mute: 'Mute workspace',
-      unmute: 'Unmute workspace',
+      mute: 'Mute workspace notifications',
+      unmute: 'Unmute workspace notifications',
       updateFailed: 'Couldn’t update workspace notifications.',
       hint: 'Channels in this workspace notify you this way unless a channel is set differently.',
     },

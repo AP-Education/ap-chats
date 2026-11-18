@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -47,7 +47,7 @@ function literals(path: string): { line: number; text: string }[] {
 
 test('words a person reads come from the catalogs, so every language gets them', () => {
   const offenders = sources(root)
-    .map((path) => relative(root, path))
+    .map((path) => relative(root, path).split(sep).join('/'))
     .filter((path) => !(path in allowed))
     .flatMap((path) =>
       literals(join(root, path))

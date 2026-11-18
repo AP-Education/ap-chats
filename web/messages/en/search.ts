@@ -15,7 +15,7 @@ export const search = {
     searching: 'Searching…',
     failed: 'Couldn’t complete the search.',
     retry: 'Retry',
-    empty: 'Nothing found. Try a different name.',
+    empty: 'Nothing found. Try a different name or channel title.',
     opening: 'Opening conversation…',
     openFailed: 'Couldn’t open the conversation. Please try again.',
   },
