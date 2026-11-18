@@ -38,6 +38,16 @@ output "backups_bucket_name" {
   value       = module.backups.name
 }
 
+output "updates_bucket_name" {
+  description = "Feed into the UPDATES_SPACES_BUCKET GitHub variable."
+  value       = module.updates.name
+}
+
+output "updates_assets_url" {
+  description = "Feed into the UPDATES_ASSETS_URL GitHub variable: the bucket's public root (the publish script adds the app-updates/ prefix)."
+  value       = "https://${module.updates.endpoint}"
+}
+
 output "spaces_region_endpoint" {
   description = <<-EOT
     Feed into do_spaces_endpoint in the Ansible vault, used for both

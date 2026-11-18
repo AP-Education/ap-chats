@@ -16,6 +16,7 @@ locals {
   # that split doesn't depend on every code path getting its ACL right.
   attachments_bucket_name = coalesce(var.attachments_bucket_name, local.base_prefix)
   backups_bucket_name     = coalesce(var.backups_bucket_name, "${local.base_prefix}-backups")
+  updates_bucket_name     = coalesce(var.updates_bucket_name, "${local.base_prefix}-updates")
   spaces_region_endpoint  = "https://${var.spaces_region}.digitaloceanspaces.com"
 
   cloud_init = templatefile("${path.module}/../../cloud-init/prod.yaml", {
@@ -97,6 +98,17 @@ module "backups" {
   # ("backups/...") — keep the two in sync if either changes.
   expiration_prefix = "backups/"
   expiration_days   = var.spaces_backup_retention_days
+}
+
+# Update files are content-addressed and never change, so nothing here expires: a phone may
+# still need an old bundle when a rollback republishes it. The bucket stays private by default;
+# CI sets public-read on each object it uploads.
+module "updates" {
+  source = "../modules/spaces"
+
+  name          = local.updates_bucket_name
+  region        = var.spaces_region
+  force_destroy = var.spaces_force_destroy
 }
 
 module "firewall" {

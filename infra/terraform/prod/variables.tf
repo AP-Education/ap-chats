@@ -103,6 +103,12 @@ variable "backups_bucket_name" {
   default     = null
 }
 
+variable "updates_bucket_name" {
+  description = "Name of the bucket holding over-the-air app update files, which CI uploads as public-read objects. Its own bucket so the CI key, which may write here, can never read chat attachments. Defaults to <project>-<environment>-updates."
+  type        = string
+  default     = null
+}
+
 variable "spaces_region" {
   description = "Region for both Spaces buckets."
   type        = string

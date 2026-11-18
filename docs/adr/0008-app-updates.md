@@ -216,6 +216,8 @@ CI-джоб `publish-update`:
 | `UPDATES_SPACES_ENDPOINT`, `UPDATES_SPACES_BUCKET` | variable | напр. `fra1.digitaloceanspaces.com` і назва бакета                   |
 | `UPDATES_ASSETS_URL`                               | variable | публічна адреса бакета (або CDN), з якої телефони завантажують файли |
 
+Бакет оновлень окремий (`<project>-<environment>-updates`), його створює Terraform (`infra/terraform/prod`, модуль `updates`). Окремий він тому, що ключ CI з правом запису не повинен бачити вкладення чатів. Значення для змінних дають `terraform output updates_bucket_name` і `terraform output updates_assets_url`. `UPDATES_ASSETS_URL` — це корінь бакета без `/app-updates`: префікс скрипт додає сам.
+
 **Ключ підпису маніфестів.** Сервер підписує маніфести під час відповіді, тому приватний ключ зберігається лише в секретах сервера. CI його не має: публікацію обмежує `UPDATES_ADMIN_TOKEN`. Сертифікат вшивається в бінарник. Ротація ключа потребує нового бінарника, тому сертифікат одразу випускається з довгим строком дії.
 
 **Канали.** Кожен профіль `eas.json` задає `APP_UPDATES_CHANNEL`, що збігається з його EAS-оточенням: `preview` — `preview`, `production` і `apk` — `production`. Збірка отримує OTA лише зі свого каналу. Профіль `development` канал не має: dev client працює з Metro, а не з OTA.
