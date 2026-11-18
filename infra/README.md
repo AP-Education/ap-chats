@@ -95,6 +95,20 @@ pnpm exec dotenv -e infra/terraform/prod/.env -- terraform -chdir=infra/terrafor
 (`do_spaces_bucket`, `do_backups_bucket`, `do_spaces_endpoint`,
 `do_spaces_access_key`, `do_spaces_secret_key`).
 
+A third bucket, `<project>-<environment>-updates`, holds over-the-air app update files
+(docs/adr/0008-app-updates.md). CI uploads them as public-read objects, and the bucket is
+separate so the CI key scoped to it can never read chat attachments. It is not in the vault:
+after `pnpm run infra:tf:apply` (the first apply after it was added should report exactly one
+bucket to add), create a Spaces key limited to that bucket and set the GitHub settings:
+
+```bash
+pnpm exec dotenv -e infra/terraform/prod/.env -- terraform -chdir=infra/terraform/prod output -raw updates_bucket_name   # UPDATES_SPACES_BUCKET
+pnpm exec dotenv -e infra/terraform/prod/.env -- terraform -chdir=infra/terraform/prod output -raw updates_assets_url    # UPDATES_ASSETS_URL
+pnpm exec dotenv -e infra/terraform/prod/.env -- terraform -chdir=infra/terraform/prod output -raw spaces_region_endpoint # UPDATES_SPACES_ENDPOINT
+```
+
+The key pair goes into the `UPDATES_SPACES_KEY` and `UPDATES_SPACES_SECRET` repository secrets.
+
 ## Data volume and reserved IP
 
 Postgres, Valkey and Caddy keep their state on a DigitalOcean block volume
