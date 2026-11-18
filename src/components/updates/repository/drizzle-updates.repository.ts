@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, desc, eq, gt, lt, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, lt, ne, notExists, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import {
   appRuntimes,
@@ -170,13 +171,42 @@ export class DrizzleUpdatesRepository extends UpdatesRepository {
     return found;
   }
 
-  async setRollout(id: string, rolloutPercent: number): Promise<boolean> {
+  async setRollout(id: string, rolloutPercent: number, resume: boolean): Promise<boolean> {
     const changed = await this.txHost.tx
       .update(appUpdates)
       .set({ rolloutPercent, status: 'active' })
-      .where(and(eq(appUpdates.id, id), ne(appUpdates.status, 'revoked')))
+      .where(
+        and(
+          eq(appUpdates.id, id),
+          resume ? ne(appUpdates.status, 'revoked') : eq(appUpdates.status, 'active'),
+        ),
+      )
       .returning({ id: appUpdates.id });
     return changed.length > 0;
+  }
+
+  async lockTarget({ platform, channel, runtimeVersion }: UpdateTarget): Promise<void> {
+    // Held until the transaction ends; other rollbacks of the same target wait for it.
+    await this.txHost.tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`app-updates:${platform}:${channel}:${runtimeVersion}`}))`,
+    );
+  }
+
+  async isRevokedBundle(target: UpdateTarget, launchAssetHash: string): Promise<boolean> {
+    const [found] = await this.txHost.tx
+      .select({ id: appUpdates.id })
+      .from(appUpdates)
+      .where(
+        and(
+          eq(appUpdates.platform, target.platform),
+          eq(appUpdates.channel, target.channel),
+          eq(appUpdates.runtimeVersion, target.runtimeVersion),
+          eq(appUpdates.status, 'revoked'),
+          sql`${appUpdates.manifest}->'launchAsset'->>'hash' = ${launchAssetHash}`,
+        ),
+      )
+      .limit(1);
+    return Boolean(found);
   }
 
   async setStatus(id: string, status: AppUpdateStatus): Promise<boolean> {
@@ -190,6 +220,22 @@ export class DrizzleUpdatesRepository extends UpdatesRepository {
   }
 
   async findPreviousBundle(update: StoredAppUpdate): Promise<StoredAppUpdate | undefined> {
+    const revoked = alias(appUpdates, 'revoked_update');
+    // The same bundle under another id (an earlier republish) is just as broken.
+    const neverRevoked = notExists(
+      this.txHost.tx
+        .select({ id: revoked.id })
+        .from(revoked)
+        .where(
+          and(
+            eq(revoked.platform, appUpdates.platform),
+            eq(revoked.channel, appUpdates.channel),
+            eq(revoked.runtimeVersion, appUpdates.runtimeVersion),
+            eq(revoked.status, 'revoked'),
+            sql`${revoked.manifest}->'launchAsset'->>'hash' = ${appUpdates.manifest}->'launchAsset'->>'hash'`,
+          ),
+        ),
+    );
     const [found] = await this.selectStored()
       .where(
         and(
@@ -201,6 +247,7 @@ export class DrizzleUpdatesRepository extends UpdatesRepository {
           gt(appUpdates.rolloutPercent, 0),
           ne(appUpdates.id, update.id),
           lt(appUpdates.createdAt, update.createdAt),
+          neverRevoked,
         ),
       )
       .orderBy(desc(appUpdates.createdAt), desc(appUpdates.id))

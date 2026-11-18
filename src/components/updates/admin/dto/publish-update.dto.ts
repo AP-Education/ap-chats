@@ -15,6 +15,7 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateBy,
   ValidateNested,
 } from 'class-validator';
 
@@ -59,8 +60,22 @@ export class UpdateManifestDto {
   @Type(() => UpdateAssetDto)
   assets!: UpdateAssetDto[];
 
-  /** The public app config (`expo config --type public`) the bundle was exported with. */
+  /**
+   * The public app config (`expo config --type public`) the bundle was exported with. The app
+   * reads `extra.eas.projectId` from it for its push token, so that has to be there.
+   */
   @IsObject()
+  @ValidateBy({
+    name: 'hasEasProjectId',
+    validator: {
+      validate: (value: unknown) => {
+        const projectId = (value as { extra?: { eas?: { projectId?: unknown } } } | null)?.extra
+          ?.eas?.projectId;
+        return typeof projectId === 'string' && projectId.length > 0;
+      },
+      defaultMessage: () => 'expoClient must have extra.eas.projectId',
+    },
+  })
   expoClient!: Record<string, unknown>;
 }
 

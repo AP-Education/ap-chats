@@ -55,4 +55,8 @@ test('requires the app config the bundle was exported with', () => {
   delete manifest.expoClient;
   assert.notEqual(errors({ ...valid, manifest }).length, 0);
   assert.notEqual(errors({ ...valid, manifest: { ...manifest, expoClient: 'AP App' } }).length, 0);
+  assert.notEqual(
+    errors({ ...valid, manifest: { ...manifest, expoClient: { name: 'AP App' } } }).length,
+    0,
+  );
 });

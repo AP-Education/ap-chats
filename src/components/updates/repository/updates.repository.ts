@@ -41,17 +41,24 @@ export abstract class UpdatesRepository {
   abstract find(id: string): Promise<StoredAppUpdate | undefined>;
 
   /**
-   * Changing the rollout also resumes a paused update. False when the update is revoked, which
-   * is final: the check is part of the write, so a rollback that lands first always wins.
+   * False when the update is revoked, or paused and `resume` is not asked for. The check is part
+   * of the write, so a rollback or a pause that lands first always wins over an older request.
    */
-  abstract setRollout(id: string, rolloutPercent: number): Promise<boolean>;
+  abstract setRollout(id: string, rolloutPercent: number, resume: boolean): Promise<boolean>;
+
+  /** Makes other callers in the same target wait until this transaction ends. */
+  abstract lockTarget(target: UpdateTarget): Promise<void>;
+
+  /** Whether this bundle (by its launch asset) was rolled back on the target before. */
+  abstract isRevokedBundle(target: UpdateTarget, launchAssetHash: string): Promise<boolean>;
 
   /** False when the update is already revoked; revoked stays revoked, checked in the write. */
   abstract setStatus(id: string, status: AppUpdateStatus): Promise<boolean>;
 
   /**
    * The newest bundle still offered on the same runtime and channel that was published before
-   * `update`: the one a rollback republishes. One at 0% reached no phone, so it is skipped.
+   * `update`: the one a rollback republishes. One at 0% reached no phone, and a bundle that was
+   * rolled back under any id is just as broken, so both are skipped.
    */
   abstract findPreviousBundle(update: StoredAppUpdate): Promise<StoredAppUpdate | undefined>;
 }

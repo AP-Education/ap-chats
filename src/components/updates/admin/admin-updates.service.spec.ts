@@ -4,16 +4,22 @@ import { test } from 'node:test';
 import { ConflictException } from '@nestjs/common';
 
 import type { Logger } from '@/globals/logger';
+import { memoryTransactionHost } from '@/testing/transactions';
 
 import type { UpdatesRepository } from '../repository';
 import type { NewAppUpdate } from '../types';
 import { AdminUpdatesService } from './admin-updates.service';
 import type { PublishUpdateDto } from './dto';
 
+// publish opens a transaction; this one has no database behind it.
+memoryTransactionHost();
+
 function service(hasRuntime = true) {
   const created: NewAppUpdate[] = [];
   const repository = {
     hasRuntime: () => Promise.resolve(hasRuntime),
+    lockTarget: () => Promise.resolve(),
+    isRevokedBundle: () => Promise.resolve(false),
     create: (update: NewAppUpdate) => {
       created.push(update);
       return Promise.resolve('new-id');

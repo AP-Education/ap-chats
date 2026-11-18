@@ -46,7 +46,7 @@ export class AdminUpdatesController {
   @Patch('releases/:id/rollout')
   @HttpCode(204)
   setRollout(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SetRolloutDto): Promise<void> {
-    return this.admin.setRollout(id, dto.percent);
+    return this.admin.setRollout(id, dto.percent, dto.resume);
   }
 
   @Post('releases/:id/pause')

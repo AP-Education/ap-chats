@@ -88,7 +88,7 @@ test('skips a paused update when picking what to republish', async (t) => {
   assert.equal((await admin.rollback(bad)).sourceUpdateId, good);
 });
 
-test('pausing stops the offer and widening the rollout resumes it', async (t) => {
+test('pausing stops the offer until a rollout change resumes it on purpose', async (t) => {
   const { pg, admin, publish, offeredTo } = await setup();
   t.after(() => pg.close());
   const update = await publish('update', 10);
@@ -96,7 +96,10 @@ test('pausing stops the offer and widening the rollout resumes it', async (t) =>
   await admin.pause(update);
   assert.equal(await offeredTo('phone-1'), null);
 
-  await admin.setRollout(update, 100);
+  await assert.rejects(admin.setRollout(update, 100), ConflictException);
+  assert.equal(await offeredTo('phone-1'), null);
+
+  await admin.setRollout(update, 100, true);
   assert.equal((await offeredTo('phone-1'))?.id, update);
 });
 
@@ -131,8 +134,29 @@ test('a revoked update stays revoked when a pause or rollout lands after the rol
 
   // What a pause or rollout that read the update before the rollback would write next.
   assert.equal(await updates.setStatus(bad, 'paused'), false);
-  assert.equal(await updates.setRollout(bad, 100), false);
+  assert.equal(await updates.setRollout(bad, 100, true), false);
   const rows = await db.select().from(schema.appUpdates);
   assert.equal(rows.find(({ id }) => id === bad)?.status, 'revoked');
   assert.equal(rows.length, 2);
+});
+
+test('never republishes a bundle that was rolled back under another id', async (t) => {
+  const { pg, admin, publish } = await setup();
+  t.after(() => pg.close());
+  await publish('good');
+  const bad = await publish('bad');
+  // The republished "good" turns out broken too: "good" itself is no way back.
+  const again = await admin.rollback(bad);
+
+  assert.equal((await admin.rollback(again.id)).kind, 'rollback_to_embedded');
+});
+
+test('refuses to publish a bundle that was rolled back', async (t) => {
+  const { pg, admin, publish } = await setup();
+  t.after(() => pg.close());
+  const bad = await publish('bad');
+  await admin.rollback(bad);
+
+  await assert.rejects(publish('bad'), ConflictException);
+  assert.ok(await publish('fixed'));
 });
