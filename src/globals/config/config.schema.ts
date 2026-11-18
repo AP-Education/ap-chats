@@ -105,8 +105,12 @@ const schema = z
     // Bearer token CI uses to publish and roll back updates; unset turns the admin API off.
     UPDATES_ADMIN_TOKEN: z.preprocess(
       (value) => value || undefined,
-      // One Bearer value: the guard reads no spaces.
-      z.string().min(32).regex(/^\S+$/u, 'Must not contain spaces').optional(),
+      // One Bearer value of visible ASCII: fetch cannot send other characters in a header.
+      z
+        .string()
+        .min(32)
+        .regex(/^[\x21-\x7E]+$/u, 'Must be visible ASCII without spaces')
+        .optional(),
     ),
   })
   .superRefine((config, context) => {

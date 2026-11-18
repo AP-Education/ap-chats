@@ -64,9 +64,13 @@ test('rejects a signing key that cannot sign, without printing it', () => {
   assert.throws(() => validateConfig({ ...process.env, EXPO_UPDATES_PRIVATE_KEY: ecKey }));
 });
 
-test('rejects an admin token with spaces, which no Bearer header can carry', () => {
+test('rejects an admin token with spaces, or that no Bearer header can carry', () => {
   const token = `${'a'.repeat(20)} ${'b'.repeat(20)}`;
   assert.throws(() => validateConfig({ ...process.env, UPDATES_ADMIN_TOKEN: token }));
+  assert.throws(() =>
+    // fetch refuses a header character above U+00FF, so CI could never send this one.
+    validateConfig({ ...process.env, UPDATES_ADMIN_TOKEN: `${'a'.repeat(40)}漢` }),
+  );
   assert.doesNotThrow(() =>
     validateConfig({ ...process.env, UPDATES_ADMIN_TOKEN: 'a'.repeat(40) }),
   );
@@ -74,7 +78,12 @@ test('rejects an admin token with spaces, which no Bearer header can carry', () 
 
 test('requires the store link wherever a minimum build is set', () => {
   assert.throws(
-    () => validateConfig({ ...process.env, UPDATES_MIN_BUILD_ANDROID: '12' }),
+    () =>
+      validateConfig({
+        ...process.env,
+        UPDATES_MIN_BUILD_ANDROID: '12',
+        UPDATES_STORE_URL_ANDROID: undefined,
+      }),
     /UPDATES_STORE_URL_ANDROID/u,
   );
   const config = validateConfig({
