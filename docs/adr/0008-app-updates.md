@@ -127,6 +127,10 @@ Rollout детермінований: сервер бере перші 4 бай�
 - **Відкат на попередній OTA.** Вміст попереднього update перепублікується як новий update з новим `id` і `created_at`. `source_update_id` вказує на оригінал. Ассети ті самі, нового `expo export` не треба. Оновлені пристрої сприймають його як новіший і переходять на нього.
 - **Відкат до вбудованого бандла.** Застосовується, якщо попереднього OTA немає або він теж зламаний. Сервер віддає директиву `rollBackToEmbedded`, і клієнт повертається до бандла з бінарника.
 - Проблемний update переходить у `revoked` і більше ніколи не віддається.
+- Попереднім вважається лише update, що справді доходив до пристроїв (rollout > 0 %), і лише з бандлом, який ніколи не відкликали під жодним `id`. Якщо перепублікований бандл теж зламаний, наступний відкат не повертає на той самий бандл.
+- Бандл, який відкликали, не можна опублікувати знову. Новий, виправлений бандл витісняє відкат: так виходить фікс.
+- Відкати й публікації для однієї платформи, каналу й runtime виконуються по одному (транзакційний lock у базі).
+- Пауза лишається паузою: зміна rollout не знімає її без явного `resume`, тож запит, зроблений до екстреної паузи, її не скасує.
 
 **Electron:**
 
@@ -203,20 +207,28 @@ CI-джоб `publish-update`:
 
 Після кожного релізу в стор CI-джоб `register-runtime` записує fingerprint і номер збірки в `app_runtimes`. Fingerprint береться з EAS (`eas build:list`), тобто той, з яким збірку справді зроблено. Розширення rollout, пауза й відкат — окремі ручні CI-джоби. Скрипти лежать у `scripts/updates/`, workflows — у `.github/workflows/`.
 
-**Черга.** `publish-update`, `update-rollout` і `register-runtime` ідуть по одному (concurrency-група `updates`). `update-pause`, `update-rollback` і `update-status` — поза чергою: GitHub скасовує run, що чекає, коли в групу стає наступний, тож у черзі статус або rollout могли б скасувати відкат, а завислий publish — тримати його. Від одночасних змін захищає API: запис статусу й rollout умовний, `revoked` назавжди лишається `revoked`, а з двох одночасних відкатів проходить один. Кожен job має `timeout-minutes`, а скрипти — таймаути на export, Spaces і API. Адмін-токен і ключі Spaces отримує лише крок, якому вони потрібні, а скрипти не передають їх у `expo`, `eas` чи `git`.
+**Черга.** `publish-update`, `update-rollout` і `register-runtime` ідуть по одному (concurrency-група `updates`). `update-pause`, `update-rollback` і `update-status` — поза чергою: GitHub скасовує run, що чекає, коли в групу стає наступний, тож у черзі статус або rollout могли б скасувати відкат, а завислий publish — тримати його. Від одночасних змін захищає API: запис статусу й rollout умовний, `revoked` назавжди лишається `revoked`, пауза знімається лише явним `resume`, а відкати й публікації однієї цілі йдуть по одному (див. «Відкат»). Кожен job має `timeout-minutes`, а скрипти — таймаути на export, Spaces і API. Адмін-токен і ключі Spaces отримує лише крок, якому вони потрібні, а скрипти не передають їх у `expo`, `eas` чи `git`.
 
 **Fingerprint.** `mobile/fingerprint.config.js` виключає версії й номери збірок, `.gitignore` і `eas.json`: вони не змінюють нативний код, а інакше кожна збірка мала б свій runtime і правка `eas.json` відрізала б збірки в сторах від оновлень. Конфіг застосунку, зокрема адреса API й канал, у fingerprint входить.
 
 **Налаштування GitHub.**
 
-| Що                                                 | Де       | Значення                                                             |
-| -------------------------------------------------- | -------- | -------------------------------------------------------------------- |
-| `UPDATES_ADMIN_TOKEN`                              | secret   | той самий, що в Ansible Vault                                        |
-| `UPDATES_SPACES_KEY`, `UPDATES_SPACES_SECRET`      | secret   | ключ Spaces з правом запису в бакет оновлень                         |
-| `EXPO_TOKEN`                                       | secret   | токен робота Expo (безкоштовний): `env:pull` і `build:list`          |
-| `UPDATES_API_URL`                                  | variable | адреса API без `/api`                                                |
-| `UPDATES_SPACES_ENDPOINT`, `UPDATES_SPACES_BUCKET` | variable | напр. `fra1.digitaloceanspaces.com` і назва бакета                   |
-| `UPDATES_ASSETS_URL`                               | variable | публічна адреса бакета (або CDN), з якої телефони завантажують файли |
+Три GitHub environments, у кожному Deployment branches — лише `main`:
+
+- `preview` — публікація в preview;
+- `production` — публікація в production, з Required reviewers;
+- `updates` — rollout, пауза, відкат, статус і `register-runtime`.
+
+Секрети — це секрети environments, а не репозиторію: тоді код з іншої гілки не отримає адмін-токен. Змінні (variables) можуть бути на рівні репозиторію.
+
+| Що                                                 | Де                                          | Значення                                                             |
+| -------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------- |
+| `UPDATES_ADMIN_TOKEN`                              | secret у `preview`, `production`, `updates` | той самий, що в Ansible Vault                                        |
+| `UPDATES_SPACES_KEY`, `UPDATES_SPACES_SECRET`      | secret у `preview`, `production`            | ключ Spaces з правом запису в бакет оновлень                         |
+| `EXPO_TOKEN`                                       | secret у `preview`, `production`, `updates` | токен робота Expo (безкоштовний): `env:pull` і `build:list`          |
+| `UPDATES_API_URL`                                  | variable                                    | адреса API без `/api`                                                |
+| `UPDATES_SPACES_ENDPOINT`, `UPDATES_SPACES_BUCKET` | variable                                    | напр. `fra1.digitaloceanspaces.com` і назва бакета                   |
+| `UPDATES_ASSETS_URL`                               | variable                                    | публічна адреса бакета (або CDN), з якої телефони завантажують файли |
 
 Бакет оновлень окремий (`<project>-<environment>-updates`), його створює Terraform (`infra/terraform/prod`, модуль `updates`). Окремий він тому, що ключ CI з правом запису не повинен бачити вкладення чатів. Значення для змінних дають `terraform output updates_bucket_name` і `terraform output updates_assets_url`. `UPDATES_ASSETS_URL` — це корінь бакета без `/app-updates`: префікс скрипт додає сам.
 
@@ -259,6 +271,7 @@ node --env-file=mobile/.env.updates --import tsx scripts/updates/publish.ts --pl
    gh workflow run update-rollout  -f update=<updateId> -f percent=50
    gh workflow run update-rollout  -f update=<updateId> -f percent=100
    ```
+   Пауза знімається лише разом із `-f resume=true`: без нього rollout призупиненого update відмовить.
 
 `update-status` виводить у summary джоба всі update каналу:
 
