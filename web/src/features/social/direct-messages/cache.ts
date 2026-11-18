@@ -60,13 +60,15 @@ export function confirmDirectMessage(
 ) {
   const key = directMessageKey(identity);
   const detailKey = [...key, channelId];
-  const detail =
-    queryClient.getQueryData<DirectMessage>(detailKey) ??
-    queryClient
-      .getQueryData<InfiniteData<DirectMessagePage, string | undefined>>(key)
-      ?.pages.flatMap((page) => page.items)
-      .find((item) => item.id === channelId);
+  const row = queryClient
+    .getQueryData<InfiniteData<DirectMessagePage, string | undefined>>(key)
+    ?.pages.flatMap((page) => page.items)
+    .find((item) => item.id === channelId);
+  const detail = queryClient.getQueryData<DirectMessage>(detailKey) ?? row;
   if (!detail) return;
+  // A call signal refetches the list but not a closed conversation's detail, so either may hold
+  // the newer call.
+  const call = laterCall(detail.lastCall, row?.lastCall);
   const updated: DirectMessage = {
     ...detail,
     updatedAt: message.createdAt,
@@ -77,10 +79,14 @@ export function confirmDirectMessage(
       createdAt: message.createdAt,
     },
     // A call that started after this message stays the newest thing in the conversation.
-    lastCall:
-      detail.lastCall && Date.parse(detail.lastCall.startedAt) > Date.parse(message.createdAt)
-        ? detail.lastCall
-        : null,
+    lastCall: call && Date.parse(call.startedAt) > Date.parse(message.createdAt) ? call : null,
   };
   mergeDirectMessage(queryClient, identity, updated);
+}
+
+type LastCall = DirectMessage['lastCall'];
+
+function laterCall(first: LastCall | undefined, second: LastCall | undefined): LastCall {
+  if (!first || !second) return first ?? second ?? null;
+  return Date.parse(second.startedAt) > Date.parse(first.startedAt) ? second : first;
 }
