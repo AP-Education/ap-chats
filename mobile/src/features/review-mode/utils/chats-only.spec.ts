@@ -26,6 +26,7 @@ test('parses the reviewer ids, ignoring blanks and spaces', () => {
 
 test('reads the subject of an access token', () => {
   assert.equal(tokenSubject(token({ sub: 'user-1', appId: 'app' })), 'user-1');
+  assert.equal(tokenSubject(token({ sub: 'réviewer-ї' })), 'réviewer-ї');
   assert.equal(tokenSubject('not-a-token'), null);
   assert.equal(tokenSubject('a.%%%.c'), null);
   assert.equal(tokenSubject(token({ appId: 'app' })), null);

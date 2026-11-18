@@ -27,7 +27,12 @@ export function tokenSubject(accessToken: string): string | null {
   try {
     const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
     const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-    const claims: unknown = JSON.parse(atob(padded));
+    // atob yields bytes; the claims are UTF-8 JSON (Hermes has no TextDecoder to lean on).
+    const bytes = atob(padded);
+    const json = decodeURIComponent(
+      Array.from(bytes, (byte) => `%${byte.charCodeAt(0).toString(16).padStart(2, '0')}`).join(''),
+    );
+    const claims: unknown = JSON.parse(json);
     const sub = claims && typeof claims === 'object' && 'sub' in claims ? claims.sub : null;
     return typeof sub === 'string' && sub ? sub : null;
   } catch {
