@@ -184,6 +184,18 @@ export function seedConversations(db: TestDatabase) {
         startedByMemberId: caller.id,
         startedAt: tick(),
       });
+      // Like the app, the call takes its place in the channel's timeline.
+      conversation.seq += 1n;
+      await db.insert(schema.channelEntries).values({
+        workspaceId: conversation.workspaceId,
+        channelId: conversation.channelId,
+        callId: id,
+        seq: conversation.seq,
+      });
+      await db
+        .update(schema.channels)
+        .set({ lastEntrySeq: conversation.seq, updatedAt: tick() })
+        .where(eq(schema.channels.id, conversation.channelId));
       return id;
     },
   };

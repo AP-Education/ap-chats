@@ -5,6 +5,7 @@ import type { CallHistoryItem } from '../../types';
 import { CallBubbleAction } from './CallBubbleAction';
 import { CallCaption } from './CallCaption';
 import styles from './CallLogRow.module.css';
+import { callTitle } from './callTitle';
 
 /** The call's permanent record: a bubble on the side of whoever placed it, joining their
  * run like a message would. Discovering an ongoing call stays the ActiveCallBanner's job;
@@ -27,11 +28,4 @@ export function CallLogRow({ item }: { item: CallHistoryItem }) {
       </TimelineEntryBubble>
     </TimelineEntry>
   );
-}
-
-function callTitle(status: CallHistoryItem['call']['status'], outgoing: boolean): string {
-  if (status === 'active') return 'Дзвінок триває';
-  if (status === 'declined') return 'Дзвінок відхилено';
-  if (status === 'missed') return outgoing ? 'Дзвінок без відповіді' : 'Пропущений дзвінок';
-  return outgoing ? 'Вихідний дзвінок' : 'Вхідний дзвінок';
 }

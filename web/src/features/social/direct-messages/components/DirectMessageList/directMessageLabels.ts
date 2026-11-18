@@ -1,4 +1,5 @@
 import { previewText } from '../../../mentions/mention-tokens';
+import { callTitle } from '../../../messaging/components/CallLogRow/callTitle';
 import { isLoneGif } from '../../../messaging/gifs/gif-links';
 import type { DirectMessage } from '../../api/direct-messages-api';
 
@@ -15,6 +16,25 @@ export function lastMessagePreview(message: DirectMessage['lastMessage']): strin
   if (!message.markdown)
     return message.attachments?.some((file) => file.voice) ? 'Голосове повідомлення' : 'Вкладення';
   return isLoneGif(message) ? 'GIF' : previewText(message.markdown);
+}
+
+/** What happened last: a call once it came after every message, otherwise the message. */
+export function conversationPreview({
+  lastMessage,
+  lastCall,
+  participant,
+}: Pick<DirectMessage, 'lastMessage' | 'lastCall' | 'participant'>): string {
+  if (lastCall)
+    return callTitle(lastCall.status, lastCall.startedByMemberId !== participant.memberId);
+  return lastMessagePreview(lastMessage);
+}
+
+/** When the last thing happened: a call only stays on the conversation while it is the newest. */
+export function lastActivityAt({
+  lastMessage,
+  lastCall,
+}: Pick<DirectMessage, 'lastMessage' | 'lastCall'>): string | undefined {
+  return lastCall?.startedAt ?? lastMessage?.createdAt;
 }
 
 /** Minutes, hours or days ago within a week, a short date beyond that. */

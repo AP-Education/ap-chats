@@ -1,3 +1,4 @@
+import type { CallStatus } from '@/components/calls/calls/types';
 import type { NotificationLevel } from '@/components/notifications/preferences/types';
 import type { MessageGif } from '@/components/social/content';
 import type { Attachment } from '@/components/social/messages/types/message.types';
@@ -23,6 +24,12 @@ export interface ConversationRow {
     deletedAt: Date | null;
     authorMemberId: string;
     createdAt: Date;
+  } | null;
+  lastCall: {
+    id: string;
+    status: CallStatus;
+    startedByMemberId: string;
+    startedAt: Date;
   } | null;
 }
 

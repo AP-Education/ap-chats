@@ -27,6 +27,7 @@ export function conversationView(row: ConversationRow, isMuted: boolean) {
           createdAt: row.lastMessage.createdAt,
         }
       : null,
+    lastCall: row.lastCall,
     updatedAt: row.channel.updatedAt,
   };
 }
