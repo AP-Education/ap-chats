@@ -92,3 +92,39 @@ test('a message sent after the call takes the preview from it', () => {
   assert.equal(listed.lastCall, null);
   assert.equal(listed.lastMessage?.id, 'sent');
 });
+
+test('a deleted message stays deleted, whichever cache saw the deletion', () => {
+  const deleted = { ...otherMessage(9), markdown: null };
+
+  assert.equal(
+    confirm(conversation(null, otherMessage(9)), conversation(null, deleted), 1).lastMessage
+      ?.markdown,
+    null,
+  );
+  assert.equal(
+    confirm(conversation(null, deleted), conversation(null, otherMessage(9)), 1).lastMessage
+      ?.markdown,
+    null,
+  );
+});
+
+test('a conversation moves up only when the confirmation makes it the most recent', () => {
+  const order = (minute: number) => {
+    const queryClient = new QueryClient();
+    const older = { ...conversation(null, otherMessage(9)), updatedAt: at(9) };
+    const newer = { ...conversation(null, otherMessage(12)), id: 'other', updatedAt: at(12) };
+    queryClient.setQueryData(key, {
+      pages: [{ items: [newer, older], nextCursor: null }],
+      pageParams: [],
+    });
+
+    confirmDirectMessage(queryClient, identity, 'dm', sent(minute));
+
+    return queryClient
+      .getQueryData<{ pages: { items: DirectMessage[] }[] }>(key)!
+      .pages[0]!.items.map((item) => item.id);
+  };
+
+  assert.deepEqual(order(1), ['other', 'dm']);
+  assert.deepEqual(order(15), ['dm', 'other']);
+});

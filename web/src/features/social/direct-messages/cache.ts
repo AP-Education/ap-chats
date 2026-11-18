@@ -73,21 +73,24 @@ export function confirmDirectMessage(
     authorMemberId: message.authorMemberId,
     createdAt: message.createdAt,
   };
-  // Either cache may be ahead: a call signal refetches the list but not a closed conversation's
-  // detail, and a list refetch may already hold a later message than the one being confirmed.
-  const lastMessage = newest([confirmed, detail.lastMessage, row?.lastMessage], (each) =>
-    Date.parse(each.createdAt),
-  )!;
+  // Either cache may be ahead: a call signal or a deletion refetches the list but not a closed
+  // conversation's detail, and a list refetch may already hold a later message than this one.
+  // The list row goes before the detail, so it wins what is otherwise a tie.
+  const lastMessage = freshestMessage([confirmed, row?.lastMessage, detail.lastMessage])!;
   const call = freshestCall([row?.lastCall, detail.lastCall]);
   const callIsLatest = call && Date.parse(call.startedAt) > Date.parse(lastMessage.createdAt);
 
+  const listedAt = row?.updatedAt ?? detail.updatedAt;
   const updated: DirectMessage = {
     ...detail,
     updatedAt: newest([message.createdAt, detail.updatedAt, row?.updatedAt], Date.parse)!,
     lastMessage,
     lastCall: callIsLatest ? call : null,
   };
-  mergeDirectMessage(queryClient, identity, updated);
+  // The inbox is ordered by activity: a confirmation that brings nothing newer keeps its place.
+  const advanced = Date.parse(updated.updatedAt) > Date.parse(listedAt);
+  if (advanced) mergeDirectMessage(queryClient, identity, updated);
+  else replaceDirectMessage(queryClient, identity, updated);
 }
 
 type LastMessage = NonNullable<DirectMessage['lastMessage']>;
@@ -99,6 +102,20 @@ function newest<T>(values: (T | null | undefined)[], time: (value: T) => number)
   for (const value of values) {
     if (value == null) continue;
     if (best === undefined || time(value) > time(best)) best = value;
+  }
+  return best;
+}
+
+/** The latest message, and of two snapshots of one message a deleted one: a deletion keeps its
+ * time, so only the missing text tells the copies apart. On any other tie the earlier stays. */
+function freshestMessage(messages: (LastMessage | null | undefined)[]): LastMessage | undefined {
+  let best: LastMessage | undefined;
+  for (const message of messages) {
+    if (!message) continue;
+    if (!best) best = message;
+    else if (message.id === best.id) {
+      if (message.markdown === null && best.markdown !== null) best = message;
+    } else if (Date.parse(message.createdAt) > Date.parse(best.createdAt)) best = message;
   }
   return best;
 }
