@@ -224,7 +224,19 @@ CI-джоб `publish-update`:
 
 ## Як публікувати OTA
 
-Усі дії — GitHub Actions з ручним запуском (`workflow_dispatch`): через вкладку Actions або через `gh`. Локальної публікації немає, бо адмін-токен є лише в CI. Кожна дія лишає запис: хто, коли й з якого коміту.
+Усі дії — GitHub Actions з ручним запуском (`workflow_dispatch`): через вкладку Actions або через `gh`. Кожна дія лишає запис: хто, коли й з якого коміту.
+
+**Локальна публікація** — виняток, а не звичайний шлях: лише поки workflows ще не в `main` (GitHub запускає `workflow_dispatch` тільки звідти), тобто для першої перевірки, або коли GitHub Actions недоступні. Ті самі скрипти запускаються з чистого робочого дерева на потрібному коміті:
+
+```bash
+(cd mobile && npx eas-cli@27.2.0 env:pull --environment preview --path .env.updates)   # EXPO_PUBLIC_* каналу
+export UPDATES_API_URL=https://chats.ap-platform.online UPDATES_SPACES_ENDPOINT=fra1.digitaloceanspaces.com \
+  UPDATES_SPACES_BUCKET=<bucket> UPDATES_ASSETS_URL=https://<bucket>.fra1.digitaloceanspaces.com GITHUB_ACTOR=<хто>
+read -rs UPDATES_ADMIN_TOKEN && export UPDATES_ADMIN_TOKEN   # так само UPDATES_SPACES_KEY і UPDATES_SPACES_SECRET
+node --env-file=mobile/.env.updates --import tsx scripts/updates/publish.ts --platform all --channel preview --notes "test"
+```
+
+Секрети вводяться лише в сесію shell і не пишуться у файли. `GITHUB_ACTOR` потрібен, щоб у записі було видно, хто опублікував: без нього поле порожнє. Коміт скрипт бере з `git rev-parse HEAD`. Публікацію в `production` локально не робимо: там потрібне підтвердження через GitHub environment.
 
 **Звичайний цикл:**
 
