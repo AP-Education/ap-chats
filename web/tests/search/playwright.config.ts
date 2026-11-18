@@ -22,6 +22,9 @@ export default defineConfig({
     },
     {
       name: 'webkit-phone',
+      // WebKit on CI runners stalls now and then; one retry keeps it from blocking a PR, and
+      // Playwright still reports the test as flaky, with the failed attempt's trace saved.
+      retries: process.env.CI ? 1 : 0,
       use: {
         browserName: 'webkit',
         viewport: { width: 390, height: 844 },
