@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 
-import { expect, test } from './media-test';
+import { attachFile, expect, test } from './media-test';
 
 const name = 'Відео команди.mp4';
 const video = await readFile(new URL('./public/media/sample.mp4', import.meta.url));
@@ -22,15 +22,8 @@ test('sending while video processing continues becomes one playable message with
       posts.push(request.postDataJSON());
   });
   await page.goto('/?chat');
-  await page
-    .locator('input[type=file]')
-    .first()
-    .setInputFiles({ name, mimeType: 'video/mp4', buffer: video });
-  // The whole file uploads before processing shows, slow on a CI runner; completion is held
-  // above, so a longer wait cannot miss this state.
-  await expect(page.getByRole('status').filter({ hasText: 'Обробка файлу' })).toBeVisible({
-    timeout: 20_000,
-  });
+  await attachFile(page, { name, mimeType: 'video/mp4', buffer: video });
+  await expect(page.getByRole('status').filter({ hasText: 'Обробка файлу' })).toBeVisible();
   await page
     .getByRole('textbox', { name: 'Повідомлення', exact: true })
     .fill('Запис нашої зустрічі');
@@ -91,10 +84,7 @@ test('removing an uploading video cancels its reservation without losing the typ
   await page.goto('/?chat');
   const editor = page.getByRole('textbox', { name: 'Повідомлення', exact: true });
   await editor.fill('Підпис залишиться у чернетці');
-  await page
-    .locator('input[type=file]')
-    .first()
-    .setInputFiles({ name, mimeType: 'video/mp4', buffer: video });
+  await attachFile(page, { name, mimeType: 'video/mp4', buffer: video });
   try {
     await sending;
     await page.getByRole('button', { name: `Прибрати ${name}`, exact: true }).click();
@@ -130,10 +120,7 @@ test('a failed video in a pending message retries its upload and is posted exact
       posts++;
   });
   await page.goto('/?chat');
-  await page
-    .locator('input[type=file]')
-    .first()
-    .setInputFiles({ name, mimeType: 'video/mp4', buffer: video });
+  await attachFile(page, { name, mimeType: 'video/mp4', buffer: video });
   try {
     await sending;
     await page

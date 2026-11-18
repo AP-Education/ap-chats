@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises';
 
 import { type Download, expect, type Page, test as base } from '@playwright/test';
 
+type FilePayload = Parameters<Page['setInputFiles']>[1];
+
 export { expect };
 
 export const test = base.extend({
@@ -18,6 +20,17 @@ export const test = base.extend({
 });
 
 export const videoName = 'Зустріч команди.mp4';
+
+/**
+ * Picks a file the way a person can: only once the paperclip is enabled. That waits for the upload
+ * policy, without which the composer drops a file handed to its hidden input.
+ */
+export async function attachFile(page: Page, files: FilePayload) {
+  await expect(
+    page.getByRole('button', { name: 'Додати файл', exact: true }).first(),
+  ).toBeEnabled();
+  await page.locator('input[type=file]').first().setInputFiles(files);
+}
 
 export async function openSampleVideo(page: Page, query = '') {
   await page.goto(`/?${query}`);
