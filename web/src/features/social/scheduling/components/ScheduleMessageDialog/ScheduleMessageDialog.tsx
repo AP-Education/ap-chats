@@ -14,7 +14,7 @@ export function ScheduleMessageDialog({ composer, onClose }: SendOptionDialogPro
   function pick(sendAt: Date) {
     const input = composer.read();
     if (!input) {
-      void toast.warning('Спочатку завершіть завантаження файлів.');
+      void toast.warning(t(($) => $.attachmentsUnfinished));
       return;
     }
 

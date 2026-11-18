@@ -1,12 +1,10 @@
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { MuteDuration, NotificationsMenuSize } from './types';
 
-const muteDurations: Array<{ label: string; duration: MuteDuration }> = [
-  { label: 'На 1 годину', duration: 'hour' },
-  { label: 'На 24 години', duration: 'day' },
-];
+const muteDurations = ['hour', 'day'] as const satisfies readonly MuteDuration[];
 
 const useStyles = createStyles(({ token, css }) => ({
   row: css`
@@ -86,6 +84,7 @@ export function MuteDurationView({
   onMuteIndefinitely,
 }: MuteDurationViewProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation('communities');
   const isLarge = size === 'large';
   const row = cx(styles.row, isLarge && styles.large);
 
@@ -96,17 +95,12 @@ export function MuteDurationView({
       </button>
       <div className={cx(styles.divider, isLarge && styles.dividerLarge)} />
       {muteDurations.map((duration) => (
-        <button
-          key={duration.duration}
-          type="button"
-          className={row}
-          onClick={() => onChooseMute(duration.duration)}
-        >
-          {duration.label}
+        <button key={duration} type="button" className={row} onClick={() => onChooseMute(duration)}>
+          {t(($) => $.notifications.muteFor[duration])}
         </button>
       ))}
       <button type="button" className={row} onClick={onMuteIndefinitely}>
-        Поки не ввімкну
+        {t(($) => $.notifications.muteFor.untilUnmuted)}
       </button>
     </>
   );

@@ -22,7 +22,7 @@ import { callHistoryKey } from './useCallHistory';
 function parse(payload: unknown): CallSignal | null {
   const result = callSignalSchema.safeParse(payload);
   if (!result.success) {
-    console.error('Невалідний call-сигнал', result.error);
+    console.error('Invalid call signal', result.error);
     return null;
   }
   return result.data;

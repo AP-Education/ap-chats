@@ -1,4 +1,5 @@
 import { onNativeMessage, postToNative } from '@ap-education/shell-sdk';
+import type { TFunction } from 'i18next';
 
 import { randomId } from '@/shared/lib/random-id';
 
@@ -25,9 +26,11 @@ export class NativeVoiceRecorder implements VoiceRecorder {
 
   private readonly changed: (state: VoiceState) => void;
   private readonly scope: UploadScope;
-  constructor(changed: (state: VoiceState) => void, scope: UploadScope) {
+  private readonly t: TFunction<'voice'>;
+  constructor(changed: (state: VoiceState) => void, scope: UploadScope, t: TFunction<'voice'>) {
     this.changed = changed;
     this.scope = scope;
+    this.t = t;
   }
 
   private listen() {
@@ -67,7 +70,7 @@ export class NativeVoiceRecorder implements VoiceRecorder {
       this.changed({
         phase: 'error',
         durationMs: 0,
-        error: 'Запис недоступний у цій версії застосунку. Оновіть AP App.',
+        error: this.t(($) => $.errors.nativeUnsupported),
       });
     }, 15_000);
     postToNative({ type: 'voice/start', sessionId: this.id, ...this.scope });

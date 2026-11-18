@@ -1,6 +1,7 @@
 import { Input } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { PeopleSearchResults } from './PeopleSearchResults';
 
@@ -21,14 +22,15 @@ interface FindPersonSearchProps {
 
 export function FindPersonSearch({ workspaceId, onOpened }: FindPersonSearchProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('directMessages');
   const [query, setQuery] = useState('');
 
   return (
     <>
       <Input
         autoFocus
-        placeholder="Ім’я колеги"
-        aria-label="Ім’я колеги"
+        placeholder={t(($) => $.findPerson.placeholder)}
+        aria-label={t(($) => $.findPerson.placeholder)}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />

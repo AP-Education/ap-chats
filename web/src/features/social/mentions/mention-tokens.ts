@@ -10,10 +10,11 @@ export type MentionToken =
 type ReferenceKind = Exclude<MentionToken['kind'], 'everyone'>;
 
 // Every kind of reference by id, with how it reads: a new kind is added here and rendered once.
-const references: Record<ReferenceKind, { sigil: '@' | '#'; unnamed: string }> = {
-  member: { sigil: '@', unnamed: 'учасник' },
-  role: { sigil: '@', unnamed: 'роль' },
-  channel: { sigil: '#', unnamed: 'канал' },
+// What it reads as without a name is the `unnamed` words of the mentions catalog.
+const references: Record<ReferenceKind, { sigil: '@' | '#' }> = {
+  member: { sigil: '@' },
+  role: { sigil: '@' },
+  channel: { sigil: '#' },
 };
 
 export const EVERYONE_TOKEN = ':mention[everyone]';
@@ -47,12 +48,12 @@ export function tokenText(
   localizedName?: string,
 ): string {
   if (token.kind === 'everyone') return '@everyone';
-  const { sigil, unnamed } = references[token.kind];
+  const { sigil } = references[token.kind];
   const kind = token.kind;
   const label =
     typeof nameOrTranslate === 'function'
       ? (localizedName ?? nameOrTranslate(($) => $.unnamed[kind]))
-      : (nameOrTranslate ?? unnamed);
+      : (nameOrTranslate ?? i18n.t(($) => $.unnamed[kind], { ns: 'mentions' }));
   return `${sigil}${label}`;
 }
 
@@ -101,3 +102,5 @@ export function previewText(markdown: string, t?: TFunction<'mentions'>): string
     .replace(/\s+/gu, ' ');
 }
 import type { TFunction } from 'i18next';
+
+import { i18n } from '../../../shared/i18n/i18n';

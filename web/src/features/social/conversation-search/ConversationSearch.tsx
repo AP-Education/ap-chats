@@ -1,4 +1,5 @@
 import { MagnifyingGlassIcon } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import styles from './Search.module.css';
@@ -12,6 +13,7 @@ export function ConversationSearch({
   workspaceId: string;
   workspaceName: string;
 }) {
+  const { t } = useTranslation('search');
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
@@ -41,10 +43,10 @@ export function ConversationSearch({
             { state: { ...location.state, chatSearch: true } },
           );
         }}
-        aria-label="Відкрити пошук людей і чатів"
+        aria-label={t(($) => $.trigger.open)}
       >
         <MagnifyingGlassIcon size={20} aria-hidden="true" />
-        <span>Пошук людей і чатів</span>
+        <span>{t(($) => $.trigger.label)}</span>
       </button>
       <SearchDialog
         key={workspaceId}

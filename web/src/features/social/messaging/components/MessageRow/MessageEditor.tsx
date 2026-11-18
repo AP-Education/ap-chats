@@ -7,6 +7,7 @@ import { CheckIcon, XIcon } from '@phosphor-icons/react';
 import { message as toast } from 'antd';
 import { createStyles } from 'antd-style';
 import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { ApiError } from '@/shared/api/http';
 
@@ -67,6 +68,7 @@ interface MessageEditorProps {
 
 export function MessageEditor({ item, onEdit, onClose, children }: MessageEditorProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('messaging');
   const editor = useRef<ComposerEditorApi>(null);
   const [hasContent, setHasContent] = useState(Boolean(item.message.markdown?.trim()));
   const [saving, setSaving] = useState(false);
@@ -75,10 +77,12 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
   const labels = useMemo(
     () =>
       Object.fromEntries(
-        item.mentions?.map(({ memberId, displayName }) => [memberId, displayName ?? 'учасник']) ??
-          [],
+        item.mentions?.map(({ memberId, displayName }) => [
+          memberId,
+          displayName ?? t(($) => $.editor.mentionFallback),
+        ]) ?? [],
       ),
-    [item.mentions],
+    [item.mentions, t],
   );
 
   const save = useCallback(
@@ -93,12 +97,12 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
         onClose();
       } catch (error) {
         if (error instanceof ApiError && error.status === 409) setConflict(true);
-        else toast.error('Не вдалося зберегти. Перевірте зміни й спробуйте ще раз.');
+        else toast.error(t(($) => $.editor.saveFailed));
       } finally {
         setSaving(false);
       }
     },
-    [item, saving, onEdit, onClose, linkedGif],
+    [item, saving, onEdit, onClose, linkedGif, t],
   );
 
   const slot = useMemo<ComposerEditorSlot>(
@@ -106,7 +110,7 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
       editorRef: editor,
       draftKey: item.id,
       initialDraft: { markdown: item.message.markdown ?? '', labels },
-      label: 'Редагувати повідомлення',
+      label: t(($) => $.editor.label),
       placeholder: '',
       autoFocus: true,
       onChange: ({ markdown }) => setHasContent(Boolean(markdown.trim())),
@@ -117,7 +121,7 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
       // Inline, the suggestions float beside the editor instead of docking above a composer.
       suggestionsHost: null,
     }),
-    [item, labels, onClose, save],
+    [item, labels, onClose, save, t],
   );
 
   return (
@@ -128,7 +132,7 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
             <button
               type="button"
               className={styles.action}
-              aria-label="Скасувати редагування"
+              aria-label={t(($) => $.editor.cancel)}
               onClick={onClose}
             >
               <XIcon size={18} />
@@ -136,7 +140,7 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
             <button
               type="button"
               className={styles.action}
-              aria-label="Зберегти зміни"
+              aria-label={t(($) => $.editor.save)}
               disabled={saving || (!hasContent && !item.message.attachments?.length)}
               onClick={() => void save()}
             >
@@ -151,9 +155,9 @@ export function MessageEditor({ item, onEdit, onClose, children }: MessageEditor
       </MessageInputSurface>
       {conflict && (
         <div className={styles.conflict} role="alert">
-          Повідомлення змінилося на іншому пристрої. Ваш текст збережено тут.
+          {t(($) => $.editor.conflict)}
           <button type="button" onClick={() => void save(true)}>
-            Зберегти поверх
+            {t(($) => $.editor.overwrite)}
           </button>
         </div>
       )}

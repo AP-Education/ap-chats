@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import { i18n, i18nReady } from '../../../../../shared/i18n/i18n';
 import {
   conversationPreview,
   formatRecentTime,
@@ -10,15 +11,18 @@ import {
 
 const now = new Date('2026-10-19T12:00:00Z');
 
+await i18nReady('uk');
+const t = i18n.getFixedT('uk', 'directMessages');
+
 function message(markdown: string | null) {
   return { id: 'message', markdown, authorMemberId: 'author', createdAt: now.toISOString() };
 }
 
 test('the preview says what the last message was, even when there is no text to show', () => {
-  assert.equal(lastMessagePreview(null), 'Нова розмова');
-  assert.equal(lastMessagePreview(message(null)), 'Повідомлення видалено');
-  assert.equal(lastMessagePreview(message('')), 'Вкладення');
-  assert.equal(lastMessagePreview(message('See   you\nsoon')), 'See you soon');
+  assert.equal(lastMessagePreview(null, t), 'Нова розмова');
+  assert.equal(lastMessagePreview(message(null), t), 'Повідомлення видалено');
+  assert.equal(lastMessagePreview(message(''), t), 'Вкладення');
+  assert.equal(lastMessagePreview(message('See   you\nsoon'), t), 'See you soon');
 });
 
 test('a call that came after every message is what the preview names, from the viewer side', () => {
@@ -31,18 +35,18 @@ test('a call that came after every message is what the preview names, from the v
   });
 
   assert.equal(
-    conversationPreview({ participant, lastMessage: null, lastCall: call('bob', 'ended') }),
+    conversationPreview({ participant, lastMessage: null, lastCall: call('bob', 'ended') }, t),
     'Вхідний дзвінок',
   );
   assert.equal(
-    conversationPreview({ participant, lastMessage: null, lastCall: call('ann', 'ended') }),
+    conversationPreview({ participant, lastMessage: null, lastCall: call('ann', 'ended') }, t),
     'Вихідний дзвінок',
   );
   assert.equal(
-    conversationPreview({ participant, lastMessage: null, lastCall: call('bob', 'missed') }),
+    conversationPreview({ participant, lastMessage: null, lastCall: call('bob', 'missed') }, t),
     'Пропущений дзвінок',
   );
-  assert.equal(conversationPreview({ participant, lastMessage: message('Hi') }), 'Hi');
+  assert.equal(conversationPreview({ participant, lastMessage: message('Hi') }, t), 'Hi');
 });
 
 test('the time beside a conversation is the time of what its preview names', () => {
@@ -61,9 +65,9 @@ test('the time beside a conversation is the time of what its preview names', () 
 test('recent times read as minutes, hours or days ago, then as a date', () => {
   const ago = (minutes: number) => new Date(now.getTime() - minutes * 60_000).toISOString();
 
-  assert.equal(formatRecentTime(ago(0), now), 'щойно');
-  assert.equal(formatRecentTime(ago(5), now), '5 хв');
-  assert.equal(formatRecentTime(ago(3 * 60), now), '3 год');
-  assert.equal(formatRecentTime(ago(2 * 1_440), now), '2 дн');
-  assert.equal(formatRecentTime(ago(30 * 1_440), now), '19.09');
+  assert.equal(formatRecentTime(ago(0), t, 'uk', now), 'щойно');
+  assert.equal(formatRecentTime(ago(5), t, 'uk', now), '5 хв');
+  assert.equal(formatRecentTime(ago(3 * 60), t, 'uk', now), '3 год');
+  assert.equal(formatRecentTime(ago(2 * 1_440), t, 'uk', now), '2 дн');
+  assert.equal(formatRecentTime(ago(30 * 1_440), t, 'uk', now), '19.09');
 });

@@ -1,6 +1,7 @@
 import { useComposer } from '@ap-education/timeline/composer';
 import { message } from 'antd';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { UploadFile, UploadScope } from '../../attachments/types';
 import type { useAttachments } from '../../attachments/useAttachments';
@@ -15,6 +16,7 @@ interface ComposerVoiceProps {
 }
 
 export function ComposerVoice({ scope, attachments, onSend, children }: ComposerVoiceProps) {
+  const { t } = useTranslation('voice');
   const composer = useComposer();
   const { queue, policy } = attachments;
 
@@ -24,7 +26,7 @@ export function ComposerVoice({ scope, attachments, onSend, children }: Composer
     const previousKeys = new Set(queue.getSnapshot().map((draft) => draft.key));
     const rejected = queue.add([file], policy);
     if (rejected.length) {
-      void message.error('Не вдалося додати голосове повідомлення до чернетки.');
+      void message.error(t(($) => $.errors.addToDraftFailed));
       return false;
     }
 

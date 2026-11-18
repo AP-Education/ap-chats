@@ -1,6 +1,7 @@
 import { Popover } from 'antd';
 import { createStyles } from 'antd-style';
 import type { ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { RoleDot } from '@/features/roles/components/RoleDot';
 import { useRoleMembers } from '@/features/roles/hooks/useRoleMembers';
@@ -44,12 +45,13 @@ interface RoleHoldersProps {
 // Mounted only while open, so the list is asked for when someone looks at it.
 function RoleHolders({ workspaceId, role }: RoleHoldersProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('mentions');
   const holders = useRoleMembers(workspaceId, role.id);
 
   return (
     <div
       role="dialog"
-      aria-label={`Роль ${role.name}`}
+      aria-label={t(($) => $.roleHolders.label, { name: role.name })}
       // Portal events still bubble through React to the host row's selection and menu.
       onClick={(event) => event.stopPropagation()}
       onContextMenu={(event) => event.stopPropagation()}

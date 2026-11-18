@@ -1,5 +1,6 @@
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ css }) => ({
   row: css`
@@ -14,9 +15,10 @@ const useStyles = createStyles(({ css }) => ({
 
 export function NotificationsMenuSkeleton() {
   const { styles } = useStyles();
+  const { t } = useTranslation('communities');
 
   return (
-    <div aria-label="Завантажуємо сповіщення" role="status">
+    <div aria-label={t(($) => $.notifications.menuLoading)} role="status">
       {[112, 136, 88, 120].map((width) => (
         <div key={width} className={styles.row}>
           <Skeleton.Input active size="small" style={{ width, minWidth: 0, height: 12 }} />

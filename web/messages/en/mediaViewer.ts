@@ -14,4 +14,10 @@ export const mediaViewer = {
   openFailed: 'Couldn’t open media. Check your connection and try again.',
   videoFailed: 'Couldn’t open the video',
   videoLoading: 'Loading video',
+  playVideo: 'Play video',
+  playFailed: 'Couldn’t play the video',
+  retryVideo: 'Try again',
+  downloadVideo: 'Download video',
+  today: 'Today',
+  yesterday: 'Yesterday',
 } satisfies Translation<typeof source>;

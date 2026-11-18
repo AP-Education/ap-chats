@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { MessageMarkdown } from '@/features/social/mentions/components/MessageMarkdown/MessageMarkdown';
 import type { MentionLabel } from '@/features/social/mentions/types';
 
@@ -16,9 +18,17 @@ export function MessagePreview({
   attachments?: Attachment[];
   mentions?: MentionLabel[];
 }) {
-  if (markdown === null) return <>Повідомлення видалено</>;
+  const { t } = useTranslation('messaging');
+
+  if (markdown === null) return <>{t(($) => $.message.preview.deleted)}</>;
   if (!markdown.trim())
-    return <>{attachments?.some((file) => file.voice) ? 'Голосове повідомлення' : 'Вкладення'}</>;
+    return (
+      <>
+        {attachments?.some((file) => file.voice)
+          ? t(($) => $.message.preview.voice)
+          : t(($) => $.message.preview.attachment)}
+      </>
+    );
   if (isLoneGif({ markdown, blocks })) return <>GIF</>;
   return <MessageMarkdown markdown={markdown} mentions={mentions} inline />;
 }

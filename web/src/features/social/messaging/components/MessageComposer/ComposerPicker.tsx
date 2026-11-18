@@ -8,6 +8,7 @@ import {
 } from '@ap-education/timeline/composer';
 import { KeyboardIcon, SmileyIcon } from '@phosphor-icons/react';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { PickedGif } from '../../gifs/types';
 import styles from './MessageComposer.module.css';
@@ -16,8 +17,6 @@ import { useComposerBlurRequests } from './useComposerBlurRequests';
 
 const LAST_PICKER_TAB_KEY = 'ap-chats:last-picker-tab';
 const PICKER_TABS: PickerTab[] = ['gif', 'sticker', 'emoji'];
-const PICKER_LABEL = 'Емодзі, GIF і стікери';
-const KEYBOARD_LABEL = 'Клавіатура';
 
 function readLastPickerTab(): PickerTab {
   const stored = localStorage.getItem(LAST_PICKER_TAB_KEY);
@@ -54,6 +53,7 @@ export function ComposerPicker({ onPickGif }: ComposerPickerProps) {
 }
 
 function Picker({ onPickGif }: ComposerPickerProps) {
+  const { t } = useTranslation('messaging');
   const { isCompact, insertText } = useComposer();
   const { isOpen, close } = useComposerPanel();
   const [tab, rememberTab] = useLastPickerTab();
@@ -62,7 +62,11 @@ function Picker({ onPickGif }: ComposerPickerProps) {
   return (
     <>
       {/* One entry point that reopens whatever tab was used last; the panel's own tabs switch. */}
-      <ComposerPanelTrigger aria-label={isOpen && isCompact ? KEYBOARD_LABEL : PICKER_LABEL}>
+      <ComposerPanelTrigger
+        aria-label={
+          isOpen && isCompact ? t(($) => $.composer.keyboard) : t(($) => $.composer.picker)
+        }
+      >
         <PickerIcon isOpen={isOpen} isCompact={isCompact} />
       </ComposerPanelTrigger>
       <ComposerPanelContent>
@@ -89,9 +93,10 @@ interface NativePickerTriggerProps {
 
 /** The same entry point in the app, where the shell's own picker takes the keyboard's place. */
 export function NativePickerTrigger({ isOpen, onToggle }: NativePickerTriggerProps) {
+  const { t } = useTranslation('messaging');
   return (
     <ComposerAction
-      aria-label={isOpen ? KEYBOARD_LABEL : PICKER_LABEL}
+      aria-label={isOpen ? t(($) => $.composer.keyboard) : t(($) => $.composer.picker)}
       aria-pressed={isOpen}
       // The words keep their caret: a press here must not take focus from them first.
       onPointerDown={(event) => event.preventDefault()}

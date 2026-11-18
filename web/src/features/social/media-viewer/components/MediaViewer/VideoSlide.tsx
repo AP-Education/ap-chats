@@ -1,6 +1,7 @@
 import { LoadingIcon } from '@ap-education/ui';
 import { ArrowClockwiseIcon, DownloadSimpleIcon, PlayIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
   useAttachmentDownload,
@@ -17,6 +18,7 @@ interface VideoSlideProps {
 }
 
 export function VideoSlide({ media, active }: VideoSlideProps) {
+  const { t } = useTranslation('mediaViewer');
   const { messageId, attachmentId, hasThumbnail } = media;
   const name = media.name ?? media.alt;
   const access = useAttachmentUrl(messageId, attachmentId, 'preview', active);
@@ -109,16 +111,16 @@ export function VideoSlide({ media, active }: VideoSlideProps) {
         />
       )}
       {loading && (
-        <div className={styles.loading} role="status" aria-label="Завантажуємо відео">
+        <div className={styles.loading} role="status" aria-label={t(($) => $.videoLoading)}>
           <LoadingIcon size={28} />
-          <span>Завантажуємо відео…</span>
+          <span>{t(($) => $.videoLoading)}…</span>
         </div>
       )}
       {blocked && !failed && (
         <button
           type="button"
           className={styles.resume}
-          aria-label="Відтворити відео"
+          aria-label={t(($) => $.playVideo)}
           onClick={() => void videoRef.current?.play().catch(() => undefined)}
         >
           <PlayIcon size={32} weight="fill" />
@@ -126,11 +128,11 @@ export function VideoSlide({ media, active }: VideoSlideProps) {
       )}
       {failed && (
         <div className={styles.failure} role="status">
-          <p>Не вдалося відтворити відео</p>
+          <p>{t(($) => $.playFailed)}</p>
           <div className={styles.actions}>
             <button type="button" disabled={retrying} onClick={() => void retry()}>
               {retrying ? <LoadingIcon size={19} /> : <ArrowClockwiseIcon size={19} />}
-              Спробувати ще
+              {t(($) => $.retryVideo)}
             </button>
             <button
               type="button"
@@ -138,7 +140,7 @@ export function VideoSlide({ media, active }: VideoSlideProps) {
               onClick={() => void download.download()}
             >
               {download.downloading ? <LoadingIcon size={19} /> : <DownloadSimpleIcon size={19} />}
-              Завантажити відео
+              {t(($) => $.downloadVideo)}
             </button>
           </div>
         </div>

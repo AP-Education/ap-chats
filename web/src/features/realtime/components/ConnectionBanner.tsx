@@ -62,7 +62,7 @@ export function ConnectionBanner() {
   useSocketEvent('session:ready', (payload) => {
     const result = sessionReadySchema.safeParse(payload);
     if (!result.success) {
-      console.error('Невалідний payload session:ready', result.error);
+      console.error('Invalid session:ready payload', result.error);
     }
   });
 

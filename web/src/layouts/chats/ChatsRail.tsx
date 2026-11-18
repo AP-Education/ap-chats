@@ -61,7 +61,7 @@ function SectionTile({
 
   return (
     <NavTile
-      label={tab.labels[locale]}
+      label={tab.label[locale]}
       active={active}
       unread={attention.unread}
       badge={attention.badge}

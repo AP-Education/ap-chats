@@ -2,20 +2,20 @@ import { buildDays, landedNonces, type PendingEntry } from '@ap-education/timeli
 import {
   createRegistry,
   TimelineDays,
-  type TimelineLabels,
   type TimelineParts,
   type TimelineView,
-  UKRAINIAN_LABELS,
   useScrollAnchoring,
 } from '@ap-education/timeline/react';
 import { ArrowDownIcon, ArrowUpIcon } from '@phosphor-icons/react';
 import { useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
 
 import { flashMessage } from '../../flashMessage';
 import type { ChatEntry, ChatMeta, ConversationEntry } from '../../timeline/chat-entry';
 import { chatKinds } from '../../timeline/chat-registry';
+import { useTimelineLabels } from '../packageLabels';
 import { DaySection } from './DaySection';
 import { EmptyTimeline } from './EmptyTimeline';
 import { ExtensionPending, useExtensionPending } from './ExtensionPending';
@@ -23,7 +23,6 @@ import { LoadMoreButton } from './LoadMoreButton';
 import { RunSection, UnreadMark } from './RunSection';
 import { TimelineScroller } from './TimelineScroller';
 
-const LABELS: TimelineLabels = { ...UKRAINIAN_LABELS, unread: 'Нові повідомлення' };
 const PARTS: TimelineParts<ConversationEntry> = { Day: DaySection, Run: RunSection, UnreadMark };
 
 interface MessageTimelineProps {
@@ -34,6 +33,8 @@ interface MessageTimelineProps {
 }
 
 export function MessageTimeline({ view, pending, targetMessageId }: MessageTimelineProps) {
+  const { t } = useTranslation('messaging');
+  const labels = useTimelineLabels();
   const extensions = useConversationExtensions();
   const { entries, firstUnread, older, newer } = view;
   const registry = useMemo(
@@ -71,11 +72,11 @@ export function MessageTimeline({ view, pending, targetMessageId }: MessageTimel
     <TimelineScroller anchoring={anchoring} hasNewer={newer.available}>
       {older.available && (
         <LoadMoreButton icon={<ArrowUpIcon />} loading={older.loading} onLoad={anchoring.loadOlder}>
-          Раніші повідомлення
+          {t(($) => $.timeline.loadOlder)}
         </LoadMoreButton>
       )}
       {isEmpty && <EmptyTimeline />}
-      <TimelineDays days={days} registry={registry} labels={LABELS} parts={PARTS} />
+      <TimelineDays days={days} registry={registry} labels={labels} parts={PARTS} />
       {extensions.map(
         ({ id, usePending }) =>
           usePending && (
@@ -90,7 +91,7 @@ export function MessageTimeline({ view, pending, targetMessageId }: MessageTimel
       )}
       {newer.available && (
         <LoadMoreButton icon={<ArrowDownIcon />} loading={newer.loading} onLoad={newer.load}>
-          Новіші повідомлення
+          {t(($) => $.timeline.loadNewer)}
         </LoadMoreButton>
       )}
     </TimelineScroller>

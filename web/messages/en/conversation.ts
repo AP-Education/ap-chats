@@ -13,10 +13,12 @@ export const conversation = {
     titleMany_one: 'Delete {{count}} message?',
     titleMany_other: 'Delete {{count}} messages?',
     content: 'The text of the messages will become unavailable to all channel members.',
+    privateContent: 'The private messages will be removed from your exchange with StarMe.',
     failed: 'Couldn’t delete the messages.',
   },
   markUnread: 'Mark as unread',
   copyFailed: 'Couldn’t copy the text',
   pinFailed: 'Couldn’t change the pin.',
   markUnreadFailed: 'Couldn’t mark as unread.',
+  makeOwnFailed: 'Couldn’t publish the message. The private answer is saved.',
 } satisfies Translation<typeof source>;

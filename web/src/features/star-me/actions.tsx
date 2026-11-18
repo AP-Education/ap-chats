@@ -22,7 +22,7 @@ export const makeStarMeAnswerOwnAction: ConversationAction = {
   id: 'make-own',
   icon: <PaperPlaneRightIcon size={18} />,
   accent: 'ai',
-  label: () => 'Зробити моїм',
+  label: (_target, t) => t(($) => $.starMe.makeOwn),
   available: (target, context) =>
     target.kind === 'message' &&
     context.canPost &&

@@ -9,8 +9,16 @@ export const mentions = {
   },
   deletedRole: 'deleted role',
   unavailableChannel: 'unavailable channel',
+  roleHolders: {
+    label: 'Role {{name}}',
+    empty: 'No one has this role yet',
+  },
+  spoiler: {
+    reveal: 'Show hidden text',
+  },
   suggestions: {
     everyoneHint: 'Notify everyone in the channel',
+    everyoneAliases: 'everyone all',
     roleHint: 'Role',
     nameUnavailable: 'Name unavailable',
     peopleAndRoles: 'Members and roles',

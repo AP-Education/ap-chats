@@ -7,6 +7,8 @@ import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { apiRequest } from '@/shared/api/http';
 
+import { mentions as enMentions } from '../../../../../../messages/en/mentions';
+import { mentions as ukMentions } from '../../../../../../messages/uk/mentions';
 import type { Suggestion, SuggestionGroup, SuggestionQuery } from './suggestions';
 import { useRoleSuggestions } from './useRoleSuggestions';
 
@@ -17,7 +19,10 @@ interface MentionableMember {
   isBot: boolean;
 }
 
-const EVERYONE_ALIASES = ['everyone', 'all', 'усі', 'всі'];
+// @everyone answers to its word in every language Chats speaks, whichever one the person reads.
+const EVERYONE_ALIASES = [ukMentions, enMentions].flatMap((catalog) =>
+  catalog.suggestions.everyoneAliases.split(' '),
+);
 
 function everyoneSuggestion(t: TFunction<'mentions'>): Suggestion {
   return {

@@ -35,7 +35,9 @@ const namespaces = Object.keys({
   realtime: true,
   roles: true,
   scheduling: true,
+  search: true,
   starMe: true,
+  voice: true,
   wallpaper: true,
   workspaces: true,
 } satisfies Record<Namespace, true>);

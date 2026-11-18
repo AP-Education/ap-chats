@@ -4,15 +4,16 @@ import {
   useTimelineMedia,
   type UseTimelineMediaOptions,
 } from '@ap-education/timeline/media';
-import { UKRAINIAN_LABELS } from '@ap-education/timeline/react';
+import { type TimelineLabels, UKRAINIAN_LABELS } from '@ap-education/timeline/react';
 import {
+  type MediaLabels,
   MediaViewer,
   MediaViewerActions,
   MediaViewerDownload,
   MediaViewerZoom,
 } from '@ap-education/ui/media';
 import { message as toast } from 'antd';
-import type { ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -21,6 +22,7 @@ import {
 } from '@/features/social/messaging/components/MessageAttachments/useAttachmentAccess';
 import { type ChatMedia, messageMedia } from '@/features/social/messaging/message-media';
 import type { ChatEntry } from '@/features/social/messaging/timeline/chat-entry';
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import type { ViewerActions } from '../types';
 import { VideoSlide } from './MediaViewer/VideoSlide';
@@ -29,7 +31,8 @@ import { ViewerCaption } from './MediaViewer/ViewerCaption';
 import { ViewerForward } from './MediaViewer/ViewerForward';
 import { ViewerMenu } from './MediaViewer/ViewerMenu';
 
-const LABELS = { ...UKRAINIAN_LABELS, showEntry: 'Показати в чаті' };
+// The locale the viewer's day and time are written in, per language Chats speaks.
+const LOCALES = { uk: 'uk-UA', en: 'en-US' } as const;
 
 interface ConversationMediaProps {
   /** The conversation's history, whose media the viewer pages through and reads more of. */
@@ -48,10 +51,37 @@ export function ConversationMedia({
   onShowEntry,
   children,
 }: ConversationMediaProps) {
-  const media = useTimelineMedia({ view, read: messageMedia, onShowEntry, labels: LABELS });
+  const { t } = useTranslation(['mediaViewer', 'common']);
+  const language = useChatsLanguage();
+  // The timeline's media words: only the viewer's title reads them, the rest stay the package's.
+  const timelineLabels = useMemo<TimelineLabels>(
+    () => ({
+      ...UKRAINIAN_LABELS,
+      showEntry: t(($) => $.showInChat),
+      dayAt: (day, time) => t(($) => $.sentAt, { day, time }),
+      today: t(($) => $.today),
+      yesterday: t(($) => $.yesterday),
+      locale: LOCALES[language],
+    }),
+    [t, language],
+  );
+  const mediaLabels = useMemo<MediaLabels>(
+    () => ({
+      viewer: t(($) => $.label),
+      imageFailed: t(($) => $.imageFailed),
+      videoLoading: t(($) => $.videoLoading),
+      videoFailed: t(($) => $.videoFailed),
+      close: t(($) => $.common.actions.close),
+      zoomIn: t(($) => $.zoomIn),
+      zoomOut: t(($) => $.zoomOut),
+      download: (name) => t(($) => $.download, { name }),
+      counter: (index, total) => t(($) => $.position, { index, total }),
+    }),
+    [t],
+  );
+  const media = useTimelineMedia({ view, read: messageMedia, onShowEntry, labels: timelineLabels });
   const urls = useAttachmentUrls();
   const { accent } = useShellAppearance();
-  const { t } = useTranslation('mediaViewer');
 
   return (
     <TimelineMediaProvider value={media}>
@@ -60,6 +90,7 @@ export function ConversationMedia({
         {...media.viewer}
         urls={urls}
         accent={accent}
+        labels={mediaLabels}
         onOpenError={() => void toast.error(t(($) => $.openFailed))}
         renderVideo={(item, active) =>
           item.kind === 'video' && <VideoSlide key={item.key} media={item} active={active} />

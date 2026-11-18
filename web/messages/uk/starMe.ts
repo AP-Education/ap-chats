@@ -4,6 +4,8 @@ export const starMe = {
   nameUnavailable: 'Ім’я недоступне',
   thinking: 'Думаю над відповіддю',
   visibleOnlyToYou: 'Бачите лише ви',
+  onlyForYou: 'Лише для вас',
+  makeOwn: 'Зробити моїм',
   messageCount_one: '{{count}} повідомлення',
   messageCount_few: '{{count}} повідомлення',
   messageCount_many: '{{count}} повідомлень',

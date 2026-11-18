@@ -1,6 +1,7 @@
 import { IconButton, useIsMobile } from '@ap-education/ui';
 import { GearSixIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 import { usePrefetchHistory } from '@/features/social/messaging/hooks';
@@ -248,6 +249,7 @@ interface ChannelRowProps {
 
 export function ChannelRow({ channel }: ChannelRowProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation('communities');
   const isMobile = useIsMobile();
   const {
     workspaceId,
@@ -308,7 +310,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
             <span
               className={styles.unread}
               data-role="unread-badge"
-              aria-label={`${mentionCount} згадок`}
+              aria-label={t(($) => $.sidebar.mentions, { count: mentionCount })}
             >
               {mentionCount > 99 ? '99+' : mentionCount}
             </span>
@@ -318,7 +320,7 @@ export function ChannelRow({ channel }: ChannelRowProps) {
               <IconButton
                 size={28}
                 className={styles.action}
-                aria-label={`Налаштування каналу ${channel.name}`}
+                aria-label={t(($) => $.channels.settingsOf, { name: channel.name })}
                 onClick={openSettings}
               >
                 <GearSixIcon size={20} />

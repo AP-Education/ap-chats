@@ -1,4 +1,5 @@
 import { TimelineEntry, TimelineEntryBubble } from '@ap-education/timeline/react';
+import { useTranslation } from 'react-i18next';
 
 import { useTimelineActions } from '../../timeline-actions-context';
 import type { CallHistoryItem } from '../../types';
@@ -11,6 +12,7 @@ import { callTitle } from './callTitle';
  * run like a message would. Discovering an ongoing call stays the ActiveCallBanner's job;
  * the bubble's own button joins it while it runs and calls back once it has ended. */
 export function CallLogRow({ item }: { item: CallHistoryItem }) {
+  const { t } = useTranslation('messaging');
   const { viewer } = useTimelineActions();
   const { call } = item;
   const outgoing = call.startedByMemberId === viewer.memberId;
@@ -20,7 +22,7 @@ export function CallLogRow({ item }: { item: CallHistoryItem }) {
       <TimelineEntryBubble>
         <div className={styles.call}>
           <span className={styles.details}>
-            <span className={styles.title}>{callTitle(call.status, outgoing)}</span>
+            <span className={styles.title}>{callTitle(call.status, outgoing, t)}</span>
             <CallCaption item={item} outgoing={outgoing} />
           </span>
           <CallBubbleAction call={call} />

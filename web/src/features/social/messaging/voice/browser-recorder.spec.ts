@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import { test, type TestContext } from 'node:test';
 
+import { i18n, i18nReady } from '../../../../shared/i18n/i18n';
 import { BrowserVoiceRecorder } from './browser-recorder';
 import { claimAudioPlayback, releaseAudioPlayback } from './playback';
 import { MAX_VOICE_BYTES, type VoiceState } from './types';
+
+await i18nReady('uk');
+const voice = i18n.getFixedT('uk', 'voice');
 
 function fixture(t: TestContext) {
   let cleanup = () => {};
@@ -72,7 +76,7 @@ function fixture(t: TestContext) {
   }))
     Object.defineProperty(globalThis, key, { configurable: true, value });
   const states: VoiceState[] = [];
-  const recorder = new BrowserVoiceRecorder((state) => states.push(state));
+  const recorder = new BrowserVoiceRecorder((state) => states.push(state), voice);
   cleanup = () => recorder.dispose();
   return {
     recorder,
