@@ -21,20 +21,22 @@ export class AdminUpdatesService {
   }
 
   async publish(dto: PublishUpdateDto): Promise<{ id: string }> {
-    const id = await this.create(dto);
+    const { id, existing } = await this.create(dto);
     this.logger.info(
       { updateId: id, platform: dto.platform, channel: dto.channel, gitCommit: dto.gitCommit },
-      'Update published',
+      existing ? 'Update already published' : 'Update published',
     );
     return { id };
   }
 
   /**
    * A newer bundle supersedes a rollback: that is how a fix ships. The bundle that was rolled
-   * back never comes back this way, even from a publish that started before the rollback.
+   * back never comes back this way, even from a publish that started before the rollback. A
+   * bundle that is already out is not published twice: a rerun of a failed job gets the same
+   * update back, so it cannot add a second sample on top of the first.
    */
   @Transactional()
-  private async create(dto: PublishUpdateDto): Promise<string> {
+  private async create(dto: PublishUpdateDto): Promise<{ id: string; existing: boolean }> {
     if (!(await this.updates.hasRuntime(dto.platform, dto.runtimeVersion)))
       throw new ConflictException(
         'No store build ships this runtime: its native code changed, so it needs a store release',
@@ -48,8 +50,10 @@ export class AdminUpdatesService {
     await this.updates.lockTarget(target);
     if (await this.updates.isRevokedBundle(target, dto.manifest.launchAsset.hash))
       throw new ConflictException('This bundle was rolled back; publish a fixed one');
+    const existing = await this.updates.findLiveBundle(target, dto.manifest.launchAsset.hash);
+    if (existing) return { id: existing, existing: true };
 
-    return this.updates.create({
+    const id = await this.updates.create({
       kind: 'update',
       platform: dto.platform,
       channel: dto.channel,
@@ -62,6 +66,7 @@ export class AdminUpdatesService {
       notes: dto.notes ?? null,
       createdBy: dto.createdBy ?? null,
     });
+    return { id, existing: false };
   }
 
   list({ channel, platform, limit }: ListUpdatesQueryDto): Promise<AppUpdateSummary[]> {
@@ -70,14 +75,18 @@ export class AdminUpdatesService {
 
   /**
    * A paused update stays paused unless `resume` says otherwise, so a rollout change that was
-   * asked for before an emergency pause cannot undo it.
+   * asked for before an emergency pause cannot undo it. A request with `resume` is the
+   * exception: it undoes a pause that landed before it.
    */
   async setRollout(id: string, percent: number, resume = false): Promise<void> {
     const update = await this.requireLive(id);
     if (update.status === 'paused' && !resume) throw stillPaused();
-    // Paused or revoked between the read and the write: the write itself refuses it.
-    if (!(await this.updates.setRollout(id, percent, resume)))
-      throw resume ? alreadyRevoked() : stillPaused();
+    // Paused or revoked between the read and the write: the write itself refuses it, and the
+    // row as it is now says which, so the operator is not told to resume a revoked update.
+    if (!(await this.updates.setRollout(id, percent, resume))) {
+      const now = await this.updates.find(id);
+      throw !now || now.status === 'revoked' ? alreadyRevoked() : stillPaused();
+    }
     this.logger.info({ updateId: id, percent, resume }, 'Update rollout changed');
   }
 

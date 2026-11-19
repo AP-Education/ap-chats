@@ -42,7 +42,8 @@ export abstract class UpdatesRepository {
 
   /**
    * False when the update is revoked, or paused and `resume` is not asked for. The check is part
-   * of the write, so a rollback or a pause that lands first always wins over an older request.
+   * of the write, so a rollback always wins over an older request, and so does a pause over an
+   * older request without `resume`. An explicit resume that lands after a pause does undo it.
    */
   abstract setRollout(id: string, rolloutPercent: number, resume: boolean): Promise<boolean>;
 
@@ -51,6 +52,12 @@ export abstract class UpdatesRepository {
 
   /** Whether this bundle (by its launch asset) was rolled back on the target before. */
   abstract isRevokedBundle(target: UpdateTarget, launchAssetHash: string): Promise<boolean>;
+
+  /** The newest update on the target that still carries this bundle, active or paused. */
+  abstract findLiveBundle(
+    target: UpdateTarget,
+    launchAssetHash: string,
+  ): Promise<string | undefined>;
 
   /** False when the update is already revoked; revoked stays revoked, checked in the write. */
   abstract setStatus(id: string, status: AppUpdateStatus): Promise<boolean>;

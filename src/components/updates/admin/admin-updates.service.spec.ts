@@ -20,6 +20,7 @@ function service(hasRuntime = true) {
     hasRuntime: () => Promise.resolve(hasRuntime),
     lockTarget: () => Promise.resolve(),
     isRevokedBundle: () => Promise.resolve(false),
+    findLiveBundle: () => Promise.resolve(undefined),
     create: (update: NewAppUpdate) => {
       created.push(update);
       return Promise.resolve('new-id');
@@ -90,4 +91,14 @@ test('refuses an update for a runtime no store build ships', async () => {
   const { admin, created } = service(false);
   await assert.rejects(admin.publish(dto()), ConflictException);
   assert.deepEqual(created, []);
+});
+
+test('reports a revocation, not a pause, when a rollback wins the rollout write', async () => {
+  const statuses = ['active', 'revoked'];
+  const repository = {
+    find: () => Promise.resolve({ id: 'u', status: statuses.shift() }),
+    setRollout: () => Promise.resolve(false),
+  } as unknown as UpdatesRepository;
+  const admin = new AdminUpdatesService(repository, { info: () => undefined } as never);
+  await assert.rejects(admin.setRollout('u', 50), /already revoked/u);
 });

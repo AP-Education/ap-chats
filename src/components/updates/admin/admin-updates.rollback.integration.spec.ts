@@ -160,3 +160,12 @@ test('refuses to publish a bundle that was rolled back', async (t) => {
   await assert.rejects(publish('bad'), ConflictException);
   assert.ok(await publish('fixed'));
 });
+
+test('a rerun of a publish gets the same update back instead of a second sample', async (t) => {
+  const { pg, db, publish } = await setup();
+  t.after(() => pg.close());
+  const first = await publish('same', 10);
+
+  assert.equal(await publish('same', 10), first);
+  assert.equal((await db.select().from(schema.appUpdates)).length, 1);
+});

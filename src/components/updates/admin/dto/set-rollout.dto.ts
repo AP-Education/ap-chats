@@ -1,4 +1,4 @@
-import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsBoolean, IsInt, Max, Min, ValidateIf } from 'class-validator';
 
 export class SetRolloutDto {
   @IsInt()
@@ -7,7 +7,8 @@ export class SetRolloutDto {
   percent!: number;
 
   /** Required to change a paused update, so a request made before the pause cannot undo it. */
-  @IsOptional()
+  // Skipped only when left out: null is not a boolean and is refused.
+  @ValidateIf((_dto, value) => value !== undefined)
   @IsBoolean()
   resume?: boolean;
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
-import { and, desc, eq, gt, lt, ne, notExists, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, lt, ne, notExists, type SQL, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import {
@@ -108,7 +108,9 @@ export class DrizzleUpdatesRepository extends UpdatesRepository {
   async create(update: NewAppUpdate): Promise<string> {
     const [created] = await this.txHost.tx
       .insert(appUpdates)
-      .values(update)
+      // The time of the insert, not of the transaction start: a publish that waited on the target
+      // lock behind a rollback must sort after it.
+      .values({ ...update, createdAt: sql`clock_timestamp()` })
       .returning({ id: appUpdates.id });
     return created!.id;
   }
@@ -193,6 +195,24 @@ export class DrizzleUpdatesRepository extends UpdatesRepository {
   }
 
   async isRevokedBundle(target: UpdateTarget, launchAssetHash: string): Promise<boolean> {
+    return Boolean(
+      await this.findBundle(target, launchAssetHash, eq(appUpdates.status, 'revoked')),
+    );
+  }
+
+  findLiveBundle(target: UpdateTarget, launchAssetHash: string): Promise<string | undefined> {
+    return this.findBundle(
+      target,
+      launchAssetHash,
+      and(eq(appUpdates.kind, 'update'), ne(appUpdates.status, 'revoked'))!,
+    );
+  }
+
+  private async findBundle(
+    target: UpdateTarget,
+    launchAssetHash: string,
+    condition: SQL,
+  ): Promise<string | undefined> {
     const [found] = await this.txHost.tx
       .select({ id: appUpdates.id })
       .from(appUpdates)
@@ -201,12 +221,13 @@ export class DrizzleUpdatesRepository extends UpdatesRepository {
           eq(appUpdates.platform, target.platform),
           eq(appUpdates.channel, target.channel),
           eq(appUpdates.runtimeVersion, target.runtimeVersion),
-          eq(appUpdates.status, 'revoked'),
+          condition,
           sql`${appUpdates.manifest}->'launchAsset'->>'hash' = ${launchAssetHash}`,
         ),
       )
+      .orderBy(desc(appUpdates.createdAt))
       .limit(1);
-    return Boolean(found);
+    return found?.id;
   }
 
   async setStatus(id: string, status: AppUpdateStatus): Promise<boolean> {
