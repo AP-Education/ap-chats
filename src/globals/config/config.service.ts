@@ -8,7 +8,10 @@ export class AppConfigService {
   constructor(private readonly config: ConfigService<AppConfig, true>) {}
 
   get<K extends keyof AppConfig>(key: K): AppConfig[K] {
-    return this.config.get(key, { infer: true });
+    const value = this.config.get(key, { infer: true });
+    // The schema turns an empty setting into undefined, but Nest then falls back to the raw
+    // process.env value, which is still ''. Empty means unset everywhere in this config.
+    return (value === '' ? undefined : value) as AppConfig[K];
   }
 
   /** This instance runs push work: push is on and it is not an HTTP-only instance. */
