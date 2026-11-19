@@ -1,8 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { type PropsWithChildren, useEffect, useState, useSyncExternalStore } from 'react';
+import { type PropsWithChildren, useEffect, useState } from 'react';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
-import { useReloadGuard } from '@/shared/hooks/useReloadGuard';
+import { useStoreReloadGuard } from '@/shared/hooks/useReloadGuard';
 
 import { createOutboxes } from '../stores/outboxes';
 import { OutboxesContext } from '../stores/outboxes-context';
@@ -17,9 +17,9 @@ export function OutboxesProvider({ children }: PropsWithChildren) {
     outboxes.setSession(identity, token);
   }, [outboxes, identity, token]);
 
-  // Reloading the page would drop the files going up and the requests carrying messages.
-  const sending = useSyncExternalStore(outboxes.subscribe, outboxes.isSending);
-  useReloadGuard('chats-sending', sending);
+  // Reloading the page would drop the files going up and the requests carrying messages. The
+  // outbox marks a message as sending before its request starts, so the shell hears of it first.
+  useStoreReloadGuard('chats-sending', outboxes.subscribe, outboxes.isSending);
 
   return <OutboxesContext.Provider value={outboxes}>{children}</OutboxesContext.Provider>;
 }

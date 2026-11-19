@@ -23,3 +23,30 @@ export function useReloadGuard(name: string, busy: boolean) {
     return () => postToNative({ type: 'updates/busy', source, busy: false });
   }, [source]);
 }
+
+/**
+ * The same report, read from a store instead of from render: it goes out from the store's own
+ * change, before the work that made it busy leaves the page, not after React commits.
+ */
+export function useStoreReloadGuard(
+  name: string,
+  subscribe: (listener: () => void) => () => void,
+  isBusy: () => boolean,
+) {
+  const source = `${name}:${useId()}`;
+
+  useEffect(() => {
+    if (!reportsToShell) return;
+    let busy = isBusy();
+    postToNative({ type: 'updates/busy', source, busy });
+    const stop = subscribe(() => {
+      if (isBusy() === busy) return;
+      busy = !busy;
+      postToNative({ type: 'updates/busy', source, busy });
+    });
+    return () => {
+      stop();
+      postToNative({ type: 'updates/busy', source, busy: false });
+    };
+  }, [source, subscribe, isBusy]);
+}
