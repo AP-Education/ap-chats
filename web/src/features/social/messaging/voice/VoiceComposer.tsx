@@ -13,6 +13,7 @@ import { type ReactNode, useEffect, useEffectEvent, useRef, useState } from 'rea
 import { useTranslation } from 'react-i18next';
 
 import { useCallStore } from '@/features/calls/store/call-store';
+import { useReloadGuard } from '@/shared/hooks/useReloadGuard';
 
 import type { UploadFile, UploadScope } from '../attachments/types';
 import { BrowserVoiceRecorder } from './browser-recorder';
@@ -48,6 +49,8 @@ export function VoiceComposer({
   const sending = useRef(false);
   const recorder = useRef<VoiceRecorder | null>(null);
   const busy = useCallStore((call) => Boolean(call.active || call.incoming));
+  // A recording lives only in this page until it is sent.
+  useReloadGuard('chats-voice', state.phase !== 'idle' && state.phase !== 'error');
   const { t } = useTranslation('voice');
 
   useEffect(() => () => recorder.current?.dispose(), [scope.workspaceId, scope.channelId]);

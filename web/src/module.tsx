@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ChatsProviders } from './app/ChatsProviders';
 import { WorkspaceStartup } from './app/WorkspaceStartup';
+import { AppInfoSection } from './features/app-info/components/AppInfoSection';
 import { CallSurface } from './features/calls/components/CallSurface';
 import { ConnectionBanner } from './features/realtime/components/ConnectionBanner';
 import { ChatBackdrop } from './features/social/wallpaper/components/ChatBackdrop';
@@ -48,6 +49,8 @@ export default defineApp({
   Content,
   Backdrop: ChatBackdrop,
   AppearanceSection: WallpaperSettings,
+  // The phone app's version and update, for testers; empty in a browser.
+  ProfileSection: AppInfoSection,
   // On mobile the lists are the navigation itself.
   opensMobileMenuAt: (path) => path === '/channels' || path === '/direct' || path === '/calls',
   tabs: [teamTab, personalTab, callsTab],

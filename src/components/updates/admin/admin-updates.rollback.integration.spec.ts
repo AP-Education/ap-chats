@@ -1,0 +1,171 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
+import { ConflictException, NotFoundException } from '@nestjs/common';
+
+import * as schema from '@/database/drizzle/schema';
+import type { Logger } from '@/globals/logger';
+import { migratedDatabase, transactionHost } from '@/testing/pglite';
+
+import { selectUpdate } from '../expo/helpers/select-update';
+import { DrizzleUpdatesRepository } from '../repository';
+import { AdminUpdatesService } from './admin-updates.service';
+
+const bundle = (name: string): Required<schema.StoredUpdateManifest> => ({
+  launchAsset: {
+    hash: name.padEnd(43, 'x'),
+    key: name,
+    contentType: 'application/javascript',
+    url: `https://cdn.test/${name}`,
+  },
+  assets: [],
+  expoClient: { name: 'AP App' },
+});
+const target = { platform: 'ios', channel: 'production', runtimeVersion: 'fp-1' } as const;
+
+async function setup() {
+  const { pg, db } = await migratedDatabase();
+  const updates = new DrizzleUpdatesRepository(transactionHost(db) as never);
+  const logger = { info: () => undefined, warn: () => undefined } as unknown as Logger;
+  const admin = new AdminUpdatesService(updates, logger);
+  await updates.registerRuntime('ios', 'fp-1', 11);
+  const publish = async (name: string, rolloutPercent = 100) =>
+    (await admin.publish({ ...target, manifest: bundle(name), rolloutPercent })).id;
+  /** What a phone already running the newest update would be offered next. */
+  const offeredTo = async (installationId: string) =>
+    selectUpdate(await updates.findOffered(target), installationId);
+  return { pg, db, updates, admin, publish, offeredTo };
+}
+
+test('republishes the previous bundle as a newer update and revokes the bad one', async (t) => {
+  const { pg, db, admin, publish, offeredTo } = await setup();
+  t.after(() => pg.close());
+  const good = await publish('good');
+  const bad = await publish('bad');
+
+  const result = await admin.rollback(bad);
+
+  assert.equal(result.kind, 'update');
+  assert.equal(result.sourceUpdateId, good);
+  assert.notEqual(result.id, good);
+  const offered = await offeredTo('phone-1');
+  assert.equal(offered?.id, result.id);
+  assert.deepEqual(offered?.manifest, bundle('good'));
+  assert.equal(offered?.mandatory, true);
+  const rows = await db.select().from(schema.appUpdates);
+  assert.equal(rows.find(({ id }) => id === bad)?.status, 'revoked');
+  assert.equal(rows.find(({ id }) => id === good)?.status, 'active');
+});
+
+test('returns phones to the embedded bundle when nothing older is offered', async (t) => {
+  const { pg, admin, publish, offeredTo } = await setup();
+  t.after(() => pg.close());
+  const only = await publish('only');
+
+  const result = await admin.rollback(only);
+
+  assert.deepEqual(result, { id: result.id, kind: 'rollback_to_embedded', sourceUpdateId: null });
+  assert.equal((await offeredTo('phone-1'))?.kind, 'rollback_to_embedded');
+});
+
+test('goes back to the embedded bundle on request even with an older update offered', async (t) => {
+  const { pg, admin, publish } = await setup();
+  t.after(() => pg.close());
+  await publish('good');
+  const bad = await publish('bad');
+
+  assert.equal((await admin.rollback(bad, true)).kind, 'rollback_to_embedded');
+});
+
+test('skips a paused update when picking what to republish', async (t) => {
+  const { pg, admin, publish } = await setup();
+  t.after(() => pg.close());
+  const good = await publish('good');
+  const paused = await publish('paused');
+  await admin.pause(paused);
+  const bad = await publish('bad');
+
+  assert.equal((await admin.rollback(bad)).sourceUpdateId, good);
+});
+
+test('pausing stops the offer until a rollout change resumes it on purpose', async (t) => {
+  const { pg, admin, publish, offeredTo } = await setup();
+  t.after(() => pg.close());
+  const update = await publish('update', 10);
+
+  await admin.pause(update);
+  assert.equal(await offeredTo('phone-1'), null);
+
+  await assert.rejects(admin.setRollout(update, 100), ConflictException);
+  assert.equal(await offeredTo('phone-1'), null);
+
+  await admin.setRollout(update, 100, true);
+  assert.equal((await offeredTo('phone-1'))?.id, update);
+});
+
+test('refuses to touch an unknown or already revoked update, or to roll back a rollback', async (t) => {
+  const { pg, admin, publish } = await setup();
+  t.after(() => pg.close());
+  const bad = await publish('bad');
+  const rollback = await admin.rollback(bad);
+
+  await assert.rejects(admin.rollback('00000000-0000-4000-8000-000000000000'), NotFoundException);
+  await assert.rejects(admin.rollback(bad), ConflictException);
+  await assert.rejects(admin.setRollout(bad, 50), ConflictException);
+  await assert.rejects(admin.pause(bad), ConflictException);
+  await assert.rejects(admin.rollback(rollback.id), ConflictException);
+});
+
+test('skips an update at 0% when picking what to republish', async (t) => {
+  const { pg, admin, publish } = await setup();
+  t.after(() => pg.close());
+  const good = await publish('good');
+  await publish('unseen', 0);
+  const bad = await publish('bad');
+
+  assert.equal((await admin.rollback(bad)).sourceUpdateId, good);
+});
+
+test('a revoked update stays revoked when a pause or rollout lands after the rollback', async (t) => {
+  const { pg, db, updates, admin, publish } = await setup();
+  t.after(() => pg.close());
+  const bad = await publish('bad');
+  await admin.rollback(bad);
+
+  // What a pause or rollout that read the update before the rollback would write next.
+  assert.equal(await updates.setStatus(bad, 'paused'), false);
+  assert.equal(await updates.setRollout(bad, 100, true), false);
+  const rows = await db.select().from(schema.appUpdates);
+  assert.equal(rows.find(({ id }) => id === bad)?.status, 'revoked');
+  assert.equal(rows.length, 2);
+});
+
+test('never republishes a bundle that was rolled back under another id', async (t) => {
+  const { pg, admin, publish } = await setup();
+  t.after(() => pg.close());
+  await publish('good');
+  const bad = await publish('bad');
+  // The republished "good" turns out broken too: "good" itself is no way back.
+  const again = await admin.rollback(bad);
+
+  assert.equal((await admin.rollback(again.id)).kind, 'rollback_to_embedded');
+});
+
+test('refuses to publish a bundle that was rolled back', async (t) => {
+  const { pg, admin, publish } = await setup();
+  t.after(() => pg.close());
+  const bad = await publish('bad');
+  await admin.rollback(bad);
+
+  await assert.rejects(publish('bad'), ConflictException);
+  assert.ok(await publish('fixed'));
+});
+
+test('a rerun of a publish gets the same update back instead of a second sample', async (t) => {
+  const { pg, db, publish } = await setup();
+  t.after(() => pg.close());
+  const first = await publish('same', 10);
+
+  assert.equal(await publish('same', 10), first);
+  assert.equal((await db.select().from(schema.appUpdates)).length, 1);
+});

@@ -4,8 +4,33 @@
  * detection still works even if the message bridge itself fails to wire up. Mirrored in
  * ap-app's shell-sdk (app-shell.ts); this is the one string both sides must agree on.
  *
- * Same technique Slack/Instagram/WhatsApp use for their embedded WebViews. Bump the
- * version segment on breaking bridge-protocol changes, not on every release. ApAppTabBar
- * tells the page this shell draws its tab bar, so dropping it brings back the page's own.
+ * Same technique Slack/Instagram/WhatsApp use for their embedded WebViews.
  */
-export const APP_SHELL_USER_AGENT = 'ApAppMobile/1 ApAppTabBar/1';
+
+/**
+ * What this shell can do for the page, one `ApApp<Name>/<version>` token each
+ * (docs/adr/0008-app-updates.md). The page turns a feature on by its token, never by the
+ * shell's release, because an over-the-air update and a store build can arrive in any order.
+ *
+ * - Bump a version only on a breaking change to that capability's bridge protocol.
+ * - Add a token in the same change that ships the capability. A token that needs new native
+ *   code must not reach a binary without it: over-the-air updates cannot add native code.
+ * - Everything the bridge did before tokens existed is implied by `Mobile/1`.
+ */
+export const SHELL_CAPABILITIES = {
+  Mobile: 1,
+  /** This shell draws the tab bar, so the page hides its own. */
+  TabBar: 1,
+  /** The page sends `updates/busy`, and an urgent update waits until nothing it reports is lost. */
+  ReloadGuard: 1,
+  /** The page may send `shell/info-request`; the shell answers with its version and update. */
+  ShellInfo: 1,
+} as const satisfies Record<string, number>;
+
+export function shellUserAgent(capabilities: Record<string, number>): string {
+  return Object.entries(capabilities)
+    .map(([name, version]) => `ApApp${name}/${version}`)
+    .join(' ');
+}
+
+export const APP_SHELL_USER_AGENT = shellUserAgent(SHELL_CAPABILITIES);

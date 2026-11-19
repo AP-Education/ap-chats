@@ -48,6 +48,7 @@ import {
   isChatsOnlyAccount,
   isChatsPage,
 } from '../../review-mode';
+import { readShellInfo, useUpdateStore } from '../../updates';
 import {
   VoiceMessageRuntime,
   type VoiceRuntimeHandle,
@@ -182,6 +183,12 @@ export function WebViewHost() {
 
   useEffect(() => () => useNotificationStore.getState().setWebReady(false), []);
 
+  // A mounted page may hold work until it reports otherwise; ReloadGuard reads this.
+  useEffect(() => {
+    useUpdateStore.getState().pageStarted();
+    return () => useUpdateStore.getState().pageGone();
+  }, []);
+
   // A reloaded page, or one that now ends elsewhere, takes its geometry at once.
   useEffect(() => {
     if (loadCount === 0) return;
@@ -231,6 +238,8 @@ export function WebViewHost() {
     pageTakesBack.current = false;
     pageWatchesCalls.current = false;
     useNotificationStore.getState().setWebReady(false);
+    useUpdateStore.getState().pageStarted();
+    useUpdateStore.getState().markPageLoaded();
   }
 
   function sendBackToPage(): boolean {
@@ -270,6 +279,9 @@ export function WebViewHost() {
       input.request(message);
     } else if (message.type === 'page/started') {
       startPage();
+    } else if (message.type === 'updates/busy') {
+      if (typeof message.source === 'string' && message.source.length <= 100)
+        useUpdateStore.getState().setPageBusy(message.source, message.busy === true);
     } else if (message.type === 'notifications/ready') {
       useNotificationStore.getState().setWebReady(true);
     } else if (message.type === 'notifications/ack') {
@@ -287,6 +299,10 @@ export function WebViewHost() {
       fixCallCheck(message.id);
     } else if (message.type === 'notifications/permission-check') {
       sendPushPermission();
+    } else if (message.type === 'shell/info-request') {
+      webViewRef.current?.injectJavaScript(
+        buildBridgeScript({ type: 'shell/info', payload: readShellInfo() }),
+      );
     } else if (message.type === 'notifications/settings') {
       void changePushPermission().then(sendPushPermission);
     } else if (message.type === 'auth/sign-out') {

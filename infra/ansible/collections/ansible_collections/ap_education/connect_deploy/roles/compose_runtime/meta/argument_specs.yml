@@ -156,3 +156,27 @@ argument_specs:
         default: ''
         no_log: true
         description: Full Firebase service account JSON as a string (YAML literal block), not a YAML mapping or file path.
+      expo_updates_private_key:
+        type: str
+        default: ''
+        no_log: true
+        description: PEM key that signs over-the-air update manifests, with real newlines (YAML literal block). Its certificate is mobile/certs/certificate.pem.
+      updates_admin_token:
+        type: str
+        default: ''
+        no_log: true
+        description: Bearer token (32+ characters) CI uses for /api/updates/admin. Empty turns the admin API off.
+      updates_min_build_ios:
+        type: str
+        default: ''
+        description: iOS builds below this number are sent to the App Store. Empty keeps every build working.
+      updates_min_build_android:
+        type: str
+        default: ''
+        description: Android builds below this versionCode are sent to Google Play. Empty keeps every build working.
+      updates_store_url_ios:
+        type: str
+        default: ''
+      updates_store_url_android:
+        type: str
+        default: ''

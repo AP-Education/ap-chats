@@ -1,0 +1,97 @@
+# Publishes the mobile shell's JavaScript over the air (docs/adr/0008-app-updates.md).
+name: publish-update
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Builds that take it
+        type: choice
+        options: [preview, production]
+        default: preview
+      platform:
+        type: choice
+        options: [all, ios, android]
+        default: all
+      notes:
+        description: What changed, for the status table
+        type: string
+        required: true
+      mandatory:
+        description: Apply as soon as nothing would be lost, not at the next cold start
+        type: boolean
+        default: false
+      rollout:
+        description: Percent of phones (empty = 10 on production, 100 on preview)
+        type: string
+        required: false
+      commit:
+        description: Commit to publish, from the preview status table (required on production)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+  packages: read
+
+# One publish, rollout change or runtime registration at a time. Pause and rollback stay
+# outside this queue: GitHub cancels a waiting run when another one queues, and an urgent
+# action must neither wait behind a hung publish nor be cancelled by one.
+concurrency:
+  group: updates
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Required reviewers can be set on the production environment without touching this file.
+    environment: ${{ inputs.channel }}
+    env:
+      UPDATES_API_URL: ${{ vars.UPDATES_API_URL }}
+      UPDATES_SPACES_ENDPOINT: ${{ vars.UPDATES_SPACES_ENDPOINT }}
+      UPDATES_SPACES_BUCKET: ${{ vars.UPDATES_SPACES_BUCKET }}
+      UPDATES_ASSETS_URL: ${{ vars.UPDATES_ASSETS_URL }}
+      CHANNEL: ${{ inputs.channel }}
+      PLATFORM: ${{ inputs.platform }}
+      NOTES: ${{ inputs.notes }}
+      MANDATORY: ${{ inputs.mandatory }}
+      ROLLOUT: ${{ inputs.rollout }}
+      COMMIT: ${{ inputs.commit }}
+    steps:
+      # Production ships what testers ran on preview, not whatever main has become since.
+      - name: Check the commit
+        run: |
+          if [ "$CHANNEL" = "production" ] && ! [[ "$COMMIT" =~ ^[0-9a-f]{7,40}$ ]]; then
+            echo "::error::Production needs the commit that passed preview (see update-status)"
+            exit 1
+          fi
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Check out the commit
+        if: inputs.commit != ''
+        run: |
+          git checkout --detach "$COMMIT"
+          git merge-base --is-ancestor HEAD origin/main
+      - uses: ./.github/actions/setup
+        with:
+          node-auth-token: ${{ secrets.GITHUB_TOKEN }}
+      # The bundle must carry the same EXPO_PUBLIC_* values as the builds of this channel.
+      - name: Pull the channel's EAS environment
+        working-directory: mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx --yes eas-cli@27.2.0 env:pull --environment "$CHANNEL" --path .env.updates --non-interactive
+      # Only the step that uploads and calls the API gets those secrets.
+      - name: Publish
+        env:
+          UPDATES_ADMIN_TOKEN: ${{ secrets.UPDATES_ADMIN_TOKEN }}
+          UPDATES_SPACES_KEY: ${{ secrets.UPDATES_SPACES_KEY }}
+          UPDATES_SPACES_SECRET: ${{ secrets.UPDATES_SPACES_SECRET }}
+        run: |
+          args=(--platform "$PLATFORM" --channel "$CHANNEL" --notes "$NOTES")
+          if [ "$MANDATORY" = "true" ]; then args+=(--mandatory); fi
+          if [ -n "$ROLLOUT" ]; then args+=(--rollout "$ROLLOUT"); fi
+          node --env-file=mobile/.env.updates --import tsx scripts/updates/publish.ts "${args[@]}"

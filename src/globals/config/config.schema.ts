@@ -1,7 +1,15 @@
+import { createPrivateKey } from 'node:crypto';
+
 import { z } from 'zod';
 
 // Adapted locally from backend-LMS/src/globals/config. Keep this copy small:
 // Chats owns its deployment settings and does not have a shared package yet.
+
+/** A PEM with real `\n` line breaks, whether it arrived escaped, with CRLF, or both. */
+export function normalizePem(value: string): string {
+  return value.replaceAll('\\r', '').replaceAll('\\n', '\n').replaceAll('\r\n', '\n');
+}
+
 const schema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -75,6 +83,34 @@ const schema = z
     FCM_SERVICE_ACCOUNT_JSON: z.preprocess(
       (value) => value || undefined,
       z.string().min(1).optional(),
+    ),
+    // Native builds below these numbers are told to update from the store; unset keeps all working.
+    UPDATES_MIN_BUILD_IOS: z.preprocess(
+      (value) => value || undefined,
+      z.coerce.number().int().min(1).optional(),
+    ),
+    UPDATES_MIN_BUILD_ANDROID: z.preprocess(
+      (value) => value || undefined,
+      z.coerce.number().int().min(1).optional(),
+    ),
+    UPDATES_STORE_URL_IOS: z.preprocess((value) => value || undefined, z.url().optional()),
+    UPDATES_STORE_URL_ANDROID: z.preprocess((value) => value || undefined, z.url().optional()),
+    // PEM key that signs Expo update manifests; its certificate is embedded in the native build.
+    // Escaped newlines are accepted so the key fits in one env line, and Windows line endings
+    // (which `expo-updates codesigning:generate` writes) are normalized either way.
+    EXPO_UPDATES_PRIVATE_KEY: z.preprocess(
+      (value) => (typeof value === 'string' && value ? normalizePem(value) : undefined),
+      z.string().refine(isRsaPrivateKey, 'Must be an RSA private key in PEM').optional(),
+    ),
+    // Bearer token CI uses to publish and roll back updates; unset turns the admin API off.
+    UPDATES_ADMIN_TOKEN: z.preprocess(
+      (value) => value || undefined,
+      // One Bearer value of visible ASCII: fetch cannot send other characters in a header.
+      z
+        .string()
+        .min(32)
+        .regex(/^[\x21-\x7E]+$/u, 'Must be visible ASCII without spaces')
+        .optional(),
     ),
   })
   .superRefine((config, context) => {
@@ -150,6 +186,15 @@ const schema = z
         }
       }
     }
+    // A minimum build sends older phones to the store, so the store link must be there too.
+    for (const [build, store] of [
+      ['UPDATES_MIN_BUILD_IOS', 'UPDATES_STORE_URL_IOS'],
+      ['UPDATES_MIN_BUILD_ANDROID', 'UPDATES_STORE_URL_ANDROID'],
+    ] as const) {
+      if (config[build] !== undefined && !config[store]) {
+        context.addIssue({ code: 'custom', path: [store], message: `Required with ${build}` });
+      }
+    }
     const fcm = ['FCM_PROJECT_ID', 'FCM_SERVICE_ACCOUNT_JSON'] as const;
     if (fcm.some((key) => config[key]) && !fcm.every((key) => config[key])) {
       for (const key of fcm) {
@@ -167,4 +212,13 @@ export function validateConfig(env: Record<string, unknown>): AppConfig {
   if (result.success) return result.data;
   const details = result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
   throw new Error(`Invalid AP Chats configuration:\n${details.join('\n')}`);
+}
+
+/** Parses without ever echoing the key: a bad value only fails validation. */
+function isRsaPrivateKey(value: string): boolean {
+  try {
+    return createPrivateKey(value).asymmetricKeyType === 'rsa';
+  } catch {
+    return false;
+  }
 }

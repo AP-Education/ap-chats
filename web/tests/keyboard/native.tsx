@@ -102,6 +102,9 @@ function Fixture() {
     const items = new Map<string, ConversationSending>();
     return {
       setSession() {},
+      // The reload guard is not under test here.
+      isSending: () => false,
+      subscribe: () => () => {},
       for(scope) {
         const key = `${scope.identity}:${scope.channelId}`;
         let sending = items.get(key);

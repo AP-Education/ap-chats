@@ -1,0 +1,20 @@
+name: Setup
+description: Install the workspace with pnpm, reading @ap-education packages from GitHub Packages.
+
+inputs:
+  node-auth-token:
+    description: A token that may read the organization's packages.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # pnpm reads registry credentials only from user-level config, never from the committed .npmrc.
+    - shell: bash
+      run: echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
+      env:
+        NODE_AUTH_TOKEN: ${{ inputs.node-auth-token }}
+    - uses: pnpm/setup@v3
+      with:
+        require-lockfile: true
+        cache: true

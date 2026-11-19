@@ -37,3 +37,12 @@ unlabeled call buried in a component's body.
 Reach for an actual hook only when something needs to return a value or be
 called conditionally by more than one caller — not for "runs once, does
 something, renders nothing."
+
+## Capabilities the page can rely on
+
+The page learns what this shell can do from `ApApp<Name>/<n>` tokens in the WebView's
+User-Agent, listed in `src/features/webview/utils/shell-user-agent.ts`. When a change
+gives the page a new bridge message or native behaviour, add its token in the same
+change, and make `web/` check the token rather than assume every shell has it. Shells
+from the stores keep running old code for months, and over-the-air updates
+(`docs/adr/0008-app-updates.md`) reach them in any order relative to web deploys.

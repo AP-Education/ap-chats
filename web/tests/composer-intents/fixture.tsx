@@ -66,7 +66,13 @@ const outbox = new ConversationOutbox({
   },
   recordSent: async () => {},
 });
-const outboxes = { setSession() {}, for: () => ({ uploads, outbox }) };
+// The reload guard is not under test here.
+const outboxes = {
+  setSession() {},
+  isSending: () => false,
+  subscribe: () => () => {},
+  for: () => ({ uploads, outbox }),
+};
 // One message of the history, with the production touch actions and a single synthetic action.
 const sourceItem = {
   type: 'MESSAGE',
