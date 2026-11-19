@@ -46,7 +46,8 @@ async function main() {
     secretKey: requireEnv('UPDATES_SPACES_SECRET'),
   });
   const assetsUrl = requireEnv('UPDATES_ASSETS_URL');
-  const gitCommit = process.env.GITHUB_SHA ?? (await run('git', ['rev-parse', 'HEAD'])).trim();
+  // What is checked out, which on CI may be an older commit than the one the run started from.
+  const gitCommit = (await run('git', ['rev-parse', 'HEAD'])).trim();
 
   for (const platform of platforms) {
     const id = await publish(platform, channel);

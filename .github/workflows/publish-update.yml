@@ -25,6 +25,10 @@ on:
         description: Percent of phones (empty = 10 on production, 100 on preview)
         type: string
         required: false
+      commit:
+        description: Commit to publish, from the preview status table (required on production)
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -53,10 +57,24 @@ jobs:
       NOTES: ${{ inputs.notes }}
       MANDATORY: ${{ inputs.mandatory }}
       ROLLOUT: ${{ inputs.rollout }}
+      COMMIT: ${{ inputs.commit }}
     steps:
+      # Production ships what testers ran on preview, not whatever main has become since.
+      - name: Check the commit
+        run: |
+          if [ "$CHANNEL" = "production" ] && ! [[ "$COMMIT" =~ ^[0-9a-f]{7,40}$ ]]; then
+            echo "::error::Production needs the commit that passed preview (see update-status)"
+            exit 1
+          fi
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+          fetch-depth: 0
+      - name: Check out the commit
+        if: inputs.commit != ''
+        run: |
+          git checkout --detach "$COMMIT"
+          git merge-base --is-ancestor HEAD origin/main
       - uses: ./.github/actions/setup
         with:
           node-auth-token: ${{ secrets.GITHUB_TOKEN }}
