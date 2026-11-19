@@ -1,9 +1,12 @@
 import { CountBadge } from '@ap-education/ui';
 import { BellSlashIcon } from '@phosphor-icons/react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
+
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
-import { formatRecentTime } from './directMessageLabels';
+import { formatRecentTime, lastActivityAt } from './directMessageLabels';
 
 const useStyles = createStyles(({ token, css }) => ({
   trailing: css`
@@ -48,9 +51,11 @@ interface DirectMessageMetaProps {
 /** The row's trailing side: when the last message came, or what waits there, and if it is muted. */
 export function DirectMessageMeta({ item, badge }: DirectMessageMetaProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('directMessages');
+  const language = useChatsLanguage();
   const isMuted = item.notification.isMuted;
   // A waiting count takes the place of the time.
-  const sentAt = badge > 0 ? undefined : item.lastMessage?.createdAt;
+  const sentAt = badge > 0 ? undefined : lastActivityAt(item);
   const hasIndicators = isMuted || badge > 0;
   if (!sentAt && !hasIndicators) return null;
 
@@ -58,15 +63,19 @@ export function DirectMessageMeta({ item, badge }: DirectMessageMetaProps) {
     <span className={styles.trailing}>
       {sentAt && (
         <time className={styles.time} dateTime={sentAt}>
-          {formatRecentTime(sentAt)}
+          {formatRecentTime(sentAt, t, language)}
         </time>
       )}
       {hasIndicators && (
         <span className={styles.indicators}>
           {isMuted && (
-            <BellSlashIcon size={18} className={styles.muted} aria-label="Сповіщення вимкнено" />
+            <BellSlashIcon
+              size={18}
+              className={styles.muted}
+              aria-label={t(($) => $.row.notificationsOff)}
+            />
           )}
-          <CountBadge count={badge} label={`${badge} непрочитаних`} />
+          <CountBadge count={badge} label={t(($) => $.unread.badgeLabel, { unread: badge })} />
         </span>
       )}
     </span>

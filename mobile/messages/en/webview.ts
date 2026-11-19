@@ -8,6 +8,10 @@ export const webview = {
     errorTitle: 'Could not open the file',
     errorDescription: 'Try again or return to the conversation.',
   },
+  setup: {
+    title: 'Set the web app address',
+    description: 'Set EXPO_PUBLIC_WEB_URL in mobile/.env to open AP App.',
+  },
   connectionError: {
     title: 'Can’t reach the server',
     description: 'Check your network and try again.',

@@ -1,4 +1,5 @@
 import { Modal } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 import { FindPersonSearch } from './FindPersonSearch';
 
@@ -16,13 +17,21 @@ export function FindPersonDialog({
   onClose,
   onNavigate,
 }: FindPersonDialogProps) {
+  const { t } = useTranslation('directMessages');
+
   function opened() {
     onClose();
     onNavigate?.();
   }
 
   return (
-    <Modal title="Написати колезі" open={open} onCancel={onClose} footer={null} destroyOnHidden>
+    <Modal
+      title={t(($) => $.findPerson.title)}
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      destroyOnHidden
+    >
       <FindPersonSearch workspaceId={workspaceId} onOpened={opened} />
     </Modal>
   );

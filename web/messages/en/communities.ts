@@ -105,20 +105,30 @@ export const communities = {
   notifications: {
     title: 'Channel notifications',
     loading: 'Loading channel notifications',
+    menuLoading: 'Loading notifications',
     reload: 'Try loading again',
     updateFailed: 'Couldn’t update channel notifications.',
-    mute: 'Mute channel',
-    unmute: 'Unmute channel',
+    mute: 'Mute channel notifications',
+    unmute: 'Unmute channel notifications',
     levels: {
       default: 'Default',
       all: 'All messages',
       mentions: 'Mentions only',
       none: 'Nothing',
+      followWorkspace: 'Same as workspace',
+      workspaceMuted: 'Workspace muted',
     },
     muteFor: {
       hour: 'For 1 hour',
       day: 'For 24 hours',
       untilUnmuted: 'Until I turn it back on',
+    },
+    workspace: {
+      title: 'Workspace notifications',
+      mute: 'Mute workspace notifications',
+      unmute: 'Unmute workspace notifications',
+      updateFailed: 'Couldn’t update workspace notifications.',
+      hint: 'Channels in this workspace notify you this way unless a channel is set differently.',
     },
   },
   sidebar: {
@@ -129,5 +139,7 @@ export const communities = {
     createChannelIn: 'Create a channel in category {{name}}',
     emptyHint: 'Create a channel or drag one here',
     unread: '{{unreadCount}} unread',
+    mentions_one: '{{count}} mention',
+    mentions_other: '{{count}} mentions',
   },
 } satisfies Translation<typeof source>;

@@ -1,6 +1,7 @@
 import { useComposerEditorSlot, useComposerPart } from '@ap-education/timeline/composer';
 import { LockSimpleIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
 
@@ -14,6 +15,7 @@ interface PrivateAssistantModeProps {
 }
 
 export function PrivateAssistantMode({ active, mention, onLeave }: PrivateAssistantModeProps) {
+  const { t } = useTranslation('messaging');
   const { editorRef } = useComposerEditorSlot();
   const setIntent = useConversation((state) => state.setIntent);
 
@@ -42,10 +44,10 @@ export function PrivateAssistantMode({ active, mention, onLeave }: PrivateAssist
   return (
     <div className={styles.privateAssistant} role="status">
       <span>
-        <LockSimpleIcon size={16} /> Приватно зі StarMe · Лише для вас
+        <LockSimpleIcon size={16} /> {t(($) => $.composer.privateAssistant)}
       </span>
       <Button size="small" type="text" onClick={leaveAssistant}>
-        Повернутися до чату
+        {t(($) => $.composer.backToChat)}
       </Button>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useIsMobile } from '@ap-education/ui';
 import { BottomSheet } from '@ap-education/ui/sheet';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { AdaptiveModal } from '@/shared/ui/AdaptiveModal';
 
@@ -10,8 +11,6 @@ import { useWorkspaceNotificationPreference } from './useWorkspaceNotificationPr
 
 // One height for both views of the menu, so switching to the mute durations never jumps.
 const SHEET_HEIGHT = 'min(420px, 60dvh)';
-
-const HINT = 'Канали простору сповіщають так, якщо в каналі не обрано інакше.';
 
 // Headings sit on the rows' own inset, so the text of every line starts at one edge.
 const useStyles = createStyles(({ token, css }) => ({
@@ -42,28 +41,21 @@ export function WorkspaceNotificationsDialog({
   onClose,
 }: WorkspaceNotificationsDialogProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('communities');
+  const subject = workspaceSubject(t);
+  const hint = t(($) => $.notifications.workspace.hint);
   const isMobile = useIsMobile();
   const preference = useWorkspaceNotificationPreference(workspaceId);
 
   const menu = (
-    <NotificationsMenu
-      subject={workspaceSubject}
-      preference={preference}
-      size="large"
-      onDone={onClose}
-    />
+    <NotificationsMenu subject={subject} preference={preference} size="large" onDone={onClose} />
   );
 
   if (isMobile) {
     return (
-      <BottomSheet
-        open={open}
-        onClose={onClose}
-        height={SHEET_HEIGHT}
-        aria-label={workspaceSubject.label}
-      >
-        <h2 className={styles.title}>{workspaceSubject.label}</h2>
-        <p className={styles.summary}>{HINT}</p>
+      <BottomSheet open={open} onClose={onClose} height={SHEET_HEIGHT} aria-label={subject.label}>
+        <h2 className={styles.title}>{subject.label}</h2>
+        <p className={styles.summary}>{hint}</p>
         {menu}
       </BottomSheet>
     );
@@ -75,8 +67,8 @@ export function WorkspaceNotificationsDialog({
       centered
       destroyOnHidden
       width={400}
-      title={workspaceSubject.label}
-      description={HINT}
+      title={subject.label}
+      description={hint}
       footer={null}
       onCancel={onClose}
     >

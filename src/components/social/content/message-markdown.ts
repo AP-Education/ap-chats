@@ -236,21 +236,50 @@ export async function messagePreviewText(markdown: string): Promise<string> {
   return readTree(await parseMarkdown(markdown), markdown, 'shut').plain.join('');
 }
 
+const MAX_MESSAGE_BYTES = 32_768;
+
+function containsType(node: MarkdownNode, type: string): boolean {
+  return node.type === type || !!node.children?.some((child) => containsType(child, type));
+}
+
+/**
+ * A list, heading or quote mark sent on its own, such as "+" or "-" for a yes or a no, is the
+ * character itself rather than an empty block, so it is kept as text. A rule ("---") has no
+ * such reading and stays blank.
+ */
+function literalMarks(source: string, tree: MarkdownNode): string | null {
+  if (containsType(tree, 'thematicBreak')) return null;
+  // Only a mark that opens a block: four spaces in, a line is code and keeps its characters.
+  const escaped = source
+    .replace(/^( {0,3})([-+*>#])/gmu, '$1\\$2')
+    .replace(/^( {0,3})(\d+)([.)])/gmu, '$1$2\\$3');
+  if (escaped === source || Buffer.byteLength(escaped, 'utf8') > MAX_MESSAGE_BYTES) return null;
+  return escaped;
+}
+
 @Injectable()
 export class MessageMarkdownService {
   async normalize(source: string, allowBlank = false): Promise<NormalizedMessageContent> {
-    if (Buffer.byteLength(source, 'utf8') > 32_768)
+    if (Buffer.byteLength(source, 'utf8') > MAX_MESSAGE_BYTES)
       throw new BadRequestException('Message is too long');
     const normalizedSource = source.replace(/\r\n?/gu, '\n');
     // eslint-disable-next-line no-control-regex
     if (/[\u0000-\u0008\u000B-\u001F\u007F]/u.test(normalizedSource))
       throw new BadRequestException('Message contains control characters');
 
-    const tree = await parseMarkdown(normalizedSource);
+    let text = normalizedSource;
+    let tree = await parseMarkdown(text);
+    let reading = readTree(tree, text);
+    const literal = reading.plain.join('').trim() ? null : literalMarks(text, tree);
+    if (literal) {
+      text = literal;
+      tree = await parseMarkdown(text);
+      reading = readTree(tree, text);
+    }
     // Stored as typed: printing the tree back would escape every _ and * in it, links included.
-    const markdown = lowercaseReferences(normalizedSource, tree).trim();
+    const markdown = lowercaseReferences(text, tree).trim();
 
-    const { plain, mentions, links } = readTree(tree, normalizedSource);
+    const { plain, mentions, links } = reading;
     const plainText = plain.join('');
     if (!allowBlank && !plainText.trim()) throw new BadRequestException('Message cannot be blank');
 

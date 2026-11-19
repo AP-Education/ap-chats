@@ -1,5 +1,6 @@
 import { App, Button } from 'antd';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { MuteDurationView } from './MuteDurationView';
 import { NotificationLevelsView } from './NotificationLevelsView';
@@ -22,6 +23,7 @@ export function NotificationsMenu({
   onDone,
 }: NotificationsMenuProps) {
   const { message } = App.useApp();
+  const { t } = useTranslation('communities');
   const [view, setView] = useState<'levels' | 'mute'>('levels');
 
   async function apply(change: () => Promise<unknown>) {
@@ -38,7 +40,7 @@ export function NotificationsMenu({
   if (preference.status === 'failed') {
     return (
       <Button type="link" onClick={preference.retry}>
-        Повторити завантаження
+        {t(($) => $.notifications.reload)}
       </Button>
     );
   }

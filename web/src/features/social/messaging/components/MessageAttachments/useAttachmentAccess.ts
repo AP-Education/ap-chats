@@ -12,6 +12,7 @@ import { useMemo, useState } from 'react';
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { ApiError } from '@/shared/api/http';
+import { i18n } from '@/shared/i18n/i18n';
 
 import { attachmentUrl } from '../../attachments/attachments-api';
 import type { Attachment, UploadScope } from '../../attachments/types';
@@ -79,7 +80,8 @@ export function useAttachmentUrl(
 }
 
 export function showDownloadError() {
-  void message.error('Не вдалося завантажити файл. Можливо, доступ до повідомлення змінився.');
+  const t = i18n.getFixedT(null, 'messaging');
+  void message.error(t(($) => $.attachments.errors.downloadFailed));
 }
 
 export function useAttachmentDownload(

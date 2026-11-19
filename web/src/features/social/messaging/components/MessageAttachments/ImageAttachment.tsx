@@ -9,6 +9,7 @@ import {
 } from '@ap-education/ui/media';
 import { thumbHashStyle } from '@ap-education/ui/thumbhash';
 import { type ReactNode, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { MessageAttachment } from '../../attachments/types';
 import { attachmentMedia } from '../../message-media';
@@ -28,6 +29,7 @@ interface ImageAttachmentProps extends PhotoProps {
 
 /** A photo as its bubble shows it: the address it opens with, its stand-in, and a retry once broken. */
 function usePhoto({ attachment, messageId, available }: PhotoProps) {
+  const { t } = useTranslation('messaging');
   const { open } = useTimelineMediaActions();
   const media = useMemo(() => attachmentMedia(messageId, attachment), [messageId, attachment]);
   const { placeholder } = attachment;
@@ -41,7 +43,9 @@ function usePhoto({ attachment, messageId, available }: PhotoProps) {
     ...image,
     media,
     standIn,
-    label: `${image.broken ? 'Повторити перегляд' : 'Переглянути'} ${attachment.name}`,
+    label: image.broken
+      ? t(($) => $.attachments.retryView, { name: attachment.name })
+      : t(($) => $.attachments.view, { name: attachment.name }),
     press: image.broken ? image.retry : () => open(media.key),
   };
 }

@@ -11,6 +11,7 @@ import { File } from 'expo-file-system';
 import { type Ref, useEffect, useImperativeHandle, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
 
+import { i18n } from '../../../shared/i18n/i18n';
 import { useAuthStore } from '../../auth';
 import { useNativeCallStore } from '../../calls/store/native-call-store';
 import { type VoiceRequest, type VoiceStateMessage, type VoiceUploadResult } from '../types';
@@ -82,7 +83,7 @@ export function VoiceMessageRuntime({
           prepare: async () => {
             const permission = await requestRecordingPermissionsAsync();
             if (!permission.granted)
-              throw new Error('Немає дозволу на мікрофон. Дозвольте його в налаштуваннях AP App.');
+              throw new Error(i18n.t(($) => $.errors.permissionDenied, { ns: 'voice' }));
             if (disposed) return;
             await audio.enable();
             if (disposed) return;
@@ -93,7 +94,7 @@ export function VoiceMessageRuntime({
           stop: async () => {
             completed = true;
             await recorder.stop();
-            if (!recorder.uri) throw new Error('Запис не збережено.');
+            if (!recorder.uri) throw new Error(i18n.t(($) => $.errors.notSaved, { ns: 'voice' }));
             const file = new File(recorder.uri);
             return { uri: recorder.uri, size: file.size };
           },
@@ -157,7 +158,7 @@ export function VoiceMessageRuntime({
       sendRef.current({
         type: 'voice/upload-result',
         requestId: message.requestId,
-        error: 'Локальний запис недоступний. Запишіть повідомлення ще раз.',
+        error: i18n.t(($) => $.errors.localUnavailable, { ns: 'voice' }),
       });
       return;
     }
@@ -175,7 +176,10 @@ export function VoiceMessageRuntime({
         sendRef.current({
           type: 'voice/upload-result',
           requestId: message.requestId,
-          error: error instanceof Error ? error.message : 'Не вдалося завантажити голосове.',
+          error:
+            error instanceof Error
+              ? error.message
+              : i18n.t(($) => $.errors.uploadFailed, { ns: 'voice' }),
         });
     } finally {
       requests.current.delete(message.requestId);

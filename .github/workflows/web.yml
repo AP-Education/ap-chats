@@ -55,6 +55,20 @@ jobs:
       - run: pnpm exec prettier --check web
       - run: pnpm exec playwright test --config web/tests/starme/playwright.config.ts --project desktop --project phone --project narrow
 
+      # Every failed Playwright attempt keeps its trace, a retried one that then passed included,
+      # so a flaky run can be read after the fact: `pnpm exec playwright show-trace <trace.zip>`.
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces-check
+          path: |
+            test-results/**/trace.zip
+            test-results/**/error-context.md
+            web/test-results/**/trace.zip
+            web/test-results/**/error-context.md
+          retention-days: 7
+          if-no-files-found: ignore
+
   safari:
     runs-on: macos-15
     env:
@@ -73,3 +87,17 @@ jobs:
       - run: pnpm --filter @ap-chats/web test:voice --project=webkit-phone
       - run: pnpm exec playwright test --config web/tests/keyboard/playwright.config.ts --project webkit
       - run: pnpm --filter @ap-chats/web test:composer --project=webkit
+
+      # Every failed Playwright attempt keeps its trace, a retried one that then passed included,
+      # so a flaky run can be read after the fact: `pnpm exec playwright show-trace <trace.zip>`.
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces-safari
+          path: |
+            test-results/**/trace.zip
+            test-results/**/error-context.md
+            web/test-results/**/trace.zip
+            web/test-results/**/error-context.md
+          retention-days: 7
+          if-no-files-found: ignore

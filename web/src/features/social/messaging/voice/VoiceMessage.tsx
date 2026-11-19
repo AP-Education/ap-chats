@@ -1,6 +1,7 @@
 import { IconButton, LoadingIcon } from '@ap-education/ui';
 import { DownloadSimpleIcon, PauseIcon, PlayIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { FileAttachmentProps } from '../components/MessageAttachments/FileAttachment';
 import {
@@ -13,6 +14,7 @@ import styles from './VoiceMessage.module.css';
 import { VoiceMessageFrame } from './VoiceMessageFrame';
 
 export function VoiceMessage({ attachment, messageId, available, footer }: FileAttachmentProps) {
+  const { t } = useTranslation('voice');
   const player = useRef<HTMLAudioElement>(null);
   const [requested, setRequested] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -71,7 +73,7 @@ export function VoiceMessage({ attachment, messageId, available, footer }: FileA
         <button
           type="button"
           className={styles.play}
-          aria-label={playing ? 'Призупинити голосове' : 'Відтворити голосове'}
+          aria-label={t(($) => (playing ? $.message.pause : $.message.play))}
           disabled={!available || loading}
           onClick={play}
         >
@@ -87,8 +89,11 @@ export function VoiceMessage({ attachment, messageId, available, footer }: FileA
             max={duration}
             step={0.1}
             value={progress}
-            aria-label="Позиція голосового"
-            aria-valuetext={`${elapsedLabel} з ${durationLabel}`}
+            aria-label={t(($) => $.message.position)}
+            aria-valuetext={t(($) => $.message.positionValue, {
+              elapsed: elapsedLabel,
+              duration: durationLabel,
+            })}
             disabled={!available || !access.data}
             onChange={(event) => {
               const seconds = Number(event.target.value);
@@ -99,12 +104,16 @@ export function VoiceMessage({ attachment, messageId, available, footer }: FileA
         </>
       }
       time={position > 0 ? remainingLabel : durationLabel}
-      timeLabel={position > 0 ? `Залишилося ${remainingLabel}` : `Тривалість ${durationLabel}`}
+      timeLabel={
+        position > 0
+          ? t(($) => $.message.remaining, { time: remainingLabel })
+          : t(($) => $.message.duration, { time: durationLabel })
+      }
       speed={
         <button
           type="button"
           className={styles.speed}
-          aria-label="Швидкість відтворення"
+          aria-label={t(($) => $.message.speed)}
           onClick={() => {
             const next = rate === 1 ? 1.5 : rate === 1.5 ? 2 : 1;
             setRate(next);
@@ -118,7 +127,7 @@ export function VoiceMessage({ attachment, messageId, available, footer }: FileA
         <IconButton
           size={32}
           className={styles.download}
-          aria-label={`Завантажити ${attachment.name}`}
+          aria-label={t(($) => $.message.download, { name: attachment.name })}
           disabled={!available || download.downloading}
           onClick={() => void download.download()}
         >
@@ -129,19 +138,19 @@ export function VoiceMessage({ attachment, messageId, available, footer }: FileA
     >
       {loading && (
         <span className={styles.uploadStatus} role="status">
-          Завантажуємо голосове
+          {t(($) => $.message.loading)}
         </span>
       )}
       {showError && (
         <button type="button" className={styles.retry} onClick={retry}>
-          Не вдалося відтворити · Повторити
+          {t(($) => $.message.playFailed)}
         </button>
       )}
       <audio
         ref={player}
         src={available ? access.data?.url : undefined}
         preload="none"
-        aria-label="Аудіо голосового повідомлення"
+        aria-label={t(($) => $.message.audio)}
         onPlay={(event) => {
           claimAudioPlayback(event.currentTarget);
           setPlaying(true);

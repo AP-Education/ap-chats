@@ -107,7 +107,7 @@ export function MessageTouchActions({ rowProps, children }: MessageActionsProps)
         <ActionSheet
           open
           onClose={closeSheet}
-          aria-label="Дії з повідомленням"
+          aria-label={t(($) => $.message.actionsSheet)}
           groups={messageActionItems(available, scope.messageTarget, t)}
           onSelect={(id) => {
             const action = available.find((entry) => entry.id === id);

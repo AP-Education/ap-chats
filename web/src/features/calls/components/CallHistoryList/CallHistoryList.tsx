@@ -20,7 +20,7 @@ import { CallHistoryListSkeleton } from './CallHistoryListSkeleton';
 import { type CallEntryLinkState, CallHistoryRow } from './CallHistoryRow';
 import { groupCallHistory } from './groupCallHistory';
 
-const useStyles = createStyles(({ css }) => ({
+const useStyles = createStyles(({ token, css }) => ({
   root: css`
     display: flex;
     flex-direction: column;
@@ -41,6 +41,12 @@ const useStyles = createStyles(({ css }) => ({
   sentinel: css`
     height: 1px;
   `,
+  // Its edge lines up with the rows and the search field, which icon buttons' own padding
+  // gives them; the track shows against the panel instead of fading into it.
+  filter: css`
+    margin-right: ${token.paddingXS}px;
+    background: ${token.colorFillSecondary};
+  `,
 }));
 
 export function CallHistoryList({ onNavigate }: { onNavigate?: () => void }) {
@@ -55,6 +61,7 @@ export function CallHistoryList({ onNavigate }: { onNavigate?: () => void }) {
         <PanelTitle>{t(($) => $.title)}</PanelTitle>
         <PanelHeaderActions>
           <Segmented
+            className={styles.filter}
             size="small"
             value={filter}
             onChange={(value) => setFilter(value as CallHistoryFilter)}

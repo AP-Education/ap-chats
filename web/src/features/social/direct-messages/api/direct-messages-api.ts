@@ -1,5 +1,5 @@
 import type { Attachment } from '@/features/social/messaging/attachments/types';
-import type { MessageBlock } from '@/features/social/messaging/types';
+import type { CallEntryStatus, MessageBlock } from '@/features/social/messaging/types';
 import type { MemberSummary } from '@/features/workspaces/types';
 import { apiRequest, jsonInit } from '@/shared/api/http';
 
@@ -23,6 +23,13 @@ export interface DirectMessage {
     attachments?: Attachment[];
     authorMemberId: string;
     createdAt: string;
+  } | null;
+  /** The call, when it came after every message. */
+  lastCall?: {
+    id: string;
+    status: CallEntryStatus;
+    startedByMemberId: string;
+    startedAt: string;
   } | null;
   updatedAt: string;
 }

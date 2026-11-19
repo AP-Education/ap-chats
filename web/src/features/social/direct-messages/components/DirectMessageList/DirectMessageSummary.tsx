@@ -1,7 +1,8 @@
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { DirectMessage } from '../../api/direct-messages-api';
-import { lastMessagePreview } from './directMessageLabels';
+import { conversationPreview } from './directMessageLabels';
 
 const useStyles = createStyles(({ token, css }) => ({
   body: css`
@@ -59,14 +60,15 @@ interface DirectMessageSummaryProps {
 /** Who the conversation is with and what was said last, emphasised while something is unread. */
 export function DirectMessageSummary({ item, isUnread }: DirectMessageSummaryProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation('directMessages');
 
   return (
     <span className={styles.body}>
       <span className={cx(styles.name, isUnread && styles.unreadName)}>
-        {item.participant.displayName ?? 'Ім’я недоступне'}
+        {item.participant.displayName ?? t(($) => $.nameUnavailable)}
       </span>
       <span className={cx(styles.preview, isUnread && styles.unreadPreview)}>
-        {lastMessagePreview(item.lastMessage)}
+        {conversationPreview(item, t)}
       </span>
     </span>
   );

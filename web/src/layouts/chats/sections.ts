@@ -17,15 +17,14 @@ export function sectionAt(pathname: string): ChatsSection {
   return 'channels';
 }
 
-/** A section's tab, named in every language Chats speaks, for the shell and for Chats' own rail. */
+/** A section's tab, named in every language Chats speaks: the shell picks its own language, Chats' rail picks Chats'. */
 export interface ChatsTab extends AppTab {
-  labels: Record<ChatsLanguage, string>;
+  label: Record<ChatsLanguage, string>;
 }
 
 export const teamTab: ChatsTab = {
   id: 'team',
-  label: 'Команда',
-  labels: { uk: 'Команда', en: 'Team' },
+  label: { uk: 'Команда', en: 'Team' },
   icon: UsersThreeIcon,
   symbol: { ios: 'person.2', android: 'groups' },
   path: '/channels',
@@ -35,8 +34,7 @@ export const teamTab: ChatsTab = {
 
 export const personalTab: ChatsTab = {
   id: 'personal',
-  label: 'Особисте',
-  labels: { uk: 'Особисте', en: 'Personal' },
+  label: { uk: 'Особисте', en: 'Personal' },
   icon: ChatTextIcon,
   symbol: { ios: 'bubble.left', android: 'forum' },
   path: '/direct',
@@ -45,8 +43,7 @@ export const personalTab: ChatsTab = {
 
 export const callsTab: ChatsTab = {
   id: 'calls',
-  label: 'Дзвінки',
-  labels: { uk: 'Дзвінки', en: 'Calls' },
+  label: { uk: 'Дзвінки', en: 'Calls' },
   icon: PhoneIcon,
   symbol: { ios: 'phone', android: 'call' },
   path: '/calls',

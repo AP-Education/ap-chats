@@ -42,6 +42,7 @@ export const directMessages = {
   row: {
     messageDeleted: 'Повідомлення видалено',
     attachment: 'Вкладення',
+    voiceMessage: 'Голосове повідомлення',
     newConversation: 'Нова розмова',
     notificationsOff: 'Сповіщення вимкнено',
     justNow: 'щойно',

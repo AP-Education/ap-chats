@@ -1,5 +1,6 @@
 import { createStyles } from 'antd-style';
 import { type ReactNode, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const useStyles = createStyles(({ token, css }) => ({
   spoiler: css`
@@ -27,6 +28,7 @@ interface SpoilerProps {
 /** Text hidden until someone opens it, as Discord and Telegram hide a spoiler. */
 export function Spoiler({ children, inline }: SpoilerProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation('mentions');
   const [isOpen, setOpen] = useState(false);
 
   if (isOpen) return <span className={styles.spoiler}>{children}</span>;
@@ -42,7 +44,7 @@ export function Spoiler({ children, inline }: SpoilerProps) {
     <span
       role="button"
       tabIndex={0}
-      aria-label="Показати прихований текст"
+      aria-label={t(($) => $.spoiler.reveal)}
       className={cx(styles.spoiler, styles.shut)}
       onPointerDown={(event) => event.stopPropagation()}
       onClick={(event) => {

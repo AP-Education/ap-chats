@@ -1,5 +1,7 @@
 import type { ComposerDraft } from '@ap-education/timeline/composer';
+import type { TFunction } from 'i18next';
 import type { ComponentType } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { ComposerIntent } from '@/features/social/conversation-scope/store';
 import { writeToken } from '@/features/social/mentions/mention-tokens';
@@ -29,7 +31,7 @@ export type ReplyPreview = Pick<Message, 'markdown' | 'blocks' | 'attachments' |
 
 interface ComposerIntentBehaviour<T> {
   Excerpt: ComponentType<IntentExcerptProps<T>>;
-  cancelLabel: string;
+  cancelLabel: (t: TFunction<'messaging'>) => string;
   /** The intent says enough to send without words of the person's own. */
   speaksForItself: boolean;
   /** The intent still means the same if the message goes out later. */
@@ -40,22 +42,8 @@ interface ComposerIntentBehaviour<T> {
 
 const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>> } = {
   reply: {
-    Excerpt: ({ intent, replyAuthor, replyPreview }) => (
-      <ReplyExcerpt
-        title={
-          replyPreview?.privateToMe
-            ? 'Приватна відповідь · Лише для вас'
-            : intent.quoteText
-              ? 'Цитата'
-              : `Відповідь для ${replyAuthor ?? 'учасника'}`
-        }
-        markdown={replyPreview?.markdown ?? 'Повідомлення'}
-        blocks={replyPreview?.blocks}
-        attachments={replyPreview?.attachments}
-        quoteText={intent.quoteText}
-      />
-    ),
-    cancelLabel: 'Скасувати відповідь',
+    Excerpt: ReplyIntentExcerpt,
+    cancelLabel: (t) => t(($) => $.composer.cancelReply),
     speaksForItself: false,
     canWait: true,
     compose: (intent, { markdown, labels }) => ({
@@ -67,7 +55,7 @@ const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>>
   },
   ask: {
     Excerpt: ({ intent }) => <AskExcerpt member={intent.member} count={intent.messageIds.length} />,
-    cancelLabel: 'Скасувати запит',
+    cancelLabel: (t) => t(($) => $.composer.cancelAsk),
     speaksForItself: true,
     // StarMe hears a question only as it goes out, so the question cannot be put off.
     canWait: false,
@@ -77,6 +65,32 @@ const composerIntents: { [K in IntentKind]: ComposerIntentBehaviour<IntentOf<K>>
     }),
   },
 };
+
+function ReplyIntentExcerpt({
+  intent,
+  replyAuthor,
+  replyPreview,
+}: IntentExcerptProps<IntentOf<'reply'>>) {
+  const { t } = useTranslation('messaging');
+
+  return (
+    <ReplyExcerpt
+      title={
+        replyPreview?.privateToMe
+          ? t(($) => $.composer.privateReply)
+          : intent.quoteText
+            ? t(($) => $.composer.quote)
+            : t(($) => $.composer.replyTo, {
+                name: replyAuthor ?? t(($) => $.composer.replyFallbackName),
+              })
+      }
+      markdown={replyPreview?.markdown ?? t(($) => $.composer.replyFallbackPreview)}
+      blocks={replyPreview?.blocks}
+      attachments={replyPreview?.attachments}
+      quoteText={intent.quoteText}
+    />
+  );
+}
 
 /** What the composer shows of the intent above the person's words. */
 export function IntentExcerpt({ intent, ...reply }: IntentExcerptProps<Intent>) {

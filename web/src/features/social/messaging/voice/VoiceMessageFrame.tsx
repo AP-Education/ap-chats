@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import styles from './VoiceMessage.module.css';
 
@@ -24,8 +25,14 @@ export function VoiceMessageFrame({
   meta,
   children,
 }: VoiceMessageFrameProps) {
+  const { t } = useTranslation('voice');
   return (
-    <div className={styles.root} role="group" aria-label="Голосове повідомлення" data-voice-message>
+    <div
+      className={styles.root}
+      role="group"
+      aria-label={t(($) => $.message.region)}
+      data-voice-message
+    >
       {playback}
       <div className={styles.body}>
         <div className={styles.waveform}>

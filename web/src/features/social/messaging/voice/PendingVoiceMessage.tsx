@@ -1,6 +1,7 @@
 import { IconButton, LoadingIcon } from '@ap-education/ui';
 import { WarningCircleIcon, XIcon } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { AttachmentDraft } from '../attachments/types';
 import { useUnsentMessages } from '../sending/stores/unsent-messages-context';
@@ -19,9 +20,10 @@ export function PendingVoiceMessage({
   rowId: string;
   meta?: ReactNode;
 }) {
+  const { t } = useTranslation('voice');
   const { discardFile } = useUnsentMessages();
   const failed = draft.status === 'error';
-  const label = failed ? 'Не вдалося завантажити голосове' : 'Надсилаємо голосове';
+  const label = t(($) => (failed ? $.pending.failed : $.pending.sending));
 
   return (
     <VoiceMessageFrame
@@ -35,12 +37,17 @@ export function PendingVoiceMessage({
           className={styles.track}
           value={draft.progress}
           max={100}
-          aria-label="Завантаження голосового"
+          aria-label={t(($) => $.pending.progress)}
         />
       }
       time={voiceTime(durationMs)}
       speed={
-        <button className={styles.speed} type="button" disabled aria-label="Швидкість відтворення">
+        <button
+          className={styles.speed}
+          type="button"
+          disabled
+          aria-label={t(($) => $.message.speed)}
+        >
           1×
         </button>
       }
@@ -48,7 +55,7 @@ export function PendingVoiceMessage({
         <IconButton
           size={32}
           className={styles.download}
-          aria-label="Скасувати надсилання голосового"
+          aria-label={t(($) => $.pending.cancel)}
           onClick={() => discardFile(rowId, draft.key)}
         >
           <XIcon size={18} />

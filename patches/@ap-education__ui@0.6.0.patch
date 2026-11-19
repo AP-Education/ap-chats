@@ -1,3 +1,29 @@
+diff --git a/dist/actions/ContextActions.js b/dist/actions/ContextActions.js
+index 02d03e65665d360fd56aa47a78899a1ae0c3d11a..5b5498c96c9c86efa1dbd9761ee4405f7aaa0eb7 100644
+--- a/dist/actions/ContextActions.js
++++ b/dist/actions/ContextActions.js
+@@ -17,7 +17,8 @@ export function ContextActions({ groups, onSelect, header, getPopupContainer, ch
+         const entries = group.map(({ id, label, icon, accent }) => ({
+             key: id,
+             label: accent === 'ai' ? _jsx("span", { className: styles.assisted, children: label }) : label,
+-            icon,
++            // The assistant's sky carries its own icon; one more would sit beside it.
++            icon: accent === 'ai' ? undefined : icon,
+             danger: accent === 'danger',
+             style: accent === 'ai' ? ASSISTED_ITEM : {},
+         }));
+diff --git a/dist/actions/ContextActions.module.css b/dist/actions/ContextActions.module.css
+index 1a08543967ddfec963dd0731fae9487f0c132e7a..d69153af981c0f81e55c276ef952245c431a313a 100644
+--- a/dist/actions/ContextActions.module.css
++++ b/dist/actions/ContextActions.module.css
+@@ -4,6 +4,7 @@
+ }
+ 
+ .assisted.assisted > :first-child {
++  box-sizing: border-box;
+   gap: var(--ant-margin-xs);
+   justify-content: flex-start;
+   width: 100%;
 diff --git a/dist/media/viewer/components/MediaViewer.d.ts b/dist/media/viewer/components/MediaViewer.d.ts
 index a34026c09438e0bfd39b4b75d43a3070acd4d698..b56a5e3af0c05b93912b1baf37eb2431c4fdefc7 100644
 --- a/dist/media/viewer/components/MediaViewer.d.ts

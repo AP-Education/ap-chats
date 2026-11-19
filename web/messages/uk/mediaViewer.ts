@@ -11,4 +11,10 @@ export const mediaViewer = {
   openFailed: 'Не вдалося відкрити медіа. Перевірте з’єднання та спробуйте ще раз.',
   videoFailed: 'Не вдалося відкрити відео',
   videoLoading: 'Завантажуємо відео',
+  playVideo: 'Відтворити відео',
+  playFailed: 'Не вдалося відтворити відео',
+  retryVideo: 'Спробувати ще',
+  downloadVideo: 'Завантажити відео',
+  today: 'Сьогодні',
+  yesterday: 'Вчора',
 } as const;

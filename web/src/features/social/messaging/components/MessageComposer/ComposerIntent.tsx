@@ -2,6 +2,7 @@ import { type ComposerDraft, useComposer, useComposerPart } from '@ap-education/
 import { IconButton } from '@ap-education/ui';
 import { XIcon } from '@phosphor-icons/react';
 import { useEffectEvent, useLayoutEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useConversation } from '@/features/social/conversation-scope/store';
 
@@ -16,6 +17,7 @@ interface ComposerIntentProps {
 
 /** What the message answers or asks, above the words: it goes out with them, and Escape drops it. */
 export function ComposerIntent({ replyAuthor, replyPreview }: ComposerIntentProps) {
+  const { t } = useTranslation('messaging');
   const intent = useConversation((state) => state.intent);
   const setIntent = useConversation((state) => state.setIntent);
   const { focus } = useComposer();
@@ -42,7 +44,7 @@ export function ComposerIntent({ replyAuthor, replyPreview }: ComposerIntentProp
       <IntentExcerpt intent={intent} replyAuthor={replyAuthor} replyPreview={replyPreview} />
       <IconButton
         size={28}
-        aria-label={composerIntent(intent.kind).cancelLabel}
+        aria-label={composerIntent(intent.kind).cancelLabel(t)}
         onClick={dropIntent}
       >
         <XIcon size={16} />

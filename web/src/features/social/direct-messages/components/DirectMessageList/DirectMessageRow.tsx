@@ -1,5 +1,6 @@
 import { useIsMobile } from '@ap-education/ui';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 import { Link, useMatch } from 'react-router-dom';
 
 import { usePrefetchHistory } from '@/features/social/messaging/hooks';
@@ -62,6 +63,7 @@ interface DirectMessageRowProps {
 /** A direct conversation in a list: opens it, and tells what is new there and meant for the person. */
 export function DirectMessageRow({ item, attention, onNavigate }: DirectMessageRowProps) {
   const { styles, cx } = useStyles();
+  const { t } = useTranslation('directMessages');
   const isMobile = useIsMobile();
   const prefetchHistory = usePrefetchHistory();
   // The panel renders outside the route tree, so the open conversation comes from the URL.
@@ -82,7 +84,7 @@ export function DirectMessageRow({ item, attention, onNavigate }: DirectMessageR
     >
       <Avatar
         path={item.participant.avatarPath}
-        alt={item.participant.displayName ?? 'Колега'}
+        alt={item.participant.displayName ?? t(($) => $.colleague)}
         size={isMobile ? 44 : 36}
         shape="circle"
       />

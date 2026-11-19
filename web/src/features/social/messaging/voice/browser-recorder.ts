@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 import type { UploadFile } from '../attachments/types';
 import { stopAudioPlayback } from './playback';
 import {
@@ -25,8 +27,10 @@ export class BrowserVoiceRecorder implements VoiceRecorder {
   private stopTimeout?: ReturnType<typeof setTimeout>;
 
   private readonly changed: (state: VoiceState) => void;
-  constructor(changed: (state: VoiceState) => void) {
+  private readonly t: TFunction<'voice'>;
+  constructor(changed: (state: VoiceState) => void, t: TFunction<'voice'>) {
     this.changed = changed;
+    this.t = t;
   }
 
   private publish(error?: string) {
@@ -69,12 +73,12 @@ export class BrowserVoiceRecorder implements VoiceRecorder {
         if (this.disposed || !data.size) return;
         this.bytes += data.size;
         if (this.bytes > MAX_VOICE_BYTES) {
-          this.fail('Запис перевищив 20 МБ. Запишіть коротше повідомлення.');
+          this.fail(this.t(($) => $.errors.tooLarge));
           return;
         }
         this.chunks.push(data);
       };
-      recorder.onerror = () => this.fail('Запис перервано. Спробуйте ще раз.');
+      recorder.onerror = () => this.fail(this.t(($) => $.errors.interrupted));
       recorder.onstop = () => this.finished();
       stream
         .getAudioTracks()
@@ -95,9 +99,7 @@ export class BrowserVoiceRecorder implements VoiceRecorder {
       if (this.disposed) return;
       const denied = error instanceof DOMException && error.name === 'NotAllowedError';
       this.fail(
-        denied
-          ? 'Немає дозволу на мікрофон. Дозвольте його в налаштуваннях браузера.'
-          : 'Не вдалося відкрити мікрофон. Перевірте його доступність і підтримку запису.',
+        this.t(($) => (denied ? $.errors.permissionDenied : $.errors.microphoneUnavailable)),
       );
     }
   }
@@ -130,10 +132,7 @@ export class BrowserVoiceRecorder implements VoiceRecorder {
     this.publish();
     return new Promise((resolve) => {
       this.resolveStop = resolve;
-      this.stopTimeout = setTimeout(
-        () => this.fail('Не вдалося завершити запис. Спробуйте ще раз.'),
-        5000,
-      );
+      this.stopTimeout = setTimeout(() => this.fail(this.t(($) => $.errors.stopFailed)), 5000);
       this.recorder?.stop();
     });
   }
@@ -144,7 +143,7 @@ export class BrowserVoiceRecorder implements VoiceRecorder {
     if (this.phase === 'requesting') {
       this.disposed = true;
       this.phase = 'error';
-      this.publish('Запис перервано дзвінком. Спробуйте після його завершення.');
+      this.publish(this.t(($) => $.errors.interruptedByCall));
       return;
     }
     void this.stop();
@@ -160,14 +159,15 @@ export class BrowserVoiceRecorder implements VoiceRecorder {
     clearTimeout(this.stopTimeout);
     this.releaseMicrophone();
     if (!this.disposed && this.phase !== 'error') {
-      if (this.elapsed < 500 || !this.bytes)
-        this.fail('Запис надто короткий. Потрібно щонайменше пів секунди.');
+      if (this.elapsed < 500 || !this.bytes) this.fail(this.t(($) => $.errors.tooShort));
       else {
         const type = this.recorder!.mimeType.split(';')[0]!;
         const extension = type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm';
         const blob = new Blob(this.chunks, { type });
         this.file = Object.assign(
-          new File([blob], `Голосове-${Date.now()}.${extension}`, { type }),
+          new File([blob], `${this.t(($) => $.fileName, { stamp: Date.now() })}.${extension}`, {
+            type,
+          }),
           { voice: true as const },
         );
         this.url = URL.createObjectURL(blob);

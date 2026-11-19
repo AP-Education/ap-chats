@@ -6,8 +6,17 @@ export const mentions = {
   },
   deletedRole: 'видалена роль',
   unavailableChannel: 'недоступний канал',
+  roleHolders: {
+    label: 'Роль {{name}}',
+    empty: 'У ролі ще нікого немає',
+  },
+  spoiler: {
+    reveal: 'Показати прихований текст',
+  },
   suggestions: {
     everyoneHint: 'Сповістити всіх у каналі',
+    // Typed after @ to find @everyone, separated by spaces.
+    everyoneAliases: 'усі всі',
     roleHint: 'Роль',
     nameUnavailable: 'Ім’я недоступне',
     peopleAndRoles: 'Учасники та ролі',

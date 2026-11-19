@@ -1,6 +1,11 @@
 .triggerWrap {
   padding: 0 12px 10px;
 }
+
+/* Where no header stands above it, the field keeps the same inset from the top as from the sides. */
+.triggerWrap:first-child {
+  padding-top: 12px;
+}
 .trigger {
   display: flex;
   align-items: center;

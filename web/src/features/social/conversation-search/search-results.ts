@@ -1,6 +1,9 @@
 import type { ConversationSearchResults, SearchResult } from './types';
 
-export function searchResults(data: ConversationSearchResults): SearchResult[] {
+export function searchResults(
+  data: ConversationSearchResults,
+  nameUnavailable: string,
+): SearchResult[] {
   return [
     ...data.channels.map((channel) => ({
       key: `channel:${channel.id}`,
@@ -12,7 +15,7 @@ export function searchResults(data: ConversationSearchResults): SearchResult[] {
       key: `conversation:${id}`,
       kind: 'conversation' as const,
       id,
-      name: participant.displayName ?? 'Ім’я недоступне',
+      name: participant.displayName ?? nameUnavailable,
       avatarPath: participant.avatarPath,
       active: participant.active,
     })),
@@ -20,7 +23,7 @@ export function searchResults(data: ConversationSearchResults): SearchResult[] {
       key: `person:${person.memberId}`,
       kind: 'person' as const,
       id: person.memberId,
-      name: person.displayName ?? 'Ім’я недоступне',
+      name: person.displayName ?? nameUnavailable,
       avatarPath: person.avatarPath,
     })),
   ];

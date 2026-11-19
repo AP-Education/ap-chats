@@ -1,0 +1,26 @@
+.day {
+  display: flex;
+  flex-direction: column;
+}
+
+.dateBar {
+  position: sticky;
+  top: calc(var(--chat-inset-top, 0px) + var(--ant-padding-xs));
+  z-index: 2;
+  /* One sticky bar per day: containment keeps its repaint inside it (web/AGENTS.md). */
+  contain: paint;
+  display: flex;
+  justify-content: center;
+  margin-block: var(--ant-margin-xs);
+  pointer-events: none;
+  transition: opacity var(--ant-motion-duration-mid, 0.2s) var(--ant-motion-ease-out, ease-out);
+}
+
+/* Stuck over the messages, the date shows only while they move (see useFloatingDates). */
+.dateBar[data-stuck] {
+  opacity: 0;
+}
+
+[data-scrolling] .dateBar[data-stuck] {
+  opacity: 1;
+}

@@ -1,6 +1,7 @@
 import { fetch as expoFetch } from 'expo/fetch';
 import { File, FileMode } from 'expo-file-system';
 
+import { i18n } from '../../../shared/i18n/i18n';
 import { authorizedFetch } from '../../auth';
 import type { VoiceScope, VoiceUploadResult } from '../types';
 import type { LocalRecording } from './voice-session';
@@ -21,9 +22,9 @@ export async function uploadRecording(
     scope.workspaceId !== upload.recording.workspaceId ||
     scope.channelId !== upload.recording.channelId
   )
-    throw new Error('Голосове належить іншій розмові.');
+    throw new Error(i18n.t(($) => $.errors.otherConversation, { ns: 'voice' }));
   const apiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
-  if (!apiUrl) throw new Error('Не налаштовано адресу API.');
+  if (!apiUrl) throw new Error(i18n.t(($) => $.errors.apiMissing, { ns: 'voice' }));
   const base = `${apiUrl}/api/workspaces/${scope.workspaceId}/channels/${scope.channelId}/uploads`;
   const post = async <T>(url: string, body: unknown): Promise<T> => {
     const response = await authorizedFetch(url, {
@@ -37,7 +38,9 @@ export async function uploadRecording(
         upload.session = undefined;
         upload.completed.clear();
       }
-      throw new Error(`Не вдалося завантажити голосове (${response.status}).`);
+      throw new Error(
+        i18n.t(($) => $.errors.uploadFailedStatus, { ns: 'voice', status: response.status }),
+      );
     }
     return response.json() as Promise<T>;
   };
@@ -50,22 +53,23 @@ export async function uploadRecording(
   const session = upload.session;
   if (signal.aborted) {
     cancelRecordingUpload(upload);
-    throw new Error('Завантаження скасовано.');
+    throw new Error(i18n.t(($) => $.errors.uploadCancelled, { ns: 'voice' }));
   }
   const file = new File(recording.uri);
   const handle = file.open(FileMode.ReadOnly);
   try {
     for (let number = 1; number <= Math.ceil(recording.size / session.partBytes); number++) {
-      if (signal.aborted) throw new Error('Завантаження скасовано.');
+      if (signal.aborted) throw new Error(i18n.t(($) => $.errors.uploadCancelled, { ns: 'voice' }));
       const start = (number - 1) * session.partBytes;
       const end = Math.min(number * session.partBytes, recording.size);
       if (!upload.completed.has(number)) {
         const { url } = await post<{ url: string }>(`${base}/${session.id}/part`, { number });
         handle.offset = start;
         const bytes = handle.readBytes(end - start);
-        if (bytes.length !== end - start) throw new Error('Локальний запис неповний.');
+        if (bytes.length !== end - start)
+          throw new Error(i18n.t(($) => $.errors.localIncomplete, { ns: 'voice' }));
         const response = await expoFetch(url, { method: 'PUT', body: bytes, signal });
-        if (!response.ok) throw new Error('Не вдалося передати файл. Спробуйте ще раз.');
+        if (!response.ok) throw new Error(i18n.t(($) => $.errors.transferFailed, { ns: 'voice' }));
         upload.completed.add(number);
       }
       progress(end);

@@ -3,6 +3,7 @@ import { NotePencilIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { PanelHeaderActions } from '@/shared/ui/PanelHeaderActions';
 
@@ -31,16 +32,17 @@ export function DirectMessageList({
   onNavigate?: () => void;
 }) {
   const { styles } = useStyles();
+  const { t } = useTranslation('directMessages');
   const [composeOpen, setComposeOpen] = useState(false);
 
   return (
     <div className={styles.root}>
       <PanelHeader>
-        <PanelTitle>Розмови</PanelTitle>
+        <PanelTitle>{t(($) => $.list.title)}</PanelTitle>
         <PanelHeaderActions>
           <Button
             type="text"
-            aria-label="Написати колезі"
+            aria-label={t(($) => $.list.compose)}
             icon={<NotePencilIcon size={22} />}
             onClick={() => setComposeOpen(true)}
           />

@@ -7,6 +7,7 @@ import {
 import { ChatTextIcon } from '@phosphor-icons/react';
 import { Button } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import { QUIET } from '@/features/social/read-state/conversation-attention';
 import { useWorkspaceUnreadStore } from '@/features/social/read-state/workspace-unread-context';
@@ -29,6 +30,7 @@ export function DirectMessageResults({
   onNavigate?: () => void;
 }) {
   const { styles } = useStyles();
+  const { t } = useTranslation(['directMessages', 'common']);
   const conversations = useDirectMessages();
   const { attentionByChannel } = useWorkspaceUnreadStore();
 
@@ -36,9 +38,9 @@ export function DirectMessageResults({
   if (conversations.isError && !conversations.data)
     return (
       <div role="alert" className={styles.error}>
-        Не вдалося завантажити розмови.{' '}
+        {t(($) => $.list.loadFailed)}{' '}
         <Button type="link" onClick={() => void conversations.refetch()}>
-          Повторити
+          {t(($) => $.common.actions.retry)}
         </Button>
       </div>
     );
@@ -50,9 +52,9 @@ export function DirectMessageResults({
         <ContentStateIcon>
           <ChatTextIcon />
         </ContentStateIcon>
-        <ContentStateDescription>Поки немає розмов</ContentStateDescription>
+        <ContentStateDescription>{t(($) => $.list.empty)}</ContentStateDescription>
         <ContentStateActions>
-          <Button onClick={onCompose}>Написати колезі</Button>
+          <Button onClick={onCompose}>{t(($) => $.list.compose)}</Button>
         </ContentStateActions>
       </ContentState>
     );
@@ -73,7 +75,7 @@ export function DirectMessageResults({
           loading={conversations.isFetchingNextPage}
           onClick={() => void conversations.fetchNextPage()}
         >
-          Показати ще
+          {t(($) => $.list.showMore)}
         </Button>
       )}
     </>

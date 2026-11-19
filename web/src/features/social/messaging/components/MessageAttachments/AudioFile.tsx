@@ -2,6 +2,7 @@ import { TimelineEntryFile } from '@ap-education/timeline/media';
 import { FileCardAction, FileCardActions, FileCardBadge } from '@ap-education/ui/media';
 import { DownloadSimpleIcon, MusicNotesIcon, PlayIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { AttachmentPlayer } from './AttachmentPlayer';
 import type { FileAttachmentProps } from './FileAttachment';
@@ -9,6 +10,7 @@ import { useAttachmentDownload } from './useAttachmentAccess';
 
 // Audio plays in place, under its card.
 export function AudioFile({ attachment, messageId, available }: FileAttachmentProps) {
+  const { t } = useTranslation('messaging');
   const [playing, setPlaying] = useState(false);
   const download = useAttachmentDownload(messageId, attachment);
   const save = () => void download.download();
@@ -21,7 +23,7 @@ export function AudioFile({ attachment, messageId, available }: FileAttachmentPr
       nameDisabled={!available}
     >
       <FileCardBadge
-        label={`Відтворити ${attachment.name}`}
+        label={t(($) => $.attachments.play, { name: attachment.name })}
         disabled={!available || playing}
         onClick={() => setPlaying(true)}
       >
@@ -33,7 +35,7 @@ export function AudioFile({ attachment, messageId, available }: FileAttachmentPr
       </FileCardBadge>
       <FileCardActions>
         <FileCardAction
-          label={`Завантажити ${attachment.name}`}
+          label={t(($) => $.attachments.download, { name: attachment.name })}
           disabled={!available}
           busy={download.downloading}
           onClick={save}

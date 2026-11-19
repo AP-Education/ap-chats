@@ -1,16 +1,14 @@
 import { ChatTextIcon, HashIcon, UserPlusIcon } from '@phosphor-icons/react';
+import type { TFunction } from 'i18next';
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { Avatar } from '@/shared/ui/Avatar';
 
 import styles from './Search.module.css';
 import type { SearchResult } from './types';
 
-const GROUPS = [
-  { kind: 'channel', label: 'Канали' },
-  { kind: 'conversation', label: 'Розмови' },
-  { kind: 'person', label: 'Люди' },
-] as const;
+const GROUPS = ['channel', 'conversation', 'person'] as const;
 
 export function SearchResults({
   items,
@@ -25,9 +23,11 @@ export function SearchResults({
   onChoose: (item: SearchResult) => void;
   listId: string;
 }) {
+  const { t } = useTranslation('search');
   return (
-    <div id={listId} role="listbox" aria-label="Результати пошуку" aria-busy={busy}>
-      {GROUPS.map(({ kind, label }) => {
+    <div id={listId} role="listbox" aria-label={t(($) => $.results.label)} aria-busy={busy}>
+      {GROUPS.map((kind) => {
+        const label = t(($) => $.groups[kind]);
         const group = items.filter((item) => item.kind === kind);
         if (!group.length) return null;
         return (
@@ -48,9 +48,7 @@ export function SearchResults({
                 />
               );
             })}
-            {group.length === 20 && (
-              <p className={styles.hint}>Показано перші 20 результатів. Уточніть пошук.</p>
-            )}
+            {group.length === 20 && <p className={styles.hint}>{t(($) => $.results.limit)}</p>}
           </div>
         );
       })}
@@ -71,8 +69,9 @@ const ResultRow = memo(function ResultRow({
   busy: boolean;
   onChoose: (item: SearchResult) => void;
 }) {
+  const { t } = useTranslation('search');
   const { kind } = item;
-  const description = descriptionOf(item);
+  const description = descriptionOf(item, t);
   return (
     <button
       id={id}
@@ -107,9 +106,9 @@ const ResultRow = memo(function ResultRow({
   );
 });
 
-function descriptionOf(item: SearchResult) {
-  if (item.kind === 'channel') return 'Канал';
-  if (item.kind === 'person') return 'Написати колезі';
-  if (item.active === false) return 'Учасник залишив компанію';
-  return 'Особиста розмова';
+function descriptionOf(item: SearchResult, t: TFunction<'search'>) {
+  if (item.kind === 'channel') return t(($) => $.descriptions.channel);
+  if (item.kind === 'person') return t(($) => $.descriptions.person);
+  if (item.active === false) return t(($) => $.descriptions.leftCompany);
+  return t(($) => $.descriptions.conversation);
 }

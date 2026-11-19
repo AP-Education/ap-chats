@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useSocketEvent } from '@/features/realtime/hooks/useSocketEvent';
+import { directMessageKey } from '@/features/social/direct-messages/queryKeys';
 import { getCallEntry } from '@/features/social/messaging/api/messages-api';
 import { messagingQueryKeys } from '@/features/social/messaging/queryKeys';
 import { type ChatTimelineData, toEntry } from '@/features/social/messaging/timeline/chat-entry';
@@ -21,7 +22,7 @@ import { callHistoryKey } from './useCallHistory';
 function parse(payload: unknown): CallSignal | null {
   const result = callSignalSchema.safeParse(payload);
   if (!result.success) {
-    console.error('Невалідний call-сигнал', result.error);
+    console.error('Invalid call signal', result.error);
     return null;
   }
   return result.data;
@@ -47,6 +48,9 @@ export function useCallSignalListener(): void {
     // Only DM calls ever show in the calls tab, but a channel call's signal
     // costs nothing extra to ignore versus filtering channelKind here too.
     queryClient.invalidateQueries({ queryKey: callHistoryKey(identity) });
+    // A direct conversation's preview names its latest call, and with it the call's status.
+    if (signal.channelKind === 'dm')
+      queryClient.invalidateQueries({ queryKey: directMessageKey(identity) });
   }
 
   // The call's status (ringing/active/ended/declined) lives on its timeline
