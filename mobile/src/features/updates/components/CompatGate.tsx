@@ -28,9 +28,25 @@ export function CompatGate({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let current = true;
+    // One check at a time, so an older answer can neither replace a newer decision nor its
+    // remembered copy. A return to the app during a check asks once more after it.
+    let running = false;
+    let again = false;
     const check = async () => {
-      const [fresh, remembered] = await Promise.all([fetchCompat(), loadRememberedCompat()]);
-      if (current) setDecision(decideCompat(build, fresh, remembered));
+      if (running) {
+        again = true;
+        return;
+      }
+      running = true;
+      try {
+        do {
+          again = false;
+          const [fresh, remembered] = await Promise.all([fetchCompat(), loadRememberedCompat()]);
+          if (current) setDecision(decideCompat(build, fresh, remembered));
+        } while (again && current);
+      } finally {
+        running = false;
+      }
     };
 
     void check();
