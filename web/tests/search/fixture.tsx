@@ -4,13 +4,14 @@ import { CurrentUserContext } from '@ap-education/shell-sdk';
 import { ThemeProvider } from '@ap-education/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Button, Layout } from 'antd';
-import { StrictMode, useEffect, useState } from 'react';
+import { StrictMode, Suspense, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, useLocation } from 'react-router-dom';
 
 import { RealtimeContext } from '@/features/realtime/stores/realtime-context';
 import type { RealtimeSocketClient } from '@/features/realtime/types';
 import { ConversationSearch } from '@/features/social/conversation-search/ConversationSearch';
+import { I18nProvider } from '@/shared/i18n/I18nProvider';
 
 const listeners = new Map<string, Set<(value: unknown) => void>>();
 const socket = {
@@ -89,7 +90,11 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={client}>
         <RealtimeContext.Provider value={{ status: 'idle', socket, error: null }}>
           <BrowserRouter>
-            <Fixture />
+            <Suspense>
+              <I18nProvider>
+                <Fixture />
+              </I18nProvider>
+            </Suspense>
           </BrowserRouter>
         </RealtimeContext.Provider>
       </QueryClientProvider>

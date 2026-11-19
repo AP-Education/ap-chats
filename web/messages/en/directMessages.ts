@@ -45,6 +45,7 @@ export const directMessages = {
   row: {
     messageDeleted: 'Message deleted',
     attachment: 'Attachment',
+    voiceMessage: 'Voice message',
     newConversation: 'New conversation',
     notificationsOff: 'Notifications off',
     justNow: 'now',

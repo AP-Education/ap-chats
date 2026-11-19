@@ -10,6 +10,7 @@ import {
   TrashIcon,
 } from '@phosphor-icons/react';
 import { type ReactNode, useEffect, useEffectEvent, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useCallStore } from '@/features/calls/store/call-store';
 
@@ -47,6 +48,7 @@ export function VoiceComposer({
   const sending = useRef(false);
   const recorder = useRef<VoiceRecorder | null>(null);
   const busy = useCallStore((call) => Boolean(call.active || call.incoming));
+  const { t } = useTranslation('voice');
 
   useEffect(() => () => recorder.current?.dispose(), [scope.workspaceId, scope.channelId]);
   useEffect(() => {
@@ -83,8 +85,8 @@ export function VoiceComposer({
       setState(next);
     };
     const instance = isNativeShell()
-      ? new NativeVoiceRecorder(changed, scope)
-      : new BrowserVoiceRecorder(changed);
+      ? new NativeVoiceRecorder(changed, scope, t)
+      : new BrowserVoiceRecorder(changed, t);
     recorder.current = instance;
     sending.current = false;
     pendingSend.current = false;
@@ -210,6 +212,7 @@ function VoiceRecording({
   onStop: () => void;
   onPreview: () => void;
 }) {
+  const { t } = useTranslation('voice');
   const preview = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [previewError, setPreviewError] = useState(false);
@@ -244,13 +247,13 @@ function VoiceRecording({
   }
 
   return (
-    <section className={styles.recording} aria-label="Запис голосового повідомлення">
+    <section className={styles.recording} aria-label={t(($) => $.recording.region)}>
       <div className={styles.controls}>
         {!holding && (
           <IconButton
             size={44}
-            aria-label="Скасувати запис"
-            title="Скасувати запис"
+            aria-label={t(($) => $.recording.cancel)}
+            title={t(($) => $.recording.cancel)}
             onClick={onCancel}
           >
             <TrashIcon size={22} />
@@ -260,7 +263,9 @@ function VoiceRecording({
           <IconButton
             size={44}
             className={styles.preview}
-            aria-label={previewPlaying ? 'Пауза прослуховування' : 'Прослухати запис'}
+            aria-label={t(($) =>
+              previewPlaying ? $.recording.pausePreview : $.recording.playPreview,
+            )}
             onClick={play}
           >
             {previewPlaying ? (
@@ -271,33 +276,33 @@ function VoiceRecording({
           </IconButton>
         )}
         <div className={styles.summary}>
-          <output className={styles.time} aria-label="Тривалість запису">
+          <output className={styles.time} aria-label={t(($) => $.recording.duration)}>
             {recording && <span className={styles.dot} aria-hidden="true" />}
             {voiceTime(state.durationMs)}
           </output>
           <span className={styles.status} role="status">
-            {state.phase === 'requesting' && 'Підключаємо мікрофон…'}
+            {state.phase === 'requesting' && t(($) => $.recording.status.requesting)}
             {recording && !holding && (
               <>
-                <LockSimpleIcon size={12} /> Триває запис
+                <LockSimpleIcon size={12} /> {t(($) => $.recording.status.recording)}
               </>
             )}
-            {paused && 'Запис на паузі'}
-            {state.phase === 'stopping' && 'Готуємо запис…'}
-            {ready && 'Перевірте запис'}
-            {state.phase === 'error' && 'Запис недоступний'}
+            {paused && t(($) => $.recording.status.paused)}
+            {state.phase === 'stopping' && t(($) => $.recording.status.stopping)}
+            {ready && t(($) => $.recording.status.ready)}
+            {state.phase === 'error' && t(($) => $.recording.status.error)}
           </span>
         </div>
         {holding && (
           <span className={styles.slideHint} data-cancelling={mode === 'cancelling' || undefined}>
-            <CaretLeftIcon size={16} /> Скасувати
+            <CaretLeftIcon size={16} /> {t(($) => $.recording.slideToCancel)}
           </span>
         )}
         {!holding && (recording || paused) && (
           <>
             <IconButton
               size={44}
-              aria-label={paused ? 'Продовжити запис' : 'Пауза запису'}
+              aria-label={t(($) => (paused ? $.recording.resume : $.recording.pause))}
               disabled={paused && busy}
               onClick={paused ? onResume : onPause}
             >
@@ -306,8 +311,8 @@ function VoiceRecording({
             <IconButton
               size={44}
               className={styles.stop}
-              aria-label="Завершити запис"
-              title="Завершити й прослухати"
+              aria-label={t(($) => $.recording.stop)}
+              title={t(($) => $.recording.stopTitle)}
               onClick={onStop}
             >
               <StopIcon size={21} weight="fill" />
@@ -317,7 +322,7 @@ function VoiceRecording({
       </div>
       {busy && (
         <p className={styles.hint} role="status">
-          Під час дзвінка запис недоступний.
+          {t(($) => $.recording.busy)}
         </p>
       )}
       {state.error && (
@@ -327,16 +332,18 @@ function VoiceRecording({
       )}
       {previewError && (
         <p className={styles.error} role="alert">
-          Не вдалося прослухати. Спробуйте ще раз.
+          {t(($) => $.recording.previewFailed)}
         </p>
       )}
       {!busy && !state.error && (
         <p className={styles.hint}>
-          {holding
-            ? 'Відпустіть — надіслати'
-            : ready
-              ? 'Прослухайте або надішліть'
-              : 'Запис без утримання · до 10 хв'}
+          {t(($) =>
+            holding
+              ? $.recording.hint.holding
+              : ready
+                ? $.recording.hint.ready
+                : $.recording.hint.locked,
+          )}
         </p>
       )}
       {ready && state.previewUrl && (

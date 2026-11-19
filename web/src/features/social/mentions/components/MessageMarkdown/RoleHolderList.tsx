@@ -1,5 +1,6 @@
 import { Skeleton } from 'antd';
 import { createStyles } from 'antd-style';
+import { useTranslation } from 'react-i18next';
 
 import type { RoleMember } from '@/features/roles/types';
 import { MemberProfileTrigger } from '@/features/social/people/components/MemberProfile/MemberProfileTrigger';
@@ -52,6 +53,7 @@ interface RoleHolderListProps {
 /** Who holds a role, each opening their profile. */
 export function RoleHolderList({ workspaceId, holders }: RoleHolderListProps) {
   const { styles } = useStyles();
+  const { t } = useTranslation('mentions');
 
   if (!holders) {
     return (
@@ -60,12 +62,12 @@ export function RoleHolderList({ workspaceId, holders }: RoleHolderListProps) {
       </div>
     );
   }
-  if (!holders.length) return <div className={styles.status}>У ролі ще нікого немає</div>;
+  if (!holders.length) return <div className={styles.status}>{t(($) => $.roleHolders.empty)}</div>;
 
   return (
     <ul className={styles.list}>
       {holders.map((holder) => {
-        const name = holder.displayName ?? 'Ім’я недоступне';
+        const name = holder.displayName ?? t(($) => $.suggestions.nameUnavailable);
         return (
           <li key={holder.memberId}>
             <MemberProfileTrigger member={{ workspaceId, ...holder }}>

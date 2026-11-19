@@ -7,6 +7,7 @@ import {
   PaperPlaneTiltIcon,
 } from '@phosphor-icons/react';
 import { type MouseEvent, type PointerEvent, useEffect, useId, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { VoiceGestureMode, VoicePhase } from './types';
 import styles from './VoiceComposer.module.css';
@@ -48,6 +49,7 @@ export function VoiceRecordAction({
   onCancel: () => void;
   onSend: () => void;
 }) {
+  const { t } = useTranslation('voice');
   const button = useRef<HTMLButtonElement>(null);
   const hold = useRef<Hold | null>(null);
   const ignoreClick = useRef(false);
@@ -132,13 +134,15 @@ export function VoiceRecordAction({
     } else if (!holding) onSend();
   }
 
-  const label = !active
-    ? 'Записати голосове повідомлення'
-    : phase === 'error'
-      ? 'Повторити запис'
-      : holding
-        ? 'Утримуйте для запису'
-        : 'Надіслати голосове';
+  const label = t(($) =>
+    !active
+      ? $.action.record
+      : phase === 'error'
+        ? $.action.retry
+        : holding
+          ? $.action.hold
+          : $.action.send,
+  );
   return (
     <div
       className={styles.actionSlot}
@@ -146,8 +150,7 @@ export function VoiceRecordAction({
       hidden={!active && !visible}
     >
       <span className={styles.accessibleHint} id={hintId}>
-        Утримуйте й відпустіть, щоб надіслати. Свайп ліворуч скасовує, вгору — фіксує запис.
-        Короткий тап починає запис без утримання.
+        {t(($) => $.action.gestureHint)}
       </span>
       {holding && (
         <div
@@ -168,7 +171,7 @@ export function VoiceRecordAction({
         aria-describedby={hintId}
         aria-busy={active && (phase === 'requesting' || phase === 'stopping')}
         disabled={unavailable || finalizing || (active && phase === 'error' && busy)}
-        title={!active ? 'Утримуйте для запису · вгору — без утримання' : label}
+        title={!active ? t(($) => $.action.title) : label}
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}

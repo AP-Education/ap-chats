@@ -15,6 +15,8 @@ export { reactions } from './reactions';
 export { realtime } from './realtime';
 export { roles } from './roles';
 export { scheduling } from './scheduling';
+export { search } from './search';
 export { starMe } from './starMe';
+export { voice } from './voice';
 export { wallpaper } from './wallpaper';
 export { workspaces } from './workspaces';

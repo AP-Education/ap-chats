@@ -2,6 +2,7 @@ import { TimelineEntryMedia, useTimelineMediaActions } from '@ap-education/timel
 import { MediaBadge, MediaFrame, MediaFrameOpen } from '@ap-education/ui/media';
 import { thumbHashStyle } from '@ap-education/ui/thumbhash';
 import { type ReactNode, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { mediaKey } from '../../message-media';
 import type { GifBlock } from '../../types';
@@ -20,6 +21,7 @@ export function GifView({
   messageId: string;
   overlay?: ReactNode;
 }) {
+  const { t } = useTranslation('messaging');
   const { open } = useTimelineMediaActions();
   const [broken, setBroken] = useState(false);
   const key = mediaKey(messageId, 'gif');
@@ -48,7 +50,10 @@ export function GifView({
         mediaKey={key}
         onImageError={() => setBroken(true)}
       >
-        <MediaFrameOpen aria-label={`Переглянути ${title}`} onClick={() => open(key)} />
+        <MediaFrameOpen
+          aria-label={t(($) => $.message.viewGif, { title })}
+          onClick={() => open(key)}
+        />
         <MediaBadge corner="top-start" aria-hidden>
           GIF
         </MediaBadge>

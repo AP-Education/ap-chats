@@ -5,6 +5,7 @@ import {
 } from '@ap-education/timeline/react';
 import { AiText } from '@ap-education/ui';
 import type { PropsWithChildren } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 
@@ -15,6 +16,7 @@ import { StarMeFailureNote } from './StarMeFailureNote';
 
 /** StarMe's answer on its way, in StarMe's run: composing, or why not, told to the asker alone. */
 export function StarMeAnswer({ entry, status }: EntryViewProps<AnswerEntry>) {
+  const { t } = useTranslation('starMe');
   const { workspaceId, channelId } = useConversationScope();
   const ask = useAskStarMe(workspaceId);
   const { questionId, failure } = entry.payload;
@@ -29,7 +31,7 @@ export function StarMeAnswer({ entry, status }: EntryViewProps<AnswerEntry>) {
 
   return (
     <AnswerRow role="status" questionId={questionId}>
-      <AiText thinking>Думаю над відповіддю</AiText>
+      <AiText thinking>{t(($) => $.thinking)}</AiText>
     </AnswerRow>
   );
 }

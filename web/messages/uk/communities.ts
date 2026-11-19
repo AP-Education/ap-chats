@@ -101,6 +101,7 @@ export const communities = {
   notifications: {
     title: 'Сповіщення каналу',
     loading: 'Завантажуємо сповіщення каналу',
+    menuLoading: 'Завантажуємо сповіщення',
     reload: 'Повторити завантаження',
     updateFailed: 'Не вдалося оновити сповіщення каналу.',
     mute: 'Вимкнути канал',
@@ -110,11 +111,20 @@ export const communities = {
       all: 'Усі повідомлення',
       mentions: 'Лише згадки',
       none: 'Жодних',
+      followWorkspace: 'Як у просторі',
+      workspaceMuted: 'Простір вимкнено',
     },
     muteFor: {
       hour: 'На 1 годину',
       day: 'На 24 години',
       untilUnmuted: 'Поки не ввімкну',
+    },
+    workspace: {
+      title: 'Сповіщення простору',
+      mute: 'Вимкнути простір',
+      unmute: 'Увімкнути простір',
+      updateFailed: 'Не вдалося оновити сповіщення простору.',
+      hint: 'Канали простору сповіщають так, якщо в каналі не обрано інакше.',
     },
   },
   sidebar: {
@@ -125,5 +135,9 @@ export const communities = {
     createChannelIn: 'Створити канал у категорії {{name}}',
     emptyHint: 'Створіть канал або перетягніть його сюди',
     unread: '{{unreadCount}} непрочитаних',
+    mentions_one: '{{count}} згадка',
+    mentions_few: '{{count}} згадки',
+    mentions_many: '{{count}} згадок',
+    mentions_other: '{{count}} згадок',
   },
 } as const;

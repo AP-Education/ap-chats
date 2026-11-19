@@ -23,6 +23,7 @@ type Managing = 'notifications' | 'roles' | 'categories' | null;
  */
 export function TeamHeader() {
   const { t } = useTranslation('navigation');
+  const { t: tNotifications } = useTranslation('notifications');
   const { workspace } = useActiveWorkspace();
   const { currentMember } = useWorkspaceMemberLabels(workspace?.id);
   const [managing, setManaging] = useState<Managing>(null);
@@ -32,7 +33,7 @@ export function TeamHeader() {
     {
       key: 'notifications',
       icon: <BellIcon size={18} />,
-      label: 'Сповіщення',
+      label: tNotifications(($) => $.title),
       onClick: () => setManaging('notifications'),
     },
   ];

@@ -1,3 +1,4 @@
+import { i18n } from '../../../shared/i18n/i18n';
 import type { VoiceScope, VoiceStateMessage } from '../types';
 
 export interface RecordingDriver {
@@ -66,13 +67,15 @@ export class VoiceSession {
     const generation = ++this.generation;
     this.publish();
     try {
-      if (!this.ports.canRecord()) throw new Error('Неможливо записувати під час дзвінка.');
+      if (!this.ports.canRecord())
+        throw new Error(i18n.t(($) => $.errors.callActive, { ns: 'voice' }));
       const driver = this.ports.createDriver();
       this.driver = driver;
       await driver.prepare();
       if (this.generation !== generation || !this.ports.canRecord()) {
         driver.dispose();
-        if (this.generation === generation) this.fail('Запис перервано дзвінком.');
+        if (this.generation === generation)
+          this.fail(i18n.t(($) => $.errors.interruptedByCall, { ns: 'voice' }));
         return;
       }
       this.phase = 'recording';
@@ -85,7 +88,11 @@ export class VoiceSession {
       this.publish();
     } catch (error) {
       if (this.generation === generation)
-        this.fail(error instanceof Error ? error.message : 'Не вдалося записати голосове.');
+        this.fail(
+          error instanceof Error
+            ? error.message
+            : i18n.t(($) => $.errors.recordFailed, { ns: 'voice' }),
+        );
     }
   }
 
@@ -127,13 +134,13 @@ export class VoiceSession {
       }
       if (this.elapsed < 500 || result.size < 1 || result.size > 20 * 1024 * 1024) {
         this.ports.remove(result.uri);
-        throw new Error('Запис порожній, надто короткий або перевищує 20 МБ.');
+        throw new Error(i18n.t(($) => $.errors.invalid, { ns: 'voice' }));
       }
       this.local = {
         ...result,
         ...this.scope!,
         id: this.ports.randomId(),
-        name: `Голосове-${this.ports.now()}.m4a`,
+        name: `${i18n.t(($) => $.fileName, { ns: 'voice', stamp: this.ports.now() })}.m4a`,
         durationMs: this.elapsed,
       };
       this.ports.retain(this.local);
@@ -141,7 +148,11 @@ export class VoiceSession {
       this.publish();
     } catch (error) {
       if (generation === this.generation)
-        this.fail(error instanceof Error ? error.message : 'Запис перервано.');
+        this.fail(
+          error instanceof Error
+            ? error.message
+            : i18n.t(($) => $.errors.interrupted, { ns: 'voice' }),
+        );
     }
   }
 
@@ -162,7 +173,7 @@ export class VoiceSession {
         sessionId: id,
         phase: 'error',
         durationMs: 0,
-        error: 'Запис перервано. Спробуйте ще раз.',
+        error: i18n.t(($) => $.errors.interruptedRetry, { ns: 'voice' }),
       });
     } else void this.stop(this.id);
   }

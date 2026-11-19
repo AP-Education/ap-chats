@@ -121,7 +121,7 @@ export function PeopleSearchResults({
         <ContentStateIcon>
           <MagnifyingGlassIcon />
         </ContentStateIcon>
-        <ContentStateDescription>Почніть вводити ім’я</ContentStateDescription>
+        <ContentStateDescription>{t(($) => $.findPerson.startTyping)}</ContentStateDescription>
       </ContentState>
     );
   }

@@ -2,26 +2,34 @@ import { formatFileSize } from '@ap-education/timeline/composer';
 import { TimelineEntryFile } from '@ap-education/timeline/media';
 import { FileCardBadge } from '@ap-education/ui/media';
 import { XIcon } from '@phosphor-icons/react';
+import type { TFunction } from 'i18next';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import type { AttachmentDraft } from '../../attachments/types';
 import { useUnsentMessages } from '../../sending/stores/unsent-messages-context';
 import type { MessageBlock } from '../../types';
 import { MessageBlocks } from '../MessageBlocks/MessageBlocks';
+import { intlLocale } from '../packageLabels';
 
-const fileSize = (bytes: number) => formatFileSize(bytes, 'uk-UA');
-
-function failureOf(draft: AttachmentDraft): string {
-  if (draft.failure === 'expired') return 'Час завантаження минув. Спробуйте ще раз.';
-  return 'Не вдалося завантажити. Перевірте з’єднання й повторіть.';
+function failureOf(draft: AttachmentDraft, t: TFunction<'messaging'>): string {
+  if (draft.failure === 'expired') return t(($) => $.attachments.errors.uploadExpired);
+  return t(($) => $.attachments.errors.uploadFailed);
 }
 
 /** How far the upload went; a file that is up tells its size and kind, as a sent one does. */
-function uploadMeta(draft: AttachmentDraft): string | undefined {
+function uploadMeta(
+  draft: AttachmentDraft,
+  t: TFunction<'messaging'>,
+  locale: string,
+): string | undefined {
+  const fileSize = (bytes: number) => formatFileSize(bytes, locale);
   const total = fileSize(draft.size);
-  if (draft.status === 'error') return failureOf(draft);
-  if (draft.status === 'queued') return `У черзі · ${total}`;
-  if (draft.status === 'processing') return 'Обробка файлу';
+  if (draft.status === 'error') return failureOf(draft, t);
+  if (draft.status === 'queued') return t(($) => $.attachments.queuedSize, { size: total });
+  if (draft.status === 'processing') return t(($) => $.attachments.status.processing);
   if (draft.status === 'ready') return undefined;
   return `${fileSize((draft.size * draft.progress) / 100)} / ${total}`;
 }
@@ -44,6 +52,8 @@ export function PendingAttachments({
   blocks?: MessageBlock[];
   meta?: ReactNode;
 }) {
+  const { t } = useTranslation('messaging');
+  const locale = intlLocale(useChatsLanguage());
   const { discardFile } = useUnsentMessages();
 
   return drafts.map((draft, index) => {
@@ -67,11 +77,11 @@ export function PendingAttachments({
         key={draft.key}
         name={draft.name}
         size={draft.size}
-        meta={uploadMeta(draft)}
+        meta={uploadMeta(draft, t, locale)}
         metaTone={draft.status === 'error' ? 'error' : undefined}
       >
         <FileCardBadge
-          label={`Скасувати надсилання ${draft.name}`}
+          label={t(($) => $.attachments.cancelUpload, { name: draft.name })}
           progress={uploadProgress(draft)}
           previewUrl={draft.previewUrl}
           onClick={() => discardFile(rowId, draft.key)}

@@ -20,6 +20,7 @@ const SHOW_IN_CHAT = 'show-in-chat';
 
 export function ViewerMenu({ actions }: { actions: ViewerActions }) {
   const { t } = useTranslation(extensionNamespaces);
+  const { t: tViewer } = useTranslation('mediaViewer');
   const { entry } = useTimelineMediaItem<MessageEntry, ChatMedia>();
   const { showEntry } = useTimelineMediaActions();
   const { edge, leave } = useMediaViewer();
@@ -28,7 +29,11 @@ export function ViewerMenu({ actions }: { actions: ViewerActions }) {
     (action) => VIEWER_ACTIONS.has(action.id) && action.available(target, actions.context),
   );
   const items: MenuProps['items'] = [
-    { key: SHOW_IN_CHAT, label: 'Показати в чаті', icon: <ChatCircleTextIcon size={18} /> },
+    {
+      key: SHOW_IN_CHAT,
+      label: tViewer(($) => $.showInChat),
+      icon: <ChatCircleTextIcon size={18} />,
+    },
   ];
 
   for (const group of groupActions(available, messageActionOrder)) {
@@ -62,7 +67,7 @@ export function ViewerMenu({ actions }: { actions: ViewerActions }) {
       // Inside the viewer, or PhotoSwipe's focus trap pulls focus back out of the menu.
       getPopupContainer={(trigger) => trigger.parentElement ?? document.body}
     >
-      <MediaViewerAction label="Інші дії">
+      <MediaViewerAction label={t(($) => $.common.actions.moreActions)}>
         <DotsThreeIcon size={22} weight="bold" />
       </MediaViewerAction>
     </Dropdown>

@@ -1,4 +1,6 @@
 import { createStyles } from 'antd-style';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import { useConversationScope } from '@/features/social/conversation-scope/store';
 import { useWorkspaceMemberLabels } from '@/features/workspaces/hooks/useWorkspaceMemberLabels';
@@ -55,14 +57,15 @@ const useStyles = createStyles(({ token, css }) => ({
   `,
 }));
 
-function describeTyping(labels: string[]): string {
-  if (labels.length === 1) return `${labels[0]} пише`;
-  if (labels.length === 2) return `${labels[0]} і ${labels[1]} пишуть`;
-  return 'Кілька людей пишуть';
+function describeTyping(labels: string[], t: TFunction<'messaging'>): string {
+  if (labels.length === 1) return t(($) => $.typing.one, { name: labels[0] });
+  if (labels.length === 2) return t(($) => $.typing.two, { first: labels[0], second: labels[1] });
+  return t(($) => $.typing.many);
 }
 
 export function TypingIndicator() {
   const { styles } = useStyles();
+  const { t } = useTranslation('messaging');
   const { workspaceId, channelId } = useConversationScope();
   const watchers = useTypingWatchers(workspaceId, channelId);
   const { byId, currentMember } = useWorkspaceMemberLabels(workspaceId);
@@ -70,7 +73,9 @@ export function TypingIndicator() {
 
   if (typingMemberIds.length === 0) return null;
 
-  const labels = typingMemberIds.map((memberId) => byId.get(memberId)?.label ?? 'Хтось');
+  const labels = typingMemberIds.map(
+    (memberId) => byId.get(memberId)?.label ?? t(($) => $.typing.someone),
+  );
 
   return (
     <div className={styles.shell} role="status" aria-live="polite">
@@ -79,7 +84,7 @@ export function TypingIndicator() {
         <span className={styles.dot} />
         <span className={styles.dot} />
       </span>
-      {describeTyping(labels)}
+      {describeTyping(labels, t)}
     </div>
   );
 }

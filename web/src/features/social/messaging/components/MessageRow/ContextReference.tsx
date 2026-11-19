@@ -8,6 +8,7 @@ import { useMessageActionScope } from './MessageActionScope';
 /** The earlier messages this one is about, as a tappable excerpt of the first that jumps to it. */
 export function ContextReference() {
   const { t } = useTranslation('starMe');
+  const { t: messagingT } = useTranslation('messaging');
   const { item } = useMessageActionScope();
   const { jumpTo } = useTimelineActions();
   const context = item.context;
@@ -17,7 +18,7 @@ export function ContextReference() {
   const { first, count } = context;
   const title =
     count === 1
-      ? (first.author.displayName ?? 'Ім’я недоступне')
+      ? (first.author.displayName ?? messagingT(($) => $.message.nameUnavailable))
       : t(($) => $.messageCount, { count });
 
   return (

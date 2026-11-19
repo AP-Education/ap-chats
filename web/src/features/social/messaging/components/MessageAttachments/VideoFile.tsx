@@ -7,9 +7,13 @@ import { LoadingIcon } from '@ap-education/ui';
 import { FileCardAction, FileCardActions, FileCardBadge, MediaFrame } from '@ap-education/ui/media';
 import { thumbHashStyle } from '@ap-education/ui/thumbhash';
 import { DownloadSimpleIcon, PlayIcon } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
+
+import { useChatsLanguage } from '@/shared/i18n/useChatsLanguage';
 
 import { formatFileSize } from '../../attachments/file-presentation';
 import { attachmentMedia, mediaKey } from '../../message-media';
+import { intlLocale } from '../packageLabels';
 import { attachmentSize } from './attachment-size';
 import type { FileAttachmentProps } from './FileAttachment';
 import { useAttachmentDownload, useAttachmentImage } from './useAttachmentAccess';
@@ -24,6 +28,7 @@ export function VideoFile(props: FileAttachmentProps) {
 }
 
 function VideoFileCard({ attachment, messageId, available }: FileAttachmentProps) {
+  const { t } = useTranslation('messaging');
   const { open } = useTimelineMediaActions();
   const download = useAttachmentDownload(messageId, attachment);
   const save = () => void download.download();
@@ -36,7 +41,7 @@ function VideoFileCard({ attachment, messageId, available }: FileAttachmentProps
       nameDisabled={!available}
     >
       <FileCardBadge
-        label={`Відтворити ${attachment.name}`}
+        label={t(($) => $.attachments.play, { name: attachment.name })}
         disabled={!available}
         onClick={() => open(mediaKey(messageId, attachment.id))}
       >
@@ -44,7 +49,7 @@ function VideoFileCard({ attachment, messageId, available }: FileAttachmentProps
       </FileCardBadge>
       <FileCardActions>
         <FileCardAction
-          label={`Завантажити ${attachment.name}`}
+          label={t(($) => $.attachments.download, { name: attachment.name })}
           disabled={!available}
           busy={download.downloading}
           onClick={save}
@@ -57,6 +62,8 @@ function VideoFileCard({ attachment, messageId, available }: FileAttachmentProps
 }
 
 function VideoPoster({ attachment, messageId, available, overlay }: FileAttachmentProps) {
+  const { t } = useTranslation('messaging');
+  const locale = intlLocale(useChatsLanguage());
   const { open } = useTimelineMediaActions();
   const download = useAttachmentDownload(messageId, attachment);
   const media = attachmentMedia(messageId, attachment);
@@ -71,7 +78,7 @@ function VideoPoster({ attachment, messageId, available, overlay }: FileAttachme
         className={styles.video}
         src={src}
         size={attachmentSize(attachment)}
-        alt={`Кадр відео ${attachment.name}`}
+        alt={t(($) => $.attachments.videoFrame, { name: attachment.name })}
         mediaKey={media.key}
         onImageError={fail}
         referrerPolicy="no-referrer"
@@ -80,7 +87,7 @@ function VideoPoster({ attachment, messageId, available, overlay }: FileAttachme
           type="button"
           className={styles.play}
           disabled={!available}
-          aria-label={`Відкрити відео ${attachment.name}`}
+          aria-label={t(($) => $.attachments.openVideo, { name: attachment.name })}
           title={attachment.name}
           onClick={(event) => {
             event.currentTarget.focus({ preventScroll: true });
@@ -92,15 +99,17 @@ function VideoPoster({ attachment, messageId, available, overlay }: FileAttachme
           </span>
         </button>
         <span className={styles.info}>
-          {duration && <span aria-label={`Тривалість ${duration}`}>{duration}</span>}
+          {duration && (
+            <span aria-label={t(($) => $.attachments.duration, { duration })}>{duration}</span>
+          )}
           {duration && <span aria-hidden>·</span>}
-          <span>{formatFileSize(attachment.size)}</span>
+          <span>{formatFileSize(attachment.size, locale)}</span>
         </span>
         <button
           type="button"
           className={styles.download}
           disabled={!available || download.downloading}
-          aria-label={`Завантажити ${attachment.name}`}
+          aria-label={t(($) => $.attachments.download, { name: attachment.name })}
           aria-busy={download.downloading}
           onClick={() => void download.download()}
         >
@@ -110,7 +119,7 @@ function VideoPoster({ attachment, messageId, available, overlay }: FileAttachme
         </button>
         {broken && (
           <span className={styles.unavailable} role="status">
-            Превʼю недоступне
+            {t(($) => $.attachments.posterUnavailable)}
           </span>
         )}
         {overlay}

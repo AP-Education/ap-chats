@@ -10,6 +10,7 @@ import {
 } from '@ap-education/timeline/composer';
 import { Button, message } from 'antd';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useQueryAuth } from '@/features/auth/hooks/useQueryAuth';
 import { useConversationExtensions } from '@/features/social/conversation-scope/extensions';
@@ -25,6 +26,7 @@ import { useTypingBroadcast } from '@/features/social/typing/hooks/useTypingBroa
 import { useAttachments } from '../../attachments/useAttachments';
 import { useLinkedGif } from '../../gifs/useLinkedGif';
 import type { ComposedMessage } from '../../types';
+import { useComposerLabels, useUploadLabels } from '../packageLabels';
 import { parseComposerDraft } from './composer-draft';
 import { ComposerIntent } from './ComposerIntent';
 import type { ReplyPreview } from './composerIntents';
@@ -87,9 +89,11 @@ export function MessageComposer({
     [conversation, rememberAssistant],
   );
 
+  const composerLabels = useComposerLabels();
+  const uploadLabels = useUploadLabels();
   const labels = useMemo(
-    () => ({ field: composer.ariaLabel, placeholder: composer.placeholder }),
-    [composer.ariaLabel, composer.placeholder],
+    () => ({ ...composerLabels, field: composer.ariaLabel, placeholder: composer.placeholder }),
+    [composerLabels, composer.ariaLabel, composer.placeholder],
   );
   const attachments = useAttachments();
   const linkedGif = useLinkedGif();
@@ -133,6 +137,7 @@ export function MessageComposer({
         queue={attachments.queue}
         policy={attachments.policy}
         onReject={showRejections}
+        labels={uploadLabels}
       >
         <ComposerVoice scope={{ workspaceId, channelId }} attachments={attachments} onSend={send}>
           <ComposerDropZone />
@@ -168,11 +173,13 @@ function showRejections(reasons: string[]) {
 
 /** Without the limits no file can be picked, so the person can ask for them again. */
 function UploadPolicyAlert({ onRetry }: { onRetry: () => void }) {
+  const { t } = useTranslation(['messaging', 'common']);
+
   return (
     <div role="alert">
-      Не вдалося завантажити ліміти файлів.{' '}
+      {t(($) => $.composer.limitsFailed)}{' '}
       <Button type="link" size="small" onClick={onRetry}>
-        Повторити
+        {t(($) => $.common.actions.retry)}
       </Button>
     </div>
   );

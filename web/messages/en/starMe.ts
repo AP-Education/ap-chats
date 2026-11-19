@@ -7,6 +7,8 @@ export const starMe = {
   nameUnavailable: 'Name unavailable',
   thinking: 'Thinking about the answer',
   visibleOnlyToYou: 'Only you can see this',
+  onlyForYou: 'Only for you',
+  makeOwn: 'Make it mine',
   messageCount_one: '{{count}} message',
   messageCount_other: '{{count}} messages',
   failures: {
